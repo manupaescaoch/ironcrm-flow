@@ -135,7 +135,7 @@ export default function Comissoes() {
     };
   }, [filteredInteracoes]);
 
-  // Group by comercial - responsavel_fechamento for agendamento_comercial, quem_agendou for espontaneo_recepcao
+  // Group by comercial - atendido_por for comercial, quem_agendou for espontaneo_recepcao
   const comissoesComercial = useMemo(() => {
     const grouped = new Map<string, { matriculas: number; comissao: number }>();
 
@@ -143,14 +143,14 @@ export default function Comissoes() {
       const comissao = int.comissao_comercial || 0;
       if (comissao <= 0) return; // Skip records with no commercial commission
 
-      const origemFechamento = (int as any).origem_fechamento;
+      const tipoAtendimento = (int as any).tipo_atendimento;
       const quemAgendou = (int as any).quem_agendou;
       
       let responsavel: string;
-      if (origemFechamento === 'agendamento_comercial') {
-        // Commercial scheduling: attribute to responsavel_fechamento
-        responsavel = int.responsavel_fechamento || 'Não informado';
-      } else if (origemFechamento === 'espontaneo_recepcao' && quemAgendou) {
+      if (tipoAtendimento === 'comercial') {
+        // Commercial type: attribute to atendido_por
+        responsavel = int.atendido_por || 'Não informado';
+      } else if (tipoAtendimento === 'espontaneo_recepcao' && quemAgendou) {
         // Walk-in with prior scheduling: attribute to quem_agendou
         responsavel = quemAgendou;
       } else {

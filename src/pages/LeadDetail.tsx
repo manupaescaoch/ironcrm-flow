@@ -65,7 +65,7 @@ interface InteracaoForm {
   compareceu: boolean;
   reagendou: boolean;
   fechou_matricula: boolean;
-  origem_fechamento: string;
+  tipo_atendimento: string;
   plano_escolhido: string;
   valor_plano: number;
   data_fechamento: string;
@@ -84,7 +84,7 @@ const initialFormState: InteracaoForm = {
   compareceu: false,
   reagendou: false,
   fechou_matricula: false,
-  origem_fechamento: '',
+  tipo_atendimento: '',
   plano_escolhido: '',
   valor_plano: 0,
   data_fechamento: '',
@@ -93,8 +93,8 @@ const initialFormState: InteracaoForm = {
   quem_agendou: '',
 };
 
-const origemFechamentoOptions = [
-  { value: 'agendamento_comercial', label: 'Agendamento Comercial' },
+const tipoAtendimentoOptions = [
+  { value: 'comercial', label: 'Comercial' },
   { value: 'espontaneo_recepcao', label: 'Espontâneo Recepção' },
 ];
 
@@ -111,23 +111,27 @@ export default function LeadDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<InteracaoForm>(initialFormState);
 
-  // Calculate commissions based on origem_fechamento and quem_agendou
+  // Calculate commissions based on tipo_atendimento and quem_agendou
   const calculateCommissions = () => {
     if (!formData.fechou_matricula) {
       return { comercial: 0, recepcao: 0 };
     }
-    if (formData.origem_fechamento === 'agendamento_comercial') {
-      // 3% for commercial (responsavel_fechamento)
-      return { comercial: formData.valor_plano * 0.03, recepcao: 0 };
+    const V = formData.valor_plano;
+    // Reception always gets 2% (to responsavel_fechamento)
+    const recepcao = V * 0.02;
+    
+    if (formData.tipo_atendimento === 'comercial') {
+      // 3% for commercial (atendido_por) + 2% for reception
+      return { comercial: V * 0.03, recepcao };
     }
-    if (formData.origem_fechamento === 'espontaneo_recepcao') {
+    if (formData.tipo_atendimento === 'espontaneo_recepcao') {
       // Check if there was a commercial scheduling
       if (formData.quem_agendou.trim()) {
-        // 3% for commercial (quem_agendou) + 2% for reception (responsavel_fechamento)
-        return { comercial: formData.valor_plano * 0.03, recepcao: formData.valor_plano * 0.02 };
+        // 3% for commercial (quem_agendou) + 2% for reception
+        return { comercial: V * 0.03, recepcao };
       } else {
-        // Pure walk-in: 5% for reception (responsavel_fechamento)
-        return { comercial: 0, recepcao: formData.valor_plano * 0.05 };
+        // No commercial commission
+        return { comercial: 0, recepcao };
       }
     }
     return { comercial: 0, recepcao: 0 };
@@ -220,7 +224,7 @@ export default function LeadDetail() {
       compareceu: interacao.compareceu || false,
       reagendou: interacao.reagendou || false,
       fechou_matricula: interacao.fechou_matricula || false,
-      origem_fechamento: (interacao as any).origem_fechamento || '',
+      tipo_atendimento: (interacao as any).tipo_atendimento || '',
       plano_escolhido: interacao.plano_escolhido || '',
       valor_plano: interacao.valor_plano || 0,
       data_fechamento: interacao.data_fechamento || '',
@@ -240,8 +244,8 @@ export default function LeadDetail() {
 
     // Validate required fields when fechou_matricula = true
     if (formData.fechou_matricula) {
-      if (!formData.origem_fechamento) {
-        toast({ title: 'Origem do Fechamento é obrigatório para matrículas', variant: 'destructive' });
+      if (!formData.tipo_atendimento) {
+        toast({ title: 'Tipo de Atendimento é obrigatório para matrículas', variant: 'destructive' });
         return;
       }
       if (!formData.responsavel_fechamento.trim()) {
@@ -264,7 +268,7 @@ export default function LeadDetail() {
       compareceu: formData.compareceu,
       reagendou: formData.reagendou,
       fechou_matricula: formData.fechou_matricula,
-      origem_fechamento: formData.origem_fechamento || null,
+      tipo_atendimento: formData.tipo_atendimento || null,
       plano_escolhido: formData.plano_escolhido || null,
       valor_plano: formData.valor_plano || 0,
       comissao_comercial: comissaoComercial,
@@ -272,7 +276,7 @@ export default function LeadDetail() {
       data_fechamento: formData.data_fechamento || null,
       responsavel_fechamento: formData.responsavel_fechamento.trim() || null,
       treinador_responsavel: formData.treinador_responsavel.trim() || null,
-      quem_agendou: formData.quem_agendou.trim() || null,
+      quem_agendou: formData.tipo_atendimento === 'espontaneo_recepcao' ? (formData.quem_agendou.trim() || null) : null,
     };
 
     let interacaoError;
@@ -750,55 +754,39 @@ export default function LeadDetail() {
               {(formData.fechou_matricula || isEditing) && (
                 <>
                   <div className="space-y-2">
-                    <Label>Origem do Fechamento {formData.fechou_matricula && '*'}</Label>
+                    <Label>Tipo de Atendimento {formData.fechou_matricula && '*'}</Label>
                     <Select
-                      value={formData.origem_fechamento}
-                      onValueChange={(v) => setFormData({ ...formData, origem_fechamento: v })}
+                      value={formData.tipo_atendimento}
+                      onValueChange={(v) => setFormData({ ...formData, tipo_atendimento: v })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione a origem" />
+                        <SelectValue placeholder="Selecione o tipo" />
                       </SelectTrigger>
                       <SelectContent>
-                        {origemFechamentoOptions.map((opt) => (
+                        {tipoAtendimentoOptions.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>
                             {opt.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {formData.origem_fechamento === 'agendamento_comercial' && (
-                      <p className="text-xs text-muted-foreground">Comissão: 3% para Comercial (responsável fechamento)</p>
-                    )}
-                    {formData.origem_fechamento === 'espontaneo_recepcao' && (
-                      <p className="text-xs text-muted-foreground">
-                        {formData.quem_agendou.trim() 
-                          ? 'Comissão: 3% Comercial (quem agendou) + 2% Recepção' 
-                          : 'Comissão: 5% para Recepção'}
-                      </p>
-                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>
-                      {formData.origem_fechamento === 'espontaneo_recepcao' ? 'Recepção por' : 'Responsável Fechamento'} 
-                      {formData.fechou_matricula && ' *'}
-                    </Label>
+                    <Label>Responsável Fechamento {formData.fechou_matricula && '*'}</Label>
                     <Input
                       value={formData.responsavel_fechamento}
                       onChange={(e) => setFormData({ ...formData, responsavel_fechamento: e.target.value })}
-                      placeholder={formData.origem_fechamento === 'espontaneo_recepcao' ? 'Nome do recepcionista' : 'Nome do responsável pelo fechamento'}
+                      placeholder="Nome do responsável pelo fechamento"
                     />
                   </div>
-                  {formData.origem_fechamento === 'espontaneo_recepcao' && (
+                  {formData.tipo_atendimento === 'espontaneo_recepcao' && (
                     <div className="space-y-2">
-                      <Label>Quem Agendou (Comercial - opcional)</Label>
+                      <Label>Quem fez o agendamento (Comercial)</Label>
                       <Input
                         value={formData.quem_agendou}
                         onChange={(e) => setFormData({ ...formData, quem_agendou: e.target.value })}
-                        placeholder="Nome do comercial que agendou (se houver)"
+                        placeholder="Nome de quem agendou no Comercial"
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Se preenchido, 3% vai para quem agendou e 2% para recepção
-                      </p>
                     </div>
                   )}
                   <div className="space-y-2">
@@ -831,11 +819,7 @@ export default function LeadDetail() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>
-                        Comissão Comercial 
-                        {formData.origem_fechamento === 'agendamento_comercial' && ' (3%)'}
-                        {formData.origem_fechamento === 'espontaneo_recepcao' && formData.quem_agendou.trim() && ' (3%)'}
-                      </Label>
+                      <Label>Comissão Comercial</Label>
                       <Input
                         value={formatCurrency(comissaoComercial)}
                         disabled
@@ -843,10 +827,7 @@ export default function LeadDetail() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>
-                        Comissão Recepção 
-                        {formData.origem_fechamento === 'espontaneo_recepcao' && (formData.quem_agendou.trim() ? ' (2%)' : ' (5%)')}
-                      </Label>
+                      <Label>Comissão Recepção</Label>
                       <Input
                         value={formatCurrency(comissaoRecepcao)}
                         disabled
