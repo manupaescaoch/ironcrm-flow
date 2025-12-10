@@ -27,13 +27,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Users, Shield, UserCheck, Briefcase, Trash2, AlertTriangle, ShieldX, RefreshCw } from 'lucide-react';
+import { Loader2, Users, Shield, UserCheck, Briefcase, Trash2, AlertTriangle, ShieldX, RefreshCw, Plus, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { UserRole } from '@/contexts/AuthContext';
@@ -64,6 +74,14 @@ export default function AdminUsers() {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
+  
+  // Create user state
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserRole, setNewUserRole] = useState<string>('comercial');
+  
   const { toast } = useToast();
   const { user: currentUser, session, isAdmin, canAccessAdminUsers } = useAuth();
   const navigate = useNavigate();
@@ -91,7 +109,6 @@ export default function AdminUsers() {
     setFetchError({ type: null, message: '' });
 
     try {
-      // Get access token from session
       const accessToken = session?.access_token;
 
       if (!accessToken) {
@@ -103,7 +120,6 @@ export default function AdminUsers() {
         return;
       }
 
-      // Call edge function with authorization header
       const { data, error } = await supabase.functions.invoke('list-users', {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -111,7 +127,6 @@ export default function AdminUsers() {
       });
 
       if (error) {
-        // Check error status
         const status = error.message?.includes('401') ? 401 
                      : error.message?.includes('403') ? 403 
                      : 500;
@@ -135,7 +150,6 @@ export default function AdminUsers() {
         return;
       }
 
-      // Check if response contains error
       if (data?.error) {
         if (data.error === 'Unauthorized') {
           setFetchError({
@@ -168,6 +182,79 @@ export default function AdminUsers() {
     }
   };
 
+  const handleCreateUser = async () => {
+    if (!newUserEmail || !newUserPassword) {
+      toast({
+        title: 'Preencha todos os campos',
+        description: 'Email e senha são obrigatórios.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (newUserPassword.length < 6) {
+      toast({
+        title: 'Senha muito curta',
+        description: 'A senha deve ter pelo menos 6 caracteres.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const accessToken = session?.access_token;
+
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: { 
+          email: newUserEmail, 
+          password: newUserPassword,
+          role: newUserRole 
+        },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Add new user to local state
+      if (data?.user) {
+        setUsers(prev => [...prev, {
+          id: data.user.id,
+          email: data.user.email,
+          role: data.user.role as UserRole | null,
+          created_at: new Date().toISOString(),
+          last_sign_in_at: null,
+        }]);
+      }
+
+      toast({
+        title: 'Usuário criado!',
+        description: `${newUserEmail} foi criado com sucesso.`,
+      });
+
+      // Reset form and close dialog
+      setNewUserEmail('');
+      setNewUserPassword('');
+      setNewUserRole('comercial');
+      setCreateDialogOpen(false);
+
+      // Refresh list
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      toast({
+        title: 'Erro ao criar usuário',
+        description: error.message || 'Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const handleRoleChange = async (userId: string, newRole: string) => {
     setUpdatingUserId(userId);
     try {
@@ -183,7 +270,6 @@ export default function AdminUsers() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      // Update local state
       setUsers(prev =>
         prev.map(user =>
           user.id === userId ? { ...user, role: newRole as UserRole } : user
@@ -223,7 +309,6 @@ export default function AdminUsers() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      // Remove from local state
       setUsers(prev => prev.filter(user => user.id !== userToDelete.id));
 
       toast({
@@ -263,7 +348,6 @@ export default function AdminUsers() {
     return format(new Date(dateString), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
   };
 
-  // Check if user can be deleted (not the current user)
   const canDeleteUser = (userId: string) => {
     return currentUser?.id !== userId;
   };
@@ -322,14 +406,20 @@ export default function AdminUsers() {
   return (
     <Layout>
       <div className="p-8">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-            <Users className="w-6 h-6 text-primary" />
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+              <Users className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">Administração de Usuários</h1>
+              <p className="text-muted-foreground">Gerencie os roles e permissões dos usuários</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold">Administração de Usuários</h1>
-            <p className="text-muted-foreground">Gerencie os roles e permissões dos usuários</p>
-          </div>
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <UserPlus className="w-4 h-4 mr-2" />
+            Novo Usuário
+          </Button>
         </div>
 
         {/* Role Legend */}
@@ -464,6 +554,67 @@ export default function AdminUsers() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Create User Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Criar Novo Usuário</DialogTitle>
+            <DialogDescription>
+              Preencha os dados para criar um novo usuário no sistema.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="usuario@exemplo.com"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Mínimo 6 caracteres"
+                value={newUserPassword}
+                onChange={(e) => setNewUserPassword(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="role">Permissão</Label>
+              <Select value={newUserRole} onValueChange={setNewUserRole}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {roleOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <span className="flex items-center gap-2">
+                        <option.icon className="w-4 h-4" />
+                        {option.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreateUser} disabled={creating}>
+              {creating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Criar Usuário
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
