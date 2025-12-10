@@ -28,6 +28,7 @@ export interface Lead {
   atendido_por: string | null;
   ativo: boolean;
   user_id: string | null;
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 }

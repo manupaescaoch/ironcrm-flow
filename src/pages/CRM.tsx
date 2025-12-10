@@ -164,6 +164,7 @@ export default function CRM() {
       atendido_por: formData.atendido_por.trim() || null,
       ativo: true,
       user_id: user?.id || null,
+      created_by: user?.id || null,
     });
 
     if (error) {
@@ -390,6 +391,7 @@ export default function CRM() {
             status_funil: validateStatusFunil(row.status_funil),
             created_at: parseDate(row.data_cadastro),
             user_id: user?.id || null,
+            created_by: user?.id || null,
             ativo: true,
           }));
 

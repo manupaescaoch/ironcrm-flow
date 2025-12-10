@@ -29,11 +29,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Lead, Interacao, StatusFunil, PlanoEscolhido } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Pencil, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Pencil, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const statusOptions: { value: StatusFunil; label: string }[] = [
   { value: 'novo', label: 'Novo' },
@@ -107,6 +109,7 @@ export default function LeadDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, isAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingInteracao, setSavingInteracao] = useState(false);
@@ -115,6 +118,9 @@ export default function LeadDetail() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<InteracaoForm>(initialFormState);
+
+  // Permission check: admin can edit any lead, others can only edit leads they created
+  const canEditLead = lead ? (isAdmin || (lead.created_by !== null && lead.created_by === user?.id)) : false;
 
   // Calculate commissions based on tipo_atendimento and quem_agendou
   const calculateCommissions = () => {
@@ -442,15 +448,24 @@ export default function LeadDetail() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="w-5 h-5" />
-                  Editar Lead
+                  {canEditLead ? 'Editar Lead' : 'Detalhes do Lead'}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {!canEditLead && (
+                  <Alert variant="default" className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Você não pode editar este lead. Ele foi criado por outro usuário.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <div className="space-y-2">
                   <Label>Nome</Label>
                   <Input
                     value={lead.nome}
                     onChange={(e) => setLead({ ...lead, nome: e.target.value })}
+                    disabled={!canEditLead}
                   />
                 </div>
                 <div className="space-y-2">
@@ -459,6 +474,7 @@ export default function LeadDetail() {
                     type="email"
                     value={lead.email || ''}
                     onChange={(e) => setLead({ ...lead, email: e.target.value })}
+                    disabled={!canEditLead}
                   />
                 </div>
                 <div className="space-y-2">
@@ -466,6 +482,7 @@ export default function LeadDetail() {
                   <Input
                     value={lead.telefone || ''}
                     onChange={(e) => setLead({ ...lead, telefone: e.target.value })}
+                    disabled={!canEditLead}
                   />
                 </div>
                 <div className="space-y-2">
@@ -473,6 +490,7 @@ export default function LeadDetail() {
                   <Input
                     value={lead.origem || ''}
                     onChange={(e) => setLead({ ...lead, origem: e.target.value })}
+                    disabled={!canEditLead}
                   />
                 </div>
                 <div className="space-y-2">
@@ -480,6 +498,7 @@ export default function LeadDetail() {
                   <Input
                     value={lead.atendido_por || ''}
                     onChange={(e) => setLead({ ...lead, atendido_por: e.target.value })}
+                    disabled={!canEditLead}
                   />
                 </div>
                 <div className="space-y-2">
@@ -487,6 +506,7 @@ export default function LeadDetail() {
                   <Select
                     value={lead.status_funil}
                     onValueChange={(v) => setLead({ ...lead, status_funil: v as StatusFunil })}
+                    disabled={!canEditLead}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -505,6 +525,7 @@ export default function LeadDetail() {
                   <Select
                     value={lead.plano_escolhido || ''}
                     onValueChange={(v) => setLead({ ...lead, plano_escolhido: v as PlanoEscolhido })}
+                    disabled={!canEditLead}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione" />
@@ -524,13 +545,16 @@ export default function LeadDetail() {
                     rows={3}
                     value={lead.observacoes || ''}
                     onChange={(e) => setLead({ ...lead, observacoes: e.target.value })}
+                    disabled={!canEditLead}
                   />
                 </div>
-                <Button onClick={handleSaveLead} disabled={saving} className="w-full">
-                  {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  <Save className="w-4 h-4 mr-2" />
-                  Salvar Lead
-                </Button>
+                {canEditLead && (
+                  <Button onClick={handleSaveLead} disabled={saving} className="w-full">
+                    {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    <Save className="w-4 h-4 mr-2" />
+                    Salvar Lead
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </div>
