@@ -342,104 +342,109 @@ export default function Kanban() {
           </CardContent>
         </Card>
 
-        {/* Kanban Board */}
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        {/* Kanban Board - Vertical Layout */}
+        <div className="flex flex-col gap-6">
           {columns.map((col) => {
             const columnLeads = getLeadsByStatus(col.status);
             return (
-              <div
+              <Card
                 key={col.status}
-                className="flex-shrink-0 w-80"
+                className="w-full"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, col.status)}
               >
-                <Card className="h-full min-h-[500px]">
-                  <CardHeader className="pb-3 sticky top-0 bg-card z-10">
-                    <CardTitle className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full ${col.color}`} />
-                        {col.label}
-                      </div>
-                      <span className="bg-muted px-2 py-0.5 rounded-full text-xs font-bold">
-                        {columnLeads.length}
-                      </span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {columnLeads.map((lead) => (
-                      <Link
-                        key={lead.id}
-                        to={`/lead/${lead.id}`}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, lead.id)}
-                        className={cn(
-                          'block p-4 bg-muted/50 hover:bg-muted rounded-lg cursor-grab active:cursor-grabbing transition-all border border-transparent hover:border-primary/20',
-                          draggingId === lead.id && 'opacity-50 scale-95'
-                        )}
-                      >
-                        {/* Header with avatar and name */}
-                        <div className="flex items-start gap-3 mb-3">
-                          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                            <User className="w-5 h-5 text-primary" />
+                {/* Stage Header - Fixed */}
+                <CardHeader className="pb-3 border-b bg-card sticky top-0 z-10">
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-4 h-4 rounded-full ${col.color}`} />
+                      <span className="text-base font-semibold">{col.label}</span>
+                    </div>
+                    <span className="bg-muted px-3 py-1 rounded-full text-sm font-bold">
+                      {columnLeads.length}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+
+                {/* Scrollable Card List */}
+                <CardContent className="p-4">
+                  <div className="max-h-[400px] overflow-y-auto pr-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {columnLeads.map((lead) => (
+                        <Link
+                          key={lead.id}
+                          to={`/lead/${lead.id}`}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, lead.id)}
+                          className={cn(
+                            'block p-4 bg-muted/50 hover:bg-muted rounded-lg cursor-grab active:cursor-grabbing transition-all border border-transparent hover:border-primary/20 shadow-sm',
+                            draggingId === lead.id && 'opacity-50 scale-95'
+                          )}
+                        >
+                          {/* Header with avatar and name */}
+                          <div className="flex items-start gap-3 mb-3">
+                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                              <User className="w-5 h-5 text-primary" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-sm truncate">{lead.nome}</p>
+                              {lead.telefone && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                  <Phone className="w-3 h-3" />
+                                  {lead.telefone}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-sm truncate">{lead.nome}</p>
-                            {lead.telefone && (
-                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                <Phone className="w-3 h-3" />
-                                {lead.telefone}
-                              </p>
+
+                          {/* Details */}
+                          <div className="space-y-1.5 text-xs">
+                            {lead.origem && (
+                              <div className="flex items-center gap-2 text-muted-foreground">
+                                <MapPin className="w-3 h-3 flex-shrink-0" />
+                                <span className="truncate">{lead.origem}</span>
+                              </div>
+                            )}
+                            {lead.atendido_por && (
+                              <div className="flex items-center gap-2 text-muted-foreground">
+                                <UserCheck className="w-3 h-3 flex-shrink-0" />
+                                <span className="truncate">{lead.atendido_por}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <CalendarIcon className="w-3 h-3 flex-shrink-0" />
+                              <span>{formatDate(lead.created_at)}</span>
+                            </div>
+                            {lead.proximaExperimental?.data && (
+                              <div className="flex items-center gap-2 text-primary font-medium">
+                                <Clock className="w-3 h-3 flex-shrink-0" />
+                                <span>
+                                  Exp: {formatExperimental(lead.proximaExperimental.data, lead.proximaExperimental.hora)}
+                                </span>
+                              </div>
                             )}
                           </div>
-                        </div>
 
-                        {/* Details */}
-                        <div className="space-y-1.5 text-xs">
-                          {lead.origem && (
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <MapPin className="w-3 h-3 flex-shrink-0" />
-                              <span className="truncate">{lead.origem}</span>
-                            </div>
-                          )}
-                          {lead.atendido_por && (
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <UserCheck className="w-3 h-3 flex-shrink-0" />
-                              <span className="truncate">{lead.atendido_por}</span>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <CalendarIcon className="w-3 h-3 flex-shrink-0" />
-                            <span>{formatDate(lead.created_at)}</span>
-                          </div>
-                          {lead.proximaExperimental?.data && (
-                            <div className="flex items-center gap-2 text-primary font-medium">
-                              <Clock className="w-3 h-3 flex-shrink-0" />
-                              <span>
-                                Exp: {formatExperimental(lead.proximaExperimental.data, lead.proximaExperimental.hora)}
+                          {/* Plan badge */}
+                          {lead.plano_escolhido && (
+                            <div className="mt-3">
+                              <span className="inline-block px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+                                {lead.plano_escolhido}
                               </span>
                             </div>
                           )}
-                        </div>
-
-                        {/* Plan badge */}
-                        {lead.plano_escolhido && (
-                          <div className="mt-3">
-                            <span className="inline-block px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
-                              {lead.plano_escolhido}
-                            </span>
-                          </div>
-                        )}
-                      </Link>
-                    ))}
+                        </Link>
+                      ))}
+                    </div>
                     {columnLeads.length === 0 && (
                       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                         <div className={`w-12 h-12 ${col.color} opacity-20 rounded-full mb-3`} />
-                        <p className="text-xs">Nenhum lead</p>
+                        <p className="text-sm">Nenhum lead nesta etapa</p>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              </div>
+                  </div>
+                </CardContent>
+              </Card>
             );
           })}
         </div>
