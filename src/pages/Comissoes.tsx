@@ -355,7 +355,7 @@ export default function Comissoes() {
                       <Briefcase className="w-6 h-6 text-green-500" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Comercial (3%)</p>
+                      <p className="text-sm text-muted-foreground">Total Comercial</p>
                       <p className="text-2xl font-bold">{formatCurrency(stats.totalComissaoComercial)}</p>
                     </div>
                   </div>
@@ -369,7 +369,7 @@ export default function Comissoes() {
                       <UserCheck className="w-6 h-6 text-amber-500" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Recepção (2-5%)</p>
+                      <p className="text-sm text-muted-foreground">Total Recepção</p>
                       <p className="text-2xl font-bold">{formatCurrency(stats.totalComissaoRecepcao)}</p>
                     </div>
                   </div>
@@ -397,7 +397,7 @@ export default function Comissoes() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Briefcase className="w-5 h-5 text-green-500" />
-                    Comissões Comercial (3% - Agendamento)
+                    Comissões Comercial
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -444,7 +444,7 @@ export default function Comissoes() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <UserCheck className="w-5 h-5 text-amber-500" />
-                    Comissões Recepção (2-5% - Espontâneo)
+                    Comissões Recepção
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -620,8 +620,8 @@ export default function Comissoes() {
                           <TableHead>Origem</TableHead>
                           <TableHead>Plano</TableHead>
                           <TableHead className="text-right">Valor</TableHead>
-                          <TableHead className="text-right">Comercial (3%)</TableHead>
-                          <TableHead className="text-right">Recepção (5%)</TableHead>
+                          <TableHead className="text-right">Comercial</TableHead>
+                          <TableHead className="text-right">Recepção</TableHead>
                           <TableHead>Resp. Fechamento</TableHead>
                           <TableHead>Treinador</TableHead>
                           <TableHead>Data Fechamento</TableHead>
