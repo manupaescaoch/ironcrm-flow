@@ -6,14 +6,11 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('Listing users...');
-
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -25,7 +22,40 @@ Deno.serve(async (req) => {
       }
     );
 
-    // List all users using admin API
+    // Validate JWT
+    const token = req.headers.get('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Missing authorization token' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      });
+    }
+
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      });
+    }
+
+    // Verify admin role
+    const { data: roleData } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .single();
+
+    if (!roleData) {
+      return new Response(JSON.stringify({ error: 'Forbidden: Admin access required' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      });
+    }
+
+    console.log(`Admin ${user.id} listing users...`);
+
     const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
 
     if (error) {
@@ -33,19 +63,18 @@ Deno.serve(async (req) => {
       throw error;
     }
 
-    console.log(`Found ${users.length} users`);
-
-    // Map users to a simpler format
-    const mappedUsers = users.map(user => ({
-      id: user.id,
-      email: user.email,
-      role: user.user_metadata?.role || null,
-      created_at: user.created_at,
-      last_sign_in_at: user.last_sign_in_at,
+    const formattedUsers = users.map(u => ({
+      id: u.id,
+      email: u.email,
+      role: u.user_metadata?.role || null,
+      created_at: u.created_at,
+      last_sign_in_at: u.last_sign_in_at,
     }));
 
+    console.log(`Successfully listed ${formattedUsers.length} users`);
+
     return new Response(
-      JSON.stringify({ users: mappedUsers }),
+      JSON.stringify({ users: formattedUsers }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
