@@ -6,7 +6,10 @@ interface WhatsAppLinkProps {
   className?: string;
   showIcon?: boolean;
   iconOnly?: boolean;
+  message?: string;
 }
+
+const DEFAULT_MESSAGE = "Olá! Aqui é da IRON CLUB. Tudo bem?";
 
 /**
  * Normalizes a Brazilian phone number to WhatsApp format (55DDDNUMERO)
@@ -42,11 +45,12 @@ function WhatsAppIcon({ className }: { className?: string }) {
 /**
  * A clickable phone number component that opens WhatsApp Web/Mobile
  */
-export function WhatsAppLink({ phone, className, showIcon = true, iconOnly = false }: WhatsAppLinkProps) {
+export function WhatsAppLink({ phone, className, showIcon = true, iconOnly = false, message = DEFAULT_MESSAGE }: WhatsAppLinkProps) {
   if (!phone) return <span className={className}>-</span>;
 
   const normalizedPhone = normalizePhoneForWhatsApp(phone);
-  const whatsappUrl = `https://wa.me/${normalizedPhone}`;
+  const encodedMessage = encodeURIComponent(message);
+  const whatsappUrl = `https://wa.me/${normalizedPhone}?text=${encodedMessage}`;
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
