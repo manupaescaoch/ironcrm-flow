@@ -32,6 +32,7 @@ export type Database = {
           lead_id: string
           origem_fechamento: string | null
           plano_escolhido: string | null
+          quem_agendou: string | null
           reagendou: boolean | null
           responsavel_fechamento: string | null
           tipo: string
@@ -56,6 +57,7 @@ export type Database = {
           lead_id: string
           origem_fechamento?: string | null
           plano_escolhido?: string | null
+          quem_agendou?: string | null
           reagendou?: boolean | null
           responsavel_fechamento?: string | null
           tipo: string
@@ -80,6 +82,7 @@ export type Database = {
           lead_id?: string
           origem_fechamento?: string | null
           plano_escolhido?: string | null
+          quem_agendou?: string | null
           reagendou?: boolean | null
           responsavel_fechamento?: string | null
           tipo?: string

@@ -135,16 +135,32 @@ export default function Comissoes() {
     };
   }, [filteredInteracoes]);
 
-  // Group by comercial (responsavel_fechamento)
+  // Group by comercial - responsavel_fechamento for agendamento_comercial, quem_agendou for espontaneo_recepcao
   const comissoesComercial = useMemo(() => {
     const grouped = new Map<string, { matriculas: number; comissao: number }>();
 
     filteredInteracoes.forEach((int) => {
-      const responsavel = int.responsavel_fechamento || 'Não informado';
+      const comissao = int.comissao_comercial || 0;
+      if (comissao <= 0) return; // Skip records with no commercial commission
+
+      const origemFechamento = (int as any).origem_fechamento;
+      const quemAgendou = (int as any).quem_agendou;
+      
+      let responsavel: string;
+      if (origemFechamento === 'agendamento_comercial') {
+        // Commercial scheduling: attribute to responsavel_fechamento
+        responsavel = int.responsavel_fechamento || 'Não informado';
+      } else if (origemFechamento === 'espontaneo_recepcao' && quemAgendou) {
+        // Walk-in with prior scheduling: attribute to quem_agendou
+        responsavel = quemAgendou;
+      } else {
+        return; // Skip if no commercial attribution
+      }
+      
       const current = grouped.get(responsavel) || { matriculas: 0, comissao: 0 };
       grouped.set(responsavel, {
         matriculas: current.matriculas + 1,
-        comissao: current.comissao + (int.comissao_comercial || 0),
+        comissao: current.comissao + comissao,
       });
     });
 
@@ -156,16 +172,20 @@ export default function Comissoes() {
       .sort((a, b) => b.comissao - a.comissao);
   }, [filteredInteracoes]);
 
-  // Group by recepção (atendido_por)
+  // Group by recepção (responsavel_fechamento for espontaneo_recepcao)
   const comissoesRecepcao = useMemo(() => {
     const grouped = new Map<string, { matriculas: number; comissao: number }>();
 
     filteredInteracoes.forEach((int) => {
-      const responsavel = int.atendido_por || 'Não informado';
+      const comissao = int.comissao_recepcao || 0;
+      if (comissao <= 0) return; // Skip records with no reception commission
+
+      // For reception commissions, always use responsavel_fechamento
+      const responsavel = int.responsavel_fechamento || 'Não informado';
       const current = grouped.get(responsavel) || { matriculas: 0, comissao: 0 };
       grouped.set(responsavel, {
         matriculas: current.matriculas + 1,
-        comissao: current.comissao + (int.comissao_recepcao || 0),
+        comissao: current.comissao + comissao,
       });
     });
 
@@ -321,7 +341,7 @@ export default function Comissoes() {
                       <UserCheck className="w-6 h-6 text-amber-500" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Recepção (5%)</p>
+                      <p className="text-sm text-muted-foreground">Recepção (2-5%)</p>
                       <p className="text-2xl font-bold">{formatCurrency(stats.totalComissaoRecepcao)}</p>
                     </div>
                   </div>
@@ -396,7 +416,7 @@ export default function Comissoes() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <UserCheck className="w-5 h-5 text-amber-500" />
-                    Comissões Recepção (5% - Espontâneo)
+                    Comissões Recepção (2-5% - Espontâneo)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -516,26 +536,37 @@ export default function Comissoes() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredInteracoes.map((int) => (
+                        {filteredInteracoes.map((int) => {
+                          const origemFechamento = (int as any).origem_fechamento;
+                          const quemAgendou = (int as any).quem_agendou;
+                          return (
                           <TableRow key={int.id}>
                             <TableCell className="font-medium">{int.lead_nome}</TableCell>
                             <TableCell>
-                              {(int as any).origem_fechamento === 'agendamento_comercial' ? 'Agendamento' : 
-                               (int as any).origem_fechamento === 'espontaneo_recepcao' ? 'Espontâneo' : '-'}
+                              {origemFechamento === 'agendamento_comercial' ? 'Agendamento' : 
+                               origemFechamento === 'espontaneo_recepcao' ? (quemAgendou ? 'Espontâneo (c/ agend.)' : 'Espontâneo') : '-'}
                             </TableCell>
                             <TableCell>{int.plano_escolhido || '-'}</TableCell>
                             <TableCell className="text-right">{formatCurrency(int.valor_plano || 0)}</TableCell>
                             <TableCell className="text-right text-green-600">
-                              {formatCurrency(int.comissao_comercial || 0)}
+                              <div>{formatCurrency(int.comissao_comercial || 0)}</div>
+                              {(int.comissao_comercial || 0) > 0 && (
+                                <div className="text-xs text-muted-foreground">
+                                  {origemFechamento === 'agendamento_comercial' ? int.responsavel_fechamento : quemAgendou}
+                                </div>
+                              )}
                             </TableCell>
                             <TableCell className="text-right text-amber-600">
-                              {formatCurrency(int.comissao_recepcao || 0)}
+                              <div>{formatCurrency(int.comissao_recepcao || 0)}</div>
+                              {(int.comissao_recepcao || 0) > 0 && (
+                                <div className="text-xs text-muted-foreground">{int.responsavel_fechamento}</div>
+                              )}
                             </TableCell>
                             <TableCell>{int.responsavel_fechamento || '-'}</TableCell>
                             <TableCell>{int.treinador_responsavel || '-'}</TableCell>
                             <TableCell>{formatDate(int.data_fechamento)}</TableCell>
                           </TableRow>
-                        ))}
+                        )})}
                       </TableBody>
                     </Table>
                   </div>
