@@ -8,7 +8,8 @@ import {
   Columns, 
   LogOut,
   Dumbbell,
-  DollarSign
+  DollarSign,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -18,6 +19,7 @@ interface LayoutProps {
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard-executivo', label: 'Executivo', icon: BarChart3 },
   { href: '/crm', label: 'CRM', icon: Users },
   { href: '/kanban', label: 'Funil', icon: Columns },
   { href: '/comissoes', label: 'Comissões', icon: DollarSign },

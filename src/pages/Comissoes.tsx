@@ -156,12 +156,12 @@ export default function Comissoes() {
       .sort((a, b) => b.comissao - a.comissao);
   }, [filteredInteracoes]);
 
-  // Group by recepção (treinador_responsavel or atendido_por)
+  // Group by recepção (atendido_por)
   const comissoesRecepcao = useMemo(() => {
     const grouped = new Map<string, { matriculas: number; comissao: number }>();
 
     filteredInteracoes.forEach((int) => {
-      const responsavel = int.treinador_responsavel || int.atendido_por || 'Não informado';
+      const responsavel = int.atendido_por || 'Não informado';
       const current = grouped.get(responsavel) || { matriculas: 0, comissao: 0 };
       grouped.set(responsavel, {
         matriculas: current.matriculas + 1,
@@ -175,6 +175,27 @@ export default function Comissoes() {
         ...data,
       }))
       .sort((a, b) => b.comissao - a.comissao);
+  }, [filteredInteracoes]);
+
+  // Group by treinador responsável pelo fechamento
+  const comissoesTreinador = useMemo(() => {
+    const grouped = new Map<string, { matriculas: number; faturamento: number }>();
+
+    filteredInteracoes.forEach((int) => {
+      const treinador = int.treinador_responsavel || 'Não informado';
+      const current = grouped.get(treinador) || { matriculas: 0, faturamento: 0 };
+      grouped.set(treinador, {
+        matriculas: current.matriculas + 1,
+        faturamento: current.faturamento + (int.valor_plano || 0),
+      });
+    });
+
+    return Array.from(grouped.entries())
+      .map(([treinador, data]) => ({
+        treinador,
+        ...data,
+      }))
+      .sort((a, b) => b.matriculas - a.matriculas);
   }, [filteredInteracoes]);
 
   const formatCurrency = (value: number) => {
@@ -416,8 +437,55 @@ export default function Comissoes() {
                     </Table>
                   )}
                 </CardContent>
-              </Card>
-            </div>
+            </Card>
+
+            {/* Treinador Responsável Table */}
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-blue-500" />
+                  Fechamentos por Treinador Responsável
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {comissoesTreinador.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">
+                    Nenhum fechamento neste período
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Treinador</TableHead>
+                        <TableHead className="text-center">Matrículas Fechadas</TableHead>
+                        <TableHead className="text-right">Faturamento</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {comissoesTreinador.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">{item.treinador}</TableCell>
+                          <TableCell className="text-center">{item.matriculas}</TableCell>
+                          <TableCell className="text-right font-semibold text-blue-600">
+                            {formatCurrency(item.faturamento)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="bg-muted/50">
+                        <TableCell className="font-bold">Total</TableCell>
+                        <TableCell className="text-center font-bold">
+                          {comissoesTreinador.reduce((sum, i) => sum + i.matriculas, 0)}
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-blue-600">
+                          {formatCurrency(comissoesTreinador.reduce((sum, i) => sum + i.faturamento, 0))}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
             {/* Detailed Table */}
             <Card>
