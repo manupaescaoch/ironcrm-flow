@@ -21,7 +21,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { Interacao } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, DollarSign, Users, TrendingUp, Calculator, Briefcase, UserCheck } from 'lucide-react';
+import { Loader2, DollarSign, Users, TrendingUp, Calculator, Briefcase, UserCheck, Award } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -197,12 +197,25 @@ export default function Comissoes() {
       .sort((a, b) => b.comissao - a.comissao);
   }, [filteredInteracoes]);
 
-  // Group by treinador responsável pelo fechamento
-  const comissoesTreinador = useMemo(() => {
+  // Helper function to calculate bonus per student based on number of enrollments
+  const calculateBonusPorAluno = (matriculas: number): number => {
+    if (matriculas === 0) return 0;
+    if (matriculas >= 1 && matriculas <= 4) return 20;
+    if (matriculas >= 5 && matriculas <= 7) return 25;
+    if (matriculas >= 8 && matriculas <= 10) return 30;
+    if (matriculas >= 11) return 40;
+    return 0;
+  };
+
+  // Group by treinador responsável pelo fechamento with bonus calculation
+  const bonusTreinadores = useMemo(() => {
     const grouped = new Map<string, { matriculas: number; faturamento: number }>();
 
+    // Only consider interactions with a trainer assigned
     filteredInteracoes.forEach((int) => {
-      const treinador = int.treinador_responsavel || 'Não informado';
+      const treinador = int.treinador_responsavel;
+      if (!treinador || treinador.trim() === '') return; // Skip rows without trainer
+      
       const current = grouped.get(treinador) || { matriculas: 0, faturamento: 0 };
       grouped.set(treinador, {
         matriculas: current.matriculas + 1,
@@ -211,12 +224,27 @@ export default function Comissoes() {
     });
 
     return Array.from(grouped.entries())
-      .map(([treinador, data]) => ({
-        treinador,
-        ...data,
-      }))
-      .sort((a, b) => b.matriculas - a.matriculas);
+      .map(([treinador, data]) => {
+        const bonusPorAluno = calculateBonusPorAluno(data.matriculas);
+        const bonusTotal = data.matriculas * bonusPorAluno;
+        return {
+          treinador,
+          matriculas: data.matriculas,
+          faturamento: data.faturamento,
+          bonusPorAluno,
+          bonusTotal,
+        };
+      })
+      .sort((a, b) => b.bonusTotal - a.bonusTotal); // Sort by bonus_total descending
   }, [filteredInteracoes]);
+
+  // Calculate trainer bonus totals
+  const treinadorStats = useMemo(() => {
+    const totalMatriculas = bonusTreinadores.reduce((sum, t) => sum + t.matriculas, 0);
+    const totalFaturamento = bonusTreinadores.reduce((sum, t) => sum + t.faturamento, 0);
+    const totalBonus = bonusTreinadores.reduce((sum, t) => sum + t.bonusTotal, 0);
+    return { totalMatriculas, totalFaturamento, totalBonus };
+  }, [bonusTreinadores]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -458,18 +486,72 @@ export default function Comissoes() {
                 </CardContent>
             </Card>
 
-            {/* Treinador Responsável Table */}
+            {/* Treinador Responsável with Bonus Table */}
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-blue-500" />
-                  Fechamentos por Treinador Responsável
+                  <Award className="w-5 h-5 text-blue-500" />
+                  Fechamentos e Bônus por Treinador Responsável
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {comissoesTreinador.length === 0 ? (
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <Card className="bg-blue-500/5 border-blue-500/20">
+                    <CardContent className="pt-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                          <Users className="w-5 h-5 text-blue-500" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Total de matrículas fechadas</p>
+                          <p className="text-xl font-bold">{treinadorStats.totalMatriculas}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-purple-500/5 border-purple-500/20">
+                    <CardContent className="pt-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                          <TrendingUp className="w-5 h-5 text-purple-500" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Faturamento Total</p>
+                          <p className="text-xl font-bold">{formatCurrency(treinadorStats.totalFaturamento)}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-green-500/5 border-green-500/20">
+                    <CardContent className="pt-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
+                          <Award className="w-5 h-5 text-green-500" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Total de bônus a pagar</p>
+                          <p className="text-xl font-bold text-green-600">{formatCurrency(treinadorStats.totalBonus)}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Bonus Rules Info */}
+                <div className="mb-4 p-3 bg-muted/30 rounded-lg text-sm text-muted-foreground">
+                  <p className="font-medium mb-1">Regras de bônus por matrícula:</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                    <span>1-4 alunos: R$ 20/aluno</span>
+                    <span>5-7 alunos: R$ 25/aluno</span>
+                    <span>8-10 alunos: R$ 30/aluno</span>
+                    <span>11+ alunos: R$ 40/aluno</span>
+                  </div>
+                </div>
+
+                {bonusTreinadores.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">
-                    Nenhum fechamento neste período
+                    Nenhum fechamento com treinador responsável neste período
                   </p>
                 ) : (
                   <Table>
@@ -478,25 +560,35 @@ export default function Comissoes() {
                         <TableHead>Treinador</TableHead>
                         <TableHead className="text-center">Matrículas Fechadas</TableHead>
                         <TableHead className="text-right">Faturamento</TableHead>
+                        <TableHead className="text-right">Bônus/Aluno</TableHead>
+                        <TableHead className="text-right">Bônus Total</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {comissoesTreinador.map((item, index) => (
+                      {bonusTreinadores.map((item, index) => (
                         <TableRow key={index}>
                           <TableCell className="font-medium">{item.treinador}</TableCell>
                           <TableCell className="text-center">{item.matriculas}</TableCell>
-                          <TableCell className="text-right font-semibold text-blue-600">
-                            {formatCurrency(item.faturamento)}
+                          <TableCell className="text-right">{formatCurrency(item.faturamento)}</TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {formatCurrency(item.bonusPorAluno)}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold text-green-600">
+                            {formatCurrency(item.bonusTotal)}
                           </TableCell>
                         </TableRow>
                       ))}
                       <TableRow className="bg-muted/50">
                         <TableCell className="font-bold">Total</TableCell>
                         <TableCell className="text-center font-bold">
-                          {comissoesTreinador.reduce((sum, i) => sum + i.matriculas, 0)}
+                          {treinadorStats.totalMatriculas}
                         </TableCell>
-                        <TableCell className="text-right font-bold text-blue-600">
-                          {formatCurrency(comissoesTreinador.reduce((sum, i) => sum + i.faturamento, 0))}
+                        <TableCell className="text-right font-bold">
+                          {formatCurrency(treinadorStats.totalFaturamento)}
+                        </TableCell>
+                        <TableCell className="text-right">-</TableCell>
+                        <TableCell className="text-right font-bold text-green-600">
+                          {formatCurrency(treinadorStats.totalBonus)}
                         </TableCell>
                       </TableRow>
                     </TableBody>
