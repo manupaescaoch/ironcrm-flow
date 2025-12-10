@@ -241,9 +241,8 @@ export default function Comissoes() {
   // Calculate trainer bonus totals
   const treinadorStats = useMemo(() => {
     const totalMatriculas = bonusTreinadores.reduce((sum, t) => sum + t.matriculas, 0);
-    const totalFaturamento = bonusTreinadores.reduce((sum, t) => sum + t.faturamento, 0);
     const totalBonus = bonusTreinadores.reduce((sum, t) => sum + t.bonusTotal, 0);
-    return { totalMatriculas, totalFaturamento, totalBonus };
+    return { totalMatriculas, totalBonus };
   }, [bonusTreinadores]);
 
   const formatCurrency = (value: number) => {
@@ -496,7 +495,7 @@ export default function Comissoes() {
               </CardHeader>
               <CardContent>
                 {/* Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <Card className="bg-blue-500/5 border-blue-500/20">
                     <CardContent className="pt-4">
                       <div className="flex items-center gap-3">
@@ -506,19 +505,6 @@ export default function Comissoes() {
                         <div>
                           <p className="text-xs text-muted-foreground">Total de matrículas fechadas</p>
                           <p className="text-xl font-bold">{treinadorStats.totalMatriculas}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-purple-500/5 border-purple-500/20">
-                    <CardContent className="pt-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
-                          <TrendingUp className="w-5 h-5 text-purple-500" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Faturamento Total</p>
-                          <p className="text-xl font-bold">{formatCurrency(treinadorStats.totalFaturamento)}</p>
                         </div>
                       </div>
                     </CardContent>
@@ -559,8 +545,6 @@ export default function Comissoes() {
                       <TableRow>
                         <TableHead>Treinador</TableHead>
                         <TableHead className="text-center">Matrículas Fechadas</TableHead>
-                        <TableHead className="text-right">Faturamento</TableHead>
-                        <TableHead className="text-right">Bônus/Aluno</TableHead>
                         <TableHead className="text-right">Bônus Total</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -569,10 +553,6 @@ export default function Comissoes() {
                         <TableRow key={index}>
                           <TableCell className="font-medium">{item.treinador}</TableCell>
                           <TableCell className="text-center">{item.matriculas}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(item.faturamento)}</TableCell>
-                          <TableCell className="text-right text-muted-foreground">
-                            {formatCurrency(item.bonusPorAluno)}
-                          </TableCell>
                           <TableCell className="text-right font-semibold text-green-600">
                             {formatCurrency(item.bonusTotal)}
                           </TableCell>
@@ -583,10 +563,6 @@ export default function Comissoes() {
                         <TableCell className="text-center font-bold">
                           {treinadorStats.totalMatriculas}
                         </TableCell>
-                        <TableCell className="text-right font-bold">
-                          {formatCurrency(treinadorStats.totalFaturamento)}
-                        </TableCell>
-                        <TableCell className="text-right">-</TableCell>
                         <TableCell className="text-right font-bold text-green-600">
                           {formatCurrency(treinadorStats.totalBonus)}
                         </TableCell>
