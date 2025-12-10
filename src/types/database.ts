@@ -25,7 +25,9 @@ export interface Lead {
   plano_escolhido: PlanoEscolhido | null;
   data_aula_experimental: string | null;
   observacoes: string | null;
+  atendido_por: string | null;
   ativo: boolean;
+  user_id: string | null;
   created_at: string;
   updated_at: string;
 }

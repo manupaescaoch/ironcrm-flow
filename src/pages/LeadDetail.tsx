@@ -16,7 +16,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { Lead, Interacao, StatusFunil, PlanoEscolhido } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, Plus, Loader2, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Mail, Phone, MapPin, Calendar, FileText, UserCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -97,6 +97,7 @@ export default function LeadDetail() {
         plano_escolhido: lead.plano_escolhido,
         data_aula_experimental: lead.data_aula_experimental,
         observacoes: lead.observacoes,
+        atendido_por: lead.atendido_por,
       })
       .eq('id', id);
 
@@ -150,26 +151,40 @@ export default function LeadDetail() {
           <Button variant="ghost" size="icon" onClick={() => navigate('/crm')}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-3xl font-bold">{lead.nome}</h1>
+          <div>
+            <h1 className="text-3xl font-bold">{lead.nome}</h1>
+            <p className="text-muted-foreground">
+              Cadastrado em {format(new Date(lead.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Informações do Lead</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Informações do Lead
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Nome</Label>
+                    <Label className="flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      Nome Completo
+                    </Label>
                     <Input
                       value={lead.nome}
                       onChange={(e) => setLead({ ...lead, nome: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Email</Label>
+                    <Label className="flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      Email
+                    </Label>
                     <Input
                       type="email"
                       value={lead.email || ''}
@@ -177,21 +192,38 @@ export default function LeadDetail() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Telefone</Label>
+                    <Label className="flex items-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      Telefone
+                    </Label>
                     <Input
                       value={lead.telefone || ''}
                       onChange={(e) => setLead({ ...lead, telefone: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Origem</Label>
+                    <Label className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      Origem
+                    </Label>
                     <Input
                       value={lead.origem || ''}
                       onChange={(e) => setLead({ ...lead, origem: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Status</Label>
+                    <Label className="flex items-center gap-2">
+                      <UserCheck className="w-4 h-4" />
+                      Atendido Por
+                    </Label>
+                    <Input
+                      value={lead.atendido_por || ''}
+                      onChange={(e) => setLead({ ...lead, atendido_por: e.target.value })}
+                      placeholder="Nome do atendente"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Status do Funil</Label>
                     <Select
                       value={lead.status_funil}
                       onValueChange={(v) => setLead({ ...lead, status_funil: v as StatusFunil })}
@@ -209,7 +241,10 @@ export default function LeadDetail() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Plano</Label>
+                    <Label className="flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      Plano Escolhido
+                    </Label>
                     <Select
                       value={lead.plano_escolhido || ''}
                       onValueChange={(v) => setLead({ ...lead, plano_escolhido: v as PlanoEscolhido })}
@@ -227,7 +262,10 @@ export default function LeadDetail() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Data Aula Experimental</Label>
+                    <Label className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Data Aula Experimental
+                    </Label>
                     <Input
                       type="datetime-local"
                       value={lead.data_aula_experimental?.slice(0, 16) || ''}
@@ -249,10 +287,38 @@ export default function LeadDetail() {
                 <Button onClick={handleSave} disabled={saving}>
                   {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   <Save className="w-4 h-4 mr-2" />
-                  Salvar
+                  Salvar Alterações
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Info cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <p className="font-semibold">{statusOptions.find(s => s.value === lead.status_funil)?.label}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-sm text-muted-foreground">Plano</p>
+                  <p className="font-semibold">{lead.plano_escolhido || '-'}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-sm text-muted-foreground">Origem</p>
+                  <p className="font-semibold">{lead.origem || '-'}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-sm text-muted-foreground">Atendente</p>
+                  <p className="font-semibold">{lead.atendido_por || '-'}</p>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           <div className="space-y-6">

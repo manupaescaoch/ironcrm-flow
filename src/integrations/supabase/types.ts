@@ -51,6 +51,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          atendido_por: string | null
           ativo: boolean
           created_at: string
           data_aula_experimental: string | null
@@ -66,6 +67,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          atendido_por?: string | null
           ativo?: boolean
           created_at?: string
           data_aula_experimental?: string | null
@@ -81,6 +83,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          atendido_por?: string | null
           ativo?: boolean
           created_at?: string
           data_aula_experimental?: string | null
