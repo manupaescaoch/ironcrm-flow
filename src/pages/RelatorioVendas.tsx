@@ -41,6 +41,7 @@ import {
   ChevronsRight,
   ArrowUpDown
 } from 'lucide-react';
+import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -602,7 +603,7 @@ export default function RelatorioVendas() {
                             <TableRow key={enrollment.id} className={index % 2 === 0 ? '' : 'bg-muted/30'}>
                               <TableCell>{formatDate(enrollment.data_fechamento)}</TableCell>
                               <TableCell className="font-medium">{enrollment.lead_nome}</TableCell>
-                              <TableCell>{enrollment.lead_telefone || '-'}</TableCell>
+                              <TableCell><WhatsAppLink phone={enrollment.lead_telefone} /></TableCell>
                               <TableCell>{enrollment.lead_origem || '-'}</TableCell>
                               <TableCell>{enrollment.atendido_por || '-'}</TableCell>
                               <TableCell>{enrollment.responsavel_fechamento || '-'}</TableCell>

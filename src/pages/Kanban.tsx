@@ -22,6 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Lead, StatusFunil, Interacao } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, User, Phone, MapPin, UserCheck, Calendar as CalendarIcon, Clock, Filter, X } from 'lucide-react';
+import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -388,10 +389,10 @@ export default function Kanban() {
                             <div className="min-w-0 flex-1">
                               <p className="font-semibold text-sm truncate">{lead.nome}</p>
                               {lead.telefone && (
-                                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                                   <Phone className="w-3 h-3" />
-                                  {lead.telefone}
-                                </p>
+                                  <WhatsAppLink phone={lead.telefone} className="text-xs" />
+                                </div>
                               )}
                             </div>
                           </div>

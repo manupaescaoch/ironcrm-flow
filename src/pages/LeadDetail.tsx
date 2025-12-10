@@ -33,6 +33,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Lead, Interacao, StatusFunil, PlanoEscolhido } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Pencil, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -426,7 +427,9 @@ export default function LeadDetail() {
           <Card>
             <CardContent className="pt-4">
               <p className="text-xs text-muted-foreground">Telefone</p>
-              <p className="font-semibold">{lead.telefone || '-'}</p>
+              <div className="font-semibold">
+                <WhatsAppLink phone={lead.telefone} />
+              </div>
             </CardContent>
           </Card>
           <Card>
