@@ -58,7 +58,7 @@ interface InteracaoForm {
   id?: string;
   tipo: string;
   descricao: string;
-  atendido_por: string;
+  atendido_por_tipo: string;
   agendou_experimental: boolean;
   data_experimental: string;
   hora_experimental: string;
@@ -77,7 +77,7 @@ interface InteracaoForm {
 const initialFormState: InteracaoForm = {
   tipo: '',
   descricao: '',
-  atendido_por: '',
+  atendido_por_tipo: '',
   agendou_experimental: false,
   data_experimental: '',
   hora_experimental: '',
@@ -92,6 +92,11 @@ const initialFormState: InteracaoForm = {
   treinador_responsavel: '',
   quem_agendou: '',
 };
+
+const atendidoPorOptions = [
+  { value: 'comercial', label: 'Comercial (agendamento)' },
+  { value: 'espontaneo_recepcao', label: 'Espontâneo Recepção' },
+];
 
 const tipoAtendimentoOptions = [
   { value: 'comercial', label: 'Comercial' },
@@ -228,7 +233,7 @@ export default function LeadDetail() {
       id: interacao.id,
       tipo: interacao.tipo || '',
       descricao: interacao.descricao || '',
-      atendido_por: interacao.atendido_por || '',
+      atendido_por_tipo: interacao.atendido_por_tipo || 'espontaneo_recepcao',
       agendou_experimental: interacao.agendou_experimental || false,
       data_experimental: interacao.data_experimental || '',
       hora_experimental: interacao.hora_experimental || '',
@@ -241,7 +246,7 @@ export default function LeadDetail() {
       data_fechamento: interacao.data_fechamento || '',
       responsavel_fechamento: interacao.responsavel_fechamento || '',
       treinador_responsavel: interacao.treinador_responsavel || '',
-      quem_agendou: (interacao as any).quem_agendou || '',
+      quem_agendou: interacao.quem_agendou || '',
     });
     setIsEditing(true);
     setSheetOpen(true);
@@ -250,6 +255,11 @@ export default function LeadDetail() {
   const handleSaveInteracao = async () => {
     if (!formData.tipo.trim()) {
       toast({ title: 'Tipo da interação é obrigatório', variant: 'destructive' });
+      return;
+    }
+
+    if (!formData.atendido_por_tipo) {
+      toast({ title: 'Atendido Por é obrigatório', variant: 'destructive' });
       return;
     }
 
@@ -272,7 +282,7 @@ export default function LeadDetail() {
     const interacaoData = {
       tipo: formData.tipo.trim(),
       descricao: formData.descricao.trim() || null,
-      atendido_por: formData.atendido_por.trim() || null,
+      atendido_por_tipo: formData.atendido_por_tipo,
       agendou_experimental: formData.agendou_experimental,
       data_experimental: formData.data_experimental || null,
       hora_experimental: formData.hora_experimental || null,
@@ -564,7 +574,11 @@ export default function LeadDetail() {
                               {format(new Date(int.data_interacao), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                             </TableCell>
                             <TableCell>{int.tipo}</TableCell>
-                            <TableCell>{int.atendido_por || '-'}</TableCell>
+                            <TableCell>
+                              {int.atendido_por_tipo === 'comercial' ? 'Comercial' : 
+                               int.atendido_por_tipo === 'espontaneo_recepcao' ? 'Espontâneo' : 
+                               int.atendido_por || '-'}
+                            </TableCell>
                             <TableCell>
                               <div className="flex flex-col gap-1 text-xs">
                                 <span className="flex items-center gap-1">
@@ -627,7 +641,11 @@ export default function LeadDetail() {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
                         <div>
                           <span className="text-muted-foreground">Atendido por: </span>
-                          <span className="font-medium">{int.atendido_por || '-'}</span>
+                          <span className="font-medium">
+                            {int.atendido_por_tipo === 'comercial' ? 'Comercial (agendamento)' : 
+                             int.atendido_por_tipo === 'espontaneo_recepcao' ? 'Espontâneo Recepção' : 
+                             int.atendido_por || '-'}
+                          </span>
                         </div>
                         {int.data_experimental && (
                           <div>
@@ -690,12 +708,22 @@ export default function LeadDetail() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Atendido Por</Label>
-                <Input
-                  value={formData.atendido_por}
-                  onChange={(e) => setFormData({ ...formData, atendido_por: e.target.value })}
-                  placeholder="Nome do atendente"
-                />
+                <Label>Atendido Por *</Label>
+                <Select
+                  value={formData.atendido_por_tipo}
+                  onValueChange={(v) => setFormData({ ...formData, atendido_por_tipo: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo de atendimento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {atendidoPorOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Descrição</Label>
