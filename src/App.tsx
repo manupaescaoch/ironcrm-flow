@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import CRM from "./pages/CRM";
 import LeadDetail from "./pages/LeadDetail";
 import Kanban from "./pages/Kanban";
+import Comissoes from "./pages/Comissoes";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -90,6 +91,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <Kanban />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/comissoes"
+      element={
+        <ProtectedRoute>
+          <Comissoes />
         </ProtectedRoute>
       }
     />
