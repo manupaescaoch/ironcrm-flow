@@ -40,6 +40,7 @@ export interface Interacao {
   data_interacao: string;
   created_at: string;
   atendido_por: string | null;
+  atendido_por_tipo: string | null;
   agendou_experimental: boolean;
   data_experimental: string | null;
   hora_experimental: string | null;

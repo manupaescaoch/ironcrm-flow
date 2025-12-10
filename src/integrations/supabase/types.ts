@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           agendou_experimental: boolean | null
           atendido_por: string | null
+          atendido_por_tipo: string | null
           comissao_comercial: number | null
           comissao_recepcao: number | null
           compareceu: boolean | null
@@ -44,6 +45,7 @@ export type Database = {
         Insert: {
           agendou_experimental?: boolean | null
           atendido_por?: string | null
+          atendido_por_tipo?: string | null
           comissao_comercial?: number | null
           comissao_recepcao?: number | null
           compareceu?: boolean | null
@@ -70,6 +72,7 @@ export type Database = {
         Update: {
           agendou_experimental?: boolean | null
           atendido_por?: string | null
+          atendido_por_tipo?: string | null
           comissao_comercial?: number | null
           comissao_recepcao?: number | null
           compareceu?: boolean | null
