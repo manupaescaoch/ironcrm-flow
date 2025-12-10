@@ -1,11 +1,30 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
-import { Lead, StatusFunil } from '@/types/database';
+import { Lead, StatusFunil, Interacao } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, User } from 'lucide-react';
+import { Loader2, User, Phone, MapPin, UserCheck, Calendar as CalendarIcon, Clock, Filter, X } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const columns: { status: StatusFunil; label: string; color: string }[] = [
   { status: 'novo', label: 'Novo', color: 'bg-blue-500' },
@@ -17,11 +36,24 @@ const columns: { status: StatusFunil; label: string; color: string }[] = [
   { status: 'perdido', label: 'Perdido', color: 'bg-red-500' },
 ];
 
+interface LeadWithExperimental extends Lead {
+  proximaExperimental?: {
+    data: string | null;
+    hora: string | null;
+  };
+}
+
 export default function Kanban() {
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const [leads, setLeads] = useState<LeadWithExperimental[]>([]);
   const [loading, setLoading] = useState(true);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Filters
+  const [filterOrigem, setFilterOrigem] = useState<string>('all');
+  const [filterAtendidoPor, setFilterAtendidoPor] = useState<string>('all');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     fetchLeads();
@@ -29,19 +61,87 @@ export default function Kanban() {
 
   const fetchLeads = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    
+    // Fetch leads
+    const { data: leadsData, error: leadsError } = await supabase
       .from('leads')
       .select('*')
       .eq('ativo', true)
       .order('created_at', { ascending: false });
 
-    if (error) {
+    if (leadsError) {
       toast({ title: 'Erro ao carregar leads', variant: 'destructive' });
-    } else {
-      setLeads((data as unknown as Lead[]) || []);
+      setLoading(false);
+      return;
     }
+
+    const leadsArray = (leadsData as unknown as Lead[]) || [];
+
+    // Fetch the most recent interaction with experimental date for each lead
+    const { data: interacoesData } = await supabase
+      .from('interacoes')
+      .select('lead_id, data_experimental, hora_experimental')
+      .not('data_experimental', 'is', null)
+      .order('data_interacao', { ascending: false });
+
+    // Create a map of lead_id to the most recent experimental data
+    const experimentalMap = new Map<string, { data: string | null; hora: string | null }>();
+    if (interacoesData) {
+      (interacoesData as unknown as Interacao[]).forEach((int) => {
+        if (!experimentalMap.has(int.lead_id) && int.data_experimental) {
+          experimentalMap.set(int.lead_id, {
+            data: int.data_experimental,
+            hora: int.hora_experimental,
+          });
+        }
+      });
+    }
+
+    // Merge leads with experimental data
+    const leadsWithExperimental: LeadWithExperimental[] = leadsArray.map((lead) => ({
+      ...lead,
+      proximaExperimental: experimentalMap.get(lead.id),
+    }));
+
+    setLeads(leadsWithExperimental);
     setLoading(false);
   };
+
+  // Extract unique values for filters
+  const uniqueOrigens = useMemo(() => {
+    const origens = leads.map((l) => l.origem).filter(Boolean) as string[];
+    return [...new Set(origens)];
+  }, [leads]);
+
+  const uniqueAtendidoPor = useMemo(() => {
+    const atendentes = leads.map((l) => l.atendido_por).filter(Boolean) as string[];
+    return [...new Set(atendentes)];
+  }, [leads]);
+
+  // Filter leads
+  const filteredLeads = useMemo(() => {
+    return leads.filter((lead) => {
+      // Origem filter
+      if (filterOrigem !== 'all' && lead.origem !== filterOrigem) return false;
+
+      // Atendido por filter
+      if (filterAtendidoPor !== 'all' && lead.atendido_por !== filterAtendidoPor) return false;
+
+      // Date range filter
+      if (dateFrom) {
+        const leadDate = new Date(lead.created_at);
+        if (leadDate < dateFrom) return false;
+      }
+      if (dateTo) {
+        const leadDate = new Date(lead.created_at);
+        const endOfDay = new Date(dateTo);
+        endOfDay.setHours(23, 59, 59, 999);
+        if (leadDate > endOfDay) return false;
+      }
+
+      return true;
+    });
+  }, [leads, filterOrigem, filterAtendidoPor, dateFrom, dateTo]);
 
   const handleDragStart = (e: React.DragEvent, leadId: string) => {
     setDraggingId(leadId);
@@ -84,7 +184,29 @@ export default function Kanban() {
   };
 
   const getLeadsByStatus = (status: StatusFunil) =>
-    leads.filter((lead) => lead.status_funil === status);
+    filteredLeads.filter((lead) => lead.status_funil === status);
+
+  const formatDate = (dateString: string) => {
+    return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
+  };
+
+  const formatExperimental = (data: string | null, hora: string | null) => {
+    if (!data) return null;
+    const datePart = format(new Date(data), 'dd/MM', { locale: ptBR });
+    if (hora) {
+      return `${datePart} ${hora.slice(0, 5)}`;
+    }
+    return datePart;
+  };
+
+  const clearFilters = () => {
+    setFilterOrigem('all');
+    setFilterAtendidoPor('all');
+    setDateFrom(undefined);
+    setDateTo(undefined);
+  };
+
+  const hasActiveFilters = filterOrigem !== 'all' || filterAtendidoPor !== 'all' || dateFrom || dateTo;
 
   if (loading) {
     return (
@@ -99,63 +221,221 @@ export default function Kanban() {
   return (
     <Layout>
       <div className="p-8">
-        <h1 className="text-3xl font-bold mb-8">Funil de Vendas</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">Funil de Vendas</h1>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>{filteredLeads.length} leads</span>
+            {hasActiveFilters && (
+              <span className="text-primary">(filtrado)</span>
+            )}
+          </div>
+        </div>
 
+        {/* Filters */}
+        <Card className="mb-6">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Filter className="w-5 h-5" />
+              Filtros
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="ml-2">
+                  <X className="w-4 h-4 mr-1" />
+                  Limpar
+                </Button>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Origem Filter */}
+              <div className="space-y-2">
+                <Label>Origem</Label>
+                <Select value={filterOrigem} onValueChange={setFilterOrigem}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as origens</SelectItem>
+                    {uniqueOrigens.map((origem) => (
+                      <SelectItem key={origem} value={origem}>
+                        {origem}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Atendido Por Filter */}
+              <div className="space-y-2">
+                <Label>Atendido Por</Label>
+                <Select value={filterAtendidoPor} onValueChange={setFilterAtendidoPor}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os atendentes</SelectItem>
+                    {uniqueAtendidoPor.map((atendente) => (
+                      <SelectItem key={atendente} value={atendente}>
+                        {atendente}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Date From Filter */}
+              <div className="space-y-2">
+                <Label>Data Inicial</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full justify-start text-left font-normal',
+                        !dateFrom && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateFrom ? format(dateFrom, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateFrom}
+                      onSelect={setDateFrom}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Date To Filter */}
+              <div className="space-y-2">
+                <Label>Data Final</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full justify-start text-left font-normal',
+                        !dateTo && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateTo ? format(dateTo, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateTo}
+                      onSelect={setDateTo}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Kanban Board */}
         <div className="flex gap-4 overflow-x-auto pb-4">
           {columns.map((col) => {
             const columnLeads = getLeadsByStatus(col.status);
             return (
               <div
                 key={col.status}
-                className="flex-shrink-0 w-72"
+                className="flex-shrink-0 w-80"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, col.status)}
               >
-                <Card className="h-full">
-                  <CardHeader className="pb-3">
+                <Card className="h-full min-h-[500px]">
+                  <CardHeader className="pb-3 sticky top-0 bg-card z-10">
                     <CardTitle className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
                         <div className={`w-3 h-3 rounded-full ${col.color}`} />
                         {col.label}
                       </div>
-                      <span className="bg-muted px-2 py-0.5 rounded-full text-xs">
+                      <span className="bg-muted px-2 py-0.5 rounded-full text-xs font-bold">
                         {columnLeads.length}
                       </span>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2 min-h-[400px]">
+                  <CardContent className="space-y-3">
                     {columnLeads.map((lead) => (
                       <Link
                         key={lead.id}
                         to={`/lead/${lead.id}`}
                         draggable
                         onDragStart={(e) => handleDragStart(e, lead.id)}
-                        className={`block p-3 bg-muted/50 hover:bg-muted rounded-lg cursor-grab active:cursor-grabbing transition-colors ${
-                          draggingId === lead.id ? 'opacity-50' : ''
-                        }`}
+                        className={cn(
+                          'block p-4 bg-muted/50 hover:bg-muted rounded-lg cursor-grab active:cursor-grabbing transition-all border border-transparent hover:border-primary/20',
+                          draggingId === lead.id && 'opacity-50 scale-95'
+                        )}
                       >
-                        <div className="flex items-start gap-2">
-                          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                            <User className="w-4 h-4 text-primary" />
+                        {/* Header with avatar and name */}
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                            <User className="w-5 h-5 text-primary" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="font-medium text-sm truncate">{lead.nome}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {lead.telefone || lead.email || 'Sem contato'}
-                            </p>
-                            {lead.plano_escolhido && (
-                              <span className="inline-block mt-1 px-2 py-0.5 bg-primary/10 text-primary text-xs rounded">
-                                {lead.plano_escolhido}
-                              </span>
+                            <p className="font-semibold text-sm truncate">{lead.nome}</p>
+                            {lead.telefone && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                <Phone className="w-3 h-3" />
+                                {lead.telefone}
+                              </p>
                             )}
                           </div>
                         </div>
+
+                        {/* Details */}
+                        <div className="space-y-1.5 text-xs">
+                          {lead.origem && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <MapPin className="w-3 h-3 flex-shrink-0" />
+                              <span className="truncate">{lead.origem}</span>
+                            </div>
+                          )}
+                          {lead.atendido_por && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <UserCheck className="w-3 h-3 flex-shrink-0" />
+                              <span className="truncate">{lead.atendido_por}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <CalendarIcon className="w-3 h-3 flex-shrink-0" />
+                            <span>{formatDate(lead.created_at)}</span>
+                          </div>
+                          {lead.proximaExperimental?.data && (
+                            <div className="flex items-center gap-2 text-primary font-medium">
+                              <Clock className="w-3 h-3 flex-shrink-0" />
+                              <span>
+                                Exp: {formatExperimental(lead.proximaExperimental.data, lead.proximaExperimental.hora)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Plan badge */}
+                        {lead.plano_escolhido && (
+                          <div className="mt-3">
+                            <span className="inline-block px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+                              {lead.plano_escolhido}
+                            </span>
+                          </div>
+                        )}
                       </Link>
                     ))}
                     {columnLeads.length === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-8">
-                        Nenhum lead
-                      </p>
+                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                        <div className={`w-12 h-12 ${col.color} opacity-20 rounded-full mb-3`} />
+                        <p className="text-xs">Nenhum lead</p>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
