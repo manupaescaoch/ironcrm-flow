@@ -15,6 +15,9 @@ interface AuthContextType {
   isAdmin: boolean;
   canAccessExecutivo: boolean;
   canAccessComissoes: boolean;
+  canAccessRelatorio: boolean;
+  canAccessAdminUsers: boolean;
+  canEditLead: (leadCreatedBy: string | null) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,13 +28,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
 
-  const fetchUserRole = async (userId: string) => {
-    const { data, error } = await supabase.rpc('get_user_role', { p_user_id: userId });
-    if (error) {
-      console.error('Error fetching user role:', error);
+  const fetchUserRole = async (userId: string): Promise<UserRole | null> => {
+    try {
+      // Fetch role directly from user_roles table
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user role:', error);
+        return null;
+      }
+
+      if (!data) return null;
+
+      // Convert app_role to display role
+      if (data.role === 'admin') return 'admin';
+      if (data.role === 'moderator') return 'recepcao';
+      if (data.role === 'user') return 'comercial';
+      
+      return null;
+    } catch (err) {
+      console.error('Error in fetchUserRole:', err);
       return null;
     }
-    return data as UserRole | null;
   };
 
   useEffect(() => {
@@ -94,6 +116,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = userRole === 'admin';
   const canAccessExecutivo = userRole === 'admin';
   const canAccessComissoes = userRole === 'admin';
+  const canAccessRelatorio = userRole === 'admin';
+  const canAccessAdminUsers = userRole === 'admin';
+
+  // Check if user can edit a lead
+  // Admin can edit any lead
+  // Recepção/Comercial can only edit leads they created
+  const canEditLead = (leadCreatedBy: string | null): boolean => {
+    if (isAdmin) return true;
+    if (!user || !leadCreatedBy) return false;
+    return leadCreatedBy === user.id;
+  };
 
   return (
     <AuthContext.Provider value={{ 
@@ -106,7 +139,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut,
       isAdmin,
       canAccessExecutivo,
-      canAccessComissoes
+      canAccessComissoes,
+      canAccessRelatorio,
+      canAccessAdminUsers,
+      canEditLead
     }}>
       {children}
     </AuthContext.Provider>
