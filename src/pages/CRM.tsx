@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -37,11 +38,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Lead, StatusFunil, PlanoEscolhido } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, Eye, Trash2, Loader2, Pencil, Filter } from 'lucide-react';
+import { Plus, Search, Eye, Trash2, Loader2, Pencil, Filter, Upload, FileSpreadsheet } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -74,6 +76,17 @@ const statusLabels: Record<StatusFunil, string> = {
   perdido: 'Perdido',
 };
 
+interface CSVRow {
+  nome_completo: string;
+  telefone: string;
+  origem: string;
+  atendido_por: string;
+  status_funil: string;
+  data_cadastro: string;
+}
+
+const REQUIRED_CSV_COLUMNS = ['nome_completo', 'telefone', 'origem', 'atendido_por', 'status_funil', 'data_cadastro'];
+
 export default function CRM() {
   const { user } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -95,6 +108,14 @@ export default function CRM() {
     atendido_por: '',
   });
   const { toast } = useToast();
+
+  // CSV Import state
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvPreviewData, setCsvPreviewData] = useState<CSVRow[]>([]);
+  const [isPreviewReady, setIsPreviewReady] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchLeads();
@@ -182,6 +203,194 @@ export default function CRM() {
     setLeadToDelete(null);
   };
 
+  // CSV Import functions
+  const parseCSV = (text: string): { headers: string[]; rows: string[][] } => {
+    const lines = text.split(/\r?\n/).filter(line => line.trim());
+    if (lines.length === 0) return { headers: [], rows: [] };
+    
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const rows = lines.slice(1).map(line => {
+      const values: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          values.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      values.push(current.trim());
+      return values;
+    });
+    
+    return { headers, rows };
+  };
+
+  const handlePreviewCSV = () => {
+    if (!csvFile) {
+      toast({ title: 'Selecione um arquivo CSV', variant: 'destructive' });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const { headers, rows } = parseCSV(text);
+      
+      // Validate required columns
+      const missingColumns = REQUIRED_CSV_COLUMNS.filter(col => !headers.includes(col));
+      if (missingColumns.length > 0) {
+        toast({ 
+          title: 'Arquivo inválido. Verifique se os cabeçalhos estão corretos.',
+          description: `Colunas faltando: ${missingColumns.join(', ')}`,
+          variant: 'destructive' 
+        });
+        return;
+      }
+
+      // Map rows to objects
+      const mappedRows: CSVRow[] = rows
+        .filter(row => row.some(cell => cell.trim()))
+        .map(row => {
+          const obj: Record<string, string> = {};
+          headers.forEach((header, index) => {
+            obj[header] = row[index] || '';
+          });
+          return obj as unknown as CSVRow;
+        });
+
+      setCsvPreviewData(mappedRows.slice(0, 20));
+      setIsPreviewReady(true);
+    };
+    
+    reader.readAsText(csvFile, 'UTF-8');
+  };
+
+  const parseDate = (dateStr: string): string => {
+    if (!dateStr) return new Date().toISOString();
+    
+    // Try different date formats
+    const formats = [
+      /^(\d{2})\/(\d{2})\/(\d{4})$/, // DD/MM/YYYY
+      /^(\d{4})-(\d{2})-(\d{2})$/,   // YYYY-MM-DD
+      /^(\d{2})-(\d{2})-(\d{4})$/,   // DD-MM-YYYY
+    ];
+    
+    for (const fmt of formats) {
+      const match = dateStr.match(fmt);
+      if (match) {
+        if (fmt === formats[0]) {
+          // DD/MM/YYYY
+          return new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1])).toISOString();
+        } else if (fmt === formats[1]) {
+          // YYYY-MM-DD
+          return new Date(dateStr).toISOString();
+        } else if (fmt === formats[2]) {
+          // DD-MM-YYYY
+          return new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1])).toISOString();
+        }
+      }
+    }
+    
+    // Fallback: try native parsing
+    const parsed = new Date(dateStr);
+    return isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+  };
+
+  const validateStatusFunil = (status: string): StatusFunil => {
+    const validStatuses: StatusFunil[] = ['novo', 'contato_inicial', 'aula_agendada', 'aula_realizada', 'negociacao', 'convertido', 'perdido'];
+    const normalized = status.toLowerCase().trim();
+    return validStatuses.includes(normalized as StatusFunil) ? (normalized as StatusFunil) : 'novo';
+  };
+
+  const handleImportCSV = async () => {
+    if (!csvFile || csvPreviewData.length === 0) return;
+
+    setIsImporting(true);
+
+    // Re-parse the full file
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const text = e.target?.result as string;
+      const { headers, rows } = parseCSV(text);
+      
+      const allRows: CSVRow[] = rows
+        .filter(row => row.some(cell => cell.trim()))
+        .map(row => {
+          const obj: Record<string, string> = {};
+          headers.forEach((header, index) => {
+            obj[header] = row[index] || '';
+          });
+          return obj as unknown as CSVRow;
+        });
+
+      let successCount = 0;
+      let failCount = 0;
+
+      // Batch insert (chunks of 100)
+      const chunkSize = 100;
+      for (let i = 0; i < allRows.length; i += chunkSize) {
+        const chunk = allRows.slice(i, i + chunkSize);
+        const leadsToInsert = chunk
+          .filter(row => row.nome_completo?.trim())
+          .map(row => ({
+            nome: row.nome_completo.trim(),
+            telefone: row.telefone?.trim() || null,
+            origem: row.origem?.trim() || null,
+            atendido_por: row.atendido_por?.trim() || null,
+            status_funil: validateStatusFunil(row.status_funil),
+            created_at: parseDate(row.data_cadastro),
+            user_id: user?.id || null,
+            ativo: true,
+          }));
+
+        if (leadsToInsert.length > 0) {
+          const { data, error } = await supabase.from('leads').insert(leadsToInsert).select();
+          if (error) {
+            failCount += leadsToInsert.length;
+          } else {
+            successCount += data?.length || 0;
+          }
+        }
+      }
+
+      setIsImporting(false);
+      
+      if (failCount > 0) {
+        toast({ 
+          title: 'Algumas linhas não puderam ser importadas. Verifique o arquivo.',
+          description: `${successCount} importados, ${failCount} falharam`,
+          variant: 'destructive'
+        });
+      } else {
+        toast({ title: `Importação concluída: ${successCount} leads importados com sucesso.` });
+      }
+
+      // Reset and close
+      setCsvFile(null);
+      setCsvPreviewData([]);
+      setIsPreviewReady(false);
+      setImportDialogOpen(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      fetchLeads();
+    };
+    
+    reader.readAsText(csvFile, 'UTF-8');
+  };
+
+  const resetImportDialog = () => {
+    setCsvFile(null);
+    setCsvPreviewData([]);
+    setIsPreviewReady(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
       // Search filter
@@ -212,17 +421,118 @@ export default function CRM() {
       <div className="p-8">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">CRM - Leads</h1>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Lead
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Novo Lead</DialogTitle>
-              </DialogHeader>
+          <div className="flex items-center gap-2">
+            <Dialog open={importDialogOpen} onOpenChange={(open) => {
+              setImportDialogOpen(open);
+              if (!open) resetImportDialog();
+            }}>
+              <DialogTrigger asChild>
+                <Button variant="secondary">
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Importar Planilha
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl max-h-[90vh]">
+                <DialogHeader>
+                  <DialogTitle>Importar Leads via CSV</DialogTitle>
+                  <DialogDescription>
+                    Use um arquivo CSV com os cabeçalhos: nome_completo, telefone, origem, atendido_por, status_funil, data_cadastro.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label>Arquivo CSV</Label>
+                    <Input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => {
+                        setCsvFile(e.target.files?.[0] || null);
+                        setIsPreviewReady(false);
+                        setCsvPreviewData([]);
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={handlePreviewCSV}
+                      disabled={!csvFile}
+                    >
+                      Pré-visualizar
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => {
+                        setImportDialogOpen(false);
+                        resetImportDialog();
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+
+                  {isPreviewReady && csvPreviewData.length > 0 && (
+                    <>
+                      <div className="border rounded-lg">
+                        <p className="text-sm text-muted-foreground p-3 border-b">
+                          Pré-visualização (primeiras {csvPreviewData.length} linhas)
+                        </p>
+                        <ScrollArea className="h-[300px]">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Nome</TableHead>
+                                <TableHead>Telefone</TableHead>
+                                <TableHead>Origem</TableHead>
+                                <TableHead>Atendido Por</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Data</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {csvPreviewData.map((row, idx) => (
+                                <TableRow key={idx}>
+                                  <TableCell className="font-medium">{row.nome_completo}</TableCell>
+                                  <TableCell>{row.telefone || '-'}</TableCell>
+                                  <TableCell>{row.origem || '-'}</TableCell>
+                                  <TableCell>{row.atendido_por || '-'}</TableCell>
+                                  <TableCell>{row.status_funil || '-'}</TableCell>
+                                  <TableCell>{row.data_cadastro || '-'}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </ScrollArea>
+                      </div>
+                      
+                      <Button 
+                        onClick={handleImportCSV} 
+                        disabled={isImporting}
+                        className="w-full"
+                      >
+                        {isImporting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        <Upload className="w-4 h-4 mr-2" />
+                        Importar agora
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Novo Lead
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Novo Lead</DialogTitle>
+                </DialogHeader>
               <div className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label>Nome *</Label>
