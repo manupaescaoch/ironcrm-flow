@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -26,12 +27,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Users, Shield, UserCheck, Briefcase, Trash2 } from 'lucide-react';
+import { Loader2, Users, Shield, UserCheck, Briefcase, Trash2, AlertTriangle, ShieldX, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { UserRole } from '@/contexts/AuthContext';
@@ -44,6 +46,11 @@ interface UserData {
   last_sign_in_at: string | null;
 }
 
+type FetchError = {
+  type: 'unauthorized' | 'forbidden' | 'server_error' | null;
+  message: string;
+};
+
 const roleOptions: { value: string; label: string; icon: typeof Shield }[] = [
   { value: 'admin', label: 'Admin', icon: Shield },
   { value: 'recepcao', label: 'Recepção', icon: UserCheck },
@@ -53,30 +60,108 @@ const roleOptions: { value: string; label: string; icon: typeof Shield }[] = [
 export default function AdminUsers() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<FetchError>({ type: null, message: '' });
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
   const { toast } = useToast();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, session, isAdmin, canAccessAdminUsers } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    // Redirect if not admin
+    if (!canAccessAdminUsers && !loading) {
+      navigate('/dashboard');
+      toast({
+        title: 'Acesso negado',
+        description: 'Apenas administradores podem acessar esta página.',
+        variant: 'destructive',
+      });
+    }
+  }, [canAccessAdminUsers, loading, navigate, toast]);
+
+  useEffect(() => {
+    if (session) {
+      fetchUsers();
+    }
+  }, [session]);
 
   const fetchUsers = async () => {
     setLoading(true);
+    setFetchError({ type: null, message: '' });
+
     try {
-      const { data, error } = await supabase.functions.invoke('list-users');
+      // Get access token from session
+      const accessToken = session?.access_token;
 
-      if (error) throw error;
+      if (!accessToken) {
+        setFetchError({
+          type: 'unauthorized',
+          message: 'Acesso não autorizado. Faça login novamente.',
+        });
+        setLoading(false);
+        return;
+      }
 
-      setUsers(data.users || []);
+      // Call edge function with authorization header
+      const { data, error } = await supabase.functions.invoke('list-users', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (error) {
+        // Check error status
+        const status = error.message?.includes('401') ? 401 
+                     : error.message?.includes('403') ? 403 
+                     : 500;
+        
+        if (status === 401) {
+          setFetchError({
+            type: 'unauthorized',
+            message: 'Acesso não autorizado. Faça login novamente.',
+          });
+        } else if (status === 403) {
+          setFetchError({
+            type: 'forbidden',
+            message: 'Apenas administradores podem acessar esta página.',
+          });
+        } else {
+          setFetchError({
+            type: 'server_error',
+            message: 'Erro ao carregar usuários. Tente novamente mais tarde.',
+          });
+        }
+        return;
+      }
+
+      // Check if response contains error
+      if (data?.error) {
+        if (data.error === 'Unauthorized') {
+          setFetchError({
+            type: 'unauthorized',
+            message: 'Acesso não autorizado. Faça login novamente.',
+          });
+        } else if (data.error === 'Forbidden') {
+          setFetchError({
+            type: 'forbidden',
+            message: 'Apenas administradores podem acessar esta página.',
+          });
+        } else {
+          setFetchError({
+            type: 'server_error',
+            message: data.error || 'Erro ao carregar usuários.',
+          });
+        }
+        return;
+      }
+
+      setUsers(data?.users || []);
     } catch (error: any) {
       console.error('Error fetching users:', error);
-      toast({
-        title: 'Erro ao carregar usuários',
-        description: error.message,
-        variant: 'destructive',
+      setFetchError({
+        type: 'server_error',
+        message: 'Erro ao carregar usuários. Tente novamente mais tarde.',
       });
     } finally {
       setLoading(false);
@@ -86,11 +171,17 @@ export default function AdminUsers() {
   const handleRoleChange = async (userId: string, newRole: string) => {
     setUpdatingUserId(userId);
     try {
+      const accessToken = session?.access_token;
+
       const { data, error } = await supabase.functions.invoke('update-user-role', {
-        body: { userId, role: newRole || null },
+        body: { userId, role: newRole },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       // Update local state
       setUsers(prev =>
@@ -101,13 +192,13 @@ export default function AdminUsers() {
 
       toast({
         title: 'Role atualizado',
-        description: `Usuário atualizado para ${newRole || 'sem role'}`,
+        description: `Usuário atualizado para ${newRole}`,
       });
     } catch (error: any) {
       console.error('Error updating role:', error);
       toast({
         title: 'Erro ao atualizar role',
-        description: error.message,
+        description: error.message || 'Tente novamente.',
         variant: 'destructive',
       });
     } finally {
@@ -120,11 +211,17 @@ export default function AdminUsers() {
 
     setDeletingUserId(userToDelete.id);
     try {
-      const { error } = await supabase.functions.invoke('delete-user', {
+      const accessToken = session?.access_token;
+
+      const { data, error } = await supabase.functions.invoke('delete-user', {
         body: { userId: userToDelete.id },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       // Remove from local state
       setUsers(prev => prev.filter(user => user.id !== userToDelete.id));
@@ -137,7 +234,7 @@ export default function AdminUsers() {
       console.error('Error deleting user:', error);
       toast({
         title: 'Erro ao excluir usuário',
-        description: error.message,
+        description: error.message || 'Tente novamente.',
         variant: 'destructive',
       });
     } finally {
@@ -171,6 +268,57 @@ export default function AdminUsers() {
     return currentUser?.id !== userId;
   };
 
+  // Render error states
+  if (fetchError.type) {
+    return (
+      <Layout>
+        <div className="p-8">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+              <Users className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">Administração de Usuários</h1>
+              <p className="text-muted-foreground">Gerencie os roles e permissões dos usuários</p>
+            </div>
+          </div>
+
+          <Alert variant="destructive" className="max-w-2xl">
+            {fetchError.type === 'unauthorized' && <ShieldX className="h-4 w-4" />}
+            {fetchError.type === 'forbidden' && <Shield className="h-4 w-4" />}
+            {fetchError.type === 'server_error' && <AlertTriangle className="h-4 w-4" />}
+            <AlertTitle>
+              {fetchError.type === 'unauthorized' && 'Não autorizado'}
+              {fetchError.type === 'forbidden' && 'Acesso negado'}
+              {fetchError.type === 'server_error' && 'Erro no servidor'}
+            </AlertTitle>
+            <AlertDescription className="mt-2">
+              {fetchError.message}
+            </AlertDescription>
+            <div className="mt-4">
+              {fetchError.type === 'unauthorized' && (
+                <Button variant="outline" onClick={() => navigate('/login')}>
+                  Fazer login
+                </Button>
+              )}
+              {fetchError.type === 'forbidden' && (
+                <Button variant="outline" onClick={() => navigate('/dashboard')}>
+                  Voltar ao Dashboard
+                </Button>
+              )}
+              {fetchError.type === 'server_error' && (
+                <Button variant="outline" onClick={fetchUsers}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Tentar novamente
+                </Button>
+              )}
+            </div>
+          </Alert>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="p-8">
@@ -197,7 +345,7 @@ export default function AdminUsers() {
                   <span className="font-semibold text-red-600">Admin</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Acesso total: Dashboard, Executivo, CRM, Funil, Comissões
+                  Acesso total: Dashboard, Executivo, CRM, Funil, Comissões, Relatório, Usuários
                 </p>
               </div>
               <div className="p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
@@ -206,7 +354,7 @@ export default function AdminUsers() {
                   <span className="font-semibold text-blue-600">Recepção</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Acesso: Dashboard, CRM, Funil
+                  Acesso: Dashboard, CRM, Funil. Edita apenas leads próprios.
                 </p>
               </div>
               <div className="p-4 rounded-lg bg-green-500/5 border border-green-500/20">
@@ -215,7 +363,7 @@ export default function AdminUsers() {
                   <span className="font-semibold text-green-600">Comercial</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Acesso: Dashboard, CRM, Funil
+                  Acesso: Dashboard, CRM, Funil. Edita apenas leads próprios.
                 </p>
               </div>
             </div>

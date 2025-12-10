@@ -109,7 +109,7 @@ export default function LeadDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, canEditLead: canEditLeadAuth } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingInteracao, setSavingInteracao] = useState(false);
@@ -117,10 +117,18 @@ export default function LeadDetail() {
   const [interacoes, setInteracoes] = useState<Interacao[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [canEditCurrentInteracao, setCanEditCurrentInteracao] = useState(true);
   const [formData, setFormData] = useState<InteracaoForm>(initialFormState);
 
   // Permission check: admin can edit any lead, others can only edit leads they created
-  const canEditLead = lead ? (isAdmin || (lead.created_by !== null && lead.created_by === user?.id)) : false;
+  const canEditLead = lead ? canEditLeadAuth(lead.created_by) : false;
+
+  // Permission check for interacao: admin can edit any, others can only edit their own
+  const canEditInteracao = (interacao: Interacao): boolean => {
+    if (isAdmin) return true;
+    if (!user || !interacao.created_by) return false;
+    return interacao.created_by === user.id;
+  };
 
   // Calculate commissions based on tipo_atendimento and quem_agendou
   const calculateCommissions = () => {
@@ -220,10 +228,15 @@ export default function LeadDetail() {
   const openNewInteracao = () => {
     setFormData(initialFormState);
     setIsEditing(false);
+    setCanEditCurrentInteracao(true); // New interacoes can always be edited
     setSheetOpen(true);
   };
 
   const openEditInteracao = (interacao: Interacao) => {
+    // Check if user can edit this interaction
+    const canEdit = canEditInteracao(interacao);
+    setCanEditCurrentInteracao(canEdit);
+
     // Map old origem_fechamento to new tipo_atendimento for backward compatibility
     let tipoAtendimento = (interacao as any).tipo_atendimento || '';
     if (!tipoAtendimento) {

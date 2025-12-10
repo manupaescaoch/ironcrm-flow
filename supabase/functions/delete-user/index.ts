@@ -6,61 +6,71 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
+    // 1. Create Supabase client with SERVICE_ROLE_KEY
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Validate JWT
+    // 2. Get token from header
     const token = req.headers.get('Authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return new Response(JSON.stringify({ error: 'Missing authorization token' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401,
-      });
-    }
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) {
+    if (!token) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
       });
     }
 
-    // Verify admin role
-    const { data: roleData } = await supabaseAdmin
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'admin')
-      .single();
+    // 3. Validate logged user
+    const { data: { user }, error: userErr } = await supabase.auth.getUser(token);
 
-    if (!roleData) {
-      return new Response(JSON.stringify({ error: 'Forbidden: Admin access required' }), {
+    if (userErr || !user) {
+      console.error('Auth error:', userErr);
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      });
+    }
+
+    // 4. Check if user is ADMIN using has_role function
+    const { data: isAdmin, error: roleErr } = await supabase.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin',
+    });
+
+    if (roleErr) {
+      console.error('Role check error:', roleErr);
+      return new Response(JSON.stringify({ error: 'Error checking permissions' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
+    }
+
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 403,
       });
     }
 
+    // 5. Parse request body
     const { userId } = await req.json();
 
     if (!userId) {
-      throw new Error('userId is required');
+      return new Response(JSON.stringify({ error: 'userId is required' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      });
     }
 
-    // Prevent self-deletion
+    // 6. Prevent self-deletion
     if (userId === user.id) {
       return new Response(JSON.stringify({ error: 'Cannot delete your own account' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -68,9 +78,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`Admin ${user.id} deleting user ${userId}...`);
+    console.log(`Admin ${user.id} (${user.email}) deleting user ${userId}...`);
 
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    // 7. Delete user
+    const { error } = await supabase.auth.admin.deleteUser(userId);
 
     if (error) {
       console.error('Error deleting user:', error);
@@ -86,8 +97,8 @@ Deno.serve(async (req) => {
         status: 200,
       }
     );
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : 'Internal server error';
     console.error('Error in delete-user function:', errorMessage);
     return new Response(
       JSON.stringify({ error: errorMessage }),
