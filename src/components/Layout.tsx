@@ -7,7 +7,8 @@ import {
   Users, 
   Columns, 
   LogOut,
-  Dumbbell
+  Dumbbell,
+  DollarSign
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -19,6 +20,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/crm', label: 'CRM', icon: Users },
   { href: '/kanban', label: 'Funil', icon: Columns },
+  { href: '/comissoes', label: 'Comissões', icon: DollarSign },
 ];
 
 export function Layout({ children }: LayoutProps) {
