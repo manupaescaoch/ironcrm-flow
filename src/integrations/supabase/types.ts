@@ -14,7 +14,89 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      interacoes: {
+        Row: {
+          created_at: string
+          data_interacao: string
+          descricao: string | null
+          id: string
+          lead_id: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          data_interacao?: string
+          descricao?: string | null
+          id?: string
+          lead_id: string
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          data_interacao?: string
+          descricao?: string | null
+          id?: string
+          lead_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interacoes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          data_aula_experimental: string | null
+          email: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          origem: string | null
+          plano_escolhido: string | null
+          status_funil: string
+          telefone: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          data_aula_experimental?: string | null
+          email?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          origem?: string | null
+          plano_escolhido?: string | null
+          status_funil?: string
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          data_aula_experimental?: string | null
+          email?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          origem?: string | null
+          plano_escolhido?: string | null
+          status_funil?: string
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
