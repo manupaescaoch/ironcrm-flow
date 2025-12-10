@@ -19,7 +19,6 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from '@/components/ui/sheet';
 import {
   Table,
@@ -32,7 +31,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { Lead, Interacao, StatusFunil, PlanoEscolhido } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Mail, Phone, MapPin, Calendar, FileText, UserCheck, DollarSign, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Pencil, CheckCircle, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -56,9 +55,11 @@ const planoOptions: PlanoEscolhido[] = [
 ];
 
 interface InteracaoForm {
+  id?: string;
   tipo: string;
   descricao: string;
   atendido_por: string;
+  treinador_experimental: string;
   agendou_experimental: boolean;
   data_experimental: string;
   hora_experimental: string;
@@ -76,6 +77,7 @@ const initialFormState: InteracaoForm = {
   tipo: '',
   descricao: '',
   atendido_por: '',
+  treinador_experimental: '',
   agendou_experimental: false,
   data_experimental: '',
   hora_experimental: '',
@@ -99,6 +101,7 @@ export default function LeadDetail() {
   const [lead, setLead] = useState<Lead | null>(null);
   const [interacoes, setInteracoes] = useState<Interacao[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<InteracaoForm>(initialFormState);
 
   // Calculate commissions
@@ -173,7 +176,36 @@ export default function LeadDetail() {
     }
   };
 
-  const handleAddInteracao = async () => {
+  const openNewInteracao = () => {
+    setFormData(initialFormState);
+    setIsEditing(false);
+    setSheetOpen(true);
+  };
+
+  const openEditInteracao = (interacao: Interacao) => {
+    setFormData({
+      id: interacao.id,
+      tipo: interacao.tipo || '',
+      descricao: interacao.descricao || '',
+      atendido_por: interacao.atendido_por || '',
+      treinador_experimental: interacao.treinador_experimental || '',
+      agendou_experimental: interacao.agendou_experimental || false,
+      data_experimental: interacao.data_experimental || '',
+      hora_experimental: interacao.hora_experimental || '',
+      compareceu: interacao.compareceu || false,
+      reagendou: interacao.reagendou || false,
+      fechou_matricula: interacao.fechou_matricula || false,
+      plano_escolhido: interacao.plano_escolhido || '',
+      valor_plano: interacao.valor_plano || 0,
+      data_fechamento: interacao.data_fechamento || '',
+      responsavel_fechamento: interacao.responsavel_fechamento || '',
+      treinador_responsavel: interacao.treinador_responsavel || '',
+    });
+    setIsEditing(true);
+    setSheetOpen(true);
+  };
+
+  const handleSaveInteracao = async () => {
     if (!formData.tipo.trim()) {
       toast({ title: 'Tipo da interação é obrigatório', variant: 'destructive' });
       return;
@@ -183,12 +215,11 @@ export default function LeadDetail() {
 
     const newStatus = determineNewStatus(formData);
 
-    const { error: interacaoError } = await supabase.from('interacoes').insert({
-      lead_id: id,
+    const interacaoData = {
       tipo: formData.tipo.trim(),
       descricao: formData.descricao.trim() || null,
-      data_interacao: new Date().toISOString(),
       atendido_por: formData.atendido_por.trim() || null,
+      treinador_experimental: formData.treinador_experimental.trim() || null,
       agendou_experimental: formData.agendou_experimental,
       data_experimental: formData.data_experimental || null,
       hora_experimental: formData.hora_experimental || null,
@@ -202,10 +233,29 @@ export default function LeadDetail() {
       data_fechamento: formData.data_fechamento || null,
       responsavel_fechamento: formData.responsavel_fechamento.trim() || null,
       treinador_responsavel: formData.treinador_responsavel.trim() || null,
-    });
+    };
+
+    let interacaoError;
+
+    if (isEditing && formData.id) {
+      // Update existing interaction
+      const { error } = await supabase
+        .from('interacoes')
+        .update(interacaoData)
+        .eq('id', formData.id);
+      interacaoError = error;
+    } else {
+      // Create new interaction
+      const { error } = await supabase.from('interacoes').insert({
+        ...interacaoData,
+        lead_id: id,
+        data_interacao: new Date().toISOString(),
+      });
+      interacaoError = error;
+    }
 
     if (interacaoError) {
-      toast({ title: 'Erro ao adicionar interação', variant: 'destructive' });
+      toast({ title: 'Erro ao salvar interação', variant: 'destructive' });
       setSavingInteracao(false);
       return;
     }
@@ -219,9 +269,10 @@ export default function LeadDetail() {
     if (leadError) {
       toast({ title: 'Erro ao atualizar status do lead', variant: 'destructive' });
     } else {
-      toast({ title: 'Interação adicionada!' });
+      toast({ title: isEditing ? 'Interação atualizada!' : 'Interação adicionada!' });
       setFormData(initialFormState);
       setSheetOpen(false);
+      // Reload data
       fetchInteracoes();
       fetchLead();
     }
@@ -427,182 +478,10 @@ export default function LeadDetail() {
                   <MessageSquare className="w-5 h-5" />
                   Interações ({interacoes.length})
                 </CardTitle>
-                <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-                  <SheetTrigger asChild>
-                    <Button>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Nova Interação
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-                    <SheetHeader>
-                      <SheetTitle>Nova Interação</SheetTitle>
-                    </SheetHeader>
-                    <div className="space-y-4 mt-6">
-                      <div className="space-y-2">
-                        <Label>Tipo *</Label>
-                        <Input
-                          value={formData.tipo}
-                          onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-                          placeholder="Ex: Ligação, WhatsApp, Presencial"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Atendido Por</Label>
-                        <Input
-                          value={formData.atendido_por}
-                          onChange={(e) => setFormData({ ...formData, atendido_por: e.target.value })}
-                          placeholder="Nome do atendente"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Descrição</Label>
-                        <Textarea
-                          value={formData.descricao}
-                          onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                          placeholder="Detalhes da interação..."
-                          rows={2}
-                        />
-                      </div>
-
-                      {/* Toggles */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                          <Label>Agendou Experimental</Label>
-                          <Switch
-                            checked={formData.agendou_experimental}
-                            onCheckedChange={(checked) => setFormData({ ...formData, agendou_experimental: checked })}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                          <Label>Compareceu</Label>
-                          <Switch
-                            checked={formData.compareceu}
-                            onCheckedChange={(checked) => setFormData({ ...formData, compareceu: checked })}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                          <Label>Reagendou</Label>
-                          <Switch
-                            checked={formData.reagendou}
-                            onCheckedChange={(checked) => setFormData({ ...formData, reagendou: checked })}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                          <Label>Fechou Matrícula</Label>
-                          <Switch
-                            checked={formData.fechou_matricula}
-                            onCheckedChange={(checked) => setFormData({ ...formData, fechou_matricula: checked })}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Experimental Date/Time */}
-                      {formData.agendou_experimental && (
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Data Experimental</Label>
-                            <Input
-                              type="date"
-                              value={formData.data_experimental}
-                              onChange={(e) => setFormData({ ...formData, data_experimental: e.target.value })}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Hora Experimental</Label>
-                            <Input
-                              type="time"
-                              value={formData.hora_experimental}
-                              onChange={(e) => setFormData({ ...formData, hora_experimental: e.target.value })}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Matricula fields */}
-                      {formData.fechou_matricula && (
-                        <>
-                          <div className="space-y-2">
-                            <Label>Plano Escolhido</Label>
-                            <Select
-                              value={formData.plano_escolhido}
-                              onValueChange={(v) => setFormData({ ...formData, plano_escolhido: v })}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione o plano" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {planoOptions.map((plano) => (
-                                  <SelectItem key={plano} value={plano}>
-                                    {plano}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Valor do Plano (R$)</Label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={formData.valor_plano}
-                              onChange={(e) => setFormData({ ...formData, valor_plano: parseFloat(e.target.value) || 0 })}
-                              placeholder="0.00"
-                            />
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>Comissão Comercial (3%)</Label>
-                              <Input
-                                value={formatCurrency(comissaoComercial)}
-                                disabled
-                                className="bg-muted"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Comissão Recepção (2%)</Label>
-                              <Input
-                                value={formatCurrency(comissaoRecepcao)}
-                                disabled
-                                className="bg-muted"
-                              />
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Data Fechamento</Label>
-                            <Input
-                              type="date"
-                              value={formData.data_fechamento}
-                              onChange={(e) => setFormData({ ...formData, data_fechamento: e.target.value })}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Responsável Fechamento</Label>
-                            <Input
-                              value={formData.responsavel_fechamento}
-                              onChange={(e) => setFormData({ ...formData, responsavel_fechamento: e.target.value })}
-                              placeholder="Nome do responsável"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Treinador Responsável</Label>
-                            <Input
-                              value={formData.treinador_responsavel}
-                              onChange={(e) => setFormData({ ...formData, treinador_responsavel: e.target.value })}
-                              placeholder="Nome do treinador"
-                            />
-                          </div>
-                        </>
-                      )}
-
-                      <Button onClick={handleAddInteracao} disabled={savingInteracao} className="w-full">
-                        {savingInteracao && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                        <Plus className="w-4 h-4 mr-2" />
-                        Salvar Interação
-                      </Button>
-                    </div>
-                  </SheetContent>
-                </Sheet>
+                <Button onClick={openNewInteracao}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nova Interação
+                </Button>
               </CardHeader>
               <CardContent>
                 {interacoes.length === 0 ? (
@@ -617,24 +496,22 @@ export default function LeadDetail() {
                           <TableHead>Data</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>Atendente</TableHead>
-                          <TableHead>Experimental</TableHead>
+                          <TableHead>Treinador Exp.</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Plano</TableHead>
                           <TableHead>Valor</TableHead>
-                          <TableHead>Comissões</TableHead>
+                          <TableHead>Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {interacoes.map((int) => (
-                          <TableRow key={int.id}>
+                          <TableRow key={int.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openEditInteracao(int)}>
                             <TableCell className="whitespace-nowrap">
                               {format(new Date(int.data_interacao), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                             </TableCell>
                             <TableCell>{int.tipo}</TableCell>
                             <TableCell>{int.atendido_por || '-'}</TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              {formatDateTime(int.data_experimental, int.hora_experimental)}
-                            </TableCell>
+                            <TableCell>{int.treinador_experimental || '-'}</TableCell>
                             <TableCell>
                               <div className="flex flex-col gap-1 text-xs">
                                 <span className="flex items-center gap-1">
@@ -654,12 +531,9 @@ export default function LeadDetail() {
                             <TableCell>{int.plano_escolhido || '-'}</TableCell>
                             <TableCell>{int.valor_plano > 0 ? formatCurrency(int.valor_plano) : '-'}</TableCell>
                             <TableCell>
-                              {int.fechou_matricula ? (
-                                <div className="text-xs">
-                                  <p>Comercial: {formatCurrency(int.comissao_comercial)}</p>
-                                  <p>Recepção: {formatCurrency(int.comissao_recepcao)}</p>
-                                </div>
-                              ) : '-'}
+                              <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); openEditInteracao(int); }}>
+                                <Pencil className="w-4 h-4" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -670,7 +544,7 @@ export default function LeadDetail() {
               </CardContent>
             </Card>
 
-            {/* Detailed Interactions List */}
+            {/* Detailed Interactions History */}
             <Card>
               <CardHeader>
                 <CardTitle>Histórico Detalhado</CardTitle>
@@ -678,12 +552,21 @@ export default function LeadDetail() {
               <CardContent>
                 <div className="space-y-4">
                   {interacoes.map((int) => (
-                    <div key={int.id} className="p-4 bg-muted/30 rounded-lg space-y-3">
+                    <div
+                      key={int.id}
+                      className="p-4 bg-muted/30 rounded-lg space-y-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => openEditInteracao(int)}
+                    >
                       <div className="flex items-center justify-between">
                         <span className="font-semibold">{int.tipo}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {format(new Date(int.data_interacao), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">
+                            {format(new Date(int.data_interacao), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </span>
+                          <Button variant="ghost" size="icon" className="h-6 w-6">
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </div>
                       {int.descricao && (
                         <p className="text-sm text-muted-foreground">{int.descricao}</p>
@@ -693,6 +576,12 @@ export default function LeadDetail() {
                           <span className="text-muted-foreground">Atendido por: </span>
                           <span className="font-medium">{int.atendido_por || '-'}</span>
                         </div>
+                        {int.treinador_experimental && (
+                          <div>
+                            <span className="text-muted-foreground">Treinador Exp.: </span>
+                            <span className="font-medium">{int.treinador_experimental}</span>
+                          </div>
+                        )}
                         {int.data_experimental && (
                           <div>
                             <span className="text-muted-foreground">Data Exp: </span>
@@ -701,7 +590,7 @@ export default function LeadDetail() {
                         )}
                         {int.treinador_responsavel && (
                           <div>
-                            <span className="text-muted-foreground">Treinador: </span>
+                            <span className="text-muted-foreground">Treinador Resp.: </span>
                             <span className="font-medium">{int.treinador_responsavel}</span>
                           </div>
                         )}
@@ -717,6 +606,18 @@ export default function LeadDetail() {
                             <span className="font-medium">{formatDate(int.data_fechamento)}</span>
                           </div>
                         )}
+                        {int.fechou_matricula && (
+                          <>
+                            <div>
+                              <span className="text-muted-foreground">Comissão Com.: </span>
+                              <span className="font-medium text-green-600">{formatCurrency(int.comissao_comercial)}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Comissão Rec.: </span>
+                              <span className="font-medium text-amber-600">{formatCurrency(int.comissao_recepcao)}</span>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -725,6 +626,186 @@ export default function LeadDetail() {
             </Card>
           </div>
         </div>
+
+        {/* Sheet for New/Edit Interaction */}
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>{isEditing ? 'Editar Interação' : 'Nova Interação'}</SheetTitle>
+            </SheetHeader>
+            <div className="space-y-4 mt-6">
+              <div className="space-y-2">
+                <Label>Tipo *</Label>
+                <Input
+                  value={formData.tipo}
+                  onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
+                  placeholder="Ex: Ligação, WhatsApp, Presencial"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Atendido Por</Label>
+                <Input
+                  value={formData.atendido_por}
+                  onChange={(e) => setFormData({ ...formData, atendido_por: e.target.value })}
+                  placeholder="Nome do atendente"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Treinador Experimental</Label>
+                <Input
+                  value={formData.treinador_experimental}
+                  onChange={(e) => setFormData({ ...formData, treinador_experimental: e.target.value })}
+                  placeholder="Responsável pela aula experimental"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Textarea
+                  value={formData.descricao}
+                  onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                  placeholder="Detalhes da interação..."
+                  rows={2}
+                />
+              </div>
+
+              {/* Toggles */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <Label className="text-sm">Agendou Experimental</Label>
+                  <Switch
+                    checked={formData.agendou_experimental}
+                    onCheckedChange={(checked) => setFormData({ ...formData, agendou_experimental: checked })}
+                  />
+                </div>
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <Label className="text-sm">Compareceu</Label>
+                  <Switch
+                    checked={formData.compareceu}
+                    onCheckedChange={(checked) => setFormData({ ...formData, compareceu: checked })}
+                  />
+                </div>
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <Label className="text-sm">Reagendou</Label>
+                  <Switch
+                    checked={formData.reagendou}
+                    onCheckedChange={(checked) => setFormData({ ...formData, reagendou: checked })}
+                  />
+                </div>
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <Label className="text-sm">Fechou Matrícula</Label>
+                  <Switch
+                    checked={formData.fechou_matricula}
+                    onCheckedChange={(checked) => setFormData({ ...formData, fechou_matricula: checked })}
+                  />
+                </div>
+              </div>
+
+              {/* Experimental Date/Time - always visible when agendou_experimental or for editing */}
+              {(formData.agendou_experimental || isEditing) && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Data Experimental</Label>
+                    <Input
+                      type="date"
+                      value={formData.data_experimental}
+                      onChange={(e) => setFormData({ ...formData, data_experimental: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Hora Experimental</Label>
+                    <Input
+                      type="time"
+                      value={formData.hora_experimental}
+                      onChange={(e) => setFormData({ ...formData, hora_experimental: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Matricula fields - always visible when fechou_matricula or for editing */}
+              {(formData.fechou_matricula || isEditing) && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Plano Escolhido</Label>
+                    <Select
+                      value={formData.plano_escolhido}
+                      onValueChange={(v) => setFormData({ ...formData, plano_escolhido: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o plano" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {planoOptions.map((plano) => (
+                          <SelectItem key={plano} value={plano}>
+                            {plano}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Valor do Plano (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.valor_plano}
+                      onChange={(e) => setFormData({ ...formData, valor_plano: parseFloat(e.target.value) || 0 })}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Comissão Comercial (3%)</Label>
+                      <Input
+                        value={formatCurrency(comissaoComercial)}
+                        disabled
+                        className="bg-muted"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Comissão Recepção (2%)</Label>
+                      <Input
+                        value={formatCurrency(comissaoRecepcao)}
+                        disabled
+                        className="bg-muted"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Data Fechamento</Label>
+                    <Input
+                      type="date"
+                      value={formData.data_fechamento}
+                      onChange={(e) => setFormData({ ...formData, data_fechamento: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Responsável Fechamento</Label>
+                    <Input
+                      value={formData.responsavel_fechamento}
+                      onChange={(e) => setFormData({ ...formData, responsavel_fechamento: e.target.value })}
+                      placeholder="Nome do responsável"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Treinador Responsável</Label>
+                    <Input
+                      value={formData.treinador_responsavel}
+                      onChange={(e) => setFormData({ ...formData, treinador_responsavel: e.target.value })}
+                      placeholder="Nome do treinador"
+                    />
+                  </div>
+                </>
+              )}
+
+              <Button onClick={handleSaveInteracao} disabled={savingInteracao} className="w-full">
+                {savingInteracao && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                <Save className="w-4 h-4 mr-2" />
+                {isEditing ? 'Salvar Alterações' : 'Criar Interação'}
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </Layout>
   );
