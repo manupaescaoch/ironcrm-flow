@@ -111,6 +111,7 @@ export type Database = {
           atendido_por: string | null
           ativo: boolean
           created_at: string
+          created_by: string | null
           data_aula_experimental: string | null
           email: string | null
           id: string
@@ -127,6 +128,7 @@ export type Database = {
           atendido_por?: string | null
           ativo?: boolean
           created_at?: string
+          created_by?: string | null
           data_aula_experimental?: string | null
           email?: string | null
           id?: string
@@ -143,6 +145,7 @@ export type Database = {
           atendido_por?: string | null
           ativo?: boolean
           created_at?: string
+          created_by?: string | null
           data_aula_experimental?: string | null
           email?: string | null
           id?: string
