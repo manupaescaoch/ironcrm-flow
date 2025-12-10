@@ -7,13 +7,13 @@ import {
   Users, 
   Columns, 
   LogOut,
-  Dumbbell,
   DollarSign,
   BarChart3,
   Settings,
   FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import logo from '@/assets/logo.png';
 
 interface LayoutProps {
   children: ReactNode;
@@ -54,9 +54,7 @@ export function Layout({ children }: LayoutProps) {
       <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
         <div className="p-6 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <Dumbbell className="w-6 h-6 text-primary-foreground" />
-            </div>
+            <img src={logo} alt="Logo" className="w-10 h-10 rounded-lg" />
             <div>
               <h1 className="font-bold text-sidebar-foreground">IRON CLUB</h1>
               <p className="text-xs text-muted-foreground">CRM</p>
