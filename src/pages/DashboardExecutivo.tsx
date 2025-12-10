@@ -18,48 +18,52 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Lead, Interacao } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Loader2, 
   Users, 
-  TrendingUp, 
-  DollarSign, 
-  Target, 
-  Clock, 
+  CalendarCheck, 
+  UserCheck, 
+  GraduationCap,
   Percent,
   Filter,
-  BarChart3,
-  UserCheck,
-  Briefcase
+  TrendingUp,
+  Trophy,
+  Dumbbell,
+  AlertTriangle,
+  Award
 } from 'lucide-react';
-import { format, differenceInDays, startOfMonth, endOfMonth } from 'date-fns';
-
-interface InteracaoComLead extends Interacao {
-  lead?: Lead;
-}
+import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  PieChart,
+  Pie,
+  Legend
+} from 'recharts';
 
 export default function DashboardExecutivo() {
   const [loading, setLoading] = useState(false);
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [interacoes, setInteracoes] = useState<InteracaoComLead[]>([]);
+  const [interacoes, setInteracoes] = useState<Interacao[]>([]);
   const { toast } = useToast();
 
-  // Filters
+  // Date filters
   const [dataInicio, setDataInicio] = useState<string>(
     format(startOfMonth(new Date()), 'yyyy-MM-dd')
   );
   const [dataFim, setDataFim] = useState<string>(
     format(endOfMonth(new Date()), 'yyyy-MM-dd')
   );
-  const [filterOrigem, setFilterOrigem] = useState<string>('');
-  const [filterAtendente, setFilterAtendente] = useState<string>('');
-
-  // Unique values for filters
-  const [origensDisponiveis, setOrigensDisponiveis] = useState<string[]>([]);
-  const [atendentesDisponiveis, setAtendentesDisponiveis] = useState<string[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -68,6 +72,7 @@ export default function DashboardExecutivo() {
   const fetchData = async () => {
     setLoading(true);
 
+    // Fetch leads in period
     const { data: leadsData, error: leadsError } = await supabase
       .from('leads')
       .select('*')
@@ -81,159 +86,253 @@ export default function DashboardExecutivo() {
       return;
     }
 
+    // Fetch all interacoes in period
     const { data: interacoesData, error: interacoesError } = await supabase
       .from('interacoes')
-      .select('*, leads(*)')
-      .eq('fechou_matricula', true)
-      .gte('data_fechamento', dataInicio)
-      .lte('data_fechamento', dataFim);
+      .select('*')
+      .gte('data_interacao', dataInicio)
+      .lte('data_interacao', dataFim + 'T23:59:59');
 
     if (interacoesError) {
-      toast({ title: 'Erro ao carregar matrículas', variant: 'destructive' });
+      toast({ title: 'Erro ao carregar interações', variant: 'destructive' });
       setLoading(false);
       return;
     }
 
-    const typedLeads = (leadsData || []) as unknown as Lead[];
-    const typedInteracoes = (interacoesData || []).map((int: any) => ({
-      ...int,
-      lead: int.leads as Lead,
-    })) as InteracaoComLead[];
-
-    setLeads(typedLeads);
-    setInteracoes(typedInteracoes);
-
-    const origens = [...new Set(typedLeads.map(l => l.origem).filter(Boolean))] as string[];
-    const atendentes = [...new Set([
-      ...typedLeads.map(l => l.atendido_por).filter(Boolean),
-      ...typedInteracoes.map(i => i.responsavel_fechamento).filter(Boolean),
-    ])] as string[];
-
-    setOrigensDisponiveis(origens);
-    setAtendentesDisponiveis(atendentes);
+    setLeads((leadsData || []) as unknown as Lead[]);
+    setInteracoes((interacoesData || []) as unknown as Interacao[]);
     setLoading(false);
   };
 
-  const filteredLeads = useMemo(() => {
-    return leads.filter(lead => {
-      if (filterOrigem && lead.origem !== filterOrigem) return false;
-      if (filterAtendente && lead.atendido_por !== filterAtendente) return false;
-      return true;
-    });
-  }, [leads, filterOrigem, filterAtendente]);
+  // ==================== TOP CARDS ====================
+  const topCards = useMemo(() => {
+    const leadsDoMes = leads.length;
+    const agendamentos = interacoes.filter(i => i.agendou_experimental === true).length;
+    const comparecimentos = interacoes.filter(i => i.compareceu === true).length;
+    const matriculas = interacoes.filter(i => i.fechou_matricula === true).length;
+    const taxaConversao = comparecimentos > 0 ? (matriculas / comparecimentos) * 100 : 0;
 
-  const filteredInteracoes = useMemo(() => {
-    return interacoes.filter(int => {
-      if (filterOrigem && int.lead?.origem !== filterOrigem) return false;
-      if (filterAtendente) {
-        const match = int.responsavel_fechamento === filterAtendente || 
-                     int.lead?.atendido_por === filterAtendente;
-        if (!match) return false;
-      }
-      return true;
-    });
-  }, [interacoes, filterOrigem, filterAtendente]);
+    return { leadsDoMes, agendamentos, comparecimentos, matriculas, taxaConversao };
+  }, [leads, interacoes]);
 
-  // KPIs
-  const kpis = useMemo(() => {
-    const leadsNoPeriodo = filteredLeads.length;
-    const matriculasNoPeriodo = filteredInteracoes.length;
-    const taxaConversao = leadsNoPeriodo > 0 ? (matriculasNoPeriodo / leadsNoPeriodo) * 100 : 0;
-    const faturamento = filteredInteracoes.reduce((sum, int) => sum + (int.valor_plano || 0), 0);
-    const ticketMedio = matriculasNoPeriodo > 0 ? faturamento / matriculasNoPeriodo : 0;
-    const comissaoTotal = filteredInteracoes.reduce(
-      (sum, int) => sum + (int.comissao_comercial || 0) + (int.comissao_recepcao || 0), 0
-    );
+  // ==================== FUNIL EXECUTIVO ====================
+  const funilExecutivo = useMemo(() => {
+    const leadsTotal = leads.length;
+    const contatoFeito = interacoes.filter(i => i.atendido_por).length;
+    const agendamentos = interacoes.filter(i => i.agendou_experimental === true).length;
+    const comparecimentos = interacoes.filter(i => i.compareceu === true).length;
+    const matriculas = interacoes.filter(i => i.fechou_matricula === true).length;
 
-    let totalDias = 0;
-    let countDias = 0;
-    filteredInteracoes.forEach(int => {
-      if (int.data_fechamento && int.lead?.created_at) {
-        const dias = differenceInDays(new Date(int.data_fechamento), new Date(int.lead.created_at));
-        if (dias >= 0) { totalDias += dias; countDias++; }
-      }
-    });
-    const prazoMedio = countDias > 0 ? Math.round(totalDias / countDias) : 0;
+    return [
+      { etapa: 'Leads', quantidade: leadsTotal, conversao: null },
+      { etapa: 'Contato Feito', quantidade: contatoFeito, conversao: leadsTotal > 0 ? (contatoFeito / leadsTotal) * 100 : 0 },
+      { etapa: 'Agendamentos', quantidade: agendamentos, conversao: contatoFeito > 0 ? (agendamentos / contatoFeito) * 100 : 0 },
+      { etapa: 'Comparecimentos', quantidade: comparecimentos, conversao: agendamentos > 0 ? (comparecimentos / agendamentos) * 100 : 0 },
+      { etapa: 'Matrículas', quantidade: matriculas, conversao: comparecimentos > 0 ? (matriculas / comparecimentos) * 100 : 0 },
+    ];
+  }, [leads, interacoes]);
 
-    return { leadsNoPeriodo, matriculasNoPeriodo, taxaConversao, faturamento, ticketMedio, comissaoTotal, prazoMedio };
-  }, [filteredLeads, filteredInteracoes]);
-
-  // Desempenho por Origem
-  const desempenhoPorOrigem = useMemo(() => {
-    const grouped = new Map<string, { leads: number; matriculas: number; faturamento: number }>();
-    filteredLeads.forEach(lead => {
+  // ==================== ORIGEM DOS LEADS ====================
+  const origemData = useMemo(() => {
+    const grouped = new Map<string, { leads: number; matriculas: number }>();
+    
+    leads.forEach(lead => {
       const origem = lead.origem || 'Não informado';
-      const current = grouped.get(origem) || { leads: 0, matriculas: 0, faturamento: 0 };
+      const current = grouped.get(origem) || { leads: 0, matriculas: 0 };
       grouped.set(origem, { ...current, leads: current.leads + 1 });
     });
-    filteredInteracoes.forEach(int => {
-      const origem = int.lead?.origem || 'Não informado';
-      const current = grouped.get(origem) || { leads: 0, matriculas: 0, faturamento: 0 };
-      grouped.set(origem, {
-        ...current,
-        matriculas: current.matriculas + 1,
-        faturamento: current.faturamento + (int.valor_plano || 0),
-      });
+
+    interacoes.filter(i => i.fechou_matricula === true).forEach(int => {
+      const lead = leads.find(l => l.id === int.lead_id);
+      const origem = lead?.origem || 'Não informado';
+      const current = grouped.get(origem) || { leads: 0, matriculas: 0 };
+      grouped.set(origem, { ...current, matriculas: current.matriculas + 1 });
     });
+
     return Array.from(grouped.entries()).map(([origem, data]) => ({
       origem,
       leads: data.leads,
       matriculas: data.matriculas,
-      taxaConversao: data.leads > 0 ? (data.matriculas / data.leads) * 100 : 0,
-      faturamento: data.faturamento,
-      ticketMedio: data.matriculas > 0 ? data.faturamento / data.matriculas : 0,
-    })).sort((a, b) => b.faturamento - a.faturamento);
-  }, [filteredLeads, filteredInteracoes]);
+      conversao: data.leads > 0 ? (data.matriculas / data.leads) * 100 : 0,
+    })).sort((a, b) => b.leads - a.leads);
+  }, [leads, interacoes]);
 
-  // Desempenho por Atendente
-  const desempenhoPorAtendente = useMemo(() => {
-    const grouped = new Map<string, { matriculas: number; faturamento: number; comissao: number }>();
-    filteredInteracoes.forEach(int => {
-      const responsavel = int.responsavel_fechamento || 'Não informado';
-      const current = grouped.get(responsavel) || { matriculas: 0, faturamento: 0, comissao: 0 };
-      grouped.set(responsavel, {
-        matriculas: current.matriculas + 1,
-        faturamento: current.faturamento + (int.valor_plano || 0),
-        comissao: current.comissao + (int.comissao_comercial || 0),
+  const COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#06b6d4', '#ec4899', '#84cc16'];
+
+  // ==================== AGENDA & PRESENÇA ====================
+  const agendaPresenca = useMemo(() => {
+    const agendamentosPorData = new Map<string, { agendados: number; compareceram: number }>();
+    
+    interacoes.filter(i => i.data_experimental).forEach(int => {
+      const data = int.data_experimental!;
+      const current = agendamentosPorData.get(data) || { agendados: 0, compareceram: 0 };
+      agendamentosPorData.set(data, {
+        agendados: current.agendados + 1,
+        compareceram: current.compareceram + (int.compareceu ? 1 : 0),
       });
     });
-    return Array.from(grouped.entries()).map(([responsavel, data]) => ({
-      responsavel, ...data,
-    })).sort((a, b) => b.matriculas - a.matriculas);
-  }, [filteredInteracoes]);
 
-  // Resumo do Funil
-  const resumoFunil = useMemo(() => {
-    const statusLabels: Record<string, string> = {
-      novo: 'Novo', contato_inicial: 'Contato Inicial', aula_agendada: 'Aula Agendada',
-      aula_realizada: 'Aula Realizada', negociacao: 'Negociação', convertido: 'Convertido', perdido: 'Perdido',
-    };
-    const statusCounts = new Map<string, number>();
-    filteredLeads.forEach(lead => {
-      statusCounts.set(lead.status_funil, (statusCounts.get(lead.status_funil) || 0) + 1);
+    const rows = Array.from(agendamentosPorData.entries())
+      .map(([data, stats]) => ({
+        data,
+        agendados: stats.agendados,
+        compareceram: stats.compareceram,
+        noShow: stats.agendados > 0 ? ((stats.agendados - stats.compareceram) / stats.agendados) * 100 : 0,
+      }))
+      .sort((a, b) => b.data.localeCompare(a.data));
+
+    // Summary
+    const totalAgendados = rows.reduce((sum, r) => sum + r.agendados, 0);
+    const totalCompareceram = rows.reduce((sum, r) => sum + r.compareceram, 0);
+    const mediaNoShow = totalAgendados > 0 ? ((totalAgendados - totalCompareceram) / totalAgendados) * 100 : 0;
+    
+    const melhorDia = rows.length > 0 ? rows.reduce((best, r) => {
+      const presenca = r.agendados > 0 ? (r.compareceram / r.agendados) * 100 : 0;
+      const bestPresenca = best.agendados > 0 ? (best.compareceram / best.agendados) * 100 : 0;
+      return presenca > bestPresenca ? r : best;
+    }) : null;
+
+    const piorDia = rows.length > 0 ? rows.reduce((worst, r) => {
+      const presenca = r.agendados > 0 ? (r.compareceram / r.agendados) * 100 : 0;
+      const worstPresenca = worst.agendados > 0 ? (worst.compareceram / worst.agendados) * 100 : 0;
+      return presenca < worstPresenca ? r : worst;
+    }) : null;
+
+    return { rows, mediaNoShow, melhorDia, piorDia };
+  }, [interacoes]);
+
+  // ==================== PERFORMANCE POR RESPONSÁVEL ====================
+  const performanceResponsavel = useMemo(() => {
+    const grouped = new Map<string, { agendamentos: number; comparecimentos: number; matriculas: number }>();
+
+    interacoes.forEach(int => {
+      // For agendamentos, use quem_agendou or atendido_por
+      if (int.agendou_experimental) {
+        const resp = int.quem_agendou || int.atendido_por || 'Não informado';
+        const current = grouped.get(resp) || { agendamentos: 0, comparecimentos: 0, matriculas: 0 };
+        grouped.set(resp, { ...current, agendamentos: current.agendamentos + 1 });
+      }
+      
+      // For comparecimentos
+      if (int.compareceu) {
+        const resp = int.atendido_por || 'Não informado';
+        const current = grouped.get(resp) || { agendamentos: 0, comparecimentos: 0, matriculas: 0 };
+        grouped.set(resp, { ...current, comparecimentos: current.comparecimentos + 1 });
+      }
+
+      // For matriculas, use responsavel_fechamento
+      if (int.fechou_matricula) {
+        const resp = int.responsavel_fechamento || int.atendido_por || 'Não informado';
+        const current = grouped.get(resp) || { agendamentos: 0, comparecimentos: 0, matriculas: 0 };
+        grouped.set(resp, { ...current, matriculas: current.matriculas + 1 });
+      }
     });
-    return Object.entries(statusLabels).map(([key, label]) => ({
-      status: key, label, quantidade: statusCounts.get(key) || 0,
-    }));
-  }, [filteredLeads]);
+
+    return Array.from(grouped.entries())
+      .map(([responsavel, data]) => ({
+        responsavel,
+        ...data,
+        conversao: data.comparecimentos > 0 ? (data.matriculas / data.comparecimentos) * 100 : 0,
+      }))
+      .filter(r => r.agendamentos > 0 || r.comparecimentos > 0 || r.matriculas > 0)
+      .sort((a, b) => b.matriculas - a.matriculas);
+  }, [interacoes]);
+
+  // ==================== PERFORMANCE TREINADORES ====================
+  const performanceTreinadores = useMemo(() => {
+    const grouped = new Map<string, { aulas: number; matriculas: number }>();
+
+    interacoes.forEach(int => {
+      const treinador = int.treinador_responsavel;
+      if (!treinador) return;
+
+      const current = grouped.get(treinador) || { aulas: 0, matriculas: 0 };
+      
+      // Count experimental classes given
+      if (int.compareceu) {
+        current.aulas += 1;
+      }
+      
+      // Count matriculas generated
+      if (int.fechou_matricula) {
+        current.matriculas += 1;
+      }
+
+      grouped.set(treinador, current);
+    });
+
+    return Array.from(grouped.entries())
+      .map(([treinador, data]) => {
+        const { aulas, matriculas } = data;
+        const conversao = aulas > 0 ? (matriculas / aulas) * 100 : 0;
+        
+        // Bonus calculation
+        let bonusPorAluno = 0;
+        if (matriculas >= 11) bonusPorAluno = 40;
+        else if (matriculas >= 8) bonusPorAluno = 30;
+        else if (matriculas >= 5) bonusPorAluno = 25;
+        else if (matriculas >= 1) bonusPorAluno = 20;
+        
+        const bonusTotal = matriculas * bonusPorAluno;
+
+        return { treinador, aulas, matriculas, conversao, bonusPorAluno, bonusTotal };
+      })
+      .filter(t => t.aulas > 0)
+      .sort((a, b) => b.matriculas - a.matriculas);
+  }, [interacoes]);
+
+  // ==================== RESUMO FINAL ====================
+  const resumoFinal = useMemo(() => {
+    const totalLeads = leads.length;
+    const totalAgendamentos = interacoes.filter(i => i.agendou_experimental === true).length;
+    const totalComparecimentos = interacoes.filter(i => i.compareceu === true).length;
+    const totalMatriculas = interacoes.filter(i => i.fechou_matricula === true).length;
+    const conversaoGeral = totalComparecimentos > 0 ? (totalMatriculas / totalComparecimentos) * 100 : 0;
+    const mediaNoShow = agendaPresenca.mediaNoShow;
+
+    const melhorResponsavel = performanceResponsavel.length > 0 ? performanceResponsavel[0].responsavel : '-';
+    const melhorTreinador = performanceTreinadores.length > 0 ? performanceTreinadores[0].treinador : '-';
+
+    return {
+      totalLeads,
+      totalAgendamentos,
+      totalComparecimentos,
+      totalMatriculas,
+      conversaoGeral,
+      mediaNoShow,
+      melhorResponsavel,
+      melhorTreinador,
+    };
+  }, [leads, interacoes, agendaPresenca, performanceResponsavel, performanceTreinadores]);
+
+  const formatDate = (dateString: string) => {
+    try {
+      return format(parseISO(dateString), 'dd/MM/yyyy', { locale: ptBR });
+    } catch {
+      return dateString;
+    }
+  };
 
   const formatCurrency = (value: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
   return (
     <Layout>
-      <div className="p-8">
-        <h1 className="text-3xl font-bold mb-8">Dashboard Executivo</h1>
+      <div className="p-8 space-y-8">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Dashboard Executivo</h1>
+          <p className="text-sm text-muted-foreground">Pipeline de Aulas Experimentais</p>
+        </div>
 
         {/* Filters */}
-        <Card className="mb-8">
-          <CardHeader>
+        <Card>
+          <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Filter className="w-5 h-5" /> Filtros
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md">
               <div className="space-y-2">
                 <Label>Data Início</Label>
                 <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
@@ -241,30 +340,6 @@ export default function DashboardExecutivo() {
               <div className="space-y-2">
                 <Label>Data Fim</Label>
                 <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Origem</Label>
-                <Select value={filterOrigem} onValueChange={setFilterOrigem}>
-                  <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Todas</SelectItem>
-                    {origensDisponiveis.map((origem) => (
-                      <SelectItem key={origem} value={origem}>{origem}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Atendente</Label>
-                <Select value={filterAtendente} onValueChange={setFilterAtendente}>
-                  <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
-                    {atendentesDisponiveis.map((a) => (
-                      <SelectItem key={a} value={a}>{a}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </CardContent>
@@ -276,67 +351,142 @@ export default function DashboardExecutivo() {
           </div>
         ) : (
           <>
-            {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+            {/* 1. TOP CARDS */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <Card>
-                <CardContent className="pt-4">
-                  <Users className="w-5 h-5 text-blue-500 mb-1" />
-                  <p className="text-xs text-muted-foreground">Leads</p>
-                  <p className="text-xl font-bold">{kpis.leadsNoPeriodo}</p>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-500/10 rounded-lg">
+                      <Users className="w-6 h-6 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Leads do Mês</p>
+                      <p className="text-2xl font-bold">{topCards.leadsDoMes}</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
+
               <Card>
-                <CardContent className="pt-4">
-                  <UserCheck className="w-5 h-5 text-green-500 mb-1" />
-                  <p className="text-xs text-muted-foreground">Matrículas</p>
-                  <p className="text-xl font-bold">{kpis.matriculasNoPeriodo}</p>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-amber-500/10 rounded-lg">
+                      <CalendarCheck className="w-6 h-6 text-amber-500" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Agendamentos</p>
+                      <p className="text-2xl font-bold">{topCards.agendamentos}</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
+
               <Card>
-                <CardContent className="pt-4">
-                  <Percent className="w-5 h-5 text-purple-500 mb-1" />
-                  <p className="text-xs text-muted-foreground">Conversão</p>
-                  <p className="text-xl font-bold">{kpis.taxaConversao.toFixed(1)}%</p>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-500/10 rounded-lg">
+                      <UserCheck className="w-6 h-6 text-purple-500" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Comparecimentos</p>
+                      <p className="text-2xl font-bold">{topCards.comparecimentos}</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
+
               <Card>
-                <CardContent className="pt-4">
-                  <DollarSign className="w-5 h-5 text-emerald-500 mb-1" />
-                  <p className="text-xs text-muted-foreground">Faturamento</p>
-                  <p className="text-lg font-bold">{formatCurrency(kpis.faturamento)}</p>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-500/10 rounded-lg">
+                      <GraduationCap className="w-6 h-6 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Matrículas</p>
+                      <p className="text-2xl font-bold">{topCards.matriculas}</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
+
               <Card>
-                <CardContent className="pt-4">
-                  <Target className="w-5 h-5 text-blue-500 mb-1" />
-                  <p className="text-xs text-muted-foreground">Ticket Médio</p>
-                  <p className="text-lg font-bold">{formatCurrency(kpis.ticketMedio)}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-4">
-                  <Briefcase className="w-5 h-5 text-sky-500 mb-1" />
-                  <p className="text-xs text-muted-foreground">Comissões</p>
-                  <p className="text-lg font-bold">{formatCurrency(kpis.comissaoTotal)}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-4">
-                  <Clock className="w-5 h-5 text-cyan-500 mb-1" />
-                  <p className="text-xs text-muted-foreground">Prazo Médio</p>
-                  <p className="text-xl font-bold">{kpis.prazoMedio} dias</p>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-cyan-500/10 rounded-lg">
+                      <Percent className="w-6 h-6 text-cyan-500" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Taxa Conversão</p>
+                      <p className="text-2xl font-bold">{topCards.taxaConversao.toFixed(1)}%</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Tables */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Por Origem */}
+            {/* 2. FUNIL EXECUTIVO */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" /> Funil Executivo
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Etapa</TableHead>
+                      <TableHead className="text-center">Quantidade</TableHead>
+                      <TableHead className="text-center">Conversão</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {funilExecutivo.map((item, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="font-medium">{item.etapa}</TableCell>
+                        <TableCell className="text-center text-lg font-semibold">{item.quantidade}</TableCell>
+                        <TableCell className="text-center">
+                          {item.conversao !== null ? (
+                            <span className={item.conversao >= 50 ? 'text-green-600' : item.conversao >= 30 ? 'text-amber-600' : 'text-red-600'}>
+                              {item.conversao.toFixed(1)}%
+                            </span>
+                          ) : '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* 3. ORIGEM DOS LEADS */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <BarChart3 className="w-5 h-5" /> Por Origem
-                  </CardTitle>
+                  <CardTitle>Leads por Origem</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={origemData} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" />
+                        <YAxis type="category" dataKey="origem" width={100} tick={{ fontSize: 12 }} />
+                        <Tooltip />
+                        <Bar dataKey="leads" fill="#3b82f6" name="Leads">
+                          {origemData.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Conversão por Origem</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -344,50 +494,21 @@ export default function DashboardExecutivo() {
                       <TableRow>
                         <TableHead>Origem</TableHead>
                         <TableHead className="text-center">Leads</TableHead>
-                        <TableHead className="text-center">Mat.</TableHead>
-                        <TableHead className="text-center">%</TableHead>
-                        <TableHead className="text-right">Faturamento</TableHead>
+                        <TableHead className="text-center">Matrículas</TableHead>
+                        <TableHead className="text-center">Conversão</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {desempenhoPorOrigem.map((item, i) => (
+                      {origemData.map((item, i) => (
                         <TableRow key={i}>
                           <TableCell className="font-medium">{item.origem}</TableCell>
                           <TableCell className="text-center">{item.leads}</TableCell>
                           <TableCell className="text-center">{item.matriculas}</TableCell>
-                          <TableCell className="text-center">{item.taxaConversao.toFixed(0)}%</TableCell>
-                          <TableCell className="text-right text-green-600">{formatCurrency(item.faturamento)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-
-              {/* Por Atendente */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Briefcase className="w-5 h-5 text-green-500" /> Por Comercial
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Responsável</TableHead>
-                        <TableHead className="text-center">Mat.</TableHead>
-                        <TableHead className="text-right">Faturamento</TableHead>
-                        <TableHead className="text-right">Comissão</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {desempenhoPorAtendente.map((item, i) => (
-                        <TableRow key={i}>
-                          <TableCell className="font-medium">{item.responsavel}</TableCell>
-                          <TableCell className="text-center">{item.matriculas}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(item.faturamento)}</TableCell>
-                          <TableCell className="text-right text-green-600">{formatCurrency(item.comissao)}</TableCell>
+                          <TableCell className="text-center">
+                            <span className={item.conversao >= 30 ? 'text-green-600 font-medium' : ''}>
+                              {item.conversao.toFixed(1)}%
+                            </span>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -396,24 +517,234 @@ export default function DashboardExecutivo() {
               </Card>
             </div>
 
-            {/* Resumo Funil */}
+            {/* 4. AGENDA & PRESENÇA */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <TrendingUp className="w-5 h-5" /> Resumo do Funil
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-500" /> Agenda & Presença (No-Show)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 bg-muted/50 rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground">Média Geral No-Show</p>
+                    <p className="text-2xl font-bold text-amber-600">{agendaPresenca.mediaNoShow.toFixed(1)}%</p>
+                  </div>
+                  <div className="p-4 bg-green-500/10 rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground">Melhor Dia de Presença</p>
+                    <p className="text-lg font-bold text-green-600">
+                      {agendaPresenca.melhorDia ? formatDate(agendaPresenca.melhorDia.data) : '-'}
+                    </p>
+                    {agendaPresenca.melhorDia && (
+                      <p className="text-xs text-muted-foreground">
+                        {agendaPresenca.melhorDia.compareceram}/{agendaPresenca.melhorDia.agendados} presentes
+                      </p>
+                    )}
+                  </div>
+                  <div className="p-4 bg-red-500/10 rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground">Pior Dia de Presença</p>
+                    <p className="text-lg font-bold text-red-600">
+                      {agendaPresenca.piorDia ? formatDate(agendaPresenca.piorDia.data) : '-'}
+                    </p>
+                    {agendaPresenca.piorDia && (
+                      <p className="text-xs text-muted-foreground">
+                        {agendaPresenca.piorDia.compareceram}/{agendaPresenca.piorDia.agendados} presentes
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Table */}
+                <div className="max-h-[300px] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Data Experimental</TableHead>
+                        <TableHead className="text-center">Agendados</TableHead>
+                        <TableHead className="text-center">Compareceram</TableHead>
+                        <TableHead className="text-center">No-Show (%)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {agendaPresenca.rows.map((row, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="font-medium">{formatDate(row.data)}</TableCell>
+                          <TableCell className="text-center">{row.agendados}</TableCell>
+                          <TableCell className="text-center">{row.compareceram}</TableCell>
+                          <TableCell className="text-center">
+                            <span className={row.noShow > 30 ? 'text-red-600 font-medium' : row.noShow > 15 ? 'text-amber-600' : 'text-green-600'}>
+                              {row.noShow.toFixed(1)}%
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {agendaPresenca.rows.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                            Nenhum agendamento no período
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 5. PERFORMANCE POR RESPONSÁVEL */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-amber-500" /> Performance por Responsável
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-                  {resumoFunil.map((item) => (
-                    <div key={item.status} className={`p-3 rounded-lg text-center ${
-                      item.status === 'convertido' ? 'bg-green-500/10' :
-                      item.status === 'perdido' ? 'bg-red-500/10' : 'bg-muted/50'
-                    }`}>
-                      <p className="text-xl font-bold">{item.quantidade}</p>
-                      <p className="text-xs text-muted-foreground">{item.label}</p>
-                    </div>
-                  ))}
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Responsável</TableHead>
+                      <TableHead className="text-center">Agendamentos</TableHead>
+                      <TableHead className="text-center">Comparecimentos</TableHead>
+                      <TableHead className="text-center">Matrículas</TableHead>
+                      <TableHead className="text-center">Conversão (%)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {performanceResponsavel.map((item, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="font-medium">
+                          {i === 0 && item.matriculas > 0 && <Award className="w-4 h-4 inline mr-2 text-amber-500" />}
+                          {item.responsavel}
+                        </TableCell>
+                        <TableCell className="text-center">{item.agendamentos}</TableCell>
+                        <TableCell className="text-center">{item.comparecimentos}</TableCell>
+                        <TableCell className="text-center font-semibold">{item.matriculas}</TableCell>
+                        <TableCell className="text-center">
+                          <span className={item.conversao >= 50 ? 'text-green-600 font-medium' : ''}>
+                            {item.conversao.toFixed(1)}%
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {performanceResponsavel.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                          Nenhum dado disponível
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* 6. PERFORMANCE TREINADORES */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Dumbbell className="w-5 h-5 text-primary" /> Performance dos Treinadores
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Treinador</TableHead>
+                      <TableHead className="text-center">Aulas Experimentais</TableHead>
+                      <TableHead className="text-center">Matrículas</TableHead>
+                      <TableHead className="text-center">Conversão (%)</TableHead>
+                      <TableHead className="text-center">Bônus/Aluno</TableHead>
+                      <TableHead className="text-right">Bônus Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {performanceTreinadores.map((item, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="font-medium">
+                          {i === 0 && item.matriculas > 0 && <Award className="w-4 h-4 inline mr-2 text-amber-500" />}
+                          {item.treinador}
+                        </TableCell>
+                        <TableCell className="text-center">{item.aulas}</TableCell>
+                        <TableCell className="text-center font-semibold">{item.matriculas}</TableCell>
+                        <TableCell className="text-center">
+                          <span className={item.conversao >= 50 ? 'text-green-600 font-medium' : ''}>
+                            {item.conversao.toFixed(1)}%
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">{formatCurrency(item.bonusPorAluno)}</TableCell>
+                        <TableCell className="text-right font-bold text-green-600">
+                          {formatCurrency(item.bonusTotal)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {performanceTreinadores.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                          Nenhum treinador com aulas no período
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+                
+                {/* Bonus Rules */}
+                <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm font-medium mb-2">Regras de Bônus:</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-muted-foreground">
+                    <span>1-4 matrículas: R$20/aluno</span>
+                    <span>5-7 matrículas: R$25/aluno</span>
+                    <span>8-10 matrículas: R$30/aluno</span>
+                    <span>11+ matrículas: R$40/aluno</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 7. RESUMO FINAL */}
+            <Card className="bg-primary/5 border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="w-5 h-5 text-primary" /> Resumo Final do Mês
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-4">
+                    <p className="text-3xl font-bold">{resumoFinal.totalLeads}</p>
+                    <p className="text-sm text-muted-foreground">Total de Leads</p>
+                  </div>
+                  <div className="text-center p-4">
+                    <p className="text-3xl font-bold">{resumoFinal.totalAgendamentos}</p>
+                    <p className="text-sm text-muted-foreground">Total Agendamentos</p>
+                  </div>
+                  <div className="text-center p-4">
+                    <p className="text-3xl font-bold">{resumoFinal.totalComparecimentos}</p>
+                    <p className="text-sm text-muted-foreground">Total Comparecimentos</p>
+                  </div>
+                  <div className="text-center p-4">
+                    <p className="text-3xl font-bold text-green-600">{resumoFinal.totalMatriculas}</p>
+                    <p className="text-sm text-muted-foreground">Total Matrículas</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-border/50">
+                  <div className="text-center p-4">
+                    <p className="text-2xl font-bold text-cyan-600">{resumoFinal.conversaoGeral.toFixed(1)}%</p>
+                    <p className="text-sm text-muted-foreground">Conversão Geral</p>
+                  </div>
+                  <div className="text-center p-4">
+                    <p className="text-2xl font-bold text-amber-600">{resumoFinal.mediaNoShow.toFixed(1)}%</p>
+                    <p className="text-sm text-muted-foreground">Média No-Show</p>
+                  </div>
+                  <div className="text-center p-4">
+                    <p className="text-lg font-bold">{resumoFinal.melhorResponsavel}</p>
+                    <p className="text-sm text-muted-foreground">Melhor Responsável</p>
+                  </div>
+                  <div className="text-center p-4">
+                    <p className="text-lg font-bold">{resumoFinal.melhorTreinador}</p>
+                    <p className="text-sm text-muted-foreground">Melhor Treinador</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
