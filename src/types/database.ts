@@ -1,0 +1,57 @@
+export type PlanoEscolhido = 
+  | 'Executivo Mensal'
+  | 'Mensal'
+  | 'Trimestral'
+  | 'Semestral'
+  | 'Anual'
+  | 'Executivo Anual';
+
+export type StatusFunil = 
+  | 'novo'
+  | 'contato_inicial'
+  | 'aula_agendada'
+  | 'aula_realizada'
+  | 'negociacao'
+  | 'convertido'
+  | 'perdido';
+
+export interface Lead {
+  id: string;
+  nome: string;
+  email: string | null;
+  telefone: string | null;
+  origem: string | null;
+  status_funil: StatusFunil;
+  plano_escolhido: PlanoEscolhido | null;
+  data_aula_experimental: string | null;
+  observacoes: string | null;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Interacao {
+  id: string;
+  lead_id: string;
+  tipo: string;
+  descricao: string | null;
+  data_interacao: string;
+  created_at: string;
+}
+
+export interface Database {
+  public: {
+    Tables: {
+      leads: {
+        Row: Lead;
+        Insert: Omit<Lead, 'id' | 'created_at' | 'updated_at'> & { id?: string };
+        Update: Partial<Omit<Lead, 'id' | 'created_at' | 'updated_at'>>;
+      };
+      interacoes: {
+        Row: Interacao;
+        Insert: Omit<Interacao, 'id' | 'created_at'> & { id?: string };
+        Update: Partial<Omit<Interacao, 'id' | 'created_at'>>;
+      };
+    };
+  };
+}
