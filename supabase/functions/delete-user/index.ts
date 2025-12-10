@@ -6,20 +6,11 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { userId } = await req.json();
-
-    if (!userId) {
-      throw new Error('userId is required');
-    }
-
-    console.log(`Deleting user ${userId}...`);
-
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -31,7 +22,54 @@ Deno.serve(async (req) => {
       }
     );
 
-    // Delete user using admin API
+    // Validate JWT
+    const token = req.headers.get('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Missing authorization token' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      });
+    }
+
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      });
+    }
+
+    // Verify admin role
+    const { data: roleData } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .single();
+
+    if (!roleData) {
+      return new Response(JSON.stringify({ error: 'Forbidden: Admin access required' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      });
+    }
+
+    const { userId } = await req.json();
+
+    if (!userId) {
+      throw new Error('userId is required');
+    }
+
+    // Prevent self-deletion
+    if (userId === user.id) {
+      return new Response(JSON.stringify({ error: 'Cannot delete your own account' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+
+    console.log(`Admin ${user.id} deleting user ${userId}...`);
+
     const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
     if (error) {

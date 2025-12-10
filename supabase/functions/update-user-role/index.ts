@@ -6,22 +6,11 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { userId, role } = await req.json();
-
-    console.log(`Updating user ${userId} role to: ${role}`);
-
-    // Validate role
-    const validRoles = ['admin', 'recepcao', 'comercial', null];
-    if (!validRoles.includes(role)) {
-      throw new Error(`Invalid role: ${role}. Must be one of: admin, recepcao, comercial`);
-    }
-
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -33,15 +22,73 @@ Deno.serve(async (req) => {
       }
     );
 
-    // Update user metadata
-    const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-      user_metadata: { role },
-    });
+    // Validate JWT
+    const token = req.headers.get('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Missing authorization token' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      });
+    }
+
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      });
+    }
+
+    // Verify admin role
+    const { data: roleData } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .single();
+
+    if (!roleData) {
+      return new Response(JSON.stringify({ error: 'Forbidden: Admin access required' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      });
+    }
+
+    const { userId, role } = await req.json();
+
+    if (!userId || !role) {
+      throw new Error('userId and role are required');
+    }
+
+    const allowedRoles = ['admin', 'recepcao', 'comercial'];
+    if (!allowedRoles.includes(role)) {
+      throw new Error(`Invalid role. Allowed roles: ${allowedRoles.join(', ')}`);
+    }
+
+    console.log(`Admin ${user.id} updating user ${userId} role to ${role}...`);
+
+    // Update user_metadata
+    const { data: updatedUser, error } = await supabaseAdmin.auth.admin.updateUserById(
+      userId,
+      { user_metadata: { role } }
+    );
 
     if (error) {
       console.error('Error updating user role:', error);
       throw error;
     }
+
+    // Sync to user_roles table
+    const appRole = role === 'admin' ? 'admin' : role === 'recepcao' ? 'moderator' : 'user';
+    
+    await supabaseAdmin
+      .from('user_roles')
+      .delete()
+      .eq('user_id', userId);
+
+    await supabaseAdmin
+      .from('user_roles')
+      .insert({ user_id: userId, role: appRole });
 
     console.log(`Successfully updated user ${userId} role to ${role}`);
 
@@ -49,9 +96,9 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         user: {
-          id: data.user.id,
-          email: data.user.email,
-          role: data.user.user_metadata?.role,
+          id: updatedUser.user.id,
+          email: updatedUser.user.email,
+          role: updatedUser.user.user_metadata?.role
         }
       }),
       {
