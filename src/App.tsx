@@ -34,6 +34,29 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading, isAdmin, userRole } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // If user has a role set and is not admin, redirect to dashboard
+  if (userRole && !isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
@@ -74,9 +97,9 @@ const AppRoutes = () => (
     <Route
       path="/dashboard-executivo"
       element={
-        <ProtectedRoute>
+        <AdminRoute>
           <DashboardExecutivo />
-        </ProtectedRoute>
+        </AdminRoute>
       }
     />
     <Route
@@ -106,9 +129,9 @@ const AppRoutes = () => (
     <Route
       path="/comissoes"
       element={
-        <ProtectedRoute>
+        <AdminRoute>
           <Comissoes />
-        </ProtectedRoute>
+        </AdminRoute>
       }
     />
     <Route path="*" element={<NotFound />} />
