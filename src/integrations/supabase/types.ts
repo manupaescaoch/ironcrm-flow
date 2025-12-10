@@ -34,6 +34,7 @@ export type Database = {
           reagendou: boolean | null
           responsavel_fechamento: string | null
           tipo: string
+          treinador_experimental: string | null
           treinador_responsavel: string | null
           valor_plano: number | null
         }
@@ -56,6 +57,7 @@ export type Database = {
           reagendou?: boolean | null
           responsavel_fechamento?: string | null
           tipo: string
+          treinador_experimental?: string | null
           treinador_responsavel?: string | null
           valor_plano?: number | null
         }
@@ -78,6 +80,7 @@ export type Database = {
           reagendou?: boolean | null
           responsavel_fechamento?: string | null
           tipo?: string
+          treinador_experimental?: string | null
           treinador_responsavel?: string | null
           valor_plano?: number | null
         }
