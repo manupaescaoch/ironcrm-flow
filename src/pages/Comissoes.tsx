@@ -321,7 +321,7 @@ export default function Comissoes() {
                       <UserCheck className="w-6 h-6 text-amber-500" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Recepção (2%)</p>
+                      <p className="text-sm text-muted-foreground">Recepção (5%)</p>
                       <p className="text-2xl font-bold">{formatCurrency(stats.totalComissaoRecepcao)}</p>
                     </div>
                   </div>
@@ -345,12 +345,11 @@ export default function Comissoes() {
 
             {/* Commission Tables */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-              {/* Comercial Table */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Briefcase className="w-5 h-5 text-green-500" />
-                    Comissões Comercial (3%)
+                    Comissões Comercial (3% - Agendamento)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -397,7 +396,7 @@ export default function Comissoes() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <UserCheck className="w-5 h-5 text-amber-500" />
-                    Comissões Recepção (2%)
+                    Comissões Recepção (5% - Espontâneo)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -506,12 +505,13 @@ export default function Comissoes() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Lead</TableHead>
+                          <TableHead>Origem</TableHead>
                           <TableHead>Plano</TableHead>
                           <TableHead className="text-right">Valor</TableHead>
                           <TableHead className="text-right">Comercial (3%)</TableHead>
-                          <TableHead className="text-right">Recepção (2%)</TableHead>
-                          <TableHead>Resp. Comercial</TableHead>
-                          <TableHead>Resp. Recepção</TableHead>
+                          <TableHead className="text-right">Recepção (5%)</TableHead>
+                          <TableHead>Resp. Fechamento</TableHead>
+                          <TableHead>Treinador</TableHead>
                           <TableHead>Data Fechamento</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -519,6 +519,10 @@ export default function Comissoes() {
                         {filteredInteracoes.map((int) => (
                           <TableRow key={int.id}>
                             <TableCell className="font-medium">{int.lead_nome}</TableCell>
+                            <TableCell>
+                              {(int as any).origem_fechamento === 'agendamento_comercial' ? 'Agendamento' : 
+                               (int as any).origem_fechamento === 'espontaneo_recepcao' ? 'Espontâneo' : '-'}
+                            </TableCell>
                             <TableCell>{int.plano_escolhido || '-'}</TableCell>
                             <TableCell className="text-right">{formatCurrency(int.valor_plano || 0)}</TableCell>
                             <TableCell className="text-right text-green-600">
@@ -528,7 +532,7 @@ export default function Comissoes() {
                               {formatCurrency(int.comissao_recepcao || 0)}
                             </TableCell>
                             <TableCell>{int.responsavel_fechamento || '-'}</TableCell>
-                            <TableCell>{int.treinador_responsavel || int.atendido_por || '-'}</TableCell>
+                            <TableCell>{int.treinador_responsavel || '-'}</TableCell>
                             <TableCell>{formatDate(int.data_fechamento)}</TableCell>
                           </TableRow>
                         ))}

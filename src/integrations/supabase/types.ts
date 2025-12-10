@@ -30,6 +30,7 @@ export type Database = {
           hora_experimental: string | null
           id: string
           lead_id: string
+          origem_fechamento: string | null
           plano_escolhido: string | null
           reagendou: boolean | null
           responsavel_fechamento: string | null
@@ -53,6 +54,7 @@ export type Database = {
           hora_experimental?: string | null
           id?: string
           lead_id: string
+          origem_fechamento?: string | null
           plano_escolhido?: string | null
           reagendou?: boolean | null
           responsavel_fechamento?: string | null
@@ -76,6 +78,7 @@ export type Database = {
           hora_experimental?: string | null
           id?: string
           lead_id?: string
+          origem_fechamento?: string | null
           plano_escolhido?: string | null
           reagendou?: boolean | null
           responsavel_fechamento?: string | null
