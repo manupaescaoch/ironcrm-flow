@@ -9,7 +9,8 @@ import {
   LogOut,
   Dumbbell,
   DollarSign,
-  BarChart3
+  BarChart3,
+  Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +24,7 @@ const allNavItems = [
   { href: '/crm', label: 'CRM', icon: Users, roles: ['admin', 'recepcao', 'comercial'] },
   { href: '/kanban', label: 'Funil', icon: Columns, roles: ['admin', 'recepcao', 'comercial'] },
   { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin'] },
+  { href: '/admin-users', label: 'Usuários', icon: Settings, roles: ['admin'] },
 ];
 
 export function Layout({ children }: LayoutProps) {
