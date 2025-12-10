@@ -39,6 +39,20 @@ export interface Interacao {
   descricao: string | null;
   data_interacao: string;
   created_at: string;
+  atendido_por: string | null;
+  agendou_experimental: boolean;
+  data_experimental: string | null;
+  hora_experimental: string | null;
+  compareceu: boolean;
+  reagendou: boolean;
+  fechou_matricula: boolean;
+  plano_escolhido: string | null;
+  valor_plano: number;
+  comissao_comercial: number;
+  comissao_recepcao: number;
+  data_fechamento: string | null;
+  responsavel_fechamento: string | null;
+  treinador_responsavel: string | null;
 }
 
 export interface Database {
