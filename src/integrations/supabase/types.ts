@@ -23,6 +23,7 @@ export type Database = {
           comissao_recepcao: number | null
           compareceu: boolean | null
           created_at: string
+          created_by: string | null
           data_experimental: string | null
           data_fechamento: string | null
           data_interacao: string
@@ -50,6 +51,7 @@ export type Database = {
           comissao_recepcao?: number | null
           compareceu?: boolean | null
           created_at?: string
+          created_by?: string | null
           data_experimental?: string | null
           data_fechamento?: string | null
           data_interacao?: string
@@ -77,6 +79,7 @@ export type Database = {
           comissao_recepcao?: number | null
           compareceu?: boolean | null
           created_at?: string
+          created_by?: string | null
           data_experimental?: string | null
           data_fechamento?: string | null
           data_interacao?: string
