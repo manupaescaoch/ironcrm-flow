@@ -671,18 +671,6 @@ export default function LeadDetail() {
                             <span className="font-medium">{formatDate(int.data_fechamento)}</span>
                           </div>
                         )}
-                        {int.fechou_matricula && (
-                          <>
-                            <div>
-                              <span className="text-muted-foreground">Comissão Com.: </span>
-                              <span className="font-medium text-green-600">{formatCurrency(int.comissao_comercial)}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Comissão Rec.: </span>
-                              <span className="font-medium text-amber-600">{formatCurrency(int.comissao_recepcao)}</span>
-                            </div>
-                          </>
-                        )}
                       </div>
                     </div>
                   ))}
