@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import DashboardExecutivo from "./pages/DashboardExecutivo";
 import CRM from "./pages/CRM";
 import LeadDetail from "./pages/LeadDetail";
 import Kanban from "./pages/Kanban";
@@ -67,6 +68,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <Dashboard />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/dashboard-executivo"
+      element={
+        <ProtectedRoute>
+          <DashboardExecutivo />
         </ProtectedRoute>
       }
     />
