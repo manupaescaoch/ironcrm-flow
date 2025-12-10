@@ -3,6 +3,7 @@ import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -33,7 +34,8 @@ import {
   Trophy,
   Dumbbell,
   AlertTriangle,
-  Award
+  Award,
+  FileDown
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -50,6 +52,8 @@ import {
   Pie,
   Legend
 } from 'recharts';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function DashboardExecutivo() {
   const [loading, setLoading] = useState(false);
@@ -316,12 +320,171 @@ export default function DashboardExecutivo() {
   const formatCurrency = (value: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPos = 20;
+
+    // Title
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Dashboard Executivo', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 8;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Período: ${formatDate(dataInicio)} a ${formatDate(dataFim)}`, pageWidth / 2, yPos, { align: 'center' });
+    yPos += 15;
+
+    // Top Cards Summary
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Resumo Geral', 14, yPos);
+    yPos += 8;
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Leads', 'Agendamentos', 'Comparecimentos', 'Matrículas', 'Taxa Conversão']],
+      body: [[
+        topCards.leadsDoMes,
+        topCards.agendamentos,
+        topCards.comparecimentos,
+        topCards.matriculas,
+        `${topCards.taxaConversao.toFixed(1)}%`
+      ]],
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235] },
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+
+    // Funil Executivo
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Funil Executivo', 14, yPos);
+    yPos += 8;
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Etapa', 'Quantidade', 'Conversão']],
+      body: funilExecutivo.map(item => [
+        item.etapa,
+        item.quantidade,
+        item.conversao !== null ? `${item.conversao.toFixed(1)}%` : '-'
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235] },
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+
+    // Origem dos Leads
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Conversão por Origem', 14, yPos);
+    yPos += 8;
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Origem', 'Leads', 'Matrículas', 'Conversão']],
+      body: origemData.map(item => [
+        item.origem,
+        item.leads,
+        item.matriculas,
+        `${item.conversao.toFixed(1)}%`
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235] },
+    });
+
+    // New page for more content
+    doc.addPage();
+    yPos = 20;
+
+    // Performance por Responsável
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Performance por Responsável', 14, yPos);
+    yPos += 8;
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Responsável', 'Agendamentos', 'Comparecimentos', 'Matrículas', 'Conversão']],
+      body: performanceResponsavel.map(item => [
+        item.responsavel,
+        item.agendamentos,
+        item.comparecimentos,
+        item.matriculas,
+        `${item.conversao.toFixed(1)}%`
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235] },
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+
+    // Performance Treinadores
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Performance dos Treinadores', 14, yPos);
+    yPos += 8;
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Treinador', 'Aulas', 'Matrículas', 'Conversão', 'Bônus/Aluno', 'Bônus Total']],
+      body: performanceTreinadores.map(item => [
+        item.treinador,
+        item.aulas,
+        item.matriculas,
+        `${item.conversao.toFixed(1)}%`,
+        formatCurrency(item.bonusPorAluno),
+        formatCurrency(item.bonusTotal)
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235] },
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+
+    // Resumo Final
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Resumo Final do Mês', 14, yPos);
+    yPos += 8;
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Métrica', 'Valor']],
+      body: [
+        ['Total de Leads', resumoFinal.totalLeads],
+        ['Total Agendamentos', resumoFinal.totalAgendamentos],
+        ['Total Comparecimentos', resumoFinal.totalComparecimentos],
+        ['Total Matrículas', resumoFinal.totalMatriculas],
+        ['Conversão Geral', `${resumoFinal.conversaoGeral.toFixed(1)}%`],
+        ['Média No-Show', `${resumoFinal.mediaNoShow.toFixed(1)}%`],
+        ['Melhor Responsável', resumoFinal.melhorResponsavel],
+        ['Melhor Treinador', resumoFinal.melhorTreinador],
+      ],
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235] },
+    });
+
+    // Save
+    doc.save(`dashboard-executivo-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    toast({ title: 'PDF exportado com sucesso!' });
+  };
+
   return (
     <Layout>
       <div className="p-8 space-y-8">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Dashboard Executivo</h1>
-          <p className="text-sm text-muted-foreground">Pipeline de Aulas Experimentais</p>
+          <div>
+            <h1 className="text-3xl font-bold">Dashboard Executivo</h1>
+            <p className="text-sm text-muted-foreground">Pipeline de Aulas Experimentais</p>
+          </div>
+          <Button onClick={exportPDF} disabled={loading}>
+            <FileDown className="w-4 h-4 mr-2" />
+            Exportar PDF
+          </Button>
         </div>
 
         {/* Filters */}
