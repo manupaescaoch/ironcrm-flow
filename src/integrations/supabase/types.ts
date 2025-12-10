@@ -16,28 +16,70 @@ export type Database = {
     Tables: {
       interacoes: {
         Row: {
+          agendou_experimental: boolean | null
+          atendido_por: string | null
+          comissao_comercial: number | null
+          comissao_recepcao: number | null
+          compareceu: boolean | null
           created_at: string
+          data_experimental: string | null
+          data_fechamento: string | null
           data_interacao: string
           descricao: string | null
+          fechou_matricula: boolean | null
+          hora_experimental: string | null
           id: string
           lead_id: string
+          plano_escolhido: string | null
+          reagendou: boolean | null
+          responsavel_fechamento: string | null
           tipo: string
+          treinador_responsavel: string | null
+          valor_plano: number | null
         }
         Insert: {
+          agendou_experimental?: boolean | null
+          atendido_por?: string | null
+          comissao_comercial?: number | null
+          comissao_recepcao?: number | null
+          compareceu?: boolean | null
           created_at?: string
+          data_experimental?: string | null
+          data_fechamento?: string | null
           data_interacao?: string
           descricao?: string | null
+          fechou_matricula?: boolean | null
+          hora_experimental?: string | null
           id?: string
           lead_id: string
+          plano_escolhido?: string | null
+          reagendou?: boolean | null
+          responsavel_fechamento?: string | null
           tipo: string
+          treinador_responsavel?: string | null
+          valor_plano?: number | null
         }
         Update: {
+          agendou_experimental?: boolean | null
+          atendido_por?: string | null
+          comissao_comercial?: number | null
+          comissao_recepcao?: number | null
+          compareceu?: boolean | null
           created_at?: string
+          data_experimental?: string | null
+          data_fechamento?: string | null
           data_interacao?: string
           descricao?: string | null
+          fechou_matricula?: boolean | null
+          hora_experimental?: string | null
           id?: string
           lead_id?: string
+          plano_escolhido?: string | null
+          reagendou?: boolean | null
+          responsavel_fechamento?: string | null
           tipo?: string
+          treinador_responsavel?: string | null
+          valor_plano?: number | null
         }
         Relationships: [
           {
