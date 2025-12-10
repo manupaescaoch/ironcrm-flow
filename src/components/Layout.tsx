@@ -10,7 +10,8 @@ import {
   Dumbbell,
   DollarSign,
   BarChart3,
-  Settings
+  Settings,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +25,7 @@ const allNavItems = [
   { href: '/crm', label: 'CRM', icon: Users, roles: ['admin', 'recepcao', 'comercial'] },
   { href: '/kanban', label: 'Funil', icon: Columns, roles: ['admin', 'recepcao', 'comercial'] },
   { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin'] },
+  { href: '/relatorio', label: 'Relatório', icon: FileText, roles: ['admin'] },
   { href: '/admin-users', label: 'Usuários', icon: Settings, roles: ['admin'] },
 ];
 
