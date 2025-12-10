@@ -856,24 +856,6 @@ export default function LeadDetail() {
                       placeholder="0.00"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Comissão Comercial</Label>
-                      <Input
-                        value={formatCurrency(comissaoComercial)}
-                        disabled
-                        className="bg-muted"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Comissão Recepção</Label>
-                      <Input
-                        value={formatCurrency(comissaoRecepcao)}
-                        disabled
-                        className="bg-muted"
-                      />
-                    </div>
-                  </div>
                   <div className="space-y-2">
                     <Label>Data Fechamento</Label>
                     <Input
