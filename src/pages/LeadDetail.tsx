@@ -213,6 +213,17 @@ export default function LeadDetail() {
   };
 
   const openEditInteracao = (interacao: Interacao) => {
+    // Map old origem_fechamento to new tipo_atendimento for backward compatibility
+    let tipoAtendimento = (interacao as any).tipo_atendimento || '';
+    if (!tipoAtendimento) {
+      const origemFechamento = (interacao as any).origem_fechamento;
+      if (origemFechamento === 'agendamento_comercial') {
+        tipoAtendimento = 'comercial';
+      } else if (origemFechamento === 'espontaneo_recepcao') {
+        tipoAtendimento = 'espontaneo_recepcao';
+      }
+    }
+    
     setFormData({
       id: interacao.id,
       tipo: interacao.tipo || '',
@@ -224,7 +235,7 @@ export default function LeadDetail() {
       compareceu: interacao.compareceu || false,
       reagendou: interacao.reagendou || false,
       fechou_matricula: interacao.fechou_matricula || false,
-      tipo_atendimento: (interacao as any).tipo_atendimento || '',
+      tipo_atendimento: tipoAtendimento,
       plano_escolhido: interacao.plano_escolhido || '',
       valor_plano: interacao.valor_plano || 0,
       data_fechamento: interacao.data_fechamento || '',
