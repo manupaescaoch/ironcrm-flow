@@ -16,10 +16,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Users, Shield, UserCheck, Briefcase } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Loader2, Users, Shield, UserCheck, Briefcase, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { UserRole } from '@/contexts/AuthContext';
@@ -42,7 +54,10 @@ export default function AdminUsers() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
 
   useEffect(() => {
     fetchUsers();
@@ -100,6 +115,37 @@ export default function AdminUsers() {
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    setDeletingUserId(userToDelete.id);
+    try {
+      const { error } = await supabase.functions.invoke('delete-user', {
+        body: { userId: userToDelete.id },
+      });
+
+      if (error) throw error;
+
+      // Remove from local state
+      setUsers(prev => prev.filter(user => user.id !== userToDelete.id));
+
+      toast({
+        title: 'Usuário excluído',
+        description: `${userToDelete.email} foi removido com sucesso`,
+      });
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: 'Erro ao excluir usuário',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingUserId(null);
+      setUserToDelete(null);
+    }
+  };
+
   const getRoleBadge = (role: UserRole | null) => {
     if (!role) {
       return <Badge variant="outline" className="text-muted-foreground">Sem role</Badge>;
@@ -118,6 +164,11 @@ export default function AdminUsers() {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-';
     return format(new Date(dateString), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  };
+
+  // Check if user can be deleted (not the current user)
+  const canDeleteUser = (userId: string) => {
+    return currentUser?.id !== userId;
   };
 
   return (
@@ -197,12 +248,18 @@ export default function AdminUsers() {
                     <TableHead>Alterar Role</TableHead>
                     <TableHead>Criado em</TableHead>
                     <TableHead>Último login</TableHead>
+                    <TableHead className="w-20">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {users.map((user) => (
                     <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.email}</TableCell>
+                      <TableCell className="font-medium">
+                        {user.email}
+                        {currentUser?.id === user.id && (
+                          <Badge variant="outline" className="ml-2 text-xs">Você</Badge>
+                        )}
+                      </TableCell>
                       <TableCell>{getRoleBadge(user.role)}</TableCell>
                       <TableCell>
                         <Select
@@ -235,6 +292,22 @@ export default function AdminUsers() {
                       <TableCell className="text-muted-foreground">
                         {formatDate(user.last_sign_in_at)}
                       </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setUserToDelete(user)}
+                          disabled={!canDeleteUser(user.id) || deletingUserId === user.id}
+                          title={!canDeleteUser(user.id) ? 'Você não pode excluir seu próprio usuário' : 'Excluir usuário'}
+                        >
+                          {deletingUserId === user.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -243,6 +316,29 @@ export default function AdminUsers() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir usuário?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o usuário <strong>{userToDelete?.email}</strong>?
+              <br /><br />
+              Esta ação não pode ser desfeita. O usuário perderá todo o acesso ao sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
