@@ -99,10 +99,10 @@ export default function Dashboard() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Aulas Agendadas
               </CardTitle>
-              <CalendarCheck className="w-5 h-5 text-amber-500" />
+              <CalendarCheck className="w-5 h-5 text-sky-500" />
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-amber-600">{stats.aulasAgendadas}</p>
+              <p className="text-3xl font-bold text-sky-600">{stats.aulasAgendadas}</p>
             </CardContent>
           </Card>
 
