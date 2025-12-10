@@ -321,6 +321,7 @@ export default function LeadDetail() {
         ...interacaoData,
         lead_id: id,
         data_interacao: new Date().toISOString(),
+        created_by: user?.id || null,
       });
       interacaoError = error;
     }

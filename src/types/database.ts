@@ -40,6 +40,7 @@ export interface Interacao {
   descricao: string | null;
   data_interacao: string;
   created_at: string;
+  created_by: string | null;
   atendido_por: string | null;
   atendido_por_tipo: string | null;
   agendou_experimental: boolean;
