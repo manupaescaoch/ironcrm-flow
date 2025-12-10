@@ -44,6 +44,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Lead, StatusFunil, PlanoEscolhido } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Eye, Trash2, Loader2, Pencil, Filter, Upload, FileSpreadsheet } from 'lucide-react';
+import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
@@ -745,7 +746,7 @@ export default function CRM() {
                         onClick={() => window.location.href = `/lead/${lead.id}`}
                       >
                         <TableCell className="font-medium">{lead.nome}</TableCell>
-                        <TableCell>{lead.telefone || '-'}</TableCell>
+                        <TableCell><WhatsAppLink phone={lead.telefone} /></TableCell>
                         <TableCell>{lead.origem || '-'}</TableCell>
                         <TableCell>
                           <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">

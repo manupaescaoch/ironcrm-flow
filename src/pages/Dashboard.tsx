@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { Lead, StatusFunil } from '@/types/database';
 import { Users, UserPlus, CalendarCheck, TrendingUp, Loader2 } from 'lucide-react';
+import { WhatsAppLink } from '@/components/WhatsAppLink';
 
 interface Stats {
   total: number;
@@ -137,7 +138,9 @@ export default function Dashboard() {
                   >
                     <div>
                       <p className="font-medium">{lead.nome}</p>
-                      <p className="text-sm text-muted-foreground">{lead.email || lead.telefone}</p>
+                      <div className="text-sm text-muted-foreground">
+                        {lead.email || (lead.telefone ? <WhatsAppLink phone={lead.telefone} className="text-sm" /> : '-')}
+                      </div>
                     </div>
                     <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">
                       {statusLabels[lead.status_funil]}
