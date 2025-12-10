@@ -53,6 +53,10 @@ export interface Interacao {
   data_fechamento: string | null;
   responsavel_fechamento: string | null;
   treinador_responsavel: string | null;
+  treinador_experimental: string | null;
+  origem_fechamento: string | null;
+  quem_agendou: string | null;
+  tipo_atendimento: string | null;
 }
 
 export interface Database {
