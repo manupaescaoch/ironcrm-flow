@@ -59,7 +59,6 @@ interface InteracaoForm {
   tipo: string;
   descricao: string;
   atendido_por: string;
-  treinador_experimental: string;
   agendou_experimental: boolean;
   data_experimental: string;
   hora_experimental: string;
@@ -77,7 +76,6 @@ const initialFormState: InteracaoForm = {
   tipo: '',
   descricao: '',
   atendido_por: '',
-  treinador_experimental: '',
   agendou_experimental: false,
   data_experimental: '',
   hora_experimental: '',
@@ -188,7 +186,6 @@ export default function LeadDetail() {
       tipo: interacao.tipo || '',
       descricao: interacao.descricao || '',
       atendido_por: interacao.atendido_por || '',
-      treinador_experimental: interacao.treinador_experimental || '',
       agendou_experimental: interacao.agendou_experimental || false,
       data_experimental: interacao.data_experimental || '',
       hora_experimental: interacao.hora_experimental || '',
@@ -219,7 +216,6 @@ export default function LeadDetail() {
       tipo: formData.tipo.trim(),
       descricao: formData.descricao.trim() || null,
       atendido_por: formData.atendido_por.trim() || null,
-      treinador_experimental: formData.treinador_experimental.trim() || null,
       agendou_experimental: formData.agendou_experimental,
       data_experimental: formData.data_experimental || null,
       hora_experimental: formData.hora_experimental || null,
@@ -496,7 +492,6 @@ export default function LeadDetail() {
                           <TableHead>Data</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>Atendente</TableHead>
-                          <TableHead>Treinador Exp.</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Plano</TableHead>
                           <TableHead>Valor</TableHead>
@@ -511,7 +506,6 @@ export default function LeadDetail() {
                             </TableCell>
                             <TableCell>{int.tipo}</TableCell>
                             <TableCell>{int.atendido_por || '-'}</TableCell>
-                            <TableCell>{int.treinador_experimental || '-'}</TableCell>
                             <TableCell>
                               <div className="flex flex-col gap-1 text-xs">
                                 <span className="flex items-center gap-1">
@@ -576,12 +570,6 @@ export default function LeadDetail() {
                           <span className="text-muted-foreground">Atendido por: </span>
                           <span className="font-medium">{int.atendido_por || '-'}</span>
                         </div>
-                        {int.treinador_experimental && (
-                          <div>
-                            <span className="text-muted-foreground">Treinador Exp.: </span>
-                            <span className="font-medium">{int.treinador_experimental}</span>
-                          </div>
-                        )}
                         {int.data_experimental && (
                           <div>
                             <span className="text-muted-foreground">Data Exp: </span>
@@ -648,14 +636,6 @@ export default function LeadDetail() {
                   value={formData.atendido_por}
                   onChange={(e) => setFormData({ ...formData, atendido_por: e.target.value })}
                   placeholder="Nome do atendente"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Treinador Experimental</Label>
-                <Input
-                  value={formData.treinador_experimental}
-                  onChange={(e) => setFormData({ ...formData, treinador_experimental: e.target.value })}
-                  placeholder="Responsável pela aula experimental"
                 />
               </div>
               <div className="space-y-2">
