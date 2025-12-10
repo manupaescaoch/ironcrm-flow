@@ -46,6 +46,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Eye, Trash2, Loader2, Pencil, Filter, Upload, FileSpreadsheet } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import * as XLSX from 'xlsx';
 
 const statusOptions: { value: StatusFunil; label: string }[] = [
   { value: 'novo', label: 'Novo' },
@@ -85,7 +86,7 @@ interface CSVRow {
   data_cadastro: string;
 }
 
-const REQUIRED_CSV_COLUMNS = ['nome_completo', 'telefone', 'origem', 'atendido_por', 'status_funil', 'data_cadastro'];
+const REQUIRED_COLUMNS = ['nome_completo', 'telefone', 'origem', 'atendido_por', 'status_funil', 'data_cadastro'];
 
 export default function CRM() {
   const { user } = useAuth();
@@ -109,10 +110,10 @@ export default function CRM() {
   });
   const { toast } = useToast();
 
-  // CSV Import state
+  // Import state
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [csvPreviewData, setCsvPreviewData] = useState<CSVRow[]>([]);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [previewData, setPreviewData] = useState<CSVRow[]>([]);
   const [isPreviewReady, setIsPreviewReady] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -137,7 +138,6 @@ export default function CRM() {
     setLoading(false);
   };
 
-  // Extract unique values for filters
   const uniqueOrigens = useMemo(() => {
     const origens = leads.map(l => l.origem).filter(Boolean) as string[];
     return [...new Set(origens)];
@@ -187,7 +187,6 @@ export default function CRM() {
   const handleDelete = async () => {
     if (!leadToDelete) return;
 
-    // Soft delete
     const { error } = await supabase
       .from('leads')
       .update({ ativo: false })
@@ -203,7 +202,7 @@ export default function CRM() {
     setLeadToDelete(null);
   };
 
-  // CSV Import functions
+  // Parse CSV file
   const parseCSV = (text: string): { headers: string[]; rows: string[][] } => {
     const lines = text.split(/\r?\n/).filter(line => line.trim());
     if (lines.length === 0) return { headers: [], rows: [] };
@@ -232,19 +231,47 @@ export default function CRM() {
     return { headers, rows };
   };
 
-  const handlePreviewCSV = () => {
-    if (!csvFile) {
-      toast({ title: 'Selecione um arquivo CSV', variant: 'destructive' });
+  // Parse Excel file
+  const parseExcel = (buffer: ArrayBuffer): { headers: string[]; rows: string[][] } => {
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1 });
+    
+    if (jsonData.length === 0) return { headers: [], rows: [] };
+    
+    const headers = (jsonData[0] as string[]).map(h => String(h || '').trim().toLowerCase());
+    const rows = jsonData.slice(1).map(row => 
+      (row as string[]).map(cell => String(cell || '').trim())
+    );
+    
+    return { headers, rows };
+  };
+
+  const handlePreview = () => {
+    if (!importFile) {
+      toast({ title: 'Selecione um arquivo', variant: 'destructive' });
       return;
     }
 
+    const isExcel = importFile.name.endsWith('.xlsx') || importFile.name.endsWith('.xls');
     const reader = new FileReader();
+    
     reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const { headers, rows } = parseCSV(text);
+      let headers: string[] = [];
+      let rows: string[][] = [];
       
-      // Validate required columns
-      const missingColumns = REQUIRED_CSV_COLUMNS.filter(col => !headers.includes(col));
+      if (isExcel) {
+        const result = parseExcel(e.target?.result as ArrayBuffer);
+        headers = result.headers;
+        rows = result.rows;
+      } else {
+        const result = parseCSV(e.target?.result as string);
+        headers = result.headers;
+        rows = result.rows;
+      }
+      
+      const missingColumns = REQUIRED_COLUMNS.filter(col => !headers.includes(col));
       if (missingColumns.length > 0) {
         toast({ 
           title: 'Arquivo inválido. Verifique se os cabeçalhos estão corretos.',
@@ -254,7 +281,6 @@ export default function CRM() {
         return;
       }
 
-      // Map rows to objects
       const mappedRows: CSVRow[] = rows
         .filter(row => row.some(cell => cell.trim()))
         .map(row => {
@@ -265,40 +291,47 @@ export default function CRM() {
           return obj as unknown as CSVRow;
         });
 
-      setCsvPreviewData(mappedRows.slice(0, 20));
+      setPreviewData(mappedRows.slice(0, 20));
       setIsPreviewReady(true);
     };
     
-    reader.readAsText(csvFile, 'UTF-8');
+    if (isExcel) {
+      reader.readAsArrayBuffer(importFile);
+    } else {
+      reader.readAsText(importFile, 'UTF-8');
+    }
   };
 
   const parseDate = (dateStr: string): string => {
     if (!dateStr) return new Date().toISOString();
     
-    // Try different date formats
+    // Handle Excel serial date numbers
+    const num = Number(dateStr);
+    if (!isNaN(num) && num > 10000) {
+      const excelEpoch = new Date(1899, 11, 30);
+      const date = new Date(excelEpoch.getTime() + num * 24 * 60 * 60 * 1000);
+      return date.toISOString();
+    }
+    
     const formats = [
-      /^(\d{2})\/(\d{2})\/(\d{4})$/, // DD/MM/YYYY
-      /^(\d{4})-(\d{2})-(\d{2})$/,   // YYYY-MM-DD
-      /^(\d{2})-(\d{2})-(\d{4})$/,   // DD-MM-YYYY
+      /^(\d{2})\/(\d{2})\/(\d{4})$/,
+      /^(\d{4})-(\d{2})-(\d{2})$/,
+      /^(\d{2})-(\d{2})-(\d{4})$/,
     ];
     
     for (const fmt of formats) {
       const match = dateStr.match(fmt);
       if (match) {
         if (fmt === formats[0]) {
-          // DD/MM/YYYY
           return new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1])).toISOString();
         } else if (fmt === formats[1]) {
-          // YYYY-MM-DD
           return new Date(dateStr).toISOString();
         } else if (fmt === formats[2]) {
-          // DD-MM-YYYY
           return new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1])).toISOString();
         }
       }
     }
     
-    // Fallback: try native parsing
     const parsed = new Date(dateStr);
     return isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
   };
@@ -309,17 +342,28 @@ export default function CRM() {
     return validStatuses.includes(normalized as StatusFunil) ? (normalized as StatusFunil) : 'novo';
   };
 
-  const handleImportCSV = async () => {
-    if (!csvFile || csvPreviewData.length === 0) return;
+  const handleImport = async () => {
+    if (!importFile) return;
 
     setIsImporting(true);
 
-    // Re-parse the full file
+    const isExcel = importFile.name.endsWith('.xlsx') || importFile.name.endsWith('.xls');
     const reader = new FileReader();
+    
     reader.onload = async (e) => {
-      const text = e.target?.result as string;
-      const { headers, rows } = parseCSV(text);
+      let headers: string[] = [];
+      let rows: string[][] = [];
       
+      if (isExcel) {
+        const result = parseExcel(e.target?.result as ArrayBuffer);
+        headers = result.headers;
+        rows = result.rows;
+      } else {
+        const result = parseCSV(e.target?.result as string);
+        headers = result.headers;
+        rows = result.rows;
+      }
+
       const allRows: CSVRow[] = rows
         .filter(row => row.some(cell => cell.trim()))
         .map(row => {
@@ -333,7 +377,6 @@ export default function CRM() {
       let successCount = 0;
       let failCount = 0;
 
-      // Batch insert (chunks of 100)
       const chunkSize = 100;
       for (let i = 0; i < allRows.length; i += chunkSize) {
         const chunk = allRows.slice(i, i + chunkSize);
@@ -372,42 +415,34 @@ export default function CRM() {
         toast({ title: `Importação concluída: ${successCount} leads importados com sucesso.` });
       }
 
-      // Reset and close
-      setCsvFile(null);
-      setCsvPreviewData([]);
-      setIsPreviewReady(false);
+      resetImportDialog();
       setImportDialogOpen(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
       fetchLeads();
     };
     
-    reader.readAsText(csvFile, 'UTF-8');
+    if (isExcel) {
+      reader.readAsArrayBuffer(importFile);
+    } else {
+      reader.readAsText(importFile, 'UTF-8');
+    }
   };
 
   const resetImportDialog = () => {
-    setCsvFile(null);
-    setCsvPreviewData([]);
+    setImportFile(null);
+    setPreviewData([]);
     setIsPreviewReady(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
-      // Search filter
       const searchLower = search.toLowerCase();
       const matchesSearch = !search || 
         lead.nome.toLowerCase().includes(searchLower) ||
         lead.telefone?.includes(search);
-
-      // Origem filter
       const matchesOrigem = filterOrigem === 'all' || lead.origem === filterOrigem;
-
-      // Atendido por filter
       const matchesAtendidoPor = filterAtendidoPor === 'all' || lead.atendido_por === filterAtendidoPor;
-
-      // Status filter
       const matchesStatus = filterStatus === 'all' || lead.status_funil === filterStatus;
-
       return matchesSearch && matchesOrigem && matchesAtendidoPor && matchesStatus;
     });
   }, [leads, search, filterOrigem, filterAtendidoPor, filterStatus]);
@@ -434,22 +469,22 @@ export default function CRM() {
               </DialogTrigger>
               <DialogContent className="max-w-3xl max-h-[90vh]">
                 <DialogHeader>
-                  <DialogTitle>Importar Leads via CSV</DialogTitle>
+                  <DialogTitle>Importar Leads via CSV/Excel</DialogTitle>
                   <DialogDescription>
-                    Use um arquivo CSV com os cabeçalhos: nome_completo, telefone, origem, atendido_por, status_funil, data_cadastro.
+                    Use um arquivo CSV ou Excel (.xlsx) com os cabeçalhos: nome_completo, telefone, origem, atendido_por, status_funil, data_cadastro.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 mt-4">
                   <div className="space-y-2">
-                    <Label>Arquivo CSV</Label>
+                    <Label>Arquivo CSV ou Excel</Label>
                     <Input
                       ref={fileInputRef}
                       type="file"
-                      accept=".csv"
+                      accept=".csv,.xlsx,.xls"
                       onChange={(e) => {
-                        setCsvFile(e.target.files?.[0] || null);
+                        setImportFile(e.target.files?.[0] || null);
                         setIsPreviewReady(false);
-                        setCsvPreviewData([]);
+                        setPreviewData([]);
                       }}
                     />
                   </div>
@@ -457,8 +492,8 @@ export default function CRM() {
                   <div className="flex gap-2">
                     <Button 
                       variant="outline" 
-                      onClick={handlePreviewCSV}
-                      disabled={!csvFile}
+                      onClick={handlePreview}
+                      disabled={!importFile}
                     >
                       Pré-visualizar
                     </Button>
@@ -473,11 +508,11 @@ export default function CRM() {
                     </Button>
                   </div>
 
-                  {isPreviewReady && csvPreviewData.length > 0 && (
+                  {isPreviewReady && previewData.length > 0 && (
                     <>
                       <div className="border rounded-lg">
                         <p className="text-sm text-muted-foreground p-3 border-b">
-                          Pré-visualização (primeiras {csvPreviewData.length} linhas)
+                          Pré-visualização (primeiras {previewData.length} linhas)
                         </p>
                         <ScrollArea className="h-[300px]">
                           <Table>
@@ -492,7 +527,7 @@ export default function CRM() {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {csvPreviewData.map((row, idx) => (
+                              {previewData.map((row, idx) => (
                                 <TableRow key={idx}>
                                   <TableCell className="font-medium">{row.nome_completo}</TableCell>
                                   <TableCell>{row.telefone || '-'}</TableCell>
@@ -508,7 +543,7 @@ export default function CRM() {
                       </div>
                       
                       <Button 
-                        onClick={handleImportCSV} 
+                        onClick={handleImport} 
                         disabled={isImporting}
                         className="w-full"
                       >
@@ -533,90 +568,91 @@ export default function CRM() {
                 <DialogHeader>
                   <DialogTitle>Novo Lead</DialogTitle>
                 </DialogHeader>
-              <div className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label>Nome *</Label>
-                  <Input
-                    value={formData.nome}
-                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                    placeholder="Nome completo do lead"
-                  />
+                <div className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label>Nome *</Label>
+                    <Input
+                      value={formData.nome}
+                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                      placeholder="Nome completo do lead"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="email@exemplo.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Telefone</Label>
+                    <Input
+                      value={formData.telefone}
+                      onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                      placeholder="(11) 99999-9999"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Origem</Label>
+                    <Input
+                      value={formData.origem}
+                      onChange={(e) => setFormData({ ...formData, origem: e.target.value })}
+                      placeholder="Instagram, Indicação, etc."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Atendido Por</Label>
+                    <Input
+                      value={formData.atendido_por}
+                      onChange={(e) => setFormData({ ...formData, atendido_por: e.target.value })}
+                      placeholder="Nome do atendente"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select
+                      value={formData.status_funil}
+                      onValueChange={(v) => setFormData({ ...formData, status_funil: v as StatusFunil })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statusOptions.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Plano</Label>
+                    <Select
+                      value={formData.plano_escolhido}
+                      onValueChange={(v) => setFormData({ ...formData, plano_escolhido: v as PlanoEscolhido })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um plano" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {planoOptions.map((plano) => (
+                          <SelectItem key={plano} value={plano}>
+                            {plano}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button className="w-full" onClick={handleCreate}>
+                    Criar Lead
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="email@exemplo.com"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Telefone</Label>
-                  <Input
-                    value={formData.telefone}
-                    onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                    placeholder="(11) 99999-9999"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Origem</Label>
-                  <Input
-                    value={formData.origem}
-                    onChange={(e) => setFormData({ ...formData, origem: e.target.value })}
-                    placeholder="Instagram, Indicação, etc."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Atendido Por</Label>
-                  <Input
-                    value={formData.atendido_por}
-                    onChange={(e) => setFormData({ ...formData, atendido_por: e.target.value })}
-                    placeholder="Nome do atendente"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select
-                    value={formData.status_funil}
-                    onValueChange={(v) => setFormData({ ...formData, status_funil: v as StatusFunil })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statusOptions.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Plano</Label>
-                  <Select
-                    value={formData.plano_escolhido}
-                    onValueChange={(v) => setFormData({ ...formData, plano_escolhido: v as PlanoEscolhido })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um plano" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {planoOptions.map((plano) => (
-                        <SelectItem key={plano} value={plano}>
-                          {plano}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button className="w-full" onClick={handleCreate}>
-                  Criar Lead
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         <Card>
