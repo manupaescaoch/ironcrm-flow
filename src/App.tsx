@@ -11,6 +11,7 @@ import CRM from "./pages/CRM";
 import LeadDetail from "./pages/LeadDetail";
 import Kanban from "./pages/Kanban";
 import Comissoes from "./pages/Comissoes";
+import RelatorioVendas from "./pages/RelatorioVendas";
 import AdminUsers from "./pages/AdminUsers";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -132,6 +133,14 @@ const AppRoutes = () => (
       element={
         <AdminRoute>
           <Comissoes />
+        </AdminRoute>
+      }
+    />
+    <Route
+      path="/relatorio"
+      element={
+        <AdminRoute>
+          <RelatorioVendas />
         </AdminRoute>
       }
     />
