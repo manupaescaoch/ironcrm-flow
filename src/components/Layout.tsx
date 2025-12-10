@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -17,16 +17,16 @@ interface LayoutProps {
   children: ReactNode;
 }
 
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard-executivo', label: 'Executivo', icon: BarChart3 },
-  { href: '/crm', label: 'CRM', icon: Users },
-  { href: '/kanban', label: 'Funil', icon: Columns },
-  { href: '/comissoes', label: 'Comissões', icon: DollarSign },
+const allNavItems = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'recepcao', 'comercial'] },
+  { href: '/dashboard-executivo', label: 'Executivo', icon: BarChart3, roles: ['admin'] },
+  { href: '/crm', label: 'CRM', icon: Users, roles: ['admin', 'recepcao', 'comercial'] },
+  { href: '/kanban', label: 'Funil', icon: Columns, roles: ['admin', 'recepcao', 'comercial'] },
+  { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin'] },
 ];
 
 export function Layout({ children }: LayoutProps) {
-  const { signOut, user } = useAuth();
+  const { signOut, user, userRole } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -34,6 +34,15 @@ export function Layout({ children }: LayoutProps) {
     await signOut();
     navigate('/login');
   };
+
+  // Filter nav items based on user role
+  const navItems = useMemo(() => {
+    if (!userRole) {
+      // If no role, show all items (fallback for users without role set)
+      return allNavItems;
+    }
+    return allNavItems.filter(item => item.roles.includes(userRole));
+  }, [userRole]);
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -76,6 +85,9 @@ export function Layout({ children }: LayoutProps) {
         <div className="p-4 border-t border-sidebar-border">
           <div className="mb-3 px-4">
             <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+            {userRole && (
+              <p className="text-xs text-muted-foreground/70 capitalize">{userRole}</p>
+            )}
           </div>
           <Button
             variant="ghost"

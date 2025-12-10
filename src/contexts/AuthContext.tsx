@@ -2,13 +2,19 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+export type UserRole = 'admin' | 'recepcao' | 'comercial';
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  userRole: UserRole | null;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  isAdmin: boolean;
+  canAccessExecutivo: boolean;
+  canAccessComissoes: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,12 +23,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        // Extract role from user_metadata
+        const role = session?.user?.user_metadata?.role as UserRole | undefined;
+        setUserRole(role ?? null);
         setLoading(false);
       }
     );
@@ -30,6 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      // Extract role from user_metadata
+      const role = session?.user?.user_metadata?.role as UserRole | undefined;
+      setUserRole(role ?? null);
       setLoading(false);
     });
 
@@ -55,8 +68,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  // Permission helpers
+  const isAdmin = userRole === 'admin';
+  const canAccessExecutivo = userRole === 'admin';
+  const canAccessComissoes = userRole === 'admin';
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      loading, 
+      userRole,
+      signIn, 
+      signUp, 
+      signOut,
+      isAdmin,
+      canAccessExecutivo,
+      canAccessComissoes
+    }}>
       {children}
     </AuthContext.Provider>
   );
