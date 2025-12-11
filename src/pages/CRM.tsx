@@ -95,7 +95,7 @@ export default function CRM() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterOrigem, setFilterOrigem] = useState<string>('all');
-  const [filterAtendidoPor, setFilterAtendidoPor] = useState<string>('all');
+  const [filterCadastradoPor, setFilterCadastradoPor] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -107,8 +107,13 @@ export default function CRM() {
     origem: '',
     status_funil: 'novo' as StatusFunil,
     plano_escolhido: '' as PlanoEscolhido | '',
-    atendido_por: '',
   });
+
+  // Get user display name for "Cadastrado Por" field
+  const getUserDisplayName = () => {
+    if (!user) return '';
+    return user.email || 'Usuário';
+  };
   const { toast } = useToast();
 
   // Import state
@@ -144,9 +149,9 @@ export default function CRM() {
     return [...new Set(origens)];
   }, [leads]);
 
-  const uniqueAtendidoPor = useMemo(() => {
-    const atendentes = leads.map(l => l.atendido_por).filter(Boolean) as string[];
-    return [...new Set(atendentes)];
+  const uniqueCadastradoPor = useMemo(() => {
+    const cadastradores = leads.map(l => l.cadastrado_por).filter(Boolean) as string[];
+    return [...new Set(cadastradores)];
   }, [leads]);
 
   const handleCreate = async () => {
@@ -162,7 +167,7 @@ export default function CRM() {
       origem: formData.origem.trim() || null,
       status_funil: formData.status_funil,
       plano_escolhido: formData.plano_escolhido || null,
-      atendido_por: formData.atendido_por.trim() || null,
+      cadastrado_por: getUserDisplayName(),
       ativo: true,
       user_id: user?.id || null,
       created_by: user?.id || null,
@@ -180,7 +185,6 @@ export default function CRM() {
         origem: '',
         status_funil: 'novo',
         plano_escolhido: '',
-        atendido_por: '',
       });
       fetchLeads();
     }
@@ -444,11 +448,11 @@ export default function CRM() {
         lead.nome.toLowerCase().includes(searchLower) ||
         lead.telefone?.includes(search);
       const matchesOrigem = filterOrigem === 'all' || lead.origem === filterOrigem;
-      const matchesAtendidoPor = filterAtendidoPor === 'all' || lead.atendido_por === filterAtendidoPor;
+      const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
       const matchesStatus = filterStatus === 'all' || lead.status_funil === filterStatus;
-      return matchesSearch && matchesOrigem && matchesAtendidoPor && matchesStatus;
+      return matchesSearch && matchesOrigem && matchesCadastradoPor && matchesStatus;
     });
-  }, [leads, search, filterOrigem, filterAtendidoPor, filterStatus]);
+  }, [leads, search, filterOrigem, filterCadastradoPor, filterStatus]);
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
@@ -606,11 +610,11 @@ export default function CRM() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Atendido Por</Label>
+                    <Label>Cadastrado Por</Label>
                     <Input
-                      value={formData.atendido_por}
-                      onChange={(e) => setFormData({ ...formData, atendido_por: e.target.value })}
-                      placeholder="Nome do atendente"
+                      value={getUserDisplayName()}
+                      disabled
+                      className="bg-muted"
                     />
                   </div>
                   <div className="space-y-2">
@@ -687,15 +691,15 @@ export default function CRM() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={filterAtendidoPor} onValueChange={setFilterAtendidoPor}>
+              <Select value={filterCadastradoPor} onValueChange={setFilterCadastradoPor}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Filtrar por atendente" />
+                  <SelectValue placeholder="Filtrar por cadastrador" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos os atendentes</SelectItem>
-                  {uniqueAtendidoPor.map((atendente) => (
-                    <SelectItem key={atendente} value={atendente}>
-                      {atendente}
+                  <SelectItem value="all">Todos os cadastradores</SelectItem>
+                  {uniqueCadastradoPor.map((cadastrador) => (
+                    <SelectItem key={cadastrador} value={cadastrador}>
+                      {cadastrador}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -733,7 +737,7 @@ export default function CRM() {
                       <TableHead>Telefone</TableHead>
                       <TableHead>Origem</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Atendido Por</TableHead>
+                      <TableHead>Cadastrado Por</TableHead>
                       <TableHead>Data Cadastro</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
@@ -753,7 +757,7 @@ export default function CRM() {
                             {statusLabels[lead.status_funil]}
                           </span>
                         </TableCell>
-                        <TableCell>{lead.atendido_por || '-'}</TableCell>
+                        <TableCell>{lead.cadastrado_por || '-'}</TableCell>
                         <TableCell>{formatDate(lead.created_at)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>

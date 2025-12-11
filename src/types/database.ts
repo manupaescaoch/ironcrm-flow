@@ -26,6 +26,7 @@ export interface Lead {
   data_aula_experimental: string | null;
   observacoes: string | null;
   atendido_por: string | null;
+  cadastrado_por: string | null;
   ativo: boolean;
   user_id: string | null;
   created_by: string | null;
@@ -53,6 +54,8 @@ export interface Interacao {
   valor_plano: number;
   comissao_comercial: number;
   comissao_recepcao: number;
+  comissao_cadastrador: number;
+  cadastrado_por: string | null;
   data_fechamento: string | null;
   responsavel_fechamento: string | null;
   treinador_responsavel: string | null;

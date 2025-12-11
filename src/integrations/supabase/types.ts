@@ -19,6 +19,8 @@ export type Database = {
           agendou_experimental: boolean | null
           atendido_por: string | null
           atendido_por_tipo: string | null
+          cadastrado_por: string | null
+          comissao_cadastrador: number | null
           comissao_comercial: number | null
           comissao_recepcao: number | null
           compareceu: boolean | null
@@ -47,6 +49,8 @@ export type Database = {
           agendou_experimental?: boolean | null
           atendido_por?: string | null
           atendido_por_tipo?: string | null
+          cadastrado_por?: string | null
+          comissao_cadastrador?: number | null
           comissao_comercial?: number | null
           comissao_recepcao?: number | null
           compareceu?: boolean | null
@@ -75,6 +79,8 @@ export type Database = {
           agendou_experimental?: boolean | null
           atendido_por?: string | null
           atendido_por_tipo?: string | null
+          cadastrado_por?: string | null
+          comissao_cadastrador?: number | null
           comissao_comercial?: number | null
           comissao_recepcao?: number | null
           compareceu?: boolean | null
@@ -113,6 +119,7 @@ export type Database = {
         Row: {
           atendido_por: string | null
           ativo: boolean
+          cadastrado_por: string | null
           created_at: string
           created_by: string | null
           data_aula_experimental: string | null
@@ -130,6 +137,7 @@ export type Database = {
         Insert: {
           atendido_por?: string | null
           ativo?: boolean
+          cadastrado_por?: string | null
           created_at?: string
           created_by?: string | null
           data_aula_experimental?: string | null
@@ -147,6 +155,7 @@ export type Database = {
         Update: {
           atendido_por?: string | null
           ativo?: boolean
+          cadastrado_por?: string | null
           created_at?: string
           created_by?: string | null
           data_aula_experimental?: string | null
