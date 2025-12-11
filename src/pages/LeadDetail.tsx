@@ -820,18 +820,6 @@ export default function LeadDetail() {
                       placeholder="Nome do treinador"
                     />
                   </div>
-                  {/* Commission preview */}
-                  <div className="bg-muted/50 p-4 rounded-lg space-y-2">
-                    <p className="text-sm font-medium">Prévia das Comissões</p>
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Cadastrador ({lead?.cadastrado_por || 'N/A'}) - 3%: </span>
-                      <span className="font-medium text-green-600">{formatCurrency(comissaoCadastrador)}</span>
-                    </div>
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Fechador ({formData.responsavel_fechamento || 'N/A'}) - 2%: </span>
-                      <span className="font-medium text-amber-600">{formatCurrency(comissaoFechador)}</span>
-                    </div>
-                  </div>
                 </>
               )}
 
