@@ -80,7 +80,7 @@ const initialFormState: InteracaoForm = {
   tipo: '',
   descricao: '',
   atendido_por: '',
-  atendido_por_tipo: '',
+  atendido_por_tipo: 'espontaneo_recepcao',
   agendou_experimental: false,
   data_experimental: '',
   hora_experimental: '',
@@ -250,10 +250,6 @@ export default function LeadDetail() {
       return;
     }
 
-    if (!formData.atendido_por_tipo) {
-      toast({ title: 'Atendido Por é obrigatório', variant: 'destructive' });
-      return;
-    }
 
     // Validate required fields when fechou_matricula = true
     if (formData.fechou_matricula) {
@@ -696,24 +692,6 @@ export default function LeadDetail() {
                   disabled
                   className="bg-muted"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label>Tipo de Atendimento *</Label>
-                <Select
-                  value={formData.atendido_por_tipo}
-                  onValueChange={(v) => setFormData({ ...formData, atendido_por_tipo: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo de atendimento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {atendidoPorOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Descrição</Label>
