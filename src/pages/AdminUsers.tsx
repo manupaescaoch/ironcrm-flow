@@ -43,7 +43,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Users, Shield, UserCheck, Briefcase, Trash2, AlertTriangle, ShieldX, RefreshCw, Plus, UserPlus } from 'lucide-react';
+import { Loader2, Users, Shield, UserCheck, Briefcase, Trash2, AlertTriangle, ShieldX, RefreshCw, Plus, UserPlus, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { UserRole } from '@/contexts/AuthContext';
@@ -51,6 +51,7 @@ import { UserRole } from '@/contexts/AuthContext';
 interface UserData {
   id: string;
   email: string;
+  name: string | null;
   role: UserRole | null;
   created_at: string;
   last_sign_in_at: string | null;
@@ -82,6 +83,12 @@ export default function AdminUsers() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState<string>('comercial');
+  
+  // Edit name state
+  const [editNameDialogOpen, setEditNameDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserData | null>(null);
+  const [editName, setEditName] = useState('');
+  const [updatingName, setUpdatingName] = useState(false);
   
   const { toast } = useToast();
   const { user: currentUser, session, isAdmin, canAccessAdminUsers } = useAuth();
@@ -226,6 +233,7 @@ export default function AdminUsers() {
         setUsers(prev => [...prev, {
           id: data.user.id,
           email: data.user.email,
+          name: data.user.name || null,
           role: data.user.role as UserRole | null,
           created_at: new Date().toISOString(),
           last_sign_in_at: null,
@@ -328,6 +336,63 @@ export default function AdminUsers() {
     } finally {
       setDeletingUserId(null);
       setUserToDelete(null);
+    }
+  };
+
+  const handleEditName = (user: UserData) => {
+    setEditingUser(user);
+    setEditName(user.name || '');
+    setEditNameDialogOpen(true);
+  };
+
+  const handleUpdateName = async () => {
+    if (!editingUser || !editName.trim()) {
+      toast({
+        title: 'Nome obrigatório',
+        description: 'Por favor, informe o nome do usuário.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUpdatingName(true);
+    try {
+      const accessToken = session?.access_token;
+
+      const { data, error } = await supabase.functions.invoke('update-user-name', {
+        body: { userId: editingUser.id, name: editName.trim() },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Update local state
+      setUsers(prev =>
+        prev.map(user =>
+          user.id === editingUser.id ? { ...user, name: editName.trim() } : user
+        )
+      );
+
+      toast({
+        title: 'Nome atualizado!',
+        description: `O nome foi alterado para "${editName.trim()}".`,
+      });
+
+      setEditNameDialogOpen(false);
+      setEditingUser(null);
+      setEditName('');
+    } catch (error: any) {
+      console.error('Error updating name:', error);
+      toast({
+        title: 'Erro ao atualizar nome',
+        description: error.message || 'Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdatingName(false);
     }
   };
 
@@ -484,17 +549,34 @@ export default function AdminUsers() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Nome</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role Atual</TableHead>
                     <TableHead>Alterar Role</TableHead>
                     <TableHead>Criado em</TableHead>
                     <TableHead>Último login</TableHead>
-                    <TableHead className="w-20">Ações</TableHead>
+                    <TableHead className="w-24">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {users.map((user) => (
                     <TableRow key={user.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className={user.name ? 'font-medium' : 'text-muted-foreground italic'}>
+                            {user.name || 'Sem nome'}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => handleEditName(user)}
+                            title="Editar nome"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
                       <TableCell className="font-medium">
                         {user.email}
                         {currentUser?.id === user.id && (
@@ -654,6 +736,42 @@ export default function AdminUsers() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Name Dialog */}
+      <Dialog open={editNameDialogOpen} onOpenChange={setEditNameDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Nome do Usuário</DialogTitle>
+            <DialogDescription>
+              Altere o nome que aparecerá em "Cadastrado por" nos leads.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="editName">Nome</Label>
+              <Input
+                id="editName"
+                type="text"
+                placeholder="Nome completo do usuário"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Usuário: {editingUser?.email}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditNameDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateName} disabled={updatingName}>
+              {updatingName && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

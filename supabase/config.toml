@@ -1,1 +1,4 @@
 project_id = "zspcdvtdgssabpqrybib"
+
+[functions.update-user-name]
+verify_jwt = true
