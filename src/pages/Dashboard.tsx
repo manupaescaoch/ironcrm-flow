@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { Lead, Interacao } from '@/types/database';
-import { Users, UserPlus, CalendarCheck, TrendingUp, Loader2 } from 'lucide-react';
+import { Users, UserPlus, CalendarCheck, TrendingUp, Loader2, Calendar, Award } from 'lucide-react';
 import { ExperimentaisHoje } from '@/components/dashboard/ExperimentaisHoje';
 import { ConfirmacoesAmanha } from '@/components/dashboard/ConfirmacoesAmanha';
 import { PendenciasDia } from '@/components/dashboard/PendenciasDia';
@@ -20,6 +20,11 @@ interface Stats {
   convertidos: number;
 }
 
+interface PeriodStats {
+  experimentaisPeriodo: number;
+  matriculasPeriodo: number;
+}
+
 interface ExperimentalItem {
   lead: Lead;
   interacao: Interacao;
@@ -27,6 +32,7 @@ interface ExperimentalItem {
 
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats>({ total: 0, novos: 0, aulasAgendadas: 0, convertidos: 0 });
+  const [periodStats, setPeriodStats] = useState<PeriodStats>({ experimentaisPeriodo: 0, matriculasPeriodo: 0 });
   const [loading, setLoading] = useState(true);
   
   // Date filter state
@@ -63,6 +69,32 @@ export default function Dashboard() {
       });
     }
   };
+
+  const fetchPeriodStats = useCallback(async () => {
+    const startDateStr = format(startDate, 'yyyy-MM-dd');
+    const endDateStr = format(endDate, 'yyyy-MM-dd');
+
+    // Fetch experimental count for period
+    const { count: experimentaisCount } = await supabase
+      .from('interacoes')
+      .select('*', { count: 'exact', head: true })
+      .eq('agendou_experimental', true)
+      .gte('data_experimental', startDateStr)
+      .lte('data_experimental', endDateStr);
+
+    // Fetch matriculas count for period
+    const { count: matriculasCount } = await supabase
+      .from('interacoes')
+      .select('*', { count: 'exact', head: true })
+      .eq('fechou_matricula', true)
+      .gte('data_fechamento', startDateStr)
+      .lte('data_fechamento', endDateStr);
+
+    setPeriodStats({
+      experimentaisPeriodo: experimentaisCount || 0,
+      matriculasPeriodo: matriculasCount || 0,
+    });
+  }, [startDate, endDate]);
 
   const fetchExperimentais = useCallback(async () => {
     const startDateStr = format(startDate, 'yyyy-MM-dd');
@@ -145,7 +177,7 @@ export default function Dashboard() {
 
   const fetchData = async () => {
     setLoading(true);
-    await Promise.all([fetchStats(), fetchExperimentais()]);
+    await Promise.all([fetchStats(), fetchExperimentais(), fetchPeriodStats()]);
     setLoading(false);
   };
 
@@ -186,7 +218,7 @@ export default function Dashboard() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -232,6 +264,32 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-green-600">{stats.convertidos}</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Experimentais da Semana
+              </CardTitle>
+              <Calendar className="w-5 h-5 text-purple-500" />
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold text-purple-600">{periodStats.experimentaisPeriodo}</p>
+              <p className="text-xs text-muted-foreground mt-1">Aulas agendadas no período</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Matrículas no Período
+              </CardTitle>
+              <Award className="w-5 h-5 text-amber-500" />
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold text-amber-600">{periodStats.matriculasPeriodo}</p>
+              <p className="text-xs text-muted-foreground mt-1">Matrículas fechadas no período</p>
             </CardContent>
           </Card>
         </div>
