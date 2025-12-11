@@ -3,6 +3,7 @@ import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -21,9 +22,11 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { Interacao } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, DollarSign, Users, TrendingUp, Calculator, Briefcase, UserCheck, Award } from 'lucide-react';
+import { Loader2, DollarSign, Users, TrendingUp, Calculator, Briefcase, UserCheck, Award, FileDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface InteracaoComLead extends Interacao {
   lead_nome?: string;
@@ -247,10 +250,159 @@ export default function Comissoes() {
     return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
   };
 
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    const mesLabel = meses.find(m => m.value === mes)?.label || mes;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Title
+    doc.setFontSize(18);
+    doc.text(`Relatório de Comissões - ${mesLabel} ${ano}`, pageWidth / 2, 20, { align: 'center' });
+    
+    // Summary
+    doc.setFontSize(12);
+    doc.text('Resumo Geral', 14, 35);
+    doc.setFontSize(10);
+    doc.text(`Matrículas: ${stats.totalMatriculas}`, 14, 42);
+    doc.text(`Ticket Médio: ${formatCurrency(stats.ticketMedio)}`, 14, 48);
+    doc.text(`Total Cadastrador (3%): ${formatCurrency(stats.totalComissaoCadastrador)}`, 14, 54);
+    doc.text(`Total Fechador (2%): ${formatCurrency(stats.totalComissaoFechador)}`, 14, 60);
+    doc.text(`Total Comissões: ${formatCurrency(stats.totalComissoes)}`, 14, 66);
+    
+    let yPos = 80;
+    
+    // Cadastrador Table
+    if (comissoesCadastrador.length > 0) {
+      doc.setFontSize(12);
+      doc.text('Comissão do Cadastrador (3%)', 14, yPos);
+      
+      autoTable(doc, {
+        startY: yPos + 5,
+        head: [['Cadastrador', 'Matrículas', 'Comissão']],
+        body: [
+          ...comissoesCadastrador.map(item => [
+            item.responsavel,
+            item.matriculas.toString(),
+            formatCurrency(item.comissao)
+          ]),
+          ['TOTAL', comissoesCadastrador.reduce((sum, i) => sum + i.matriculas, 0).toString(), formatCurrency(stats.totalComissaoCadastrador)]
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: [34, 197, 94] },
+        footStyles: { fontStyle: 'bold' },
+      });
+      
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+    }
+    
+    // Fechador Table
+    if (comissoesFechador.length > 0) {
+      if (yPos > 240) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.setFontSize(12);
+      doc.text('Comissão do Fechador (2%)', 14, yPos);
+      
+      autoTable(doc, {
+        startY: yPos + 5,
+        head: [['Resp. Fechamento', 'Matrículas', 'Comissão']],
+        body: [
+          ...comissoesFechador.map(item => [
+            item.responsavel,
+            item.matriculas.toString(),
+            formatCurrency(item.comissao)
+          ]),
+          ['TOTAL', comissoesFechador.reduce((sum, i) => sum + i.matriculas, 0).toString(), formatCurrency(stats.totalComissaoFechador)]
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: [245, 158, 11] },
+      });
+      
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+    }
+    
+    // Treinador Bonus Table
+    if (bonusTreinadores.length > 0) {
+      if (yPos > 240) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.setFontSize(12);
+      doc.text('Bônus por Treinador Responsável', 14, yPos);
+      
+      autoTable(doc, {
+        startY: yPos + 5,
+        head: [['Treinador', 'Matrículas', 'Bônus Total']],
+        body: [
+          ...bonusTreinadores.map(item => [
+            item.treinador,
+            item.matriculas.toString(),
+            formatCurrency(item.bonusTotal)
+          ]),
+          ['TOTAL', treinadorStats.totalMatriculas.toString(), formatCurrency(treinadorStats.totalBonus)]
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246] },
+      });
+      
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+    }
+    
+    // Detailed Table
+    if (filteredInteracoes.length > 0) {
+      doc.addPage();
+      doc.setFontSize(12);
+      doc.text('Detalhamento das Matrículas', 14, 20);
+      
+      autoTable(doc, {
+        startY: 25,
+        head: [['Lead', 'Cadastrador', 'Plano', 'Valor', 'Cad. (3%)', 'Fech. (2%)', 'Resp. Fech.', 'Data']],
+        body: filteredInteracoes.map(int => [
+          int.lead_nome || '-',
+          (int as any).cadastrado_por || '-',
+          int.plano_escolhido || '-',
+          formatCurrency(int.valor_plano || 0),
+          formatCurrency(int.comissao_comercial || 0),
+          formatCurrency(int.comissao_recepcao || 0),
+          int.responsavel_fechamento || '-',
+          formatDate(int.data_fechamento)
+        ]),
+        theme: 'striped',
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [100, 100, 100] },
+      });
+    }
+    
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.text(
+        `IRON CLUB - Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} - Página ${i} de ${pageCount}`,
+        pageWidth / 2,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: 'center' }
+      );
+    }
+    
+    doc.save(`comissoes_${mesLabel.toLowerCase()}_${ano}.pdf`);
+    toast({ title: 'PDF exportado com sucesso!' });
+  };
+
   return (
     <Layout>
       <div className="p-8">
-        <h1 className="text-3xl font-bold mb-8">Comissões do Mês</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold">Comissões do Mês</h1>
+          <Button onClick={exportToPDF} disabled={loading || filteredInteracoes.length === 0}>
+            <FileDown className="w-4 h-4 mr-2" />
+            Exportar PDF
+          </Button>
+        </div>
 
         {/* Filters */}
         <Card className="mb-8">
