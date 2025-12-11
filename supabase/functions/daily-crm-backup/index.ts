@@ -183,8 +183,47 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const cronSecret = Deno.env.get('BACKUP_CRON_SECRET');
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Authentication check - either cron secret OR admin user
+    const requestCronSecret = req.headers.get('x-cron-secret');
+    const authHeader = req.headers.get('Authorization');
+    
+    let isAuthorized = false;
+    
+    // Check 1: Cron job with secret
+    if (cronSecret && requestCronSecret === cronSecret) {
+      console.log('Authorized via cron secret');
+      isAuthorized = true;
+    }
+    
+    // Check 2: Admin user with JWT
+    if (!isAuthorized && authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+      
+      if (user && !userError) {
+        const { data: isAdmin } = await supabase.rpc('has_role', { 
+          _user_id: user.id, 
+          _role: 'admin' 
+        });
+        
+        if (isAdmin) {
+          console.log(`Authorized via admin user: ${user.email}`);
+          isAuthorized = true;
+        }
+      }
+    }
+    
+    if (!isAuthorized) {
+      console.log('Unauthorized backup attempt');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const dateStr = getBrazilDate();
     console.log(`Starting backup for date: ${dateStr}`);
