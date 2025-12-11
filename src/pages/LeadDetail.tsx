@@ -61,6 +61,7 @@ interface InteracaoForm {
   id?: string;
   tipo: string;
   descricao: string;
+  atendido_por: string;
   atendido_por_tipo: string;
   agendou_experimental: boolean;
   data_experimental: string;
@@ -78,6 +79,7 @@ interface InteracaoForm {
 const initialFormState: InteracaoForm = {
   tipo: '',
   descricao: '',
+  atendido_por: '',
   atendido_por_tipo: '',
   agendou_experimental: false,
   data_experimental: '',
@@ -206,7 +208,10 @@ export default function LeadDetail() {
   };
 
   const openNewInteracao = () => {
-    setFormData(initialFormState);
+    setFormData({
+      ...initialFormState,
+      atendido_por: user?.email || '',
+    });
     setIsEditing(false);
     setCanEditCurrentInteracao(true); // New interacoes can always be edited
     setSheetOpen(true);
@@ -221,6 +226,7 @@ export default function LeadDetail() {
       id: interacao.id,
       tipo: interacao.tipo || '',
       descricao: interacao.descricao || '',
+      atendido_por: interacao.atendido_por || '',
       atendido_por_tipo: interacao.atendido_por_tipo || 'espontaneo_recepcao',
       agendou_experimental: interacao.agendou_experimental || false,
       data_experimental: interacao.data_experimental || '',
@@ -264,6 +270,7 @@ export default function LeadDetail() {
     const interacaoData = {
       tipo: formData.tipo.trim(),
       descricao: formData.descricao.trim() || null,
+      atendido_por: formData.atendido_por || null,
       atendido_por_tipo: formData.atendido_por_tipo,
       agendou_experimental: formData.agendou_experimental,
       data_experimental: formData.data_experimental || null,
@@ -682,7 +689,16 @@ export default function LeadDetail() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Atendido Por *</Label>
+                <Label>Atendido Por</Label>
+                <Input
+                  value={formData.atendido_por}
+                  readOnly
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Tipo de Atendimento *</Label>
                 <Select
                   value={formData.atendido_por_tipo}
                   onValueChange={(v) => setFormData({ ...formData, atendido_por_tipo: v })}
@@ -767,11 +783,11 @@ export default function LeadDetail() {
               {formData.fechou_matricula && (
                 <>
                   <div className="space-y-2">
-                    <Label>Responsável Fechamento *</Label>
+                    <Label>Responsável pelo Fechamento *</Label>
                     <Input
                       value={formData.responsavel_fechamento}
                       onChange={(e) => setFormData({ ...formData, responsavel_fechamento: e.target.value })}
-                      placeholder="Nome do responsável pelo fechamento (2%)"
+                      placeholder="Nome do responsável pelo fechamento"
                     />
                   </div>
                   <div className="space-y-2">
