@@ -1,4 +1,1 @@
 project_id = "zspcdvtdgssabpqrybib"
-
-[functions.daily-crm-backup]
-verify_jwt = false
