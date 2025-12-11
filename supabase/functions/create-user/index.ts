@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     }
 
     // 5. Parse request body
-    const { email, password, role } = await req.json();
+    const { name, email, password, role } = await req.json();
 
     if (!email || !password) {
       return new Response(JSON.stringify({ error: 'email and password are required' }), {
@@ -84,11 +84,12 @@ Deno.serve(async (req) => {
 
     console.log(`Admin ${user.id} (${user.email}) creating user ${email} with role ${role || 'none'}...`);
 
-    // 6. Create user
+    // 6. Create user with user_metadata for the display name
     const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
       email,
       password,
       email_confirm: true, // Auto-confirm email
+      user_metadata: name ? { full_name: name } : undefined,
     });
 
     if (createError) {

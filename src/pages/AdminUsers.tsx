@@ -78,6 +78,7 @@ export default function AdminUsers() {
   // Create user state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState<string>('comercial');
@@ -183,10 +184,10 @@ export default function AdminUsers() {
   };
 
   const handleCreateUser = async () => {
-    if (!newUserEmail || !newUserPassword) {
+    if (!newUserName.trim() || !newUserEmail || !newUserPassword) {
       toast({
         title: 'Preencha todos os campos',
-        description: 'Email e senha são obrigatórios.',
+        description: 'Nome, email e senha são obrigatórios.',
         variant: 'destructive',
       });
       return;
@@ -207,6 +208,7 @@ export default function AdminUsers() {
 
       const { data, error } = await supabase.functions.invoke('create-user', {
         body: { 
+          name: newUserName.trim(),
           email: newUserEmail, 
           password: newUserPassword,
           role: newUserRole 
@@ -236,6 +238,7 @@ export default function AdminUsers() {
       });
 
       // Reset form and close dialog
+      setNewUserName('');
       setNewUserEmail('');
       setNewUserPassword('');
       setNewUserRole('comercial');
@@ -565,6 +568,19 @@ export default function AdminUsers() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Nome completo do usuário"
+                value={newUserName}
+                onChange={(e) => setNewUserName(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Este nome aparecerá em "Cadastrado por" nos leads
+              </p>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
