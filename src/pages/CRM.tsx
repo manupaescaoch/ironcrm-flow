@@ -111,7 +111,10 @@ export default function CRM() {
   // Get user display name for "Cadastrado Por" field
   const getUserDisplayName = () => {
     if (!user) return '';
-    return user.email || 'Usuário';
+    // Try to get name from user metadata, fallback to email
+    const metadata = user.user_metadata as Record<string, unknown> | undefined;
+    const name = metadata?.full_name || metadata?.name || metadata?.display_name;
+    return typeof name === 'string' && name.trim() ? name.trim() : (user.email || 'Usuário');
   };
   const { toast } = useToast();
 
