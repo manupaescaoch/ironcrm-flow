@@ -69,7 +69,7 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
     setLoading(prev => ({ ...prev, [`obs-${item.interacao.id}`]: false }));
   };
 
-  const getWhatsAppLink = (item: ExperimentalItem) => {
+  const openWhatsApp = (item: ExperimentalItem) => {
     const phone = normalizePhoneForWhatsApp(item.lead.telefone || '');
     const dataFormatada = item.interacao.data_experimental 
       ? format(new Date(item.interacao.data_experimental + 'T12:00:00'), "dd/MM", { locale: ptBR })
@@ -77,8 +77,8 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
     const hora = item.interacao.hora_experimental || '';
     
     const message = `🚨 Lembrete: ${item.lead.nome}! Amanhã é dia de treino! Sua aula experimental na *IRON CLUB* está confirmada para *${dataFormatada}* às *${hora}*. Estamos ansiosos para te receber! Por favor, *responda a esta mensagem agora* para confirmar sua presença e garantir sua vaga. Equipe IRON CLUB 💪`;
-    
-    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
   };
 
   return (
@@ -116,15 +116,16 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="font-medium">{item.lead.nome}</p>
-                    <a
-                      href={getWhatsAppLink(item)}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openWhatsApp(item);
+                      }}
                       className="inline-flex items-center gap-1 text-sm text-green-600 hover:text-green-700"
                     >
                       <MessageCircle className="w-4 h-4" />
                       Enviar lembrete
-                    </a>
+                    </button>
                   </div>
                   <div className="text-right">
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
