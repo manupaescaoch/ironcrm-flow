@@ -76,7 +76,7 @@ export function ExperimentaisHoje({ items, onRefresh, onReagendar }: Experimenta
     setLoading(prev => ({ ...prev, [`obs-${item.interacao.id}`]: false }));
   };
 
-  const getWhatsAppLink = (item: ExperimentalItem) => {
+  const openWhatsApp = (item: ExperimentalItem) => {
     const phone = normalizePhoneForWhatsApp(item.lead.telefone || '');
     const dataFormatada = item.interacao.data_experimental 
       ? format(new Date(item.interacao.data_experimental + 'T12:00:00'), "dd/MM", { locale: ptBR })
@@ -84,8 +84,8 @@ export function ExperimentaisHoje({ items, onRefresh, onReagendar }: Experimenta
     const hora = item.interacao.hora_experimental || '';
     
     const message = `Olá ${item.lead.nome}! Sua aula experimental na IRON CLUB está confirmada para hoje (${dataFormatada}) às ${hora}. Estamos te esperando! 💪`;
-    
-    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
   };
 
   return (
@@ -113,15 +113,15 @@ export function ExperimentaisHoje({ items, onRefresh, onReagendar }: Experimenta
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{item.lead.nome}</p>
-                      <a
-                        href={getWhatsAppLink(item)}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openWhatsApp(item);
+                        }}
                         className="inline-flex items-center gap-1 text-sm text-green-600 hover:text-green-700"
-                        onClick={(e) => e.stopPropagation()}
                       >
                         <MessageCircle className="w-4 h-4" />
-                      </a>
+                      </button>
                     </div>
                     <p className="text-sm text-muted-foreground">{item.lead.telefone || '-'}</p>
                   </div>
