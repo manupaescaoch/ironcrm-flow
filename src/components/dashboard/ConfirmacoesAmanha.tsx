@@ -72,11 +72,11 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
   const getWhatsAppLink = (item: ExperimentalItem) => {
     const phone = normalizePhoneForWhatsApp(item.lead.telefone || '');
     const dataFormatada = item.interacao.data_experimental 
-      ? format(new Date(item.interacao.data_experimental), "dd/MM", { locale: ptBR })
+      ? format(new Date(item.interacao.data_experimental + 'T12:00:00'), "dd/MM", { locale: ptBR })
       : 'amanhã';
     const hora = item.interacao.hora_experimental || '';
     
-    const message = `🚨 Lembrete: ${item.lead.nome}! Amanhã é dia de treino! Sua aula experimental na IRON CLUB está agendada para ${dataFormatada} às ${hora}. Responda para confirmar. 💪`;
+    const message = `🚨 Lembrete: ${item.lead.nome}! Amanhã é dia de treino! Sua aula experimental na *IRON CLUB* está confirmada para *${dataFormatada}* às *${hora}*. Estamos ansiosos para te receber! Por favor, *responda a esta mensagem agora* para confirmar sua presença e garantir sua vaga. Equipe IRON CLUB 💪`;
     
     return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
   };
