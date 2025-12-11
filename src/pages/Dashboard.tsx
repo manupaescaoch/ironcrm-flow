@@ -1,10 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { Lead, StatusFunil } from '@/types/database';
+import { Lead, Interacao, StatusFunil } from '@/types/database';
 import { Users, UserPlus, CalendarCheck, TrendingUp, Loader2 } from 'lucide-react';
-import { WhatsAppLink } from '@/components/WhatsAppLink';
+import { ExperimentaisHoje } from '@/components/dashboard/ExperimentaisHoje';
+import { ConfirmacoesAmanha } from '@/components/dashboard/ConfirmacoesAmanha';
+import { PendenciasDia } from '@/components/dashboard/PendenciasDia';
+import { ReagendarModal } from '@/components/dashboard/ReagendarModal';
+import { format, addDays } from 'date-fns';
 
 interface Stats {
   total: number;
@@ -13,23 +17,33 @@ interface Stats {
   convertidos: number;
 }
 
+interface ExperimentalItem {
+  lead: Lead;
+  interacao: Interacao;
+}
+
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats>({ total: 0, novos: 0, aulasAgendadas: 0, convertidos: 0 });
-  const [recentLeads, setRecentLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Experimental control state
+  const [experimentaisHoje, setExperimentaisHoje] = useState<ExperimentalItem[]>([]);
+  const [confirmacoesAmanha, setConfirmacoesAmanha] = useState<ExperimentalItem[]>([]);
+  const [pendenciasHoje, setPendenciasHoje] = useState<ExperimentalItem[]>([]);
+  const [pendenciasAmanha, setPendenciasAmanha] = useState<ExperimentalItem[]>([]);
+  
+  // Modal state
+  const [reagendarModalOpen, setReagendarModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ExperimentalItem | null>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd');
 
-  const fetchData = async () => {
-    setLoading(true);
-    
+  const fetchStats = async () => {
     const { data: leads } = await supabase
       .from('leads')
       .select('*')
-      .eq('ativo', true)
-      .order('created_at', { ascending: false });
+      .eq('ativo', true);
 
     if (leads) {
       const typedLeads = leads as unknown as Lead[];
@@ -39,20 +53,95 @@ export default function Dashboard() {
         aulasAgendadas: typedLeads.filter(l => l.status_funil === 'aula_agendada').length,
         convertidos: typedLeads.filter(l => l.status_funil === 'convertido').length,
       });
-      setRecentLeads(typedLeads.slice(0, 5));
     }
+  };
+
+  const fetchExperimentais = useCallback(async () => {
+    // Fetch all interactions with experimental scheduled for today or tomorrow
+    const { data: interacoes } = await supabase
+      .from('interacoes')
+      .select('*')
+      .eq('agendou_experimental', true)
+      .in('data_experimental', [today, tomorrow])
+      .order('hora_experimental', { ascending: true });
+
+    if (!interacoes) return;
+
+    // Get unique lead IDs
+    const leadIds = [...new Set(interacoes.map(i => i.lead_id))];
     
+    if (leadIds.length === 0) {
+      setExperimentaisHoje([]);
+      setConfirmacoesAmanha([]);
+      setPendenciasHoje([]);
+      setPendenciasAmanha([]);
+      return;
+    }
+
+    // Fetch corresponding leads
+    const { data: leads } = await supabase
+      .from('leads')
+      .select('*')
+      .in('id', leadIds)
+      .eq('ativo', true);
+
+    if (!leads) return;
+
+    const leadsMap = new Map(leads.map(l => [l.id, l as unknown as Lead]));
+
+    // Process interactions
+    const todayItems: ExperimentalItem[] = [];
+    const tomorrowItems: ExperimentalItem[] = [];
+    const pendenciasHojeItems: ExperimentalItem[] = [];
+    const pendenciasAmanhaItems: ExperimentalItem[] = [];
+
+    (interacoes as unknown as Interacao[]).forEach(interacao => {
+      const lead = leadsMap.get(interacao.lead_id);
+      if (!lead) return;
+
+      const item: ExperimentalItem = { lead, interacao };
+
+      if (interacao.data_experimental === today) {
+        // Today's experimentals
+        if (interacao.compareceu === true) {
+          // Already marked as present, skip
+        } else if (interacao.compareceu === null) {
+          // Not marked yet - show in main list and pendências
+          todayItems.push(item);
+          pendenciasHojeItems.push(item);
+        }
+      } else if (interacao.data_experimental === tomorrow) {
+        // Tomorrow's experimentals
+        if (!interacao.confirmado) {
+          tomorrowItems.push(item);
+          pendenciasAmanhaItems.push(item);
+        }
+      }
+    });
+
+    setExperimentaisHoje(todayItems);
+    setConfirmacoesAmanha(tomorrowItems);
+    setPendenciasHoje(pendenciasHojeItems);
+    setPendenciasAmanha(pendenciasAmanhaItems);
+  }, [today, tomorrow]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    await Promise.all([fetchStats(), fetchExperimentais()]);
     setLoading(false);
   };
 
-  const statusLabels: Record<StatusFunil, string> = {
-    novo: 'Novo',
-    contato_inicial: 'Contato Inicial',
-    aula_agendada: 'Aula Agendada',
-    aula_realizada: 'Aula Realizada',
-    negociacao: 'Negociação',
-    convertido: 'Convertido',
-    perdido: 'Perdido',
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleReagendar = (item: ExperimentalItem) => {
+    setSelectedItem(item);
+    setReagendarModalOpen(true);
+  };
+
+  const handleReagendarSuccess = () => {
+    fetchExperimentais();
   };
 
   if (loading) {
@@ -70,6 +159,7 @@ export default function Dashboard() {
       <div className="p-8">
         <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
 
+        {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -120,38 +210,34 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Leads Recentes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recentLeads.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">
-                Nenhum lead cadastrado ainda
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {recentLeads.map((lead) => (
-                  <div
-                    key={lead.id}
-                    className="flex items-center justify-between p-4 bg-muted/50 rounded-lg"
-                  >
-                    <div>
-                      <p className="font-medium">{lead.nome}</p>
-                      <div className="text-sm text-muted-foreground">
-                        {lead.email || (lead.telefone ? <WhatsAppLink phone={lead.telefone} className="text-sm" /> : '-')}
-                      </div>
-                    </div>
-                    <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">
-                      {statusLabels[lead.status_funil]}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Experimental Control Panels */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <ExperimentaisHoje
+            items={experimentaisHoje}
+            onRefresh={fetchExperimentais}
+            onReagendar={handleReagendar}
+          />
+          
+          <ConfirmacoesAmanha
+            items={confirmacoesAmanha}
+            onRefresh={fetchExperimentais}
+            onReagendar={handleReagendar}
+          />
+          
+          <PendenciasDia
+            pendenciasHoje={pendenciasHoje}
+            pendenciasAmanha={pendenciasAmanha}
+            onReagendar={handleReagendar}
+          />
+        </div>
       </div>
+
+      <ReagendarModal
+        open={reagendarModalOpen}
+        onOpenChange={setReagendarModalOpen}
+        item={selectedItem}
+        onSuccess={handleReagendarSuccess}
+      />
     </Layout>
   );
 }

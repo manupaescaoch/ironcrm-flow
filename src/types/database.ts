@@ -47,7 +47,8 @@ export interface Interacao {
   agendou_experimental: boolean;
   data_experimental: string | null;
   hora_experimental: string | null;
-  compareceu: boolean;
+  compareceu: boolean | null;
+  confirmado: boolean | null;
   reagendou: boolean;
   fechou_matricula: boolean;
   plano_escolhido: string | null;
