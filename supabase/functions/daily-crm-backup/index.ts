@@ -16,7 +16,6 @@ function arrayToCSV(data: Record<string, unknown>[], columns: string[]): string 
       const value = row[col];
       if (value === null || value === undefined) return '';
       const str = String(value);
-      // Escape quotes and wrap in quotes if contains comma, quote, or newline
       if (str.includes(',') || str.includes('"') || str.includes('\n')) {
         return `"${str.replace(/"/g, '""')}"`;
       }
@@ -36,6 +35,145 @@ function getBrazilDate(): string {
   return brazilTime.toISOString().split('T')[0];
 }
 
+// Format file size
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+// Send email notification using Resend API directly
+async function sendEmailNotification(
+  result: {
+    date: string;
+    files: {
+      leads: { name: string; rows: number; size: number };
+      interacoes: { name: string; rows: number; size: number };
+    };
+    signedUrls?: { leads: string; interacoes: string };
+  }
+) {
+  const resendApiKey = Deno.env.get('RESEND_API_KEY');
+  const adminEmail = Deno.env.get('BACKUP_ADMIN_EMAIL');
+
+  if (!resendApiKey || !adminEmail) {
+    console.log('Email notification skipped: RESEND_API_KEY or BACKUP_ADMIN_EMAIL not configured');
+    return { sent: false, reason: 'Not configured' };
+  }
+
+  const formattedDate = new Date(result.date + 'T12:00:00').toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+
+  const emailHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header p { margin: 10px 0 0 0; opacity: 0.9; }
+        .content { background: #f9f9f9; padding: 30px; border: 1px solid #eee; }
+        .file-item { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #4CAF50; }
+        .file-name { font-weight: bold; color: #333; }
+        .file-meta { color: #666; font-size: 13px; margin-top: 5px; }
+        .download-btn { display: inline-block; background: #1a1a2e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 10px; }
+        .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; background: #f0f0f0; border-radius: 0 0 10px 10px; }
+        .success-badge { display: inline-block; background: #4CAF50; color: white; padding: 5px 15px; border-radius: 20px; font-size: 14px; margin-top: 10px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🔒 IRON CRM - Backup Diário</h1>
+          <p>${formattedDate}</p>
+          <span class="success-badge">✓ Backup Concluído</span>
+        </div>
+        
+        <div class="content">
+          <h2 style="margin-top: 0;">Resumo do Backup</h2>
+          
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <tr>
+              <td style="padding: 15px; background: white; border-radius: 8px; text-align: center; width: 50%;">
+                <div style="font-size: 32px; font-weight: bold; color: #1a1a2e;">${result.files.leads.rows}</div>
+                <div style="color: #666; font-size: 14px;">Leads Exportados</div>
+              </td>
+              <td style="padding: 15px; background: white; border-radius: 8px; text-align: center; width: 50%;">
+                <div style="font-size: 32px; font-weight: bold; color: #1a1a2e;">${result.files.interacoes.rows}</div>
+                <div style="color: #666; font-size: 14px;">Interações Exportadas</div>
+              </td>
+            </tr>
+          </table>
+          
+          <div style="margin: 25px 0;">
+            <h3>📁 Arquivos Gerados</h3>
+            
+            <div class="file-item">
+              <div class="file-name">📄 ${result.files.leads.name}</div>
+              <div class="file-meta">
+                ${result.files.leads.rows} registros • ${formatFileSize(result.files.leads.size)}
+              </div>
+              ${result.signedUrls?.leads ? `<a href="${result.signedUrls.leads}" class="download-btn">⬇️ Download Leads</a>` : ''}
+            </div>
+            
+            <div class="file-item">
+              <div class="file-name">📄 ${result.files.interacoes.name}</div>
+              <div class="file-meta">
+                ${result.files.interacoes.rows} registros • ${formatFileSize(result.files.interacoes.size)}
+              </div>
+              ${result.signedUrls?.interacoes ? `<a href="${result.signedUrls.interacoes}" class="download-btn">⬇️ Download Interações</a>` : ''}
+            </div>
+          </div>
+          
+          <p style="color: #666; font-size: 13px; margin-top: 25px;">
+            ${result.signedUrls ? '⏰ Os links de download expiram em 24 horas.' : 'Acesse a página de Backups no CRM para baixar os arquivos.'}
+          </p>
+        </div>
+        
+        <div class="footer">
+          <p>Este é um email automático do IRON CRM.</p>
+          <p>Backup realizado em ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Recife' })}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'IRON CRM <onboarding@resend.dev>',
+        to: [adminEmail],
+        subject: `✅ IRON CRM – Backup Diário ${formattedDate}`,
+        html: emailHtml,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to send email');
+    }
+
+    console.log('Email sent successfully:', data);
+    return { sent: true, response: data };
+  } catch (error) {
+    console.error('Failed to send email:', error);
+    return { sent: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -46,7 +184,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
-    // Use service role for full access
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const dateStr = getBrazilDate();
@@ -127,14 +264,14 @@ serve(async (req) => {
 
     console.log('Backup files uploaded successfully');
 
-    // Get file info for response
-    const { data: leadsFileInfo } = await supabase.storage
+    // Generate signed URLs for email (24 hours)
+    const { data: leadsSignedUrl } = await supabase.storage
       .from('backups_crm_iron')
-      .list('', { search: leadsFileName });
+      .createSignedUrl(leadsFileName, 86400);
 
-    const { data: interacoesFileInfo } = await supabase.storage
+    const { data: interacoesSignedUrl } = await supabase.storage
       .from('backups_crm_iron')
-      .list('', { search: interacoesFileName });
+      .createSignedUrl(interacoesFileName, 86400);
 
     const result = {
       success: true,
@@ -143,20 +280,26 @@ serve(async (req) => {
         leads: {
           name: leadsFileName,
           rows: leads?.length || 0,
-          size: leadsFileInfo?.[0]?.metadata?.size || leadsCSV.length
+          size: leadsCSV.length
         },
         interacoes: {
           name: interacoesFileName,
           rows: interacoes?.length || 0,
-          size: interacoesFileInfo?.[0]?.metadata?.size || interacoesCSV.length
+          size: interacoesCSV.length
         }
+      },
+      signedUrls: {
+        leads: leadsSignedUrl?.signedUrl || '',
+        interacoes: interacoesSignedUrl?.signedUrl || ''
       },
       timestamp: new Date().toISOString()
     };
 
-    console.log('Backup completed:', result);
+    // Send email notification
+    const emailResult = await sendEmailNotification(result);
+    console.log('Email notification result:', emailResult);
 
-    return new Response(JSON.stringify(result), {
+    return new Response(JSON.stringify({ ...result, emailNotification: emailResult }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
