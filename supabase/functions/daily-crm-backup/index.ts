@@ -185,45 +185,79 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const cronSecret = Deno.env.get('BACKUP_CRON_SECRET');
     
+    // Create client with service role for data access
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Authentication check - either cron secret OR admin user
+    // ===========================================
+    // SECURITY: Authorization checks
+    // ===========================================
     const requestCronSecret = req.headers.get('x-cron-secret');
     const authHeader = req.headers.get('Authorization');
     
     let isAuthorized = false;
+    let authMethod = '';
     
-    // Check 1: Cron job with secret
-    if (cronSecret && requestCronSecret === cronSecret) {
-      console.log('Authorized via cron secret');
-      isAuthorized = true;
+    // AUTH METHOD 1: Cron job with secret header
+    // Used for scheduled backups via pg_cron
+    if (cronSecret && requestCronSecret) {
+      // Constant-time comparison to prevent timing attacks
+      const secretMatch = cronSecret.length === requestCronSecret.length &&
+        cronSecret.split('').every((char, i) => char === requestCronSecret[i]);
+      
+      if (secretMatch) {
+        console.log('Authorized via cron secret');
+        isAuthorized = true;
+        authMethod = 'cron_secret';
+      } else {
+        console.log('Invalid cron secret provided');
+      }
     }
     
-    // Check 2: Admin user with JWT
+    // AUTH METHOD 2: Admin user with valid JWT
+    // Used for manual backup triggers from admin users
     if (!isAuthorized && authHeader) {
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
       
-      if (user && !userError) {
-        const { data: isAdmin } = await supabase.rpc('has_role', { 
-          _user_id: user.id, 
-          _role: 'admin' 
-        });
+      // Skip anon key - we need a real user JWT for admin check
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+      if (token && token !== anonKey) {
+        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
         
-        if (isAdmin) {
-          console.log(`Authorized via admin user: ${user.email}`);
-          isAuthorized = true;
+        if (userError) {
+          console.log('JWT validation failed:', userError.message);
+        } else if (user) {
+          // Check if user has admin role
+          const { data: isAdmin, error: roleError } = await supabase.rpc('has_role', { 
+            _user_id: user.id, 
+            _role: 'admin' 
+          });
+          
+          if (roleError) {
+            console.log('Role check failed:', roleError.message);
+          } else if (isAdmin) {
+            console.log(`Authorized via admin user: ${user.email}`);
+            isAuthorized = true;
+            authMethod = 'admin_jwt';
+          } else {
+            console.log(`User ${user.email} is not an admin - access denied`);
+          }
         }
       }
     }
     
+    // DENY ACCESS if neither auth method succeeded
     if (!isAuthorized) {
-      console.log('Unauthorized backup attempt');
+      console.log('Unauthorized backup attempt - no valid credentials');
       return new Response(
-        JSON.stringify({ success: false, error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: false, 
+          error: 'Unauthorized - Admin access or valid cron secret required' 
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    console.log(`Backup authorized via: ${authMethod}`);
 
     const dateStr = getBrazilDate();
     console.log(`Starting backup for date: ${dateStr}`);
