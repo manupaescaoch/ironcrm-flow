@@ -397,6 +397,7 @@ export default function CRM() {
             created_at: parseDate(row.data_cadastro),
             user_id: user?.id || null,
             created_by: user?.id || null,
+            cadastrado_por: getUserDisplayName(),
             ativo: true,
           }));
 

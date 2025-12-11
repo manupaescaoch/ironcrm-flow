@@ -207,10 +207,18 @@ export default function LeadDetail() {
     }
   };
 
+  // Get user display name for forms
+  const getUserDisplayName = () => {
+    if (!user) return '';
+    const metadata = user.user_metadata as Record<string, unknown> | undefined;
+    const name = metadata?.full_name || metadata?.name || metadata?.display_name;
+    return typeof name === 'string' && name.trim() ? name.trim() : (user.email || 'Usuário');
+  };
+
   const openNewInteracao = () => {
     setFormData({
       ...initialFormState,
-      atendido_por: user?.email || '',
+      atendido_por: getUserDisplayName(),
     });
     setIsEditing(false);
     setCanEditCurrentInteracao(true); // New interacoes can always be edited
