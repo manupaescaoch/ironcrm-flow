@@ -1,14 +1,17 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
-import { Lead, Interacao, StatusFunil } from '@/types/database';
+import { Lead, Interacao } from '@/types/database';
 import { Users, UserPlus, CalendarCheck, TrendingUp, Loader2 } from 'lucide-react';
 import { ExperimentaisHoje } from '@/components/dashboard/ExperimentaisHoje';
 import { ConfirmacoesAmanha } from '@/components/dashboard/ConfirmacoesAmanha';
 import { PendenciasDia } from '@/components/dashboard/PendenciasDia';
+import { ExperimentaisSemana } from '@/components/dashboard/ExperimentaisSemana';
+import { DateRangeFilter } from '@/components/dashboard/DateRangeFilter';
 import { ReagendarModal } from '@/components/dashboard/ReagendarModal';
-import { format, addDays } from 'date-fns';
+import { format, addDays, startOfWeek, endOfWeek } from 'date-fns';
 
 interface Stats {
   total: number;
@@ -26,11 +29,16 @@ export default function Dashboard() {
   const [stats, setStats] = useState<Stats>({ total: 0, novos: 0, aulasAgendadas: 0, convertidos: 0 });
   const [loading, setLoading] = useState(true);
   
+  // Date filter state
+  const [startDate, setStartDate] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [endDate, setEndDate] = useState(() => endOfWeek(new Date(), { weekStartsOn: 1 }));
+  
   // Experimental control state
   const [experimentaisHoje, setExperimentaisHoje] = useState<ExperimentalItem[]>([]);
   const [confirmacoesAmanha, setConfirmacoesAmanha] = useState<ExperimentalItem[]>([]);
   const [pendenciasHoje, setPendenciasHoje] = useState<ExperimentalItem[]>([]);
   const [pendenciasAmanha, setPendenciasAmanha] = useState<ExperimentalItem[]>([]);
+  const [experimentaisSemana, setExperimentaisSemana] = useState<ExperimentalItem[]>([]);
   
   // Modal state
   const [reagendarModalOpen, setReagendarModalOpen] = useState(false);
@@ -57,12 +65,16 @@ export default function Dashboard() {
   };
 
   const fetchExperimentais = useCallback(async () => {
-    // Fetch all interactions with experimental scheduled for today or tomorrow
+    const startDateStr = format(startDate, 'yyyy-MM-dd');
+    const endDateStr = format(endDate, 'yyyy-MM-dd');
+
+    // Fetch all interactions with experimental scheduled in the range
     const { data: interacoes } = await supabase
       .from('interacoes')
       .select('*')
       .eq('agendou_experimental', true)
-      .in('data_experimental', [today, tomorrow])
+      .gte('data_experimental', startDateStr)
+      .lte('data_experimental', endDateStr)
       .order('hora_experimental', { ascending: true });
 
     if (!interacoes) return;
@@ -75,6 +87,7 @@ export default function Dashboard() {
       setConfirmacoesAmanha([]);
       setPendenciasHoje([]);
       setPendenciasAmanha([]);
+      setExperimentaisSemana([]);
       return;
     }
 
@@ -94,17 +107,21 @@ export default function Dashboard() {
     const tomorrowItems: ExperimentalItem[] = [];
     const pendenciasHojeItems: ExperimentalItem[] = [];
     const pendenciasAmanhaItems: ExperimentalItem[] = [];
+    const weekItems: ExperimentalItem[] = [];
 
     (interacoes as unknown as Interacao[]).forEach(interacao => {
       const lead = leadsMap.get(interacao.lead_id);
       if (!lead) return;
 
       const item: ExperimentalItem = { lead, interacao };
+      
+      // Add to week view
+      weekItems.push(item);
 
       if (interacao.data_experimental === today) {
         // Today's experimentals
         if (interacao.compareceu === true) {
-          // Already marked as present, skip
+          // Already marked as present, skip from active lists
         } else if (interacao.compareceu === null) {
           // Not marked yet - show in main list and pendências
           todayItems.push(item);
@@ -123,7 +140,8 @@ export default function Dashboard() {
     setConfirmacoesAmanha(tomorrowItems);
     setPendenciasHoje(pendenciasHojeItems);
     setPendenciasAmanha(pendenciasAmanhaItems);
-  }, [today, tomorrow]);
+    setExperimentaisSemana(weekItems);
+  }, [today, tomorrow, startDate, endDate]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -133,7 +151,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [startDate, endDate]);
 
   const handleReagendar = (item: ExperimentalItem) => {
     setSelectedItem(item);
@@ -157,7 +175,15 @@ export default function Dashboard() {
   return (
     <Layout>
       <div className="p-8">
-        <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <DateRangeFilter
+            startDate={startDate}
+            endDate={endDate}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+          />
+        </div>
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -210,26 +236,44 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Experimental Control Panels */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <ExperimentaisHoje
-            items={experimentaisHoje}
-            onRefresh={fetchExperimentais}
-            onReagendar={handleReagendar}
-          />
-          
-          <ConfirmacoesAmanha
-            items={confirmacoesAmanha}
-            onRefresh={fetchExperimentais}
-            onReagendar={handleReagendar}
-          />
-          
-          <PendenciasDia
-            pendenciasHoje={pendenciasHoje}
-            pendenciasAmanha={pendenciasAmanha}
-            onReagendar={handleReagendar}
-          />
-        </div>
+        {/* Experimental Control Panels with Tabs */}
+        <Tabs defaultValue="diario" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="diario">Controle Diário</TabsTrigger>
+            <TabsTrigger value="semana">Visão do Período</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="diario" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <ExperimentaisHoje
+                items={experimentaisHoje}
+                onRefresh={fetchExperimentais}
+                onReagendar={handleReagendar}
+              />
+              
+              <ConfirmacoesAmanha
+                items={confirmacoesAmanha}
+                onRefresh={fetchExperimentais}
+                onReagendar={handleReagendar}
+              />
+              
+              <PendenciasDia
+                pendenciasHoje={pendenciasHoje}
+                pendenciasAmanha={pendenciasAmanha}
+                onReagendar={handleReagendar}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="semana">
+            <ExperimentaisSemana
+              items={experimentaisSemana}
+              onReagendar={handleReagendar}
+              startDate={startDate}
+              endDate={endDate}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
       <ReagendarModal
