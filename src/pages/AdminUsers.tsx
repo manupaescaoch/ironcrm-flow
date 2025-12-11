@@ -117,7 +117,20 @@ export default function AdminUsers() {
     setFetchError({ type: null, message: '' });
 
     try {
-      const accessToken = session?.access_token;
+      // First, try to refresh the session to ensure we have a valid token
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData.session) {
+        console.log('No valid session found');
+        setFetchError({
+          type: 'unauthorized',
+          message: 'Sessão expirada. Faça login novamente.',
+        });
+        setLoading(false);
+        return;
+      }
+
+      const accessToken = sessionData.session.access_token;
 
       if (!accessToken) {
         setFetchError({
@@ -134,56 +147,48 @@ export default function AdminUsers() {
         },
       });
 
+      // Handle invoke errors (network issues, function not found, etc.)
       if (error) {
-        const status = error.message?.includes('401') ? 401 
-                     : error.message?.includes('403') ? 403 
-                     : 500;
-        
-        if (status === 401) {
-          setFetchError({
-            type: 'unauthorized',
-            message: 'Acesso não autorizado. Faça login novamente.',
-          });
-        } else if (status === 403) {
-          setFetchError({
-            type: 'forbidden',
-            message: 'Apenas administradores podem acessar esta página.',
-          });
-        } else {
-          setFetchError({
-            type: 'server_error',
-            message: 'Erro ao carregar usuários. Tente novamente mais tarde.',
-          });
-        }
+        console.error('Function invoke error:', error);
+        setFetchError({
+          type: 'server_error',
+          message: 'Erro ao conectar com o servidor. Tente novamente.',
+        });
         return;
       }
 
+      // Handle application-level errors from the function response
       if (data?.error) {
+        console.log('Function returned error:', data.error, data.message);
+        
         if (data.error === 'Unauthorized') {
           setFetchError({
             type: 'unauthorized',
-            message: 'Acesso não autorizado. Faça login novamente.',
+            message: data.message || 'Sessão expirada. Faça login novamente.',
           });
         } else if (data.error === 'Forbidden') {
           setFetchError({
             type: 'forbidden',
-            message: 'Apenas administradores podem acessar esta página.',
+            message: data.message || 'Você não tem permissão para acessar esta página.',
           });
         } else {
           setFetchError({
             type: 'server_error',
-            message: data.error || 'Erro ao carregar usuários.',
+            message: data.message || 'Erro ao carregar usuários.',
           });
         }
         return;
       }
 
-      setUsers(data?.users || []);
+      // Success - set users (handle empty/null gracefully)
+      const usersList = Array.isArray(data?.users) ? data.users : [];
+      setUsers(usersList);
+      
     } catch (error: any) {
-      console.error('Error fetching users:', error);
+      console.error('Unexpected error fetching users:', error);
       setFetchError({
         type: 'server_error',
-        message: 'Erro ao carregar usuários. Tente novamente mais tarde.',
+        message: 'Erro inesperado ao carregar usuários. Tente novamente.',
       });
     } finally {
       setLoading(false);

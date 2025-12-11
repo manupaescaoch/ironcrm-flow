@@ -12,79 +12,118 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // 1. Create Supabase client with SERVICE_ROLE_KEY
-    const supabase = createClient(
+    // 1. Get token from header first
+    const authHeader = req.headers.get('Authorization');
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('Missing or invalid Authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized', message: 'Token de acesso não fornecido' }), 
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,
+        }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    
+    if (!token || token.trim() === '') {
+      console.log('Empty token provided');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized', message: 'Token de acesso vazio' }), 
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,
+        }
+      );
+    }
+
+    // 2. Create Supabase client with SERVICE_ROLE_KEY for admin operations
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // 2. Get token from header
-    const token = req.headers.get('Authorization')?.replace('Bearer ', '');
+    // 3. Validate the user's JWT token using the admin API
+    const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
 
-    if (!token) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401,
-      });
+    if (userErr || !userData?.user) {
+      console.log('Token validation failed:', userErr?.message || 'No user data');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized', message: 'Sessão expirada ou inválida. Faça login novamente.' }), 
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,
+        }
+      );
     }
 
-    // 3. Validate logged user
-    const { data: { user }, error: userErr } = await supabase.auth.getUser(token);
-
-    if (userErr || !user) {
-      console.error('Auth error:', userErr);
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401,
-      });
-    }
+    const user = userData.user;
+    console.log(`User ${user.id} (${user.email}) authenticated successfully`);
 
     // 4. Check if user is ADMIN using has_role function
-    const { data: isAdmin, error: roleErr } = await supabase.rpc('has_role', {
+    const { data: isAdmin, error: roleErr } = await supabaseAdmin.rpc('has_role', {
       _user_id: user.id,
       _role: 'admin',
     });
 
     if (roleErr) {
       console.error('Role check error:', roleErr);
-      return new Response(JSON.stringify({ error: 'Error checking permissions' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      });
+      return new Response(
+        JSON.stringify({ error: 'Server error', message: 'Erro ao verificar permissões' }), 
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
 
     if (!isAdmin) {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 403,
-      });
+      console.log(`User ${user.id} is not an admin, access denied`);
+      return new Response(
+        JSON.stringify({ error: 'Forbidden', message: 'Apenas administradores podem listar usuários' }), 
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 403,
+        }
+      );
     }
 
-    // 5. List all users
+    // 5. List all users (admin operation)
     console.log(`Admin ${user.id} (${user.email}) listing users...`);
 
-    const { data: { users }, error } = await supabase.auth.admin.listUsers();
+    const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
 
-    if (error) {
-      console.error('Error listing users:', error);
-      throw error;
+    if (listError) {
+      console.error('Error listing users:', listError);
+      return new Response(
+        JSON.stringify({ error: 'Server error', message: 'Erro ao listar usuários' }), 
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
 
+    const users = listData?.users || [];
+
     // 6. Get roles from user_roles table for each user
-    const { data: userRoles, error: rolesError } = await supabase
+    const { data: userRoles, error: rolesError } = await supabaseAdmin
       .from('user_roles')
       .select('user_id, role');
 
     if (rolesError) {
       console.error('Error fetching user roles:', rolesError);
+      // Continue without roles - not a critical error
     }
 
     // Map roles by user_id
     const roleMap = new Map<string, string>();
-    if (userRoles) {
+    if (userRoles && Array.isArray(userRoles)) {
       userRoles.forEach((ur: { user_id: string; role: string }) => {
         // Convert app_role to display role
-        let displayRole = null;
+        let displayRole: string | null = null;
         if (ur.role === 'admin') displayRole = 'admin';
         else if (ur.role === 'moderator') displayRole = 'recepcao';
         else if (ur.role === 'user') displayRole = 'comercial';
@@ -94,11 +133,11 @@ Deno.serve(async (req) => {
 
     const formattedUsers = users.map(u => ({
       id: u.id,
-      email: u.email,
+      email: u.email || null,
       name: u.user_metadata?.full_name || null,
       role: roleMap.get(u.id) || null,
       created_at: u.created_at,
-      last_sign_in_at: u.last_sign_in_at,
+      last_sign_in_at: u.last_sign_in_at || null,
     }));
 
     console.log(`Successfully listed ${formattedUsers.length} users`);
@@ -112,9 +151,9 @@ Deno.serve(async (req) => {
     );
   } catch (e: unknown) {
     const errorMessage = e instanceof Error ? e.message : 'Internal server error';
-    console.error('Error in list-users function:', errorMessage);
+    console.error('Unexpected error in list-users function:', errorMessage);
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'Server error', message: errorMessage }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
