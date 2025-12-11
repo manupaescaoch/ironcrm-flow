@@ -327,6 +327,7 @@ export default function Dashboard() {
             <ExperimentaisSemana
               items={experimentaisSemana}
               onReagendar={handleReagendar}
+              onRefresh={fetchExperimentais}
               startDate={startDate}
               endDate={endDate}
             />
