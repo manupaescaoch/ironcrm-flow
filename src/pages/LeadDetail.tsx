@@ -190,7 +190,7 @@ export default function LeadDetail() {
         telefone: lead.telefone,
         origem: lead.origem,
         status_funil: lead.status_funil,
-        plano_escolhido: lead.plano_escolhido,
+        cadastrado_por: lead.cadastrado_por,
         data_aula_experimental: lead.data_aula_experimental,
         observacoes: lead.observacoes,
       })
@@ -477,8 +477,9 @@ export default function LeadDetail() {
                   <Label>Cadastrado Por</Label>
                   <Input
                     value={lead.cadastrado_por || ''}
-                    disabled
-                    className="bg-muted"
+                    onChange={(e) => setLead({ ...lead, cadastrado_por: e.target.value })}
+                    disabled={!isAdmin}
+                    className={!isAdmin ? "bg-muted" : ""}
                   />
                 </div>
                 <div className="space-y-2">
@@ -495,25 +496,6 @@ export default function LeadDetail() {
                       {statusOptions.map((opt) => (
                         <SelectItem key={opt.value} value={opt.value}>
                           {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Plano Escolhido</Label>
-                  <Select
-                    value={lead.plano_escolhido || ''}
-                    onValueChange={(v) => setLead({ ...lead, plano_escolhido: v as PlanoEscolhido })}
-                    disabled={!canEditLead}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {planoOptions.map((plano) => (
-                        <SelectItem key={plano} value={plano}>
-                          {plano}
                         </SelectItem>
                       ))}
                     </SelectContent>
