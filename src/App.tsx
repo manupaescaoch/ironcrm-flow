@@ -13,6 +13,7 @@ import Kanban from "./pages/Kanban";
 import Comissoes from "./pages/Comissoes";
 import RelatorioVendas from "./pages/RelatorioVendas";
 import AdminUsers from "./pages/AdminUsers";
+import Backups from "./pages/Backups";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -149,6 +150,14 @@ const AppRoutes = () => (
       element={
         <AdminRoute>
           <AdminUsers />
+        </AdminRoute>
+      }
+    />
+    <Route
+      path="/backups"
+      element={
+        <AdminRoute>
+          <Backups />
         </AdminRoute>
       }
     />
