@@ -380,14 +380,37 @@ export default function CRM() {
           return obj as unknown as CSVRow;
         });
 
+      // Fetch existing phone numbers to avoid duplicates
+      const { data: existingLeads } = await supabase
+        .from('leads')
+        .select('telefone')
+        .eq('ativo', true)
+        .not('telefone', 'is', null);
+      
+      const existingPhones = new Set(
+        (existingLeads || [])
+          .map(l => l.telefone?.replace(/\D/g, ''))
+          .filter(Boolean)
+      );
+
       let successCount = 0;
       let failCount = 0;
+      let duplicateCount = 0;
 
       const chunkSize = 100;
       for (let i = 0; i < allRows.length; i += chunkSize) {
         const chunk = allRows.slice(i, i + chunkSize);
         const leadsToInsert = chunk
           .filter(row => row.nome_completo?.trim())
+          .filter(row => {
+            const phone = row.telefone?.replace(/\D/g, '');
+            if (phone && existingPhones.has(phone)) {
+              duplicateCount++;
+              return false;
+            }
+            if (phone) existingPhones.add(phone); // Avoid duplicates within import
+            return true;
+          })
           .map(row => ({
             nome: row.nome_completo.trim(),
             telefone: row.telefone?.trim() || null,
@@ -413,11 +436,11 @@ export default function CRM() {
 
       setIsImporting(false);
       
-      if (failCount > 0) {
+      if (failCount > 0 || duplicateCount > 0) {
         toast({ 
-          title: 'Algumas linhas não puderam ser importadas. Verifique o arquivo.',
-          description: `${successCount} importados, ${failCount} falharam`,
-          variant: 'destructive'
+          title: 'Importação concluída com observações',
+          description: `${successCount} importados, ${duplicateCount} duplicados ignorados${failCount > 0 ? `, ${failCount} falharam` : ''}`,
+          variant: duplicateCount > 0 && failCount === 0 ? 'default' : 'destructive'
         });
       } else {
         toast({ title: `Importação concluída: ${successCount} leads importados com sucesso.` });
