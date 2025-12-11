@@ -122,8 +122,8 @@ export default function Dashboard() {
         // Today's experimentals
         if (interacao.compareceu === true) {
           // Already marked as present, skip from active lists
-        } else if (interacao.compareceu === null) {
-          // Not marked yet - show in main list and pendências
+        } else {
+          // Not marked yet (compareceu is null or false) - show in main list and pendências
           todayItems.push(item);
           pendenciasHojeItems.push(item);
         }

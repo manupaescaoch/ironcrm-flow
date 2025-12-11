@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { WhatsAppLink } from '@/components/WhatsAppLink';
-import { Calendar, Clock, Save, RefreshCw } from 'lucide-react';
+import { Calendar, Clock, Save, RefreshCw, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Lead, Interacao } from '@/types/database';
+import { normalizePhoneForWhatsApp } from '@/components/WhatsAppLink';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface ExperimentalItem {
   lead: Lead;
@@ -74,6 +76,18 @@ export function ExperimentaisHoje({ items, onRefresh, onReagendar }: Experimenta
     setLoading(prev => ({ ...prev, [`obs-${item.interacao.id}`]: false }));
   };
 
+  const getWhatsAppLink = (item: ExperimentalItem) => {
+    const phone = normalizePhoneForWhatsApp(item.lead.telefone || '');
+    const dataFormatada = item.interacao.data_experimental 
+      ? format(new Date(item.interacao.data_experimental + 'T12:00:00'), "dd/MM", { locale: ptBR })
+      : 'hoje';
+    const hora = item.interacao.hora_experimental || '';
+    
+    const message = `Olá ${item.lead.nome}! Sua aula experimental na IRON CLUB está confirmada para hoje (${dataFormatada}) às ${hora}. Estamos te esperando! 💪`;
+    
+    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -97,8 +111,19 @@ export function ExperimentaisHoje({ items, onRefresh, onReagendar }: Experimenta
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="font-medium">{item.lead.nome}</p>
-                    <WhatsAppLink phone={item.lead.telefone || ''} className="text-sm" />
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{item.lead.nome}</p>
+                      <a
+                        href={getWhatsAppLink(item)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-sm text-green-600 hover:text-green-700"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </a>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{item.lead.telefone || '-'}</p>
                   </div>
                   <div className="text-right">
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
