@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { Lead, Interacao } from '@/types/database';
-import { Users, UserPlus, CalendarCheck, TrendingUp, Loader2, Calendar, Award } from 'lucide-react';
+import { Users, UserPlus, CalendarCheck, Loader2, Calendar, Award } from 'lucide-react';
 import { ExperimentaisHoje } from '@/components/dashboard/ExperimentaisHoje';
 import { ConfirmacoesAmanha } from '@/components/dashboard/ConfirmacoesAmanha';
 import { PendenciasDia } from '@/components/dashboard/PendenciasDia';
@@ -17,7 +17,6 @@ interface Stats {
   total: number;
   novos: number;
   aulasAgendadas: number;
-  convertidos: number;
 }
 
 interface PeriodStats {
@@ -31,7 +30,7 @@ interface ExperimentalItem {
 }
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<Stats>({ total: 0, novos: 0, aulasAgendadas: 0, convertidos: 0 });
+  const [stats, setStats] = useState<Stats>({ total: 0, novos: 0, aulasAgendadas: 0 });
   const [periodStats, setPeriodStats] = useState<PeriodStats>({ experimentaisPeriodo: 0, matriculasPeriodo: 0 });
   const [loading, setLoading] = useState(true);
   
@@ -65,7 +64,6 @@ export default function Dashboard() {
         total: typedLeads.length,
         novos: typedLeads.filter(l => l.status_funil === 'novo').length,
         aulasAgendadas: typedLeads.filter(l => l.status_funil === 'aula_agendada').length,
-        convertidos: typedLeads.filter(l => l.status_funil === 'convertido').length,
       });
     }
   };
@@ -218,7 +216,7 @@ export default function Dashboard() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -252,18 +250,6 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-sky-600">{stats.aulasAgendadas}</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Convertidos
-              </CardTitle>
-              <TrendingUp className="w-5 h-5 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-green-600">{stats.convertidos}</p>
             </CardContent>
           </Card>
 
