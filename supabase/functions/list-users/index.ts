@@ -95,6 +95,7 @@ Deno.serve(async (req) => {
     const formattedUsers = users.map(u => ({
       id: u.id,
       email: u.email,
+      name: u.user_metadata?.full_name || null,
       role: roleMap.get(u.id) || null,
       created_at: u.created_at,
       last_sign_in_at: u.last_sign_in_at,
