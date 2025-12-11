@@ -106,7 +106,6 @@ export default function CRM() {
     telefone: '',
     origem: '',
     status_funil: 'novo' as StatusFunil,
-    plano_escolhido: '' as PlanoEscolhido | '',
   });
 
   // Get user display name for "Cadastrado Por" field
@@ -166,7 +165,6 @@ export default function CRM() {
       telefone: formData.telefone.trim() || null,
       origem: formData.origem.trim() || null,
       status_funil: formData.status_funil,
-      plano_escolhido: formData.plano_escolhido || null,
       cadastrado_por: getUserDisplayName(),
       ativo: true,
       user_id: user?.id || null,
@@ -184,7 +182,6 @@ export default function CRM() {
         telefone: '',
         origem: '',
         status_funil: 'novo',
-        plano_escolhido: '',
       });
       fetchLeads();
     }
@@ -630,24 +627,6 @@ export default function CRM() {
                         {statusOptions.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>
                             {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Plano</Label>
-                    <Select
-                      value={formData.plano_escolhido}
-                      onValueChange={(v) => setFormData({ ...formData, plano_escolhido: v as PlanoEscolhido })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um plano" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {planoOptions.map((plano) => (
-                          <SelectItem key={plano} value={plano}>
-                            {plano}
                           </SelectItem>
                         ))}
                       </SelectContent>
