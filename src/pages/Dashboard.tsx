@@ -144,22 +144,37 @@ export default function Dashboard() {
     const startDateStr = format(startDate, 'yyyy-MM-dd');
     const endDateStr = format(endDate, 'yyyy-MM-dd');
 
-    // Fetch all interactions with experimental scheduled in the range
-    const { data: interacoes } = await supabase
+    // Fetch all interactions with experimental scheduled in the range with lead info via JOIN
+    const { data: experimentaisData } = await supabase
       .from('interacoes')
-      .select('*')
+      .select(`
+        *,
+        leads (
+          id,
+          nome,
+          telefone,
+          email,
+          origem,
+          status_funil,
+          plano_escolhido,
+          cadastrado_por,
+          atendido_por,
+          observacoes,
+          data_aula_experimental,
+          created_by,
+          user_id,
+          ativo,
+          created_at,
+          updated_at
+        )
+      `)
       .eq('agendou_experimental', true)
       .gte('data_experimental', startDateStr)
       .lte('data_experimental', endDateStr)
       .order('data_experimental', { ascending: true })
       .order('hora_experimental', { ascending: true });
 
-    if (!interacoes) return;
-
-    // Get unique lead IDs
-    const leadIds = [...new Set(interacoes.map(i => i.lead_id))];
-    
-    if (leadIds.length === 0) {
+    if (!experimentaisData || experimentaisData.length === 0) {
       setExperimentaisHoje([]);
       setConfirmacoesAmanha([]);
       setPendenciasHoje([]);
@@ -169,17 +184,6 @@ export default function Dashboard() {
       return;
     }
 
-    // Fetch corresponding leads
-    const { data: leads } = await supabase
-      .from('leads')
-      .select('*')
-      .in('id', leadIds)
-      .eq('ativo', true);
-
-    if (!leads) return;
-
-    const leadsMap = new Map(leads.map(l => [l.id, l as unknown as Lead]));
-
     // Process interactions
     const todayItems: ExperimentalItem[] = [];
     const tomorrowItems: ExperimentalItem[] = [];
@@ -188,25 +192,57 @@ export default function Dashboard() {
     const weekItems: ExperimentalItem[] = [];
     const detailedItems: ExperimentalItem[] = [];
 
-    (interacoes as unknown as Interacao[]).forEach(interacao => {
-      const lead = leadsMap.get(interacao.lead_id);
-      if (!lead) return;
+    experimentaisData.forEach((item: any) => {
+      if (!item.leads) return;
+      
+      const lead: Lead = item.leads as Lead;
+      const interacao: Interacao = {
+        id: item.id,
+        lead_id: item.lead_id,
+        tipo: item.tipo,
+        descricao: item.descricao,
+        data_interacao: item.data_interacao,
+        created_at: item.created_at,
+        created_by: item.created_by,
+        atendido_por: item.atendido_por,
+        atendido_por_tipo: item.atendido_por_tipo,
+        agendou_experimental: item.agendou_experimental,
+        data_experimental: item.data_experimental,
+        hora_experimental: item.hora_experimental,
+        compareceu: item.compareceu,
+        confirmado: item.confirmado,
+        reagendou: item.reagendou,
+        fechou_matricula: item.fechou_matricula,
+        plano_escolhido: item.plano_escolhido,
+        valor_plano: item.valor_plano,
+        comissao_comercial: item.comissao_comercial,
+        comissao_recepcao: item.comissao_recepcao,
+        comissao_cadastrador: item.comissao_cadastrador,
+        cadastrado_por: item.cadastrado_por,
+        data_fechamento: item.data_fechamento,
+        responsavel_fechamento: item.responsavel_fechamento,
+        treinador_responsavel: item.treinador_responsavel,
+        treinador_experimental: item.treinador_experimental,
+        origem_fechamento: item.origem_fechamento,
+        quem_agendou: item.quem_agendou,
+        tipo_atendimento: item.tipo_atendimento,
+      };
 
-      const item: ExperimentalItem = { lead, interacao };
+      const experimentalItem: ExperimentalItem = { lead, interacao };
       
       // Add to week view and detailed list
-      weekItems.push(item);
-      detailedItems.push(item);
+      weekItems.push(experimentalItem);
+      detailedItems.push(experimentalItem);
 
       if (interacao.data_experimental === today) {
         if (interacao.compareceu !== true) {
-          todayItems.push(item);
-          pendenciasHojeItems.push(item);
+          todayItems.push(experimentalItem);
+          pendenciasHojeItems.push(experimentalItem);
         }
       } else if (interacao.data_experimental === tomorrow) {
         if (!interacao.confirmado) {
-          tomorrowItems.push(item);
-          pendenciasAmanhaItems.push(item);
+          tomorrowItems.push(experimentalItem);
+          pendenciasAmanhaItems.push(experimentalItem);
         }
       }
     });
@@ -223,41 +259,97 @@ export default function Dashboard() {
     const startDateStr = format(startDate, 'yyyy-MM-dd');
     const endDateStr = format(endDate, 'yyyy-MM-dd');
 
-    // Fetch all matriculas in the period
-    const { data: interacoes } = await supabase
+    // Fetch all matriculas in the period with lead info via JOIN
+    const { data: matriculasData } = await supabase
       .from('interacoes')
-      .select('*')
+      .select(`
+        id,
+        lead_id,
+        data_fechamento,
+        atendido_por,
+        responsavel_fechamento,
+        treinador_responsavel,
+        plano_escolhido,
+        valor_plano,
+        comissao_comercial,
+        comissao_recepcao,
+        comissao_cadastrador,
+        leads (
+          id,
+          nome,
+          telefone,
+          origem,
+          status_funil,
+          cadastrado_por,
+          created_by,
+          ativo
+        )
+      `)
       .eq('fechou_matricula', true)
       .gte('data_fechamento', startDateStr)
       .lte('data_fechamento', endDateStr)
       .order('data_fechamento', { ascending: false });
 
-    if (!interacoes || interacoes.length === 0) {
+    if (!matriculasData || matriculasData.length === 0) {
       setMatriculasDetalhadas([]);
       return;
     }
-
-    // Get unique lead IDs
-    const leadIds = [...new Set(interacoes.map(i => i.lead_id))];
-
-    // Fetch corresponding leads
-    const { data: leads } = await supabase
-      .from('leads')
-      .select('*')
-      .in('id', leadIds)
-      .eq('ativo', true);
-
-    if (!leads) {
-      setMatriculasDetalhadas([]);
-      return;
-    }
-
-    const leadsMap = new Map(leads.map(l => [l.id, l as unknown as Lead]));
 
     const matriculaItems: MatriculaItem[] = [];
-    (interacoes as unknown as Interacao[]).forEach(interacao => {
-      const lead = leadsMap.get(interacao.lead_id);
-      if (!lead) return;
+    matriculasData.forEach((item: any) => {
+      if (!item.leads) return;
+      
+      const lead: Lead = {
+        id: item.leads.id,
+        nome: item.leads.nome,
+        telefone: item.leads.telefone,
+        origem: item.leads.origem,
+        status_funil: item.leads.status_funil,
+        cadastrado_por: item.leads.cadastrado_por,
+        created_by: item.leads.created_by,
+        ativo: item.leads.ativo,
+        email: null,
+        plano_escolhido: null,
+        data_aula_experimental: null,
+        observacoes: null,
+        atendido_por: null,
+        user_id: null,
+        created_at: '',
+        updated_at: '',
+      };
+      
+      const interacao: Interacao = {
+        id: item.id,
+        lead_id: item.lead_id,
+        data_fechamento: item.data_fechamento,
+        atendido_por: item.atendido_por,
+        responsavel_fechamento: item.responsavel_fechamento,
+        treinador_responsavel: item.treinador_responsavel,
+        plano_escolhido: item.plano_escolhido,
+        valor_plano: item.valor_plano,
+        comissao_comercial: item.comissao_comercial,
+        comissao_recepcao: item.comissao_recepcao,
+        comissao_cadastrador: item.comissao_cadastrador,
+        tipo: '',
+        descricao: null,
+        data_interacao: '',
+        created_at: '',
+        created_by: null,
+        atendido_por_tipo: null,
+        agendou_experimental: false,
+        data_experimental: null,
+        hora_experimental: null,
+        compareceu: null,
+        confirmado: null,
+        reagendou: false,
+        fechou_matricula: true,
+        cadastrado_por: null,
+        treinador_experimental: null,
+        origem_fechamento: null,
+        quem_agendou: null,
+        tipo_atendimento: null,
+      };
+      
       matriculaItems.push({ lead, interacao });
     });
 
