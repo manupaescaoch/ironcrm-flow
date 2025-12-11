@@ -10,7 +10,8 @@ import {
   DollarSign,
   BarChart3,
   Settings,
-  FileText
+  FileText,
+  Database
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/logo.png';
@@ -26,6 +27,7 @@ const allNavItems = [
   { href: '/kanban', label: 'Funil', icon: Columns, roles: ['admin', 'recepcao', 'comercial'] },
   { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin'] },
   { href: '/relatorio', label: 'Relatório', icon: FileText, roles: ['admin'] },
+  { href: '/backups', label: 'Backups', icon: Database, roles: ['admin'] },
   { href: '/admin-users', label: 'Usuários', icon: Settings, roles: ['admin'] },
 ];
 
