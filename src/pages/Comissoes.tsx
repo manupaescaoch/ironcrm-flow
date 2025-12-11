@@ -113,52 +113,43 @@ export default function Comissoes() {
       (int) =>
         int.responsavel_fechamento?.toLowerCase().includes(filter) ||
         int.treinador_responsavel?.toLowerCase().includes(filter) ||
-        int.atendido_por?.toLowerCase().includes(filter)
+        (int as any).cadastrado_por?.toLowerCase().includes(filter)
     );
   }, [interacoes, filterFuncionario]);
 
-  // Calculate summary stats
+  // Calculate summary stats with new commission logic
   const stats = useMemo(() => {
     const totalMatriculas = filteredInteracoes.length;
     const totalValorPlano = filteredInteracoes.reduce((sum, int) => sum + (int.valor_plano || 0), 0);
     const ticketMedio = totalMatriculas > 0 ? totalValorPlano / totalMatriculas : 0;
-    const totalComissaoComercial = filteredInteracoes.reduce((sum, int) => sum + (int.comissao_comercial || 0), 0);
-    const totalComissaoRecepcao = filteredInteracoes.reduce((sum, int) => sum + (int.comissao_recepcao || 0), 0);
-    const totalComissoes = totalComissaoComercial + totalComissaoRecepcao;
+    // Cadastrador commission (3%) - stored in comissao_comercial for backward compatibility
+    const totalComissaoCadastrador = filteredInteracoes.reduce((sum, int) => sum + (int.comissao_comercial || 0), 0);
+    // Fechador commission (2%) - stored in comissao_recepcao
+    const totalComissaoFechador = filteredInteracoes.reduce((sum, int) => sum + (int.comissao_recepcao || 0), 0);
+    const totalComissoes = totalComissaoCadastrador + totalComissaoFechador;
 
     return {
       totalMatriculas,
       ticketMedio,
-      totalComissaoComercial,
-      totalComissaoRecepcao,
+      totalComissaoCadastrador,
+      totalComissaoFechador,
       totalComissoes,
     };
   }, [filteredInteracoes]);
 
-  // Group by comercial - atendido_por for comercial, quem_agendou for espontaneo_recepcao
-  const comissoesComercial = useMemo(() => {
+  // Group by cadastrador (who registered the lead) - gets 3%
+  const comissoesCadastrador = useMemo(() => {
     const grouped = new Map<string, { matriculas: number; comissao: number }>();
 
     filteredInteracoes.forEach((int) => {
       const comissao = int.comissao_comercial || 0;
-      if (comissao <= 0) return; // Skip records with no commercial commission
+      if (comissao <= 0) return;
 
-      const tipoAtendimento = (int as any).tipo_atendimento;
-      const quemAgendou = (int as any).quem_agendou;
+      // Use cadastrado_por from the interaction (copied from lead)
+      const cadastrador = (int as any).cadastrado_por || 'Não informado';
       
-      let responsavel: string;
-      if (tipoAtendimento === 'comercial') {
-        // Commercial type: attribute to atendido_por
-        responsavel = int.atendido_por || 'Não informado';
-      } else if (tipoAtendimento === 'espontaneo_recepcao' && quemAgendou) {
-        // Walk-in with prior scheduling: attribute to quem_agendou
-        responsavel = quemAgendou;
-      } else {
-        return; // Skip if no commercial attribution
-      }
-      
-      const current = grouped.get(responsavel) || { matriculas: 0, comissao: 0 };
-      grouped.set(responsavel, {
+      const current = grouped.get(cadastrador) || { matriculas: 0, comissao: 0 };
+      grouped.set(cadastrador, {
         matriculas: current.matriculas + 1,
         comissao: current.comissao + comissao,
       });
@@ -172,15 +163,14 @@ export default function Comissoes() {
       .sort((a, b) => b.comissao - a.comissao);
   }, [filteredInteracoes]);
 
-  // Group by recepção (responsavel_fechamento for espontaneo_recepcao)
-  const comissoesRecepcao = useMemo(() => {
+  // Group by fechador (responsavel_fechamento) - gets 2%
+  const comissoesFechador = useMemo(() => {
     const grouped = new Map<string, { matriculas: number; comissao: number }>();
 
     filteredInteracoes.forEach((int) => {
       const comissao = int.comissao_recepcao || 0;
-      if (comissao <= 0) return; // Skip records with no reception commission
+      if (comissao <= 0) return;
 
-      // For reception commissions, always use responsavel_fechamento
       const responsavel = int.responsavel_fechamento || 'Não informado';
       const current = grouped.get(responsavel) || { matriculas: 0, comissao: 0 };
       grouped.set(responsavel, {
@@ -354,8 +344,8 @@ export default function Comissoes() {
                       <Briefcase className="w-6 h-6 text-green-500" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Total Comercial</p>
-                      <p className="text-2xl font-bold">{formatCurrency(stats.totalComissaoComercial)}</p>
+                      <p className="text-sm text-muted-foreground">Cadastrador (3%)</p>
+                      <p className="text-2xl font-bold">{formatCurrency(stats.totalComissaoCadastrador)}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -368,8 +358,8 @@ export default function Comissoes() {
                       <UserCheck className="w-6 h-6 text-amber-500" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Total Recepção</p>
-                      <p className="text-2xl font-bold">{formatCurrency(stats.totalComissaoRecepcao)}</p>
+                      <p className="text-sm text-muted-foreground">Fechador (2%)</p>
+                      <p className="text-2xl font-bold">{formatCurrency(stats.totalComissaoFechador)}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -396,11 +386,11 @@ export default function Comissoes() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Briefcase className="w-5 h-5 text-green-500" />
-                    Comissões Comercial
+                    Comissão do Cadastrador (3%)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {comissoesComercial.length === 0 ? (
+                  {comissoesCadastrador.length === 0 ? (
                     <p className="text-center py-8 text-muted-foreground">
                       Nenhuma comissão neste período
                     </p>
@@ -408,13 +398,13 @@ export default function Comissoes() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Responsável</TableHead>
+                          <TableHead>Cadastrador</TableHead>
                           <TableHead className="text-center">Matrículas</TableHead>
-                          <TableHead className="text-right">Comissão</TableHead>
+                          <TableHead className="text-right">Comissão (3%)</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {comissoesComercial.map((item, index) => (
+                        {comissoesCadastrador.map((item, index) => (
                           <TableRow key={index}>
                             <TableCell className="font-medium">{item.responsavel}</TableCell>
                             <TableCell className="text-center">{item.matriculas}</TableCell>
@@ -426,10 +416,10 @@ export default function Comissoes() {
                         <TableRow className="bg-muted/50">
                           <TableCell className="font-bold">Total</TableCell>
                           <TableCell className="text-center font-bold">
-                            {comissoesComercial.reduce((sum, i) => sum + i.matriculas, 0)}
+                            {comissoesCadastrador.reduce((sum, i) => sum + i.matriculas, 0)}
                           </TableCell>
                           <TableCell className="text-right font-bold text-green-600">
-                            {formatCurrency(stats.totalComissaoComercial)}
+                            {formatCurrency(stats.totalComissaoCadastrador)}
                           </TableCell>
                         </TableRow>
                       </TableBody>
@@ -438,16 +428,16 @@ export default function Comissoes() {
                 </CardContent>
               </Card>
 
-              {/* Recepção Table */}
+              {/* Fechador Table */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <UserCheck className="w-5 h-5 text-amber-500" />
-                    Comissões Recepção
+                    Comissão do Fechador (2%)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {comissoesRecepcao.length === 0 ? (
+                  {comissoesFechador.length === 0 ? (
                     <p className="text-center py-8 text-muted-foreground">
                       Nenhuma comissão neste período
                     </p>
@@ -455,13 +445,13 @@ export default function Comissoes() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Responsável</TableHead>
+                          <TableHead>Responsável Fechamento</TableHead>
                           <TableHead className="text-center">Matrículas</TableHead>
-                          <TableHead className="text-right">Comissão</TableHead>
+                          <TableHead className="text-right">Comissão (2%)</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {comissoesRecepcao.map((item, index) => (
+                        {comissoesFechador.map((item, index) => (
                           <TableRow key={index}>
                             <TableCell className="font-medium">{item.responsavel}</TableCell>
                             <TableCell className="text-center">{item.matriculas}</TableCell>
@@ -473,10 +463,10 @@ export default function Comissoes() {
                         <TableRow className="bg-muted/50">
                           <TableCell className="font-bold">Total</TableCell>
                           <TableCell className="text-center font-bold">
-                            {comissoesRecepcao.reduce((sum, i) => sum + i.matriculas, 0)}
+                            {comissoesFechador.reduce((sum, i) => sum + i.matriculas, 0)}
                           </TableCell>
                           <TableCell className="text-right font-bold text-amber-600">
-                            {formatCurrency(stats.totalComissaoRecepcao)}
+                            {formatCurrency(stats.totalComissaoFechador)}
                           </TableCell>
                         </TableRow>
                       </TableBody>
@@ -593,11 +583,11 @@ export default function Comissoes() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Lead</TableHead>
-                          <TableHead>Origem</TableHead>
+                          <TableHead>Cadastrador</TableHead>
                           <TableHead>Plano</TableHead>
                           <TableHead className="text-right">Valor</TableHead>
-                          <TableHead className="text-right">Comercial</TableHead>
-                          <TableHead className="text-right">Recepção</TableHead>
+                          <TableHead className="text-right">Cadastrador (3%)</TableHead>
+                          <TableHead className="text-right">Fechador (2%)</TableHead>
                           <TableHead>Resp. Fechamento</TableHead>
                           <TableHead>Treinador</TableHead>
                           <TableHead>Data Fechamento</TableHead>
@@ -605,28 +595,22 @@ export default function Comissoes() {
                       </TableHeader>
                       <TableBody>
                         {filteredInteracoes.map((int) => {
-                          const origemFechamento = (int as any).origem_fechamento;
-                          const quemAgendou = (int as any).quem_agendou;
+                          const cadastradoPor = (int as any).cadastrado_por;
                           return (
                           <TableRow key={int.id}>
                             <TableCell className="font-medium">{int.lead_nome}</TableCell>
-                            <TableCell>
-                              {origemFechamento === 'agendamento_comercial' ? 'Agendamento' : 
-                               origemFechamento === 'espontaneo_recepcao' ? (quemAgendou ? 'Espontâneo (c/ agend.)' : 'Espontâneo') : '-'}
-                            </TableCell>
+                            <TableCell>{cadastradoPor || '-'}</TableCell>
                             <TableCell>{int.plano_escolhido || '-'}</TableCell>
                             <TableCell className="text-right">{formatCurrency(int.valor_plano || 0)}</TableCell>
                             <TableCell className="text-right text-green-600">
                               <div>{formatCurrency(int.comissao_comercial || 0)}</div>
-                              {(int.comissao_comercial || 0) > 0 && (
-                                <div className="text-xs text-muted-foreground">
-                                  {origemFechamento === 'agendamento_comercial' ? int.responsavel_fechamento : quemAgendou}
-                                </div>
+                              {(int.comissao_comercial || 0) > 0 && cadastradoPor && (
+                                <div className="text-xs text-muted-foreground">{cadastradoPor}</div>
                               )}
                             </TableCell>
                             <TableCell className="text-right text-amber-600">
                               <div>{formatCurrency(int.comissao_recepcao || 0)}</div>
-                              {(int.comissao_recepcao || 0) > 0 && (
+                              {(int.comissao_recepcao || 0) > 0 && int.responsavel_fechamento && (
                                 <div className="text-xs text-muted-foreground">{int.responsavel_fechamento}</div>
                               )}
                             </TableCell>

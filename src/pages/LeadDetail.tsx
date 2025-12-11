@@ -68,13 +68,11 @@ interface InteracaoForm {
   compareceu: boolean;
   reagendou: boolean;
   fechou_matricula: boolean;
-  tipo_atendimento: string;
   plano_escolhido: string;
   valor_plano: number;
   data_fechamento: string;
   responsavel_fechamento: string;
   treinador_responsavel: string;
-  quem_agendou: string;
 }
 
 const initialFormState: InteracaoForm = {
@@ -87,22 +85,15 @@ const initialFormState: InteracaoForm = {
   compareceu: false,
   reagendou: false,
   fechou_matricula: false,
-  tipo_atendimento: '',
   plano_escolhido: '',
   valor_plano: 0,
   data_fechamento: '',
   responsavel_fechamento: '',
   treinador_responsavel: '',
-  quem_agendou: '',
 };
 
 const atendidoPorOptions = [
   { value: 'comercial', label: 'Comercial (agendamento)' },
-  { value: 'espontaneo_recepcao', label: 'Espontâneo Recepção' },
-];
-
-const tipoAtendimentoOptions = [
-  { value: 'comercial', label: 'Comercial' },
   { value: 'espontaneo_recepcao', label: 'Espontâneo Recepção' },
 ];
 
@@ -131,32 +122,21 @@ export default function LeadDetail() {
     return interacao.created_by === user.id;
   };
 
-  // Calculate commissions based on tipo_atendimento and quem_agendou
+  // Calculate commissions based on new rules:
+  // Cadastrador (who registered the lead) gets 3%
+  // Fechador (responsavel_fechamento) gets 2%
   const calculateCommissions = () => {
     if (!formData.fechou_matricula) {
-      return { comercial: 0, recepcao: 0 };
+      return { cadastrador: 0, fechador: 0 };
     }
     const V = formData.valor_plano;
-    // Reception always gets 2% (to responsavel_fechamento)
-    const recepcao = V * 0.02;
-    
-    if (formData.tipo_atendimento === 'comercial') {
-      // 3% for commercial (atendido_por) + 2% for reception
-      return { comercial: V * 0.03, recepcao };
-    }
-    if (formData.tipo_atendimento === 'espontaneo_recepcao') {
-      // Check if there was a commercial scheduling
-      if (formData.quem_agendou.trim()) {
-        // 3% for commercial (quem_agendou) + 2% for reception
-        return { comercial: V * 0.03, recepcao };
-      } else {
-        // No commercial commission
-        return { comercial: 0, recepcao };
-      }
-    }
-    return { comercial: 0, recepcao: 0 };
+    // Cadastrador gets 3% (from lead.cadastrado_por)
+    const cadastrador = V * 0.03;
+    // Fechador gets 2% (responsavel_fechamento)
+    const fechador = V * 0.02;
+    return { cadastrador, fechador };
   };
-  const { comercial: comissaoComercial, recepcao: comissaoRecepcao } = calculateCommissions();
+  const { cadastrador: comissaoCadastrador, fechador: comissaoFechador } = calculateCommissions();
 
   useEffect(() => {
     if (id) {
@@ -213,7 +193,6 @@ export default function LeadDetail() {
         plano_escolhido: lead.plano_escolhido,
         data_aula_experimental: lead.data_aula_experimental,
         observacoes: lead.observacoes,
-        atendido_por: lead.atendido_por,
       })
       .eq('id', id);
 
@@ -237,17 +216,6 @@ export default function LeadDetail() {
     // Check if user can edit this interaction
     const canEdit = canEditInteracao(interacao);
     setCanEditCurrentInteracao(canEdit);
-
-    // Map old origem_fechamento to new tipo_atendimento for backward compatibility
-    let tipoAtendimento = (interacao as any).tipo_atendimento || '';
-    if (!tipoAtendimento) {
-      const origemFechamento = (interacao as any).origem_fechamento;
-      if (origemFechamento === 'agendamento_comercial') {
-        tipoAtendimento = 'comercial';
-      } else if (origemFechamento === 'espontaneo_recepcao') {
-        tipoAtendimento = 'espontaneo_recepcao';
-      }
-    }
     
     setFormData({
       id: interacao.id,
@@ -260,13 +228,11 @@ export default function LeadDetail() {
       compareceu: interacao.compareceu || false,
       reagendou: interacao.reagendou || false,
       fechou_matricula: interacao.fechou_matricula || false,
-      tipo_atendimento: tipoAtendimento,
       plano_escolhido: interacao.plano_escolhido || '',
       valor_plano: interacao.valor_plano || 0,
       data_fechamento: interacao.data_fechamento || '',
       responsavel_fechamento: interacao.responsavel_fechamento || '',
       treinador_responsavel: interacao.treinador_responsavel || '',
-      quem_agendou: interacao.quem_agendou || '',
     });
     setIsEditing(true);
     setSheetOpen(true);
@@ -285,10 +251,6 @@ export default function LeadDetail() {
 
     // Validate required fields when fechou_matricula = true
     if (formData.fechou_matricula) {
-      if (!formData.tipo_atendimento) {
-        toast({ title: 'Tipo de Atendimento é obrigatório para matrículas', variant: 'destructive' });
-        return;
-      }
       if (!formData.responsavel_fechamento.trim()) {
         toast({ title: 'Responsável pelo Fechamento é obrigatório para matrículas', variant: 'destructive' });
         return;
@@ -309,15 +271,16 @@ export default function LeadDetail() {
       compareceu: formData.compareceu,
       reagendou: formData.reagendou,
       fechou_matricula: formData.fechou_matricula,
-      tipo_atendimento: formData.tipo_atendimento || null,
       plano_escolhido: formData.plano_escolhido || null,
       valor_plano: formData.valor_plano || 0,
-      comissao_comercial: comissaoComercial,
-      comissao_recepcao: comissaoRecepcao,
+      // New commission logic: cadastrador (3%) from lead, fechador (2%) from responsavel_fechamento
+      comissao_comercial: comissaoCadastrador,
+      comissao_recepcao: comissaoFechador,
+      comissao_cadastrador: comissaoCadastrador,
+      cadastrado_por: lead?.cadastrado_por || null,
       data_fechamento: formData.data_fechamento || null,
       responsavel_fechamento: formData.responsavel_fechamento.trim() || null,
       treinador_responsavel: formData.treinador_responsavel.trim() || null,
-      quem_agendou: formData.tipo_atendimento === 'espontaneo_recepcao' ? (formData.quem_agendou.trim() || null) : null,
     };
 
     let interacaoError;
@@ -446,8 +409,8 @@ export default function LeadDetail() {
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <p className="text-xs text-muted-foreground">Atendido Por</p>
-              <p className="font-semibold">{lead.atendido_por || '-'}</p>
+              <p className="text-xs text-muted-foreground">Cadastrado Por</p>
+              <p className="font-semibold">{lead.cadastrado_por || '-'}</p>
             </CardContent>
           </Card>
           <Card>
@@ -511,11 +474,11 @@ export default function LeadDetail() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Atendido Por</Label>
+                  <Label>Cadastrado Por</Label>
                   <Input
-                    value={lead.atendido_por || ''}
-                    onChange={(e) => setLead({ ...lead, atendido_por: e.target.value })}
-                    disabled={!canEditLead}
+                    value={lead.cadastrado_por || ''}
+                    disabled
+                    className="bg-muted"
                   />
                 </div>
                 <div className="space-y-2">
@@ -818,45 +781,17 @@ export default function LeadDetail() {
                 </div>
               )}
 
-              {/* Matricula fields - always visible when fechou_matricula or for editing */}
-              {(formData.fechou_matricula || isEditing) && (
+              {/* Matricula fields - only visible when fechou_matricula */}
+              {formData.fechou_matricula && (
                 <>
                   <div className="space-y-2">
-                    <Label>Tipo de Atendimento {formData.fechou_matricula && '*'}</Label>
-                    <Select
-                      value={formData.tipo_atendimento}
-                      onValueChange={(v) => setFormData({ ...formData, tipo_atendimento: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {tipoAtendimentoOptions.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Responsável Fechamento {formData.fechou_matricula && '*'}</Label>
+                    <Label>Responsável Fechamento *</Label>
                     <Input
                       value={formData.responsavel_fechamento}
                       onChange={(e) => setFormData({ ...formData, responsavel_fechamento: e.target.value })}
-                      placeholder="Nome do responsável pelo fechamento"
+                      placeholder="Nome do responsável pelo fechamento (2%)"
                     />
                   </div>
-                  {formData.tipo_atendimento === 'espontaneo_recepcao' && (
-                    <div className="space-y-2">
-                      <Label>Quem fez o agendamento (Comercial)</Label>
-                      <Input
-                        value={formData.quem_agendou}
-                        onChange={(e) => setFormData({ ...formData, quem_agendou: e.target.value })}
-                        placeholder="Nome de quem agendou no Comercial"
-                      />
-                    </div>
-                  )}
                   <div className="space-y-2">
                     <Label>Plano Escolhido</Label>
                     <Select
@@ -900,6 +835,18 @@ export default function LeadDetail() {
                       onChange={(e) => setFormData({ ...formData, treinador_responsavel: e.target.value })}
                       placeholder="Nome do treinador"
                     />
+                  </div>
+                  {/* Commission preview */}
+                  <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+                    <p className="text-sm font-medium">Prévia das Comissões</p>
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">Cadastrador ({lead?.cadastrado_por || 'N/A'}) - 3%: </span>
+                      <span className="font-medium text-green-600">{formatCurrency(comissaoCadastrador)}</span>
+                    </div>
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">Fechador ({formData.responsavel_fechamento || 'N/A'}) - 2%: </span>
+                      <span className="font-medium text-amber-600">{formatCurrency(comissaoFechador)}</span>
+                    </div>
                   </div>
                 </>
               )}
