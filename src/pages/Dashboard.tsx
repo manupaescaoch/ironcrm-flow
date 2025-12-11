@@ -9,7 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Lead, Interacao } from '@/types/database';
-import { Users, UserPlus, CalendarCheck, Loader2, Calendar, Award, Eye, ChevronDown } from 'lucide-react';
+import { Users, UserPlus, CalendarCheck, Loader2, Calendar, Award, Eye, ChevronDown, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 import { ExperimentaisHoje } from '@/components/dashboard/ExperimentaisHoje';
 import { ConfirmacoesAmanha } from '@/components/dashboard/ConfirmacoesAmanha';
 import { PendenciasDia } from '@/components/dashboard/PendenciasDia';
@@ -396,6 +398,40 @@ export default function Dashboard() {
     return lead.created_by === user?.id;
   };
 
+  const handleDeleteExperimental = async (interacaoId: string) => {
+    try {
+      const { error } = await supabase
+        .from('interacoes')
+        .update({ agendou_experimental: false, data_experimental: null, hora_experimental: null })
+        .eq('id', interacaoId);
+
+      if (error) throw error;
+      
+      toast.success('Experimental removida com sucesso!');
+      fetchData();
+    } catch (error) {
+      console.error('Erro ao remover experimental:', error);
+      toast.error('Erro ao remover experimental');
+    }
+  };
+
+  const handleDeleteMatricula = async (interacaoId: string) => {
+    try {
+      const { error } = await supabase
+        .from('interacoes')
+        .update({ fechou_matricula: false, data_fechamento: null, valor_plano: null, plano_escolhido: null })
+        .eq('id', interacaoId);
+
+      if (error) throw error;
+      
+      toast.success('Matrícula removida com sucesso!');
+      fetchData();
+    } catch (error) {
+      console.error('Erro ao remover matrícula:', error);
+      toast.error('Erro ao remover matrícula');
+    }
+  };
+
   const formatDate = (dateStr: string | null): string => {
     if (!dateStr) return '-';
     try {
@@ -613,14 +649,39 @@ export default function Dashboard() {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => navigate(`/lead/${item.lead.id}`)}
-                              >
-                                <Eye className="w-4 h-4 mr-1" />
-                                {canEditLead(item.lead) ? 'Ver / Editar' : 'Ver'}
-                              </Button>
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => navigate(`/lead/${item.lead.id}`)}
+                                >
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  {canEditLead(item.lead) ? 'Ver / Editar' : 'Ver'}
+                                </Button>
+                                {isAdmin && (
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button size="sm" variant="destructive">
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Remover Experimental</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Tem certeza que deseja remover esta aula experimental de {item.lead.nome}? Esta ação não pode ser desfeita.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteExperimental(item.interacao.id)}>
+                                          Remover
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                )}
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -695,14 +756,39 @@ export default function Dashboard() {
                               {formatCurrency(item.interacao.valor_plano)}
                             </TableCell>
                             <TableCell className="text-right">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => navigate(`/lead/${item.lead.id}`)}
-                              >
-                                <Eye className="w-4 h-4 mr-1" />
-                                {canEditLead(item.lead) ? 'Ver / Editar' : 'Ver'}
-                              </Button>
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => navigate(`/lead/${item.lead.id}`)}
+                                >
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  {canEditLead(item.lead) ? 'Ver / Editar' : 'Ver'}
+                                </Button>
+                                {isAdmin && (
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button size="sm" variant="destructive">
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Remover Matrícula</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Tem certeza que deseja remover a matrícula de {item.lead.nome}? Esta ação não pode ser desfeita.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteMatricula(item.interacao.id)}>
+                                          Remover
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                )}
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
