@@ -34,7 +34,7 @@ interface AdicionarMesModalProps {
   existingMonths: string[];
 }
 
-const CAPACIDADE_ZN = 300; // Fixed capacity for ZN
+const CAPACIDADE_ZN = 450; // Fixed capacity for ZN
 
 export function AdicionarMesModal({ open, onClose, editingRecord, existingMonths }: AdicionarMesModalProps) {
   const { toast } = useToast();
