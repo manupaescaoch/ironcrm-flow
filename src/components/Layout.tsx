@@ -11,7 +11,8 @@ import {
   BarChart3,
   Settings,
   FileText,
-  Database
+  Database,
+  Building2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/logo.png';
@@ -26,7 +27,8 @@ const allNavItems = [
   { href: '/crm', label: 'CRM', icon: Users, roles: ['admin', 'recepcao', 'comercial'] },
   { href: '/kanban', label: 'Funil', icon: Columns, roles: ['admin', 'recepcao', 'comercial'] },
   { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin'] },
-  { href: '/relatorio', label: 'Relatório', icon: FileText, roles: ['admin'] },
+  { href: '/relatorio', label: 'Relatório Vendas', icon: FileText, roles: ['admin'] },
+  { href: '/relatorio-gerencial-zn', label: 'Gerencial ZN', icon: Building2, roles: ['admin'] },
   { href: '/backups', label: 'Backups', icon: Database, roles: ['admin'] },
   { href: '/admin-users', label: 'Usuários', icon: Settings, roles: ['admin'] },
 ];

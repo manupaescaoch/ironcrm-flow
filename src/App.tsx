@@ -12,6 +12,7 @@ import LeadDetail from "./pages/LeadDetail";
 import Kanban from "./pages/Kanban";
 import Comissoes from "./pages/Comissoes";
 import RelatorioVendas from "./pages/RelatorioVendas";
+import RelatorioGerencialZN from "./pages/RelatorioGerencialZN";
 import AdminUsers from "./pages/AdminUsers";
 import Backups from "./pages/Backups";
 import NotFound from "./pages/NotFound";
@@ -142,6 +143,14 @@ const AppRoutes = () => (
       element={
         <AdminRoute>
           <RelatorioVendas />
+        </AdminRoute>
+      }
+    />
+    <Route
+      path="/relatorio-gerencial-zn"
+      element={
+        <AdminRoute>
+          <RelatorioGerencialZN />
         </AdminRoute>
       }
     />
