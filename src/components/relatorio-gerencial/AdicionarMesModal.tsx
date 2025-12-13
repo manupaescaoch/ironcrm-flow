@@ -22,6 +22,7 @@ interface RelatorioMes {
   total_a_vencer: number | null;
   churn_percentual: number;
   tempo_medio_vida: number;
+  ticket_medio: number;
   observacoes: string | null;
   capacidade_zn: number;
 }
@@ -51,6 +52,7 @@ export function AdicionarMesModal({ open, onClose, editingRecord, existingMonths
     total_a_vencer: 0,
     churn_percentual: 0,
     tempo_medio_vida: 0,
+    ticket_medio: 0,
     observacoes: ''
   });
 
@@ -68,6 +70,7 @@ export function AdicionarMesModal({ open, onClose, editingRecord, existingMonths
         total_a_vencer: editingRecord.total_a_vencer || 0,
         churn_percentual: editingRecord.churn_percentual,
         tempo_medio_vida: editingRecord.tempo_medio_vida,
+        ticket_medio: editingRecord.ticket_medio,
         observacoes: editingRecord.observacoes || ''
       });
     } else {
@@ -85,6 +88,7 @@ export function AdicionarMesModal({ open, onClose, editingRecord, existingMonths
         total_a_vencer: 0,
         churn_percentual: 0,
         tempo_medio_vida: 0,
+        ticket_medio: 0,
         observacoes: ''
       });
     }
@@ -295,8 +299,8 @@ export function AdicionarMesModal({ open, onClose, editingRecord, existingMonths
 
           {/* Quality */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-sm text-muted-foreground">Qualidade</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <h3 className="font-semibold text-sm text-muted-foreground">Qualidade e Financeiro</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="churn_percentual">Churn (%)</Label>
                 <Input
@@ -318,6 +322,18 @@ export function AdicionarMesModal({ open, onClose, editingRecord, existingMonths
                   step="0.01"
                   value={formData.tempo_medio_vida}
                   onChange={(e) => handleChange('tempo_medio_vida', parseFloat(e.target.value) || 0)}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="ticket_medio">Ticket Médio (R$)</Label>
+                <Input
+                  id="ticket_medio"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.ticket_medio}
+                  onChange={(e) => handleChange('ticket_medio', parseFloat(e.target.value) || 0)}
                   required
                 />
               </div>

@@ -16,6 +16,7 @@ import {
   Percent,
   Clock,
   XCircle,
+  Banknote,
   RefreshCw,
   Plus,
   FileDown,
@@ -44,6 +45,7 @@ interface RelatorioMes {
   total_a_vencer: number | null;
   churn_percentual: number;
   tempo_medio_vida: number;
+  ticket_medio: number;
   observacoes: string | null;
   capacidade_zn: number;
   created_at: string;
@@ -159,6 +161,7 @@ export default function RelatorioGerencialZN() {
         ['Cancelamentos', mesAtual.cancelamentos.toString()],
         ['Renovações', mesAtual.renovacoes.toString()],
         ['Ocupação (%)', `${((mesAtual.ativos / mesAtual.capacidade_zn) * 100).toFixed(1)}%`],
+        ['Ticket Médio', `R$ ${mesAtual.ticket_medio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`],
       ];
       
       autoTable(doc, {
@@ -390,6 +393,13 @@ export default function RelatorioGerencialZN() {
                   value={`${((mesAtual.ativos / mesAtual.capacidade_zn) * 100).toFixed(1)}%`}
                   icon={Users}
                   subtitle={`${mesAtual.capacidade_zn - mesAtual.ativos} vagas disponíveis`}
+                />
+                <KPICard
+                  title="Ticket Médio"
+                  value={`R$ ${mesAtual.ticket_medio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                  icon={Banknote}
+                  variacao={calcVariacao(mesAtual.ticket_medio, mesAnterior?.ticket_medio)}
+                  color="green"
                 />
               </div>
             )}

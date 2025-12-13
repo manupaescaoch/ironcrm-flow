@@ -17,6 +17,7 @@ interface RelatorioMes {
   renovacoes: number;
   churn_percentual: number;
   tempo_medio_vida: number;
+  ticket_medio: number;
   capacidade_zn: number;
 }
 
@@ -53,6 +54,7 @@ export function TabelaHistorico({ dados, isAdmin, onEdit, onDelete }: TabelaHist
                 <TableHead className="text-right">Tempo Vida</TableHead>
                 <TableHead className="text-right">Cancel.</TableHead>
                 <TableHead className="text-right">Renov.</TableHead>
+                <TableHead className="text-right">Ticket Médio</TableHead>
                 <TableHead className="text-right">Ocupação</TableHead>
                 {isAdmin && <TableHead className="text-right">Ações</TableHead>}
               </TableRow>
@@ -74,6 +76,7 @@ export function TabelaHistorico({ dados, isAdmin, onEdit, onDelete }: TabelaHist
                     <TableCell className="text-right">{item.tempo_medio_vida}</TableCell>
                     <TableCell className="text-right">{item.cancelamentos}</TableCell>
                     <TableCell className="text-right">{item.renovacoes}</TableCell>
+                    <TableCell className="text-right">R$ {item.ticket_medio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                     <TableCell className="text-right">{ocupacao}%</TableCell>
                     {isAdmin && (
                       <TableCell className="text-right">
