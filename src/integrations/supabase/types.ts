@@ -175,6 +175,66 @@ export type Database = {
         }
         Relationships: []
       }
+      relatorio_gerencial_zn: {
+        Row: {
+          adimplentes: number
+          ativos: number
+          cancelamentos: number
+          capacidade_zn: number
+          churn_percentual: number
+          created_at: string
+          created_by: string | null
+          id: string
+          inadimplentes: number
+          mes_ano: string
+          observacoes: string | null
+          renovacoes: number
+          suspensos: number
+          tempo_medio_vida: number
+          total_a_vencer: number | null
+          updated_at: string
+          vip: number
+        }
+        Insert: {
+          adimplentes?: number
+          ativos?: number
+          cancelamentos?: number
+          capacidade_zn?: number
+          churn_percentual?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inadimplentes?: number
+          mes_ano: string
+          observacoes?: string | null
+          renovacoes?: number
+          suspensos?: number
+          tempo_medio_vida?: number
+          total_a_vencer?: number | null
+          updated_at?: string
+          vip?: number
+        }
+        Update: {
+          adimplentes?: number
+          ativos?: number
+          cancelamentos?: number
+          capacidade_zn?: number
+          churn_percentual?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inadimplentes?: number
+          mes_ano?: string
+          observacoes?: string | null
+          renovacoes?: number
+          suspensos?: number
+          tempo_medio_vida?: number
+          total_a_vencer?: number | null
+          updated_at?: string
+          vip?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
