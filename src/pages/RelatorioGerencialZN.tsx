@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -13,6 +14,7 @@ import {
   AlertTriangle, 
   Crown, 
   PauseCircle,
+  Pencil,
   Percent,
   Clock,
   XCircle,
@@ -243,12 +245,31 @@ export default function RelatorioGerencialZN() {
               </p>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {isAdmin && (
-              <Button onClick={() => setModalAberto(true)} className="gap-2">
-                <Plus className="w-4 h-4" />
-                Adicionar mês
-              </Button>
+              <>
+                <Button onClick={() => setModalAberto(true)} className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Adicionar mês
+                </Button>
+                {relatorios.length > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="gap-2">
+                        <Pencil className="w-4 h-4" />
+                        Editar mês
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {relatorios.slice().reverse().map((r) => (
+                        <DropdownMenuItem key={r.id} onClick={() => handleEdit(r)}>
+                          {formatMesAno(r.mes_ano)}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </>
             )}
             <Button variant="outline" onClick={handleExportPDF} className="gap-2">
               <FileDown className="w-4 h-4" />
