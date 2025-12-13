@@ -17,6 +17,8 @@ import { ptBR } from 'date-fns/locale';
 interface RelatorioMes {
   mes_ano: string;
   ativos: number;
+  vip: number;
+  capacidade_zn: number;
   churn_percentual: number;
   tempo_medio_vida: number;
   cancelamentos: number;
@@ -30,7 +32,8 @@ interface GraficosRelatorioProps {
 export function GraficosRelatorio({ dados }: GraficosRelatorioProps) {
   const chartData = dados.map(d => ({
     ...d,
-    mes: format(parse(d.mes_ano, 'yyyy-MM', new Date()), 'MMM/yy', { locale: ptBR })
+    mes: format(parse(d.mes_ano, 'yyyy-MM', new Date()), 'MMM/yy', { locale: ptBR }),
+    ocupacao: Number((((d.ativos + d.vip) / d.capacidade_zn) * 100).toFixed(1))
   }));
 
   return (
@@ -169,6 +172,40 @@ export function GraficosRelatorio({ dados }: GraficosRelatorioProps) {
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Ocupação por mês */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Ocupação (%) por Mês</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="mes" className="text-xs" />
+                <YAxis className="text-xs" unit="%" domain={[0, 100]} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px'
+                  }}
+                  formatter={(value: number) => [`${value}%`, 'Ocupação']}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="ocupacao" 
+                  stroke="hsl(221, 83%, 53%)" 
+                  strokeWidth={2}
+                  dot={{ fill: 'hsl(221, 83%, 53%)' }}
+                  name="Ocupação"
+                />
+              </LineChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
