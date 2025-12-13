@@ -162,7 +162,7 @@ export default function RelatorioGerencialZN() {
         ['Tempo Médio de Vida', `${mesAtual.tempo_medio_vida} meses`],
         ['Cancelamentos', mesAtual.cancelamentos.toString()],
         ['Renovações', mesAtual.renovacoes.toString()],
-        ['Ocupação (%)', `${((mesAtual.ativos / mesAtual.capacidade_zn) * 100).toFixed(1)}%`],
+        ['Ocupação (%)', `${(((mesAtual.ativos + mesAtual.vip) / mesAtual.capacidade_zn) * 100).toFixed(1)}%`],
         ['Ticket Médio', `R$ ${mesAtual.ticket_medio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`],
       ];
       
@@ -411,9 +411,9 @@ export default function RelatorioGerencialZN() {
                 />
                 <KPICard
                   title="Ocupação"
-                  value={`${((mesAtual.ativos / mesAtual.capacidade_zn) * 100).toFixed(1)}%`}
+                  value={`${(((mesAtual.ativos + mesAtual.vip) / mesAtual.capacidade_zn) * 100).toFixed(1)}%`}
                   icon={Users}
-                  subtitle={`${mesAtual.capacidade_zn - mesAtual.ativos} vagas disponíveis`}
+                  subtitle={`${mesAtual.capacidade_zn - (mesAtual.ativos + mesAtual.vip)} vagas disponíveis de ${mesAtual.capacidade_zn}`}
                 />
                 <KPICard
                   title="Ticket Médio"

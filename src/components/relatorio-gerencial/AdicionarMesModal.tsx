@@ -165,8 +165,9 @@ export function AdicionarMesModal({ open, onClose, editingRecord, existingMonths
   };
 
   // Calculate automatic fields
-  const ocupacao = formData.ativos > 0 ? ((formData.ativos / CAPACIDADE_ZN) * 100).toFixed(1) : '0.0';
-  const vagasDisponiveis = CAPACIDADE_ZN - formData.ativos;
+  const totalOcupacao = formData.ativos + formData.vip;
+  const ocupacao = totalOcupacao > 0 ? ((totalOcupacao / CAPACIDADE_ZN) * 100).toFixed(1) : '0.0';
+  const vagasDisponiveis = CAPACIDADE_ZN - totalOcupacao;
   const percentualVip = formData.ativos > 0 ? ((formData.vip / formData.ativos) * 100).toFixed(1) : '0.0';
   const percentualInadimplencia = formData.ativos > 0 ? ((formData.inadimplentes / formData.ativos) * 100).toFixed(1) : '0.0';
 
@@ -354,7 +355,7 @@ export function AdicionarMesModal({ open, onClose, editingRecord, existingMonths
               </div>
               <div>
                 <span className="text-muted-foreground">Vagas Disponíveis:</span>
-                <p className="font-medium">{vagasDisponiveis}</p>
+                <p className="font-medium">{vagasDisponiveis} de {CAPACIDADE_ZN}</p>
               </div>
               <div>
                 <span className="text-muted-foreground">% VIP:</span>

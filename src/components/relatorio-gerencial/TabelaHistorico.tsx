@@ -61,7 +61,7 @@ export function TabelaHistorico({ dados, isAdmin, onEdit, onDelete }: TabelaHist
             </TableHeader>
             <TableBody>
               {dados.map((item, index) => {
-                const ocupacao = ((item.ativos / item.capacidade_zn) * 100).toFixed(1);
+                const ocupacao = (((item.ativos + item.vip) / item.capacidade_zn) * 100).toFixed(1);
                 const isLast = index === dados.length - 1;
                 
                 return (
