@@ -191,6 +191,7 @@ export type Database = {
           renovacoes: number
           suspensos: number
           tempo_medio_vida: number
+          ticket_medio: number
           total_a_vencer: number | null
           updated_at: string
           vip: number
@@ -210,6 +211,7 @@ export type Database = {
           renovacoes?: number
           suspensos?: number
           tempo_medio_vida?: number
+          ticket_medio?: number
           total_a_vencer?: number | null
           updated_at?: string
           vip?: number
@@ -229,6 +231,7 @@ export type Database = {
           renovacoes?: number
           suspensos?: number
           tempo_medio_vida?: number
+          ticket_medio?: number
           total_a_vencer?: number | null
           updated_at?: string
           vip?: number
