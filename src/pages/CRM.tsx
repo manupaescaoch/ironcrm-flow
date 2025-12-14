@@ -75,6 +75,7 @@ const statusLabels: Record<StatusFunil, string> = {
   negociacao: 'Negociação',
   convertido: 'Convertido',
   perdido: 'Perdido',
+  follow_up: 'Follow Up',
 };
 
 interface CSVRow {
