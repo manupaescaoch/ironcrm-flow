@@ -275,12 +275,16 @@ export default function LeadDetail() {
 
     const newStatus = determineNewStatus(formData);
 
+    // Se data_experimental está preenchida, garantir que agendou_experimental = true
+    const hasExperimental = !!formData.data_experimental;
+    const agendouExperimental = hasExperimental || formData.agendou_experimental;
+
     const interacaoData = {
       tipo: formData.tipo.trim(),
       descricao: formData.descricao.trim() || null,
       atendido_por: formData.atendido_por || null,
       atendido_por_tipo: formData.atendido_por_tipo,
-      agendou_experimental: formData.agendou_experimental,
+      agendou_experimental: agendouExperimental,
       data_experimental: formData.data_experimental || null,
       hora_experimental: formData.hora_experimental || null,
       compareceu: formData.compareceu,
