@@ -72,10 +72,10 @@ export default function Dashboard() {
   const [periodStats, setPeriodStats] = useState<PeriodStats>({ experimentaisPeriodo: 0, matriculasPeriodo: 0 });
   const [loading, setLoading] = useState(true);
   
-  // Date filter state - inicia com "Todo Histórico"
+  // Date filter state - inicia com "Todo Histórico" (inclui futuro)
   const [periodType, setPeriodType] = useState<'all' | 'last7days' | 'currentMonth' | 'lastMonth' | 'custom'>('all');
   const [startDate, setStartDate] = useState(() => new Date(2020, 0, 1));
-  const [endDate, setEndDate] = useState(() => new Date());
+  const [endDate, setEndDate] = useState(() => new Date(2030, 11, 31));
   
   // Experimental control state
   const [experimentaisHoje, setExperimentaisHoje] = useState<ExperimentalItem[]>([]);
@@ -590,7 +590,7 @@ export default function Dashboard() {
                 onClick={() => {
                   setPeriodType('all');
                   setStartDate(new Date(2020, 0, 1));
-                  setEndDate(new Date());
+                  setEndDate(new Date(2030, 11, 31));
                 }}
               >
                 Todo Período
@@ -661,7 +661,7 @@ export default function Dashboard() {
                 onClick={() => {
                   setPeriodType('all');
                   setStartDate(new Date(2020, 0, 1));
-                  setEndDate(new Date());
+                  setEndDate(new Date(2030, 11, 31));
                 }}
               >
                 Todo Período
