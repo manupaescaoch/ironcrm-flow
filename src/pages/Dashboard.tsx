@@ -146,7 +146,11 @@ export default function Dashboard() {
     const startDateStr = format(startDate, 'yyyy-MM-dd');
     const endDateStr = format(endDate, 'yyyy-MM-dd');
 
-    // Fetch all interactions with experimental scheduled in the range with lead info via JOIN
+    // Calcular o menor e maior range para incluir hoje/amanhã E o período selecionado
+    const minDate = startDateStr < today ? startDateStr : today;
+    const maxDate = endDateStr > tomorrow ? endDateStr : tomorrow;
+
+    // Fetch all interactions with experimental scheduled in the extended range
     const { data: experimentaisData } = await supabase
       .from('interacoes')
       .select(`
@@ -171,8 +175,8 @@ export default function Dashboard() {
         )
       `)
       .eq('agendou_experimental', true)
-      .gte('data_experimental', startDateStr)
-      .lte('data_experimental', endDateStr)
+      .gte('data_experimental', minDate)
+      .lte('data_experimental', maxDate)
       .order('data_experimental', { ascending: true })
       .order('hora_experimental', { ascending: true });
 
@@ -234,16 +238,24 @@ export default function Dashboard() {
 
       const experimentalItem: ExperimentalItem = { lead, interacao };
       
-      // Add to week view and detailed list
-      weekItems.push(experimentalItem);
-      detailedItems.push(experimentalItem);
+      const startDateStr = format(startDate, 'yyyy-MM-dd');
+      const endDateStr = format(endDate, 'yyyy-MM-dd');
+      
+      // Add to week view and detailed list only if within selected period
+      if (interacao.data_experimental >= startDateStr && interacao.data_experimental <= endDateStr) {
+        weekItems.push(experimentalItem);
+        detailedItems.push(experimentalItem);
+      }
 
+      // Experimentais de hoje - sempre mostra independente do período
       if (interacao.data_experimental === today) {
         if (interacao.compareceu !== true) {
           todayItems.push(experimentalItem);
           pendenciasHojeItems.push(experimentalItem);
         }
-      } else if (interacao.data_experimental === tomorrow) {
+      } 
+      // Confirmações para amanhã - sempre mostra independente do período
+      else if (interacao.data_experimental === tomorrow) {
         if (!interacao.confirmado) {
           tomorrowItems.push(experimentalItem);
           pendenciasAmanhaItems.push(experimentalItem);
