@@ -74,6 +74,7 @@ interface InteracaoForm {
   data_fechamento: string;
   responsavel_fechamento: string;
   treinador_responsavel: string;
+  quem_indicou: string;
 }
 
 const initialFormState: InteracaoForm = {
@@ -92,6 +93,7 @@ const initialFormState: InteracaoForm = {
   data_fechamento: '',
   responsavel_fechamento: '',
   treinador_responsavel: '',
+  quem_indicou: '',
 };
 
 const atendidoPorOptions = [
@@ -247,6 +249,7 @@ export default function LeadDetail() {
       data_fechamento: interacao.data_fechamento || '',
       responsavel_fechamento: interacao.responsavel_fechamento || '',
       treinador_responsavel: interacao.treinador_responsavel || '',
+      quem_indicou: (interacao as any).quem_indicou || '',
     });
     setIsEditing(true);
     setSheetOpen(true);
@@ -292,6 +295,7 @@ export default function LeadDetail() {
       data_fechamento: formData.data_fechamento || null,
       responsavel_fechamento: formData.responsavel_fechamento.trim() || null,
       treinador_responsavel: formData.treinador_responsavel.trim() || null,
+      quem_indicou: formData.fechou_matricula ? (formData.quem_indicou.trim() || null) : null,
     };
 
     let interacaoError;
@@ -819,6 +823,17 @@ export default function LeadDetail() {
                       onChange={(e) => setFormData({ ...formData, treinador_responsavel: e.target.value })}
                       placeholder="Nome do treinador"
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Quem Indicou</Label>
+                    <Input
+                      value={formData.quem_indicou}
+                      onChange={(e) => setFormData({ ...formData, quem_indicou: e.target.value })}
+                      placeholder="Nome de quem indicou o aluno"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Preencha com o nome de quem indicou o aluno (aluno, embaixador, parceiro ou outro).
+                    </p>
                   </div>
                 </>
               )}
