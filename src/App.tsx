@@ -158,9 +158,9 @@ const AppRoutes = () => (
     <Route
       path="/indicacoes"
       element={
-        <AdminRoute>
+        <ProtectedRoute>
           <Indicacoes />
-        </AdminRoute>
+        </ProtectedRoute>
       }
     />
     <Route
