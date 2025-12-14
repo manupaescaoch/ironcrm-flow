@@ -28,7 +28,7 @@ const allNavItems = [
   { href: '/crm', label: 'CRM', icon: Users, roles: ['admin', 'recepcao', 'comercial'] },
   { href: '/kanban', label: 'Funil', icon: Columns, roles: ['admin', 'recepcao', 'comercial'] },
   { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin'] },
-  { href: '/indicacoes', label: 'Indicações', icon: Gift, roles: ['admin'] },
+  { href: '/indicacoes', label: 'Indicações', icon: Gift, roles: ['admin', 'recepcao', 'comercial'] },
   { href: '/relatorio', label: 'Relatório Vendas', icon: FileText, roles: ['admin'] },
   { href: '/relatorio-gerencial-zn', label: 'Gerencial ZN', icon: Building2, roles: ['admin'] },
   { href: '/backups', label: 'Backups', icon: Database, roles: ['admin'] },
