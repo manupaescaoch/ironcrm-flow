@@ -165,13 +165,15 @@ export default function CRM() {
 
     // Preparar data_aula_experimental combinando data e hora se for status aula_agendada
     let dataAulaExperimental: string | null = null;
-    if (formData.status_funil === 'aula_agendada' && formData.data_aula_experimental) {
+    const isExperimentalAgendada = formData.status_funil === 'aula_agendada' && formData.data_aula_experimental;
+    
+    if (isExperimentalAgendada) {
       const dataStr = formData.data_aula_experimental;
       const horaStr = formData.hora_aula_experimental || '00:00';
       dataAulaExperimental = `${dataStr}T${horaStr}:00`;
     }
 
-    const { error } = await supabase.from('leads').insert({
+    const { data: leadData, error } = await supabase.from('leads').insert({
       nome: formData.nome.trim(),
       email: formData.email.trim() || null,
       telefone: formData.telefone.trim() || null,
@@ -183,24 +185,44 @@ export default function CRM() {
       created_by: user?.id || null,
       data_aula_experimental: dataAulaExperimental,
       hora_aula_experimental: formData.hora_aula_experimental || null,
-    });
+    }).select().single();
 
     if (error) {
       toast({ title: 'Erro ao criar lead', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'Lead criado com sucesso!' });
-      setDialogOpen(false);
-      setFormData({
-        nome: '',
-        email: '',
-        telefone: '',
-        origem: '',
-        status_funil: 'novo',
-        data_aula_experimental: '',
-        hora_aula_experimental: '',
-      });
-      fetchLeads();
+      return;
     }
+
+    // Se foi criado com experimental agendada, criar interação automaticamente
+    if (isExperimentalAgendada && leadData) {
+      const { error: interacaoError } = await supabase.from('interacoes').insert({
+        lead_id: leadData.id,
+        tipo: 'Agendamento Experimental',
+        descricao: 'Experimental agendada no cadastro do lead',
+        agendou_experimental: true,
+        data_experimental: formData.data_aula_experimental,
+        hora_experimental: formData.hora_aula_experimental || null,
+        atendido_por: getUserDisplayName(),
+        cadastrado_por: getUserDisplayName(),
+        quem_agendou: getUserDisplayName(),
+      });
+
+      if (interacaoError) {
+        console.error('Erro ao criar interação:', interacaoError);
+      }
+    }
+
+    toast({ title: 'Lead criado com sucesso!' });
+    setDialogOpen(false);
+    setFormData({
+      nome: '',
+      email: '',
+      telefone: '',
+      origem: '',
+      status_funil: 'novo',
+      data_aula_experimental: '',
+      hora_aula_experimental: '',
+    });
+    fetchLeads();
   };
 
   const handleDelete = async () => {
