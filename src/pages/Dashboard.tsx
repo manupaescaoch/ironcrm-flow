@@ -19,7 +19,7 @@ import { ExperimentaisSemana } from '@/components/dashboard/ExperimentaisSemana'
 import { DateRangeFilter } from '@/components/dashboard/DateRangeFilter';
 import { ReagendarModal } from '@/components/dashboard/ReagendarModal';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
-import { format, addDays, startOfWeek, endOfWeek } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
@@ -72,9 +72,10 @@ export default function Dashboard() {
   const [periodStats, setPeriodStats] = useState<PeriodStats>({ experimentaisPeriodo: 0, matriculasPeriodo: 0 });
   const [loading, setLoading] = useState(true);
   
-  // Date filter state
-  const [startDate, setStartDate] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const [endDate, setEndDate] = useState(() => endOfWeek(new Date(), { weekStartsOn: 1 }));
+  // Date filter state - inicia com "Todo Histórico"
+  const [periodType, setPeriodType] = useState<'all' | 'last7days' | 'currentMonth' | 'lastMonth' | 'custom'>('all');
+  const [startDate, setStartDate] = useState(() => new Date(2020, 0, 1));
+  const [endDate, setEndDate] = useState(() => new Date());
   
   // Experimental control state
   const [experimentaisHoje, setExperimentaisHoje] = useState<ExperimentalItem[]>([]);
@@ -484,6 +485,8 @@ export default function Dashboard() {
             endDate={endDate}
             onStartDateChange={setStartDate}
             onEndDateChange={setEndDate}
+            periodType={periodType}
+            onPeriodTypeChange={setPeriodType}
           />
         </div>
 
