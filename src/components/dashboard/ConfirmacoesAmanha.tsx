@@ -145,7 +145,9 @@ Equipe IRON CLUB`;
                   <div className="text-right">
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Clock className="w-4 h-4" />
-                      {item.interacao.hora_experimental || '--:--'}
+                      {item.interacao.hora_experimental 
+                        ? item.interacao.hora_experimental.slice(0, 5).replace(/^0/, '')
+                        : '--:--'}
                     </div>
                   </div>
                 </div>
