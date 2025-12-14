@@ -196,6 +196,8 @@ export default function Dashboard() {
 
     experimentaisData.forEach((item: any) => {
       if (!item.leads) return;
+      // Ignorar leads inativos
+      if (item.leads.ativo === false) return;
       
       const lead: Lead = item.leads as Lead;
       const interacao: Interacao = {
