@@ -163,6 +163,30 @@ export default function CRM() {
       return;
     }
 
+    // Validar telefone duplicado se telefone foi informado
+    if (formData.telefone.trim()) {
+      const telefoneNormalizado = formData.telefone.trim().replace(/\D/g, '');
+      
+      const { data: existingLeads } = await supabase
+        .from('leads')
+        .select('id, nome, telefone')
+        .eq('ativo', true);
+      
+      const duplicado = existingLeads?.find(lead => {
+        const leadTelefone = lead.telefone?.replace(/\D/g, '');
+        return leadTelefone === telefoneNormalizado;
+      });
+
+      if (duplicado) {
+        toast({ 
+          title: 'Telefone já cadastrado', 
+          description: `Este telefone já está cadastrado para o lead "${duplicado.nome}".`,
+          variant: 'destructive' 
+        });
+        return;
+      }
+    }
+
     // Preparar data_aula_experimental combinando data e hora se for status aula_agendada
     let dataAulaExperimental: string | null = null;
     const isExperimentalAgendada = formData.status_funil === 'aula_agendada' && formData.data_aula_experimental;
