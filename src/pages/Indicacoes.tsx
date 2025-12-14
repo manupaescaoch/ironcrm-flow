@@ -53,9 +53,24 @@ export default function Indicacoes() {
     }
   }, [periodFilter, customStartDate, customEndDate]);
 
-  // Fetch indicações (interactions with quem_indicou filled)
+  // Fetch ALL indicações for global total (not affected by filter)
+  const { data: allIndicacoes = [] } = useQuery({
+    queryKey: ['indicacoes-total'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('interacoes')
+        .select('id, quem_indicou, fechou_matricula')
+        .not('quem_indicou', 'is', null)
+        .neq('quem_indicou', '');
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Fetch indicações filtered by period (for table and period KPIs)
   const { data: indicacoes = [], isLoading } = useQuery({
-    queryKey: ['indicacoes', dateRange.start, dateRange.end],
+    queryKey: ['indicacoes-periodo', dateRange.start, dateRange.end],
     queryFn: async () => {
       const startStr = format(dateRange.start, 'yyyy-MM-dd');
       const endStr = format(dateRange.end, 'yyyy-MM-dd');
@@ -91,9 +106,13 @@ export default function Indicacoes() {
     },
   });
 
-  // Calculate metrics
-  const totalIndicacoes = indicacoes.length;
-  const indicacoesConfirmadas = indicacoes.filter(i => i.fechou_matricula).length;
+  // Global metrics (not affected by filter)
+  const totalIndicacoesCRM = allIndicacoes.length;
+  const indicacoesConfirmadasCRM = allIndicacoes.filter(i => i.fechou_matricula).length;
+
+  // Period metrics (affected by filter)
+  const totalIndicacoesPeriodo = indicacoes.length;
+  const indicacoesConfirmadasPeriodo = indicacoes.filter(i => i.fechou_matricula).length;
 
   // Group by quem_indicou for summary
   const indicadoresSummary = useMemo(() => {
@@ -229,42 +248,73 @@ export default function Indicacoes() {
           </CardContent>
         </Card>
 
-        {/* Metrics */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total no Período</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalIndicacoes}</div>
-              <p className="text-xs text-muted-foreground">indicações registradas</p>
-            </CardContent>
-          </Card>
+        {/* Total do CRM (Fixo) */}
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold text-muted-foreground">Total do CRM (Todo o Histórico)</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total de Indicações</CardTitle>
+                <Users className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalIndicacoesCRM}</div>
+                <p className="text-xs text-muted-foreground">todo o histórico</p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Confirmadas no Período</CardTitle>
-              <Gift className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{indicacoesConfirmadas}</div>
-              <p className="text-xs text-muted-foreground">com matrícula fechada</p>
-            </CardContent>
-          </Card>
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Indicações Confirmadas</CardTitle>
+                <Gift className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{indicacoesConfirmadasCRM}</div>
+                <p className="text-xs text-muted-foreground">com matrícula fechada</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Taxa de Conversão</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {totalIndicacoes > 0 ? Math.round((indicacoesConfirmadas / totalIndicacoes) * 100) : 0}%
-              </div>
-              <p className="text-xs text-muted-foreground">indicações confirmadas</p>
-            </CardContent>
-          </Card>
+        {/* Período Selecionado (Afetado pelo filtro) */}
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold text-muted-foreground">No Período Selecionado</h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total no Período</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalIndicacoesPeriodo}</div>
+                <p className="text-xs text-muted-foreground">indicações registradas</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Confirmadas no Período</CardTitle>
+                <Gift className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{indicacoesConfirmadasPeriodo}</div>
+                <p className="text-xs text-muted-foreground">com matrícula fechada</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Taxa de Conversão</CardTitle>
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {totalIndicacoesPeriodo > 0 ? Math.round((indicacoesConfirmadasPeriodo / totalIndicacoesPeriodo) * 100) : 0}%
+                </div>
+                <p className="text-xs text-muted-foreground">no período</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Top Indicadores */}
