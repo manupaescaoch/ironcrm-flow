@@ -50,10 +50,9 @@ import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 
 const statusOptions: { value: StatusFunil; label: string }[] = [
-  { value: 'novo', label: 'Novo' },
-  { value: 'contato_inicial', label: 'Contato Inicial' },
-  { value: 'aula_agendada', label: 'Aula Agendada' },
-  { value: 'aula_realizada', label: 'Aula Realizada' },
+  { value: 'novo', label: 'Novo Lead' },
+  { value: 'aula_agendada', label: 'Experimental Agendada' },
+  { value: 'aula_realizada', label: 'Experimental Realizada' },
   { value: 'negociacao', label: 'Negociação' },
   { value: 'convertido', label: 'Convertido' },
   { value: 'perdido', label: 'Perdido' },
@@ -69,10 +68,10 @@ const planoOptions: PlanoEscolhido[] = [
 ];
 
 const statusLabels: Record<StatusFunil, string> = {
-  novo: 'Novo',
+  novo: 'Novo Lead',
   contato_inicial: 'Contato Inicial',
-  aula_agendada: 'Aula Agendada',
-  aula_realizada: 'Aula Realizada',
+  aula_agendada: 'Experimental Agendada',
+  aula_realizada: 'Experimental Realizada',
   negociacao: 'Negociação',
   convertido: 'Convertido',
   perdido: 'Perdido',
@@ -106,6 +105,8 @@ export default function CRM() {
     telefone: '',
     origem: '',
     status_funil: 'novo' as StatusFunil,
+    data_aula_experimental: '',
+    hora_aula_experimental: '',
   });
 
   // Get user display name for "Cadastrado Por" field
@@ -162,6 +163,14 @@ export default function CRM() {
       return;
     }
 
+    // Preparar data_aula_experimental combinando data e hora se for status aula_agendada
+    let dataAulaExperimental: string | null = null;
+    if (formData.status_funil === 'aula_agendada' && formData.data_aula_experimental) {
+      const dataStr = formData.data_aula_experimental;
+      const horaStr = formData.hora_aula_experimental || '00:00';
+      dataAulaExperimental = `${dataStr}T${horaStr}:00`;
+    }
+
     const { error } = await supabase.from('leads').insert({
       nome: formData.nome.trim(),
       email: formData.email.trim() || null,
@@ -172,6 +181,8 @@ export default function CRM() {
       ativo: true,
       user_id: user?.id || null,
       created_by: user?.id || null,
+      data_aula_experimental: dataAulaExperimental,
+      hora_aula_experimental: formData.hora_aula_experimental || null,
     });
 
     if (error) {
@@ -185,6 +196,8 @@ export default function CRM() {
         telefone: '',
         origem: '',
         status_funil: 'novo',
+        data_aula_experimental: '',
+        hora_aula_experimental: '',
       });
       fetchLeads();
     }
@@ -659,6 +672,27 @@ export default function CRM() {
                       </SelectContent>
                     </Select>
                   </div>
+                  
+                  {formData.status_funil === 'aula_agendada' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Data da Experimental *</Label>
+                        <Input
+                          type="date"
+                          value={formData.data_aula_experimental}
+                          onChange={(e) => setFormData({ ...formData, data_aula_experimental: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Hora da Experimental</Label>
+                        <Input
+                          type="time"
+                          value={formData.hora_aula_experimental}
+                          onChange={(e) => setFormData({ ...formData, hora_aula_experimental: e.target.value })}
+                        />
+                      </div>
+                    </>
+                  )}
                   <Button className="w-full" onClick={handleCreate}>
                     Criar Lead
                   </Button>
@@ -743,6 +777,8 @@ export default function CRM() {
                       <TableHead>Telefone</TableHead>
                       <TableHead>Origem</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Data Experimental</TableHead>
+                      <TableHead>Hora Experimental</TableHead>
                       <TableHead>Cadastrado Por</TableHead>
                       <TableHead>Data Cadastro</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
@@ -762,6 +798,16 @@ export default function CRM() {
                           <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
                             {statusLabels[lead.status_funil]}
                           </span>
+                        </TableCell>
+                        <TableCell>
+                          {lead.data_aula_experimental 
+                            ? format(new Date(lead.data_aula_experimental), 'dd/MM/yyyy', { locale: ptBR })
+                            : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {lead.data_aula_experimental 
+                            ? format(new Date(lead.data_aula_experimental), 'HH:mm', { locale: ptBR })
+                            : '-'}
                         </TableCell>
                         <TableCell>{lead.cadastrado_por || '-'}</TableCell>
                         <TableCell>{formatDate(lead.created_at)}</TableCell>

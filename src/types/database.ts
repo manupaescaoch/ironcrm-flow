@@ -24,6 +24,7 @@ export interface Lead {
   status_funil: StatusFunil;
   plano_escolhido: PlanoEscolhido | null;
   data_aula_experimental: string | null;
+  hora_aula_experimental: string | null;
   observacoes: string | null;
   atendido_por: string | null;
   cadastrado_por: string | null;
