@@ -1,0 +1,346 @@
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Layout } from '@/components/Layout';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format, startOfMonth, endOfMonth, subMonths, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { CalendarIcon, Users, Gift, Info, BarChart3 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Helmet } from 'react-helmet';
+
+type PeriodFilter = 'current_month' | 'previous_month' | 'custom';
+
+interface Indicacao {
+  id: string;
+  quem_indicou: string;
+  lead_id: string;
+  lead_nome: string;
+  data_fechamento: string | null;
+  data_interacao: string;
+  fechou_matricula: boolean;
+}
+
+export default function Indicacoes() {
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('current_month');
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>(startOfMonth(new Date()));
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>(endOfMonth(new Date()));
+  const [startOpen, setStartOpen] = useState(false);
+  const [endOpen, setEndOpen] = useState(false);
+
+  // Calculate date range based on filter
+  const dateRange = useMemo(() => {
+    const now = new Date();
+    switch (periodFilter) {
+      case 'current_month':
+        return { start: startOfMonth(now), end: endOfMonth(now) };
+      case 'previous_month':
+        const prevMonth = subMonths(now, 1);
+        return { start: startOfMonth(prevMonth), end: endOfMonth(prevMonth) };
+      case 'custom':
+        return { 
+          start: customStartDate || startOfMonth(now), 
+          end: customEndDate || endOfMonth(now) 
+        };
+      default:
+        return { start: startOfMonth(now), end: endOfMonth(now) };
+    }
+  }, [periodFilter, customStartDate, customEndDate]);
+
+  // Fetch indicações (interactions with quem_indicou filled)
+  const { data: indicacoes = [], isLoading } = useQuery({
+    queryKey: ['indicacoes', dateRange.start, dateRange.end],
+    queryFn: async () => {
+      const startStr = format(dateRange.start, 'yyyy-MM-dd');
+      const endStr = format(dateRange.end, 'yyyy-MM-dd');
+
+      const { data, error } = await supabase
+        .from('interacoes')
+        .select(`
+          id,
+          quem_indicou,
+          lead_id,
+          data_fechamento,
+          data_interacao,
+          fechou_matricula,
+          leads!inner(nome)
+        `)
+        .not('quem_indicou', 'is', null)
+        .neq('quem_indicou', '')
+        .gte('data_interacao', startStr)
+        .lte('data_interacao', endStr + 'T23:59:59')
+        .order('data_interacao', { ascending: false });
+
+      if (error) throw error;
+
+      return (data || []).map((item: any) => ({
+        id: item.id,
+        quem_indicou: item.quem_indicou,
+        lead_id: item.lead_id,
+        lead_nome: item.leads?.nome || 'Desconhecido',
+        data_fechamento: item.data_fechamento,
+        data_interacao: item.data_interacao,
+        fechou_matricula: item.fechou_matricula || false,
+      })) as Indicacao[];
+    },
+  });
+
+  // Calculate metrics
+  const totalIndicacoes = indicacoes.length;
+  const indicacoesConfirmadas = indicacoes.filter(i => i.fechou_matricula).length;
+
+  // Group by quem_indicou for summary
+  const indicadoresSummary = useMemo(() => {
+    const summary: Record<string, { total: number; confirmadas: number }> = {};
+    indicacoes.forEach(ind => {
+      if (!summary[ind.quem_indicou]) {
+        summary[ind.quem_indicou] = { total: 0, confirmadas: 0 };
+      }
+      summary[ind.quem_indicou].total++;
+      if (ind.fechou_matricula) {
+        summary[ind.quem_indicou].confirmadas++;
+      }
+    });
+    return Object.entries(summary)
+      .sort((a, b) => b[1].total - a[1].total)
+      .slice(0, 5);
+  }, [indicacoes]);
+
+  return (
+    <Layout>
+      <Helmet>
+        <title>Indicações | Iron Club CRM</title>
+        <meta name="description" content="Visualize indicações de alunos por período" />
+      </Helmet>
+
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold">Indicações por Período</h1>
+          <p className="text-muted-foreground mt-1">
+            Visualize as indicações de alunos filtradas por período
+          </p>
+        </div>
+
+        {/* Info Alert */}
+        <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg border">
+          <Info className="w-5 h-5 text-muted-foreground mt-0.5" />
+          <p className="text-sm text-muted-foreground">
+            O filtro por período afeta apenas a visualização desta página. 
+            Os totais de indicações confirmadas no cadastro do aluno consideram todo o histórico.
+          </p>
+        </div>
+
+        {/* Filters */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Filtros</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Período</label>
+                <Select value={periodFilter} onValueChange={(v) => setPeriodFilter(v as PeriodFilter)}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="current_month">Mês atual</SelectItem>
+                    <SelectItem value="previous_month">Mês anterior</SelectItem>
+                    <SelectItem value="custom">Período customizado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {periodFilter === 'custom' && (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Data Início</label>
+                    <Popover open={startOpen} onOpenChange={setStartOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-[180px] justify-start text-left font-normal",
+                            !customStartDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {customStartDate ? format(customStartDate, "dd/MM/yyyy") : "Selecione"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={customStartDate}
+                          onSelect={(date) => {
+                            setCustomStartDate(date);
+                            setStartOpen(false);
+                          }}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Data Fim</label>
+                    <Popover open={endOpen} onOpenChange={setEndOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-[180px] justify-start text-left font-normal",
+                            !customEndDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {customEndDate ? format(customEndDate, "dd/MM/yyyy") : "Selecione"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={customEndDate}
+                          onSelect={(date) => {
+                            setCustomEndDate(date);
+                            setEndOpen(false);
+                          }}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </>
+              )}
+
+              <div className="text-sm text-muted-foreground">
+                Período: {format(dateRange.start, "dd/MM/yyyy")} - {format(dateRange.end, "dd/MM/yyyy")}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Metrics */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total no Período</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalIndicacoes}</div>
+              <p className="text-xs text-muted-foreground">indicações registradas</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Confirmadas no Período</CardTitle>
+              <Gift className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{indicacoesConfirmadas}</div>
+              <p className="text-xs text-muted-foreground">com matrícula fechada</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Taxa de Conversão</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {totalIndicacoes > 0 ? Math.round((indicacoesConfirmadas / totalIndicacoes) * 100) : 0}%
+              </div>
+              <p className="text-xs text-muted-foreground">indicações confirmadas</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Top Indicadores */}
+        {indicadoresSummary.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Top Indicadores no Período</CardTitle>
+              <CardDescription>Quem mais indicou no período selecionado</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {indicadoresSummary.map(([nome, stats]) => (
+                  <Badge key={nome} variant="secondary" className="text-sm py-1.5 px-3">
+                    {nome}: {stats.total} ({stats.confirmadas} confirmadas)
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Lista de Indicações</CardTitle>
+            <CardDescription>
+              Detalhamento das indicações no período selecionado
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : indicacoes.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Nenhuma indicação encontrada no período selecionado.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Quem Indicou</TableHead>
+                    <TableHead>Aluno Indicado</TableHead>
+                    <TableHead>Data da Interação</TableHead>
+                    <TableHead>Data da Matrícula</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {indicacoes.map((indicacao) => (
+                    <TableRow key={indicacao.id}>
+                      <TableCell className="font-medium">{indicacao.quem_indicou}</TableCell>
+                      <TableCell>{indicacao.lead_nome}</TableCell>
+                      <TableCell>
+                        {format(parseISO(indicacao.data_interacao), "dd/MM/yyyy", { locale: ptBR })}
+                      </TableCell>
+                      <TableCell>
+                        {indicacao.data_fechamento 
+                          ? format(parseISO(indicacao.data_fechamento), "dd/MM/yyyy", { locale: ptBR })
+                          : '-'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={indicacao.fechou_matricula ? "default" : "secondary"}>
+                          {indicacao.fechou_matricula ? 'Confirmada' : 'Pendente'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </Layout>
+  );
+}
