@@ -32,7 +32,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Lead, Interacao, StatusFunil, PlanoEscolhido } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Pencil, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Pencil, CheckCircle, XCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -115,6 +115,7 @@ export default function LeadDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [canEditCurrentInteracao, setCanEditCurrentInteracao] = useState(true);
   const [formData, setFormData] = useState<InteracaoForm>(initialFormState);
+  const [deletingInteracao, setDeletingInteracao] = useState<string | null>(null);
 
   // Permission check: admin can edit any lead, others can only edit leads they created
   const canEditLead = lead ? canEditLeadAuth(lead.created_by) : false;
@@ -342,6 +343,27 @@ export default function LeadDetail() {
     }
 
     setSavingInteracao(false);
+  };
+
+  const handleDeleteInteracao = async (interacaoId: string) => {
+    if (!isAdmin) return;
+    
+    setDeletingInteracao(interacaoId);
+    
+    const { error } = await supabase
+      .from('interacoes')
+      .delete()
+      .eq('id', interacaoId);
+    
+    setDeletingInteracao(null);
+    
+    if (error) {
+      toast({ title: 'Erro ao excluir interação', variant: 'destructive' });
+    } else {
+      toast({ title: 'Interação excluída!' });
+      fetchInteracoes();
+      fetchLead();
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -599,9 +621,31 @@ export default function LeadDetail() {
                             <TableCell>{int.plano_escolhido || '-'}</TableCell>
                             <TableCell>{int.valor_plano > 0 ? formatCurrency(int.valor_plano) : '-'}</TableCell>
                             <TableCell>
-                              <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); openEditInteracao(int); }}>
-                                <Pencil className="w-4 h-4" />
-                              </Button>
+                              <div className="flex items-center gap-1">
+                                <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); openEditInteracao(int); }}>
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                {isAdmin && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="text-destructive hover:text-destructive"
+                                    onClick={(e) => { 
+                                      e.stopPropagation(); 
+                                      if (confirm('Tem certeza que deseja excluir esta interação?')) {
+                                        handleDeleteInteracao(int.id);
+                                      }
+                                    }}
+                                    disabled={deletingInteracao === int.id}
+                                  >
+                                    {deletingInteracao === int.id ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="w-4 h-4" />
+                                    )}
+                                  </Button>
+                                )}
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
