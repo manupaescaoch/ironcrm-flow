@@ -313,6 +313,7 @@ export default function Dashboard() {
         email: null,
         plano_escolhido: null,
         data_aula_experimental: null,
+        hora_aula_experimental: null,
         observacoes: null,
         atendido_por: null,
         user_id: null,
