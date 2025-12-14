@@ -187,6 +187,16 @@ export default function CRM() {
       }
     }
 
+    // Validar data obrigatória quando status é Experimental Agendada
+    if (formData.status_funil === 'aula_agendada' && !formData.data_aula_experimental) {
+      toast({ 
+        title: 'Data da Experimental é obrigatória', 
+        description: 'Preencha a data da experimental para este status.',
+        variant: 'destructive' 
+      });
+      return;
+    }
+
     // Preparar data_aula_experimental combinando data e hora se for status aula_agendada
     let dataAulaExperimental: string | null = null;
     const isExperimentalAgendada = formData.status_funil === 'aula_agendada' && formData.data_aula_experimental;
