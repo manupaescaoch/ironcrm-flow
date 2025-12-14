@@ -9,6 +9,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   userRole: UserRole | null;
+  userName: string | null;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -128,12 +129,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return leadCreatedBy === user.id;
   };
 
+  // Get user display name from email
+  const userName = user?.email?.split('@')[0] || null;
+
   return (
     <AuthContext.Provider value={{ 
       user, 
       session, 
       loading, 
       userRole,
+      userName,
       signIn, 
       signUp, 
       signOut,

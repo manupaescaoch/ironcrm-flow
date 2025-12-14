@@ -18,6 +18,8 @@ import { PendenciasDia } from '@/components/dashboard/PendenciasDia';
 import { ExperimentaisSemana } from '@/components/dashboard/ExperimentaisSemana';
 import { DateRangeFilter } from '@/components/dashboard/DateRangeFilter';
 import { ReagendarModal } from '@/components/dashboard/ReagendarModal';
+import { FollowUpCard } from '@/components/dashboard/FollowUpCard';
+import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -52,6 +54,7 @@ const STATUS_LABELS: Record<string, string> = {
   negociacao: 'Negociação',
   convertido: 'Convertido',
   perdido: 'Perdido',
+  follow_up: 'Follow Up',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -62,6 +65,7 @@ const STATUS_COLORS: Record<string, string> = {
   negociacao: 'bg-cyan-100 text-cyan-700',
   convertido: 'bg-green-100 text-green-700',
   perdido: 'bg-red-100 text-red-700',
+  follow_up: 'bg-indigo-100 text-indigo-700',
 };
 
 export default function Dashboard() {
@@ -89,6 +93,11 @@ export default function Dashboard() {
   const [matriculasDetalhadas, setMatriculasDetalhadas] = useState<MatriculaItem[]>([]);
   const [showExperimentaisSection, setShowExperimentaisSection] = useState(false);
   const [showMatriculasSection, setShowMatriculasSection] = useState(false);
+  
+  // Follow-up state
+  const [followUpItems, setFollowUpItems] = useState<ExperimentalItem[]>([]);
+  const [showFollowUpSection, setShowFollowUpSection] = useState(false);
+  const followUpSectionRef = useRef<HTMLDivElement>(null);
   
   // Refs for scrolling
   const experimentaisSectionRef = useRef<HTMLDivElement>(null);
@@ -334,6 +343,9 @@ export default function Dashboard() {
         user_id: null,
         created_at: '',
         updated_at: '',
+        follow_up_whatsapp_enviado: false,
+        follow_up_enviado_em: null,
+        follow_up_responsavel: null,
       };
       
       const interacao: Interacao = {
@@ -374,9 +386,126 @@ export default function Dashboard() {
     setMatriculasDetalhadas(matriculaItems);
   }, [startDate, endDate]);
 
+  const fetchFollowUp = useCallback(async () => {
+    // Fetch leads in follow_up status with their experimental interactions
+    const { data: followUpData } = await supabase
+      .from('leads')
+      .select(`
+        *,
+        interacoes (
+          id,
+          lead_id,
+          tipo,
+          descricao,
+          data_interacao,
+          created_at,
+          created_by,
+          atendido_por,
+          atendido_por_tipo,
+          agendou_experimental,
+          data_experimental,
+          hora_experimental,
+          compareceu,
+          confirmado,
+          reagendou,
+          fechou_matricula,
+          plano_escolhido,
+          valor_plano,
+          comissao_comercial,
+          comissao_recepcao,
+          comissao_cadastrador,
+          cadastrado_por,
+          data_fechamento,
+          responsavel_fechamento,
+          treinador_responsavel,
+          treinador_experimental,
+          origem_fechamento,
+          quem_agendou,
+          tipo_atendimento
+        )
+      `)
+      .eq('status_funil', 'follow_up')
+      .eq('ativo', true);
+
+    if (!followUpData || followUpData.length === 0) {
+      setFollowUpItems([]);
+      return;
+    }
+
+    const items: ExperimentalItem[] = [];
+    
+    followUpData.forEach((leadData: any) => {
+      const lead: Lead = {
+        id: leadData.id,
+        nome: leadData.nome,
+        email: leadData.email,
+        telefone: leadData.telefone,
+        origem: leadData.origem,
+        status_funil: leadData.status_funil,
+        plano_escolhido: leadData.plano_escolhido,
+        data_aula_experimental: leadData.data_aula_experimental,
+        hora_aula_experimental: leadData.hora_aula_experimental,
+        observacoes: leadData.observacoes,
+        atendido_por: leadData.atendido_por,
+        cadastrado_por: leadData.cadastrado_por,
+        ativo: leadData.ativo,
+        user_id: leadData.user_id,
+        created_by: leadData.created_by,
+        created_at: leadData.created_at,
+        updated_at: leadData.updated_at,
+        follow_up_whatsapp_enviado: leadData.follow_up_whatsapp_enviado || false,
+        follow_up_enviado_em: leadData.follow_up_enviado_em,
+        follow_up_responsavel: leadData.follow_up_responsavel,
+      };
+
+      // Find the most recent experimental interaction
+      const experimentalInteracao = leadData.interacoes?.find(
+        (i: any) => i.agendou_experimental && i.compareceu === true
+      ) || leadData.interacoes?.[0];
+
+      if (experimentalInteracao) {
+        const interacao: Interacao = {
+          id: experimentalInteracao.id,
+          lead_id: experimentalInteracao.lead_id,
+          tipo: experimentalInteracao.tipo,
+          descricao: experimentalInteracao.descricao,
+          data_interacao: experimentalInteracao.data_interacao,
+          created_at: experimentalInteracao.created_at,
+          created_by: experimentalInteracao.created_by,
+          atendido_por: experimentalInteracao.atendido_por,
+          atendido_por_tipo: experimentalInteracao.atendido_por_tipo,
+          agendou_experimental: experimentalInteracao.agendou_experimental,
+          data_experimental: experimentalInteracao.data_experimental,
+          hora_experimental: experimentalInteracao.hora_experimental,
+          compareceu: experimentalInteracao.compareceu,
+          confirmado: experimentalInteracao.confirmado,
+          reagendou: experimentalInteracao.reagendou,
+          fechou_matricula: experimentalInteracao.fechou_matricula,
+          plano_escolhido: experimentalInteracao.plano_escolhido,
+          valor_plano: experimentalInteracao.valor_plano,
+          comissao_comercial: experimentalInteracao.comissao_comercial,
+          comissao_recepcao: experimentalInteracao.comissao_recepcao,
+          comissao_cadastrador: experimentalInteracao.comissao_cadastrador,
+          cadastrado_por: experimentalInteracao.cadastrado_por,
+          data_fechamento: experimentalInteracao.data_fechamento,
+          responsavel_fechamento: experimentalInteracao.responsavel_fechamento,
+          treinador_responsavel: experimentalInteracao.treinador_responsavel,
+          treinador_experimental: experimentalInteracao.treinador_experimental,
+          origem_fechamento: experimentalInteracao.origem_fechamento,
+          quem_agendou: experimentalInteracao.quem_agendou,
+          tipo_atendimento: experimentalInteracao.tipo_atendimento,
+        };
+        
+        items.push({ lead, interacao });
+      }
+    });
+
+    setFollowUpItems(items);
+  }, []);
+
   const fetchData = async () => {
     setLoading(true);
-    await Promise.all([fetchStats(), fetchExperimentais(), fetchPeriodStats(), fetchMatriculas()]);
+    await Promise.all([fetchStats(), fetchExperimentais(), fetchPeriodStats(), fetchMatriculas(), fetchFollowUp()]);
     setLoading(false);
   };
 
@@ -396,6 +525,7 @@ export default function Dashboard() {
   const handleExperimentaisCardClick = () => {
     setShowExperimentaisSection(true);
     setShowMatriculasSection(false);
+    setShowFollowUpSection(false);
     setTimeout(() => {
       experimentaisSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
@@ -404,8 +534,18 @@ export default function Dashboard() {
   const handleMatriculasCardClick = () => {
     setShowMatriculasSection(true);
     setShowExperimentaisSection(false);
+    setShowFollowUpSection(false);
     setTimeout(() => {
       matriculasSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
+  const handleFollowUpCardClick = () => {
+    setShowFollowUpSection(true);
+    setShowExperimentaisSection(false);
+    setShowMatriculasSection(false);
+    setTimeout(() => {
+      followUpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
   };
 
@@ -491,7 +631,7 @@ export default function Dashboard() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -527,6 +667,13 @@ export default function Dashboard() {
               <p className="text-3xl font-bold text-sky-600">{stats.aulasAgendadas}</p>
             </CardContent>
           </Card>
+
+          {/* Follow Up KPI */}
+          <FollowUpKPI
+            pendingCount={followUpItems.filter(i => !i.lead.follow_up_whatsapp_enviado).length}
+            onClick={handleFollowUpCardClick}
+            isActive={showFollowUpSection}
+          />
 
           {/* Clickable Experimentais Card */}
           <Card 
@@ -572,6 +719,13 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Follow Up Section */}
+        {showFollowUpSection && (
+          <div ref={followUpSectionRef} className="mb-8">
+            <FollowUpCard items={followUpItems} onRefresh={fetchData} />
+          </div>
+        )}
 
         {/* Experimental Control Panels with Tabs */}
         <Tabs defaultValue="diario" className="space-y-6">

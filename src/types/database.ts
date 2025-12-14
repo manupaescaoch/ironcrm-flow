@@ -13,7 +13,8 @@ export type StatusFunil =
   | 'aula_realizada'
   | 'negociacao'
   | 'convertido'
-  | 'perdido';
+  | 'perdido'
+  | 'follow_up';
 
 export interface Lead {
   id: string;
@@ -33,6 +34,10 @@ export interface Lead {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  // Follow-up fields
+  follow_up_whatsapp_enviado: boolean;
+  follow_up_enviado_em: string | null;
+  follow_up_responsavel: string | null;
 }
 
 export interface Interacao {

@@ -1,0 +1,375 @@
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Lead, Interacao } from '@/types/database';
+import { MessageCircle, AlertTriangle, Clock, XCircle, CheckCircle, Info, Phone, Eye } from 'lucide-react';
+import { toast } from 'sonner';
+import { formatDistanceToNow, differenceInHours, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { WhatsAppLink, normalizePhoneForWhatsApp } from '@/components/WhatsAppLink';
+import { useNavigate } from 'react-router-dom';
+
+interface FollowUpItem {
+  lead: Lead;
+  interacao: Interacao;
+}
+
+interface FollowUpCardProps {
+  items: FollowUpItem[];
+  onRefresh: () => void;
+}
+
+const FOLLOW_UP_MESSAGE = `Oi, {{nome}}! Tudo bem?
+
+Queria saber como você se sentiu na IRON! Gostou do treino e do espaço?
+
+A gente se dedica muito a criar um ambiente acolhedor e exclusivo, com acompanhamento de perto pra você treinar com tranquilidade e ter resultados de verdade.
+
+Se você curtiu e quiser fazer parte do time, fico feliz em te ajudar com os próximos passos 😊`;
+
+const NOT_INTERESTED_REASONS = [
+  { value: 'preco', label: 'Preço' },
+  { value: 'tempo', label: 'Falta de tempo' },
+  { value: 'nao_gostou', label: 'Não gostou do treino' },
+  { value: 'testando', label: 'Só estava testando' },
+  { value: 'outro', label: 'Outro' },
+];
+
+export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
+  const navigate = useNavigate();
+  const { userName, isAdmin, user } = useAuth();
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [notInterestedModalOpen, setNotInterestedModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<FollowUpItem | null>(null);
+  const [selectedReason, setSelectedReason] = useState('preco');
+  const [loading, setLoading] = useState(false);
+
+  const getTimeSinceClass = (item: FollowUpItem) => {
+    const dateStr = item.interacao.data_experimental;
+    const timeStr = item.interacao.hora_experimental;
+    
+    if (!dateStr) return { hours: 0, text: '-', color: 'text-muted-foreground' };
+    
+    try {
+      const dateTimeStr = timeStr 
+        ? `${dateStr}T${timeStr}` 
+        : `${dateStr}T12:00:00`;
+      const classDate = parseISO(dateTimeStr);
+      const hours = differenceInHours(new Date(), classDate);
+      
+      let color = 'text-muted-foreground';
+      if (hours >= 48) color = 'text-red-600';
+      else if (hours >= 24) color = 'text-orange-500';
+      
+      const text = formatDistanceToNow(classDate, { locale: ptBR, addSuffix: true });
+      
+      return { hours, text, color };
+    } catch {
+      return { hours: 0, text: '-', color: 'text-muted-foreground' };
+    }
+  };
+
+  const isLateFollowUp = (item: FollowUpItem) => {
+    const { hours } = getTimeSinceClass(item);
+    return hours >= 48 && !item.lead.follow_up_whatsapp_enviado;
+  };
+
+  const handleSendFollowUp = (item: FollowUpItem) => {
+    const message = FOLLOW_UP_MESSAGE.replace('{{nome}}', item.lead.nome.split(' ')[0]);
+    const phone = normalizePhoneForWhatsApp(item.lead.telefone || '');
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/${phone}?text=${encodedMessage}`, '_blank');
+    
+    setSelectedItem(item);
+    setConfirmModalOpen(true);
+  };
+
+  const handleConfirmSent = async () => {
+    if (!selectedItem) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({
+          follow_up_whatsapp_enviado: true,
+          follow_up_enviado_em: new Date().toISOString(),
+          follow_up_responsavel: userName || 'Sistema',
+        })
+        .eq('id', selectedItem.lead.id);
+
+      if (error) throw error;
+      
+      toast.success('Follow up marcado como enviado!');
+      setConfirmModalOpen(false);
+      setSelectedItem(null);
+      onRefresh();
+    } catch (error) {
+      console.error('Erro ao marcar follow up:', error);
+      toast.error('Erro ao atualizar status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNotInterested = (item: FollowUpItem) => {
+    setSelectedItem(item);
+    setSelectedReason('preco');
+    setNotInterestedModalOpen(true);
+  };
+
+  const handleConfirmNotInterested = async () => {
+    if (!selectedItem) return;
+    
+    setLoading(true);
+    try {
+      // Update lead status
+      const { error: leadError } = await supabase
+        .from('leads')
+        .update({
+          status_funil: 'perdido',
+        })
+        .eq('id', selectedItem.lead.id);
+
+      if (leadError) throw leadError;
+
+      // Create interaction record
+      const reasonLabel = NOT_INTERESTED_REASONS.find(r => r.value === selectedReason)?.label || 'Outro';
+      const { error: interacaoError } = await supabase
+        .from('interacoes')
+        .insert({
+          lead_id: selectedItem.lead.id,
+          tipo: 'Encerramento',
+          descricao: `Lead marcado como não interessado. Motivo: ${reasonLabel}`,
+          data_interacao: new Date().toISOString(),
+          atendido_por: userName || 'Sistema',
+        });
+
+      if (interacaoError) throw interacaoError;
+      
+      toast.success('Lead marcado como não interessado');
+      setNotInterestedModalOpen(false);
+      setSelectedItem(null);
+      onRefresh();
+    } catch (error) {
+      console.error('Erro ao marcar lead:', error);
+      toast.error('Erro ao atualizar lead');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter items: show all follow_up leads that haven't closed matricula
+  // Sort: late first, then by time since class (descending)
+  const sortedItems = [...items].sort((a, b) => {
+    const aLate = isLateFollowUp(a);
+    const bLate = isLateFollowUp(b);
+    
+    if (aLate && !bLate) return -1;
+    if (!aLate && bLate) return 1;
+    
+    const aHours = getTimeSinceClass(a).hours;
+    const bHours = getTimeSinceClass(b).hours;
+    return bHours - aHours;
+  });
+
+  const pendingCount = items.filter(i => !i.lead.follow_up_whatsapp_enviado).length;
+
+  return (
+    <Card className="col-span-full">
+      <CardHeader className="flex flex-row items-start justify-between pb-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-blue-500" />
+              Follow Up Pós-Experimental
+            </CardTitle>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="text-sm italic">
+                    Follow up não é insistência. É fechar o ciclo de quem já te deu tempo.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Leads que compareceram mas não fecharam matrícula
+          </p>
+        </div>
+        {pendingCount > 0 && (
+          <Badge 
+            variant="outline" 
+            className={cn(
+              "text-sm font-medium",
+              pendingCount >= 4 ? "border-red-500 text-red-600 bg-red-50" :
+              pendingCount >= 1 ? "border-orange-500 text-orange-600 bg-orange-50" :
+              "border-green-500 text-green-600 bg-green-50"
+            )}
+          >
+            {pendingCount} pendente{pendingCount !== 1 ? 's' : ''}
+          </Badge>
+        )}
+      </CardHeader>
+      <CardContent>
+        {sortedItems.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <CheckCircle className="w-12 h-12 mx-auto mb-4 opacity-50 text-green-500" />
+            <p>Nenhum follow up pendente no momento.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {sortedItems.map((item) => {
+              const timeSince = getTimeSinceClass(item);
+              const isLate = isLateFollowUp(item);
+              const isSent = item.lead.follow_up_whatsapp_enviado;
+              
+              return (
+                <div
+                  key={item.lead.id}
+                  className={cn(
+                    "p-4 rounded-lg border transition-all",
+                    isLate 
+                      ? "border-red-400 bg-red-50/50 dark:bg-red-950/20" 
+                      : isSent 
+                        ? "border-green-200 bg-green-50/30 dark:bg-green-950/10"
+                        : "border-border bg-card"
+                  )}
+                >
+                  {isLate && (
+                    <div className="flex items-center gap-2 mb-3 text-red-600">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span className="text-xs font-medium">⚠️ FOLLOW UP ATRASADO +48H</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h4 className="font-semibold text-foreground">{item.lead.nome}</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Phone className="w-3 h-3 text-muted-foreground" />
+                        <WhatsAppLink phone={item.lead.telefone} className="text-sm" />
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => navigate(`/lead/${item.lead.id}`)}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
+                  <div className={cn("flex items-center gap-1.5 text-sm mb-3", timeSince.color)}>
+                    <Clock className="w-4 h-4" />
+                    <span>⏱️ {timeSince.text}</span>
+                  </div>
+                  
+                  {isLate && (
+                    <p className="text-xs text-red-600 mb-3 bg-red-100/50 p-2 rounded">
+                      Este lead está há mais de 48h sem follow up após a aula experimental. Prioridade máxima.
+                    </p>
+                  )}
+                  
+                  {isSent ? (
+                    <div className="flex items-center gap-2 text-green-600 text-sm">
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Mensagem enviada por {item.lead.follow_up_responsavel}</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        size="sm"
+                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => handleSendFollowUp(item)}
+                      >
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        📲 Enviar Follow Up
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                        onClick={() => handleNotInterested(item)}
+                      >
+                        <XCircle className="w-4 h-4 mr-2" />
+                        🚫 Não interessado
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+
+      {/* Confirm Follow Up Sent Modal */}
+      <Dialog open={confirmModalOpen} onOpenChange={setConfirmModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar envio do Follow Up</DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground">
+            Você enviou a mensagem de follow up para <strong>{selectedItem?.lead.nome}</strong>?
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmSent} disabled={loading}>
+              <CheckCircle className="w-4 h-4 mr-2" />
+              ✅ Marcar mensagem como enviada
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Not Interested Modal */}
+      <Dialog open={notInterestedModalOpen} onOpenChange={setNotInterestedModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Marcar como não interessado</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Selecione o motivo (opcional):
+            </p>
+            <RadioGroup value={selectedReason} onValueChange={setSelectedReason}>
+              {NOT_INTERESTED_REASONS.map((reason) => (
+                <div key={reason.value} className="flex items-center space-x-2">
+                  <RadioGroupItem value={reason.value} id={reason.value} />
+                  <Label htmlFor={reason.value}>{reason.label}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNotInterestedModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleConfirmNotInterested} 
+              disabled={loading}
+            >
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}

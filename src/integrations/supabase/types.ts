@@ -130,6 +130,9 @@ export type Database = {
           created_by: string | null
           data_aula_experimental: string | null
           email: string | null
+          follow_up_enviado_em: string | null
+          follow_up_responsavel: string | null
+          follow_up_whatsapp_enviado: boolean | null
           hora_aula_experimental: string | null
           id: string
           nome: string
@@ -149,6 +152,9 @@ export type Database = {
           created_by?: string | null
           data_aula_experimental?: string | null
           email?: string | null
+          follow_up_enviado_em?: string | null
+          follow_up_responsavel?: string | null
+          follow_up_whatsapp_enviado?: boolean | null
           hora_aula_experimental?: string | null
           id?: string
           nome: string
@@ -168,6 +174,9 @@ export type Database = {
           created_by?: string | null
           data_aula_experimental?: string | null
           email?: string | null
+          follow_up_enviado_em?: string | null
+          follow_up_responsavel?: string | null
+          follow_up_whatsapp_enviado?: boolean | null
           hora_aula_experimental?: string | null
           id?: string
           nome?: string
