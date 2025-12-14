@@ -72,11 +72,26 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
   const openWhatsApp = (item: ExperimentalItem) => {
     const phone = normalizePhoneForWhatsApp(item.lead.telefone || '');
     const dataFormatada = item.interacao.data_experimental 
-      ? format(new Date(item.interacao.data_experimental + 'T12:00:00'), "dd/MM", { locale: ptBR })
+      ? format(new Date(item.interacao.data_experimental + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })
       : 'amanhã';
-    const hora = item.interacao.hora_experimental || '';
+    const hora = item.interacao.hora_experimental 
+      ? item.interacao.hora_experimental.slice(0, 5) 
+      : '';
     
-    const message = `🚨 Lembrete: ${item.lead.nome}! Amanhã é dia de treino! Sua aula experimental na *IRON CLUB* está confirmada para *${dataFormatada}* às *${hora}*. Estamos ansiosos para te receber! Por favor, *responda a esta mensagem agora* para confirmar sua presença e garantir sua vaga. Equipe IRON CLUB 💪`;
+    const message = `Olá, ${item.lead.nome}!
+
+Sua aula experimental está confirmada para:
+📅 ${dataFormatada}
+🕙 ${hora}
+
+Estamos empolgados para te conhecer e te proporcionar uma experiência incrível!
+
+⚠️ Importante: Para garantir sua vaga, por favor confirme sua presença respondendo a esta mensagem.
+
+Nos vemos em breve! 💪
+
+Equipe IRON CLUB`;
+    
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };
