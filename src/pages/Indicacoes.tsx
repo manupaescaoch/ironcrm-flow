@@ -15,7 +15,7 @@ import { CalendarIcon, Users, Gift, Info, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Helmet } from 'react-helmet';
 
-type PeriodFilter = 'current_month' | 'previous_month' | 'custom';
+type PeriodFilter = 'all' | 'current_month' | 'previous_month' | 'custom';
 
 interface Indicacao {
   id: string;
@@ -28,7 +28,7 @@ interface Indicacao {
 }
 
 export default function Indicacoes() {
-  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('current_month');
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all');
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>(startOfMonth(new Date()));
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>(endOfMonth(new Date()));
   const [startOpen, setStartOpen] = useState(false);
@@ -38,6 +38,8 @@ export default function Indicacoes() {
   const dateRange = useMemo(() => {
     const now = new Date();
     switch (periodFilter) {
+      case 'all':
+        return null; // No date filter
       case 'current_month':
         return { start: startOfMonth(now), end: endOfMonth(now) };
       case 'previous_month':
@@ -49,7 +51,7 @@ export default function Indicacoes() {
           end: customEndDate || endOfMonth(now) 
         };
       default:
-        return { start: startOfMonth(now), end: endOfMonth(now) };
+        return null;
     }
   }, [periodFilter, customStartDate, customEndDate]);
 
@@ -70,12 +72,9 @@ export default function Indicacoes() {
 
   // Fetch indicações filtered by period (for table and period KPIs)
   const { data: indicacoes = [], isLoading } = useQuery({
-    queryKey: ['indicacoes-periodo', dateRange.start, dateRange.end],
+    queryKey: ['indicacoes-periodo', dateRange?.start, dateRange?.end],
     queryFn: async () => {
-      const startStr = format(dateRange.start, 'yyyy-MM-dd');
-      const endStr = format(dateRange.end, 'yyyy-MM-dd');
-
-      const { data, error } = await supabase
+      let query = supabase
         .from('interacoes')
         .select(`
           id,
@@ -87,10 +86,18 @@ export default function Indicacoes() {
           leads!inner(nome)
         `)
         .not('quem_indicou', 'is', null)
-        .neq('quem_indicou', '')
-        .gte('data_interacao', startStr)
-        .lte('data_interacao', endStr + 'T23:59:59')
-        .order('data_interacao', { ascending: false });
+        .neq('quem_indicou', '');
+
+      // Apply date filter only if dateRange is set
+      if (dateRange) {
+        const startStr = format(dateRange.start, 'yyyy-MM-dd');
+        const endStr = format(dateRange.end, 'yyyy-MM-dd');
+        query = query
+          .gte('data_interacao', startStr)
+          .lte('data_interacao', endStr + 'T23:59:59');
+      }
+
+      const { data, error } = await query.order('data_interacao', { ascending: false });
 
       if (error) throw error;
 
@@ -170,6 +177,7 @@ export default function Indicacoes() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="all">Todo o Histórico</SelectItem>
                     <SelectItem value="current_month">Mês atual</SelectItem>
                     <SelectItem value="previous_month">Mês anterior</SelectItem>
                     <SelectItem value="custom">Período customizado</SelectItem>
@@ -241,9 +249,11 @@ export default function Indicacoes() {
                 </>
               )}
 
-              <div className="text-sm text-muted-foreground">
-                Período: {format(dateRange.start, "dd/MM/yyyy")} - {format(dateRange.end, "dd/MM/yyyy")}
-              </div>
+              {dateRange && (
+                <div className="text-sm text-muted-foreground">
+                  Período: {format(dateRange.start, "dd/MM/yyyy")} - {format(dateRange.end, "dd/MM/yyyy")}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
