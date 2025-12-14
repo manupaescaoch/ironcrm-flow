@@ -582,56 +582,7 @@ export default function Dashboard() {
             </TabsList>
           </div>
 
-          <TabsContent value="diario" className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={periodType === 'all' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setPeriodType('all');
-                  setStartDate(new Date(2020, 0, 1));
-                  setEndDate(new Date(2030, 11, 31));
-                }}
-              >
-                Todo Período
-              </Button>
-              <Button
-                variant={periodType === 'last7days' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setPeriodType('last7days');
-                  const today = new Date();
-                  setStartDate(addDays(today, -7));
-                  setEndDate(today);
-                }}
-              >
-                Últimos 7 dias
-              </Button>
-              <Button
-                variant={periodType === 'currentMonth' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setPeriodType('currentMonth');
-                  const today = new Date();
-                  setStartDate(new Date(today.getFullYear(), today.getMonth(), 1));
-                  setEndDate(new Date(today.getFullYear(), today.getMonth() + 1, 0));
-                }}
-              >
-                Mês Atual
-              </Button>
-              <Button
-                variant={periodType === 'lastMonth' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setPeriodType('lastMonth');
-                  const today = new Date();
-                  setStartDate(new Date(today.getFullYear(), today.getMonth() - 1, 1));
-                  setEndDate(new Date(today.getFullYear(), today.getMonth(), 0));
-                }}
-              >
-                Mês Anterior
-              </Button>
-            </div>
+          <TabsContent value="diario" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <ExperimentaisHoje
                 items={experimentaisHoje}
