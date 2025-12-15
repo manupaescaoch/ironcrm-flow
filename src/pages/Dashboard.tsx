@@ -49,8 +49,8 @@ interface MatriculaItem {
 const STATUS_LABELS: Record<string, string> = {
   novo: 'Novo',
   contato_inicial: 'Contato Inicial',
-  aula_agendada: 'Aula Agendada',
-  aula_realizada: 'Aula Realizada',
+  aula_agendada: 'Experimental Agendada',
+  aula_realizada: 'Experimental Realizada',
   negociacao: 'Negociação',
   convertido: 'Convertido',
   perdido: 'Perdido',

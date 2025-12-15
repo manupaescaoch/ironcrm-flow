@@ -29,9 +29,9 @@ import { cn } from '@/lib/utils';
 
 const columns: { status: StatusFunil; label: string; color: string }[] = [
   { status: 'novo', label: 'Novo', color: 'bg-blue-500' },
-  { status: 'contato_inicial', label: 'Contato Inicial', color: 'bg-purple-500' },
-  { status: 'aula_agendada', label: 'Aula Agendada', color: 'bg-amber-500' },
-  { status: 'aula_realizada', label: 'Aula Realizada', color: 'bg-orange-500' },
+  { status: 'aula_agendada', label: 'Experimental Agendada', color: 'bg-amber-500' },
+  { status: 'aula_realizada', label: 'Experimental Realizada', color: 'bg-orange-500' },
+  { status: 'follow_up', label: 'Follow Up', color: 'bg-indigo-500' },
   { status: 'negociacao', label: 'Negociação', color: 'bg-cyan-500' },
   { status: 'convertido', label: 'Convertido', color: 'bg-green-500' },
   { status: 'perdido', label: 'Perdido', color: 'bg-red-500' },

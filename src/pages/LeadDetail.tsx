@@ -40,9 +40,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const statusOptions: { value: StatusFunil; label: string }[] = [
   { value: 'novo', label: 'Novo' },
-  { value: 'contato_inicial', label: 'Contato Inicial' },
-  { value: 'aula_agendada', label: 'Aula Agendada' },
-  { value: 'aula_realizada', label: 'Aula Realizada' },
+  { value: 'aula_agendada', label: 'Experimental Agendada' },
+  { value: 'aula_realizada', label: 'Experimental Realizada' },
+  { value: 'follow_up', label: 'Follow Up' },
   { value: 'negociacao', label: 'Negociação' },
   { value: 'convertido', label: 'Convertido' },
   { value: 'perdido', label: 'Perdido' },
