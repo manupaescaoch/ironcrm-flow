@@ -53,6 +53,7 @@ const statusOptions: { value: StatusFunil; label: string }[] = [
   { value: 'novo', label: 'Novo Lead' },
   { value: 'aula_agendada', label: 'Experimental Agendada' },
   { value: 'aula_realizada', label: 'Experimental Realizada' },
+  { value: 'follow_up', label: 'Follow Up' },
   { value: 'negociacao', label: 'Negociação' },
   { value: 'convertido', label: 'Convertido' },
   { value: 'perdido', label: 'Perdido' },
