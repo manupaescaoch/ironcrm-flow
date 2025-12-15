@@ -67,6 +67,26 @@ const planoOptions: PlanoEscolhido[] = [
   'Executivo Anual',
 ];
 
+// Opções padronizadas de origem do lead
+const ORIGEM_OPTIONS = [
+  'WhatsApp',
+  'Instagram',
+  'Tráfego Pago',
+  'Indicação',
+  'Visita Presencial',
+  'Embaixador / Parceria',
+] as const;
+
+// Função para validar/normalizar origem
+const validateOrigem = (origem: string | null | undefined): string => {
+  if (!origem) return 'WhatsApp';
+  const normalized = origem.trim();
+  if (ORIGEM_OPTIONS.includes(normalized as typeof ORIGEM_OPTIONS[number])) {
+    return normalized;
+  }
+  return 'WhatsApp'; // Fallback seguro
+};
+
 const statusLabels: Record<StatusFunil, string> = {
   novo: 'Novo Lead',
   contato_inicial: 'Contato Inicial',
@@ -104,7 +124,7 @@ export default function CRM() {
     nome: '',
     email: '',
     telefone: '',
-    origem: '',
+    origem: '' as string,
     status_funil: 'novo' as StatusFunil,
     data_aula_experimental: '',
     hora_aula_experimental: '',
@@ -164,6 +184,11 @@ export default function CRM() {
       return;
     }
 
+    if (!formData.origem) {
+      toast({ title: 'Origem é obrigatória', variant: 'destructive' });
+      return;
+    }
+
     // Validar telefone duplicado se telefone foi informado
     if (formData.telefone.trim()) {
       const telefoneNormalizado = formData.telefone.trim().replace(/\D/g, '');
@@ -212,7 +237,7 @@ export default function CRM() {
       nome: formData.nome.trim(),
       email: formData.email.trim() || null,
       telefone: formData.telefone.trim() || null,
-      origem: formData.origem.trim() || null,
+      origem: formData.origem || 'WhatsApp',
       status_funil: formData.status_funil,
       cadastrado_por: getUserDisplayName(),
       ativo: true,
@@ -484,7 +509,7 @@ export default function CRM() {
           .map(row => ({
             nome: row.nome_completo.trim(),
             telefone: row.telefone?.trim() || null,
-            origem: row.origem?.trim() || null,
+            origem: validateOrigem(row.origem),
             atendido_por: row.atendido_por?.trim() || null,
             status_funil: validateStatusFunil(row.status_funil),
             created_at: parseDate(row.data_cadastro),
@@ -696,12 +721,24 @@ export default function CRM() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Origem</Label>
-                    <Input
+                    <Label>Origem *</Label>
+                    <Select
                       value={formData.origem}
-                      onChange={(e) => setFormData({ ...formData, origem: e.target.value })}
-                      placeholder="Instagram, Indicação, etc."
-                    />
+                      onValueChange={(value) => setFormData({ ...formData, origem: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a origem" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background z-50">
+                        <ScrollArea className="h-48">
+                          {ORIGEM_OPTIONS.map((origem) => (
+                            <SelectItem key={origem} value={origem}>
+                              {origem}
+                            </SelectItem>
+                          ))}
+                        </ScrollArea>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Cadastrado Por</Label>
