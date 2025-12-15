@@ -57,6 +57,16 @@ const planoOptions: PlanoEscolhido[] = [
   'Executivo Anual',
 ];
 
+// Opções padronizadas de origem do lead
+const ORIGEM_OPTIONS = [
+  'WhatsApp',
+  'Instagram',
+  'Tráfego Pago',
+  'Indicação',
+  'Visita Presencial',
+  'Embaixador / Parceria',
+] as const;
+
 interface InteracaoForm {
   id?: string;
   tipo: string;
@@ -508,11 +518,22 @@ export default function LeadDetail() {
                 </div>
                 <div className="space-y-2">
                   <Label>Origem</Label>
-                  <Input
+                  <Select
                     value={lead.origem || ''}
-                    onChange={(e) => setLead({ ...lead, origem: e.target.value })}
+                    onValueChange={(value) => setLead({ ...lead, origem: value })}
                     disabled={!canEditLead}
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a origem" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background z-50">
+                      {ORIGEM_OPTIONS.map((origem) => (
+                        <SelectItem key={origem} value={origem}>
+                          {origem}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Cadastrado Por</Label>
