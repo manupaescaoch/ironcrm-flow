@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -39,16 +39,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Lead, StatusFunil, PlanoEscolhido } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, Eye, Trash2, Loader2, Pencil, Filter, Upload, FileSpreadsheet } from 'lucide-react';
+import { Plus, Search, Eye, Trash2, Loader2, Pencil, Filter, Upload, FileSpreadsheet, Users, TrendingUp, UserCheck, UserX, CalendarIcon } from 'lucide-react';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import { z } from 'zod';
+import { cn } from '@/lib/utils';
 
 // Validation schema for lead creation/update
 const leadSchema = z.object({
@@ -130,6 +133,12 @@ export default function CRM() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
+  
+  // Date filter state
+  const [periodType, setPeriodType] = useState<'all' | 'currentMonth' | 'lastMonth' | 'custom'>('all');
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -157,6 +166,31 @@ export default function CRM() {
   const [isPreviewReady, setIsPreviewReady] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle period type change
+  const handlePeriodChange = useCallback((value: string) => {
+    setPeriodType(value as typeof periodType);
+    const now = new Date();
+    
+    switch (value) {
+      case 'currentMonth':
+        setStartDate(startOfMonth(now));
+        setEndDate(endOfMonth(now));
+        break;
+      case 'lastMonth':
+        const lastMonth = subMonths(now, 1);
+        setStartDate(startOfMonth(lastMonth));
+        setEndDate(endOfMonth(lastMonth));
+        break;
+      case 'all':
+        setStartDate(undefined);
+        setEndDate(undefined);
+        break;
+      case 'custom':
+        // Keep current dates for custom
+        break;
+    }
+  }, []);
 
   useEffect(() => {
     fetchLeads();
@@ -585,9 +619,34 @@ export default function CRM() {
       const matchesOrigem = filterOrigem === 'all' || lead.origem === filterOrigem;
       const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
       const matchesStatus = filterStatus === 'all' || lead.status_funil === filterStatus;
-      return matchesSearch && matchesOrigem && matchesCadastradoPor && matchesStatus;
+      
+      // Date filter
+      let matchesDate = true;
+      if (startDate || endDate) {
+        const leadDate = new Date(lead.created_at);
+        if (startDate && leadDate < startDate) matchesDate = false;
+        if (endDate) {
+          const endOfDay = new Date(endDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          if (leadDate > endOfDay) matchesDate = false;
+        }
+      }
+      
+      return matchesSearch && matchesOrigem && matchesCadastradoPor && matchesStatus && matchesDate;
     });
-  }, [leads, search, filterOrigem, filterCadastradoPor, filterStatus]);
+  }, [leads, search, filterOrigem, filterCadastradoPor, filterStatus, startDate, endDate]);
+
+  // KPI calculations
+  const kpis = useMemo(() => {
+    const total = filteredLeads.length;
+    const convertidos = filteredLeads.filter(l => l.status_funil === 'convertido').length;
+    const perdidos = filteredLeads.filter(l => l.status_funil === 'perdido').length;
+    const emNegociacao = filteredLeads.filter(l => ['aula_agendada', 'aula_realizada', 'negociacao', 'follow_up'].includes(l.status_funil)).length;
+    const novos = filteredLeads.filter(l => l.status_funil === 'novo').length;
+    const taxaConversao = total > 0 ? ((convertidos / total) * 100).toFixed(1) : '0';
+    
+    return { total, convertidos, perdidos, emNegociacao, novos, taxaConversao };
+  }, [filteredLeads]);
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
@@ -812,13 +871,72 @@ export default function CRM() {
           </div>
         </div>
 
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-500" />
+                <div>
+                  <p className="text-2xl font-bold">{kpis.total}</p>
+                  <p className="text-xs text-muted-foreground">Total Leads</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <UserCheck className="w-5 h-5 text-green-500" />
+                <div>
+                  <p className="text-2xl font-bold text-green-600">{kpis.convertidos}</p>
+                  <p className="text-xs text-muted-foreground">Convertidos</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-amber-500" />
+                <div>
+                  <p className="text-2xl font-bold text-amber-600">{kpis.emNegociacao}</p>
+                  <p className="text-xs text-muted-foreground">Em Negociação</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <UserX className="w-5 h-5 text-red-500" />
+                <div>
+                  <p className="text-2xl font-bold text-red-600">{kpis.perdidos}</p>
+                  <p className="text-xs text-muted-foreground">Perdidos</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="text-2xl font-bold">{kpis.taxaConversao}%</p>
+                  <p className="text-xs text-muted-foreground">Taxa Conversão</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Filter className="w-5 h-5" />
               Filtros
             </CardTitle>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mt-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -828,6 +946,55 @@ export default function CRM() {
                   className="pl-10"
                 />
               </div>
+              <Select value={periodType} onValueChange={handlePeriodChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Período" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todo período</SelectItem>
+                  <SelectItem value="currentMonth">Mês atual</SelectItem>
+                  <SelectItem value="lastMonth">Mês passado</SelectItem>
+                  <SelectItem value="custom">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+              {periodType === 'custom' && (
+                <>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "dd/MM/yyyy") : "Data início"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-background" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "dd/MM/yyyy") : "Data fim"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-background" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </>
+              )}
               <Select value={filterOrigem} onValueChange={setFilterOrigem}>
                 <SelectTrigger>
                   <SelectValue placeholder="Filtrar por origem" />
