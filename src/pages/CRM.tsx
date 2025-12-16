@@ -257,8 +257,8 @@ export default function CRM() {
       status_funil: formData.status_funil,
       cadastrado_por: getUserDisplayName(),
       ativo: true,
-      user_id: user?.id || null,
-      created_by: user?.id || null,
+      user_id: user?.id,
+      created_by: user?.id,
       data_aula_experimental: dataAulaExperimental,
       hora_aula_experimental: formData.hora_aula_experimental || null,
     }).select().single();
