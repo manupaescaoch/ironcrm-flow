@@ -48,6 +48,15 @@ import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
+import { z } from 'zod';
+
+// Validation schema for lead creation/update
+const leadSchema = z.object({
+  nome: z.string().trim().min(1, 'Nome é obrigatório').max(200, 'Nome muito longo (máx. 200 caracteres)'),
+  email: z.string().trim().email('Email inválido').max(255, 'Email muito longo').optional().or(z.literal('')),
+  telefone: z.string().trim().max(20, 'Telefone muito longo (máx. 20 caracteres)').optional().or(z.literal('')),
+  origem: z.string().min(1, 'Origem é obrigatória').max(100, 'Origem muito longa'),
+});
 
 const statusOptions: { value: StatusFunil; label: string }[] = [
   { value: 'novo', label: 'Novo Lead' },
@@ -180,13 +189,19 @@ export default function CRM() {
   }, [leads]);
 
   const handleCreate = async () => {
-    if (!formData.nome.trim()) {
-      toast({ title: 'Nome é obrigatório', variant: 'destructive' });
-      return;
-    }
+    // Validate form data using zod schema
+    const validation = leadSchema.safeParse({
+      nome: formData.nome,
+      email: formData.email || '',
+      telefone: formData.telefone || '',
+      origem: formData.origem,
+    });
 
-    if (!formData.origem) {
-      toast({ title: 'Origem é obrigatória', variant: 'destructive' });
+    if (!validation.success) {
+      toast({ 
+        title: validation.error.errors[0].message, 
+        variant: 'destructive' 
+      });
       return;
     }
 
