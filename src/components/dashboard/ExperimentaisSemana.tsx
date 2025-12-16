@@ -63,8 +63,8 @@ export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, 
       return;
     }
 
-    // If marking as attended, update lead status to follow_up
-    if (value) {
+    // If marking as attended and hasn't closed matricula, update lead status to follow_up
+    if (value && !item.interacao.fechou_matricula) {
       const { error: leadError } = await supabase
         .from('leads')
         .update({ status_funil: 'follow_up' })
@@ -73,11 +73,12 @@ export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, 
       if (leadError) {
         console.error('Erro ao atualizar status do lead:', leadError);
       }
+      toast({ title: 'Presença confirmada! Lead movido para Follow Up.' });
+    } else {
+      toast({ title: value ? 'Presença confirmada!' : 'Presença removida' });
     }
 
-    toast({ title: value ? 'Presença confirmada! Lead movido para Follow Up.' : 'Presença removida' });
     onRefresh();
-    
     setLoading(prev => ({ ...prev, [item.interacao.id]: false }));
   };
 

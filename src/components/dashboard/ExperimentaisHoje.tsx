@@ -53,8 +53,8 @@ export function ExperimentaisHoje({ items, onRefresh, onReagendar }: Experimenta
       return;
     }
 
-    // If marking as attended, update lead status to follow_up
-    if (checked) {
+    // If marking as attended and hasn't closed matricula, update lead status to follow_up
+    if (checked && !item.interacao.fechou_matricula) {
       const { error: leadError } = await supabase
         .from('leads')
         .update({ status_funil: 'follow_up' })
@@ -63,11 +63,12 @@ export function ExperimentaisHoje({ items, onRefresh, onReagendar }: Experimenta
       if (leadError) {
         console.error('Erro ao atualizar status do lead:', leadError);
       }
+      toast({ title: 'Presença marcada! Lead movido para Follow Up.' });
+    } else {
+      toast({ title: checked ? 'Presença marcada!' : 'Presença desmarcada!' });
     }
-
-    toast({ title: checked ? 'Presença marcada! Lead movido para Follow Up.' : 'Presença desmarcada!' });
-    onRefresh();
     
+    onRefresh();
     setLoading(prev => ({ ...prev, [item.interacao.id]: false }));
   };
 
