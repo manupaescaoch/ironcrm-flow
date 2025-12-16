@@ -31,18 +31,18 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
   const currentHour = new Date().getHours();
   const isLateWarning = currentHour >= 20;
 
-  const handleConfirmar = async (item: ExperimentalItem) => {
+  const handleConfirmar = async (item: ExperimentalItem, checked: boolean) => {
     setLoading(prev => ({ ...prev, [item.interacao.id]: true }));
     
     const { error } = await supabase
       .from('interacoes')
-      .update({ confirmado: true })
+      .update({ confirmado: checked })
       .eq('id', item.interacao.id);
 
     if (error) {
-      toast({ title: 'Erro ao confirmar', variant: 'destructive' });
+      toast({ title: 'Erro ao atualizar confirmação', variant: 'destructive' });
     } else {
-      toast({ title: 'Confirmação registrada!' });
+      toast({ title: checked ? 'Confirmação registrada!' : 'Confirmação removida!' });
       onRefresh();
     }
     
@@ -174,7 +174,7 @@ Equipe IRON CLUB`;
                   <div className="flex items-center gap-2">
                     <Switch
                       checked={item.interacao.confirmado || false}
-                      onCheckedChange={() => handleConfirmar(item)}
+                      onCheckedChange={(checked) => handleConfirmar(item, checked)}
                       disabled={loading[item.interacao.id]}
                     />
                     <span className="text-sm">Confirmar Presença</span>
