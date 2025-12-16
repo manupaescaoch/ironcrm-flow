@@ -38,18 +38,18 @@ export function ExperimentaisHoje({ items, onRefresh, onReagendar }: Experimenta
   const [observations, setObservations] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
 
-  const handleMarcarPresenca = async (item: ExperimentalItem) => {
+  const handleMarcarPresenca = async (item: ExperimentalItem, checked: boolean) => {
     setLoading(prev => ({ ...prev, [item.interacao.id]: true }));
     
     const { error } = await supabase
       .from('interacoes')
-      .update({ compareceu: true })
+      .update({ compareceu: checked })
       .eq('id', item.interacao.id);
 
     if (error) {
-      toast({ title: 'Erro ao marcar presença', variant: 'destructive' });
+      toast({ title: 'Erro ao atualizar presença', variant: 'destructive' });
     } else {
-      toast({ title: 'Presença marcada!' });
+      toast({ title: checked ? 'Presença marcada!' : 'Presença desmarcada!' });
       onRefresh();
     }
     
@@ -158,7 +158,7 @@ export function ExperimentaisHoje({ items, onRefresh, onReagendar }: Experimenta
                   <div className="flex items-center gap-2">
                     <Switch
                       checked={item.interacao.compareceu || false}
-                      onCheckedChange={() => handleMarcarPresenca(item)}
+                      onCheckedChange={(checked) => handleMarcarPresenca(item, checked)}
                       disabled={loading[item.interacao.id]}
                     />
                     <span className="text-sm">Marcar Presença</span>
