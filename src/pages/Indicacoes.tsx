@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,11 +9,16 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { format, startOfMonth, endOfMonth, subMonths, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, Users, Gift, Info, BarChart3 } from 'lucide-react';
+import { CalendarIcon, Users, Gift, Info, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Helmet } from 'react-helmet';
+import { useToast } from '@/hooks/use-toast';
 
 type PeriodFilter = 'all' | 'current_month' | 'previous_month' | 'custom';
 
@@ -33,6 +38,15 @@ export default function Indicacoes() {
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>(endOfMonth(new Date()));
   const [startOpen, setStartOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
+  
+  // Edit/Delete state
+  const [editingIndicacao, setEditingIndicacao] = useState<Indicacao | null>(null);
+  const [deletingIndicacao, setDeletingIndicacao] = useState<Indicacao | null>(null);
+  const [editQuemIndicou, setEditQuemIndicou] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Calculate date range based on filter
   const dateRange = useMemo(() => {
@@ -137,6 +151,77 @@ export default function Indicacoes() {
       .sort((a, b) => b[1].total - a[1].total)
       .slice(0, 5);
   }, [indicacoes]);
+
+  // Edit handler
+  const handleEdit = (indicacao: Indicacao) => {
+    setEditingIndicacao(indicacao);
+    setEditQuemIndicou(indicacao.quem_indicou);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingIndicacao || !editQuemIndicou.trim()) return;
+    
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('interacoes')
+        .update({ quem_indicou: editQuemIndicou.trim().toUpperCase() })
+        .eq('id', editingIndicacao.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Indicação atualizada',
+        description: 'O nome do indicador foi atualizado com sucesso.',
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['indicacoes-periodo'] });
+      queryClient.invalidateQueries({ queryKey: ['indicacoes-total'] });
+      setEditingIndicacao(null);
+    } catch (error) {
+      console.error('Error updating indicação:', error);
+      toast({
+        title: 'Erro ao atualizar',
+        description: 'Não foi possível atualizar a indicação.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Delete handler
+  const handleDelete = async () => {
+    if (!deletingIndicacao) return;
+    
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('interacoes')
+        .update({ quem_indicou: null })
+        .eq('id', deletingIndicacao.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Indicação removida',
+        description: 'A indicação foi removida com sucesso.',
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['indicacoes-periodo'] });
+      queryClient.invalidateQueries({ queryKey: ['indicacoes-total'] });
+      setDeletingIndicacao(null);
+    } catch (error) {
+      console.error('Error deleting indicação:', error);
+      toast({
+        title: 'Erro ao remover',
+        description: 'Não foi possível remover a indicação.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <Layout>
@@ -358,6 +443,7 @@ export default function Indicacoes() {
                     <TableHead>Data da Interação</TableHead>
                     <TableHead>Data da Matrícula</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -379,6 +465,24 @@ export default function Indicacoes() {
                           {indicacao.fechou_matricula ? 'Confirmada' : 'Pendente'}
                         </Badge>
                       </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(indicacao)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeletingIndicacao(indicacao)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -387,6 +491,57 @@ export default function Indicacoes() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Modal */}
+      <Dialog open={!!editingIndicacao} onOpenChange={(open) => !open && setEditingIndicacao(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Indicação</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Aluno Indicado</Label>
+              <Input value={editingIndicacao?.lead_nome || ''} disabled />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="quem_indicou">Quem Indicou</Label>
+              <Input
+                id="quem_indicou"
+                value={editQuemIndicou}
+                onChange={(e) => setEditQuemIndicou(e.target.value)}
+                placeholder="Nome de quem indicou"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingIndicacao(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={isSubmitting}>
+              {isSubmitting ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deletingIndicacao} onOpenChange={(open) => !open && setDeletingIndicacao(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover Indicação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover a indicação de "{deletingIndicacao?.quem_indicou}" para o aluno "{deletingIndicacao?.lead_nome}"?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={isSubmitting}>
+              {isSubmitting ? 'Removendo...' : 'Remover'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
