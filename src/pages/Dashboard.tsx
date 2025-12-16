@@ -387,45 +387,66 @@ export default function Dashboard() {
   }, [startDate, endDate]);
 
   const fetchFollowUp = useCallback(async () => {
-    // Fetch leads in follow_up status with their experimental interactions
+    // Fetch all interacoes where compareceu = true and fechou_matricula is not true
+    // This captures all leads that attended experimental but haven't closed
     const { data: followUpData } = await supabase
-      .from('leads')
+      .from('interacoes')
       .select(`
-        *,
-        interacoes (
+        id,
+        lead_id,
+        tipo,
+        descricao,
+        data_interacao,
+        created_at,
+        created_by,
+        atendido_por,
+        atendido_por_tipo,
+        agendou_experimental,
+        data_experimental,
+        hora_experimental,
+        compareceu,
+        confirmado,
+        reagendou,
+        fechou_matricula,
+        plano_escolhido,
+        valor_plano,
+        comissao_comercial,
+        comissao_recepcao,
+        comissao_cadastrador,
+        cadastrado_por,
+        data_fechamento,
+        responsavel_fechamento,
+        treinador_responsavel,
+        treinador_experimental,
+        origem_fechamento,
+        quem_agendou,
+        tipo_atendimento,
+        leads (
           id,
-          lead_id,
-          tipo,
-          descricao,
-          data_interacao,
-          created_at,
-          created_by,
-          atendido_por,
-          atendido_por_tipo,
-          agendou_experimental,
-          data_experimental,
-          hora_experimental,
-          compareceu,
-          confirmado,
-          reagendou,
-          fechou_matricula,
+          nome,
+          email,
+          telefone,
+          origem,
+          status_funil,
           plano_escolhido,
-          valor_plano,
-          comissao_comercial,
-          comissao_recepcao,
-          comissao_cadastrador,
+          data_aula_experimental,
+          hora_aula_experimental,
+          observacoes,
+          atendido_por,
           cadastrado_por,
-          data_fechamento,
-          responsavel_fechamento,
-          treinador_responsavel,
-          treinador_experimental,
-          origem_fechamento,
-          quem_agendou,
-          tipo_atendimento
+          ativo,
+          user_id,
+          created_by,
+          created_at,
+          updated_at,
+          follow_up_whatsapp_enviado,
+          follow_up_enviado_em,
+          follow_up_responsavel
         )
       `)
-      .eq('status_funil', 'follow_up')
-      .eq('ativo', true);
+      .eq('compareceu', true)
+      .eq('agendou_experimental', true)
+      .order('data_experimental', { ascending: false });
 
     if (!followUpData || followUpData.length === 0) {
       setFollowUpItems([]);
@@ -433,74 +454,91 @@ export default function Dashboard() {
     }
 
     const items: ExperimentalItem[] = [];
+    const seenLeadIds = new Set<string>();
     
-    followUpData.forEach((leadData: any) => {
+    followUpData.forEach((interacaoData: any) => {
+      if (!interacaoData.leads) return;
+      // Ignorar leads inativos
+      if (interacaoData.leads.ativo === false) return;
+      // Skip if lead already has fechou_matricula in any interacao
+      if (interacaoData.fechou_matricula === true) return;
+      // Skip duplicates (show only the most recent experimental per lead)
+      if (seenLeadIds.has(interacaoData.lead_id)) return;
+      seenLeadIds.add(interacaoData.lead_id);
+
       const lead: Lead = {
-        id: leadData.id,
-        nome: leadData.nome,
-        email: leadData.email,
-        telefone: leadData.telefone,
-        origem: leadData.origem,
-        status_funil: leadData.status_funil,
-        plano_escolhido: leadData.plano_escolhido,
-        data_aula_experimental: leadData.data_aula_experimental,
-        hora_aula_experimental: leadData.hora_aula_experimental,
-        observacoes: leadData.observacoes,
-        atendido_por: leadData.atendido_por,
-        cadastrado_por: leadData.cadastrado_por,
-        ativo: leadData.ativo,
-        user_id: leadData.user_id,
-        created_by: leadData.created_by,
-        created_at: leadData.created_at,
-        updated_at: leadData.updated_at,
-        follow_up_whatsapp_enviado: leadData.follow_up_whatsapp_enviado || false,
-        follow_up_enviado_em: leadData.follow_up_enviado_em,
-        follow_up_responsavel: leadData.follow_up_responsavel,
+        id: interacaoData.leads.id,
+        nome: interacaoData.leads.nome,
+        email: interacaoData.leads.email,
+        telefone: interacaoData.leads.telefone,
+        origem: interacaoData.leads.origem,
+        status_funil: interacaoData.leads.status_funil,
+        plano_escolhido: interacaoData.leads.plano_escolhido,
+        data_aula_experimental: interacaoData.leads.data_aula_experimental,
+        hora_aula_experimental: interacaoData.leads.hora_aula_experimental,
+        observacoes: interacaoData.leads.observacoes,
+        atendido_por: interacaoData.leads.atendido_por,
+        cadastrado_por: interacaoData.leads.cadastrado_por,
+        ativo: interacaoData.leads.ativo,
+        user_id: interacaoData.leads.user_id,
+        created_by: interacaoData.leads.created_by,
+        created_at: interacaoData.leads.created_at,
+        updated_at: interacaoData.leads.updated_at,
+        follow_up_whatsapp_enviado: interacaoData.leads.follow_up_whatsapp_enviado || false,
+        follow_up_enviado_em: interacaoData.leads.follow_up_enviado_em,
+        follow_up_responsavel: interacaoData.leads.follow_up_responsavel,
       };
 
-      // Find the most recent experimental interaction
-      const experimentalInteracao = leadData.interacoes?.find(
-        (i: any) => i.agendou_experimental && i.compareceu === true
-      ) || leadData.interacoes?.[0];
-
-      if (experimentalInteracao) {
-        const interacao: Interacao = {
-          id: experimentalInteracao.id,
-          lead_id: experimentalInteracao.lead_id,
-          tipo: experimentalInteracao.tipo,
-          descricao: experimentalInteracao.descricao,
-          data_interacao: experimentalInteracao.data_interacao,
-          created_at: experimentalInteracao.created_at,
-          created_by: experimentalInteracao.created_by,
-          atendido_por: experimentalInteracao.atendido_por,
-          atendido_por_tipo: experimentalInteracao.atendido_por_tipo,
-          agendou_experimental: experimentalInteracao.agendou_experimental,
-          data_experimental: experimentalInteracao.data_experimental,
-          hora_experimental: experimentalInteracao.hora_experimental,
-          compareceu: experimentalInteracao.compareceu,
-          confirmado: experimentalInteracao.confirmado,
-          reagendou: experimentalInteracao.reagendou,
-          fechou_matricula: experimentalInteracao.fechou_matricula,
-          plano_escolhido: experimentalInteracao.plano_escolhido,
-          valor_plano: experimentalInteracao.valor_plano,
-          comissao_comercial: experimentalInteracao.comissao_comercial,
-          comissao_recepcao: experimentalInteracao.comissao_recepcao,
-          comissao_cadastrador: experimentalInteracao.comissao_cadastrador,
-          cadastrado_por: experimentalInteracao.cadastrado_por,
-          data_fechamento: experimentalInteracao.data_fechamento,
-          responsavel_fechamento: experimentalInteracao.responsavel_fechamento,
-          treinador_responsavel: experimentalInteracao.treinador_responsavel,
-          treinador_experimental: experimentalInteracao.treinador_experimental,
-          origem_fechamento: experimentalInteracao.origem_fechamento,
-          quem_agendou: experimentalInteracao.quem_agendou,
-          tipo_atendimento: experimentalInteracao.tipo_atendimento,
-        };
-        
-        items.push({ lead, interacao });
-      }
+      const interacao: Interacao = {
+        id: interacaoData.id,
+        lead_id: interacaoData.lead_id,
+        tipo: interacaoData.tipo,
+        descricao: interacaoData.descricao,
+        data_interacao: interacaoData.data_interacao,
+        created_at: interacaoData.created_at,
+        created_by: interacaoData.created_by,
+        atendido_por: interacaoData.atendido_por,
+        atendido_por_tipo: interacaoData.atendido_por_tipo,
+        agendou_experimental: interacaoData.agendou_experimental,
+        data_experimental: interacaoData.data_experimental,
+        hora_experimental: interacaoData.hora_experimental,
+        compareceu: interacaoData.compareceu,
+        confirmado: interacaoData.confirmado,
+        reagendou: interacaoData.reagendou,
+        fechou_matricula: interacaoData.fechou_matricula,
+        plano_escolhido: interacaoData.plano_escolhido,
+        valor_plano: interacaoData.valor_plano,
+        comissao_comercial: interacaoData.comissao_comercial,
+        comissao_recepcao: interacaoData.comissao_recepcao,
+        comissao_cadastrador: interacaoData.comissao_cadastrador,
+        cadastrado_por: interacaoData.cadastrado_por,
+        data_fechamento: interacaoData.data_fechamento,
+        responsavel_fechamento: interacaoData.responsavel_fechamento,
+        treinador_responsavel: interacaoData.treinador_responsavel,
+        treinador_experimental: interacaoData.treinador_experimental,
+        origem_fechamento: interacaoData.origem_fechamento,
+        quem_agendou: interacaoData.quem_agendou,
+        tipo_atendimento: interacaoData.tipo_atendimento,
+      };
+      
+      items.push({ lead, interacao });
     });
 
-    setFollowUpItems(items);
+    // Check if any of these leads have closed matricula in other interacoes
+    const leadIds = items.map(i => i.lead.id);
+    if (leadIds.length > 0) {
+      const { data: matriculasData } = await supabase
+        .from('interacoes')
+        .select('lead_id')
+        .in('lead_id', leadIds)
+        .eq('fechou_matricula', true);
+      
+      const closedLeadIds = new Set(matriculasData?.map((m: any) => m.lead_id) || []);
+      const filteredItems = items.filter(i => !closedLeadIds.has(i.lead.id));
+      setFollowUpItems(filteredItems);
+    } else {
+      setFollowUpItems(items);
+    }
   }, []);
 
   const fetchData = async () => {

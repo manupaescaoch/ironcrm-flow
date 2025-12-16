@@ -41,17 +41,32 @@ export function ExperimentaisHoje({ items, onRefresh, onReagendar }: Experimenta
   const handleMarcarPresenca = async (item: ExperimentalItem, checked: boolean) => {
     setLoading(prev => ({ ...prev, [item.interacao.id]: true }));
     
-    const { error } = await supabase
+    // Update interacao
+    const { error: interacaoError } = await supabase
       .from('interacoes')
       .update({ compareceu: checked })
       .eq('id', item.interacao.id);
 
-    if (error) {
+    if (interacaoError) {
       toast({ title: 'Erro ao atualizar presença', variant: 'destructive' });
-    } else {
-      toast({ title: checked ? 'Presença marcada!' : 'Presença desmarcada!' });
-      onRefresh();
+      setLoading(prev => ({ ...prev, [item.interacao.id]: false }));
+      return;
     }
+
+    // If marking as attended, update lead status to follow_up
+    if (checked) {
+      const { error: leadError } = await supabase
+        .from('leads')
+        .update({ status_funil: 'follow_up' })
+        .eq('id', item.lead.id);
+
+      if (leadError) {
+        console.error('Erro ao atualizar status do lead:', leadError);
+      }
+    }
+
+    toast({ title: checked ? 'Presença marcada! Lead movido para Follow Up.' : 'Presença desmarcada!' });
+    onRefresh();
     
     setLoading(prev => ({ ...prev, [item.interacao.id]: false }));
   };

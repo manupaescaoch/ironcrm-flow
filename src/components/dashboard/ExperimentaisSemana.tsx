@@ -51,17 +51,32 @@ export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, 
   const handleToggleCompareceu = async (item: ExperimentalItem, value: boolean) => {
     setLoading(prev => ({ ...prev, [item.interacao.id]: true }));
     
-    const { error } = await supabase
+    // Update interacao
+    const { error: interacaoError } = await supabase
       .from('interacoes')
       .update({ compareceu: value })
       .eq('id', item.interacao.id);
 
-    if (error) {
+    if (interacaoError) {
       toast({ title: 'Erro ao atualizar', variant: 'destructive' });
-    } else {
-      toast({ title: value ? 'Presença confirmada!' : 'Presença removida' });
-      onRefresh();
+      setLoading(prev => ({ ...prev, [item.interacao.id]: false }));
+      return;
     }
+
+    // If marking as attended, update lead status to follow_up
+    if (value) {
+      const { error: leadError } = await supabase
+        .from('leads')
+        .update({ status_funil: 'follow_up' })
+        .eq('id', item.lead.id);
+
+      if (leadError) {
+        console.error('Erro ao atualizar status do lead:', leadError);
+      }
+    }
+
+    toast({ title: value ? 'Presença confirmada! Lead movido para Follow Up.' : 'Presença removida' });
+    onRefresh();
     
     setLoading(prev => ({ ...prev, [item.interacao.id]: false }));
   };
