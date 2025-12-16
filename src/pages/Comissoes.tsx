@@ -19,10 +19,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Interacao } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, DollarSign, Users, TrendingUp, Calculator, Briefcase, UserCheck, Award, FileDown } from 'lucide-react';
+import { Loader2, DollarSign, Users, TrendingUp, Calculator, Briefcase, UserCheck, Award, FileDown, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -62,7 +69,9 @@ export default function Comissoes() {
   const [mes, setMes] = useState<string>((new Date().getMonth() + 1).toString());
   const [ano, setAno] = useState<string>(currentYear.toString());
   const [filterFuncionario, setFilterFuncionario] = useState<string>('');
+  const [selectedPerson, setSelectedPerson] = useState<{ name: string; type: 'cadastrador' | 'fechador' } | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (mes && ano) {
@@ -237,6 +246,27 @@ export default function Comissoes() {
     const totalBonus = bonusTreinadores.reduce((sum, t) => sum + t.bonusTotal, 0);
     return { totalMatriculas, totalBonus };
   }, [bonusTreinadores]);
+
+  // Leads for the selected person modal
+  const leadsForModal = useMemo(() => {
+    if (!selectedPerson) return [];
+    
+    return filteredInteracoes.filter((int) => {
+      if (selectedPerson.type === 'cadastrador') {
+        return (int as any).cadastrado_por === selectedPerson.name;
+      } else {
+        return int.responsavel_fechamento === selectedPerson.name;
+      }
+    });
+  }, [selectedPerson, filteredInteracoes]);
+
+  const handlePersonClick = (name: string, type: 'cadastrador' | 'fechador') => {
+    setSelectedPerson({ name, type });
+  };
+
+  const handleNavigateToLead = (leadId: string) => {
+    navigate(`/lead/${leadId}`);
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -557,8 +587,12 @@ export default function Comissoes() {
                       </TableHeader>
                       <TableBody>
                         {comissoesCadastrador.map((item, index) => (
-                          <TableRow key={index}>
-                            <TableCell className="font-medium">{item.responsavel}</TableCell>
+                          <TableRow 
+                            key={index} 
+                            className="cursor-pointer hover:bg-muted/80 transition-colors"
+                            onClick={() => handlePersonClick(item.responsavel, 'cadastrador')}
+                          >
+                            <TableCell className="font-medium text-green-700 underline underline-offset-2">{item.responsavel}</TableCell>
                             <TableCell className="text-center">{item.matriculas}</TableCell>
                             <TableCell className="text-right font-semibold text-green-600">
                               {formatCurrency(item.comissao)}
@@ -604,8 +638,12 @@ export default function Comissoes() {
                       </TableHeader>
                       <TableBody>
                         {comissoesFechador.map((item, index) => (
-                          <TableRow key={index}>
-                            <TableCell className="font-medium">{item.responsavel}</TableCell>
+                          <TableRow 
+                            key={index}
+                            className="cursor-pointer hover:bg-muted/80 transition-colors"
+                            onClick={() => handlePersonClick(item.responsavel, 'fechador')}
+                          >
+                            <TableCell className="font-medium text-amber-700 underline underline-offset-2">{item.responsavel}</TableCell>
                             <TableCell className="text-center">{item.matriculas}</TableCell>
                             <TableCell className="text-right font-semibold text-amber-600">
                               {formatCurrency(item.comissao)}
@@ -777,6 +815,54 @@ export default function Comissoes() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Modal de Leads por Pessoa */}
+            <Dialog open={!!selectedPerson} onOpenChange={() => setSelectedPerson(null)}>
+              <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>
+                    Leads de {selectedPerson?.name} ({selectedPerson?.type === 'cadastrador' ? 'Cadastrador' : 'Fechador'})
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="mt-4">
+                  {leadsForModal.length === 0 ? (
+                    <p className="text-center py-8 text-muted-foreground">Nenhum lead encontrado</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Lead</TableHead>
+                          <TableHead>Plano</TableHead>
+                          <TableHead className="text-right">Valor</TableHead>
+                          <TableHead>Data</TableHead>
+                          <TableHead className="text-center">Ação</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {leadsForModal.map((int) => (
+                          <TableRow key={int.id}>
+                            <TableCell className="font-medium">{int.lead_nome}</TableCell>
+                            <TableCell>{int.plano_escolhido || '-'}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(int.valor_plano || 0)}</TableCell>
+                            <TableCell>{formatDate(int.data_fechamento)}</TableCell>
+                            <TableCell className="text-center">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleNavigateToLead(int.lead_id)}
+                              >
+                                <ExternalLink className="w-4 h-4 mr-1" />
+                                Ver Lead
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
           </>
         )}
       </div>
