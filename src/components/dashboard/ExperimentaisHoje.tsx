@@ -4,14 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Calendar, Clock, Save, RefreshCw, MessageCircle, CheckCircle2 } from 'lucide-react';
+import { Calendar, Clock, Save, RefreshCw, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Lead, Interacao } from '@/types/database';
 import { normalizePhoneForWhatsApp } from '@/components/WhatsAppLink';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 
 interface ExperimentalItem {
   lead: Lead;
@@ -112,12 +111,7 @@ export function ExperimentaisHoje({ items, onRefresh, onReagendar }: Experimenta
           <Calendar className="w-5 h-5 text-primary" />
           Experimentais de Hoje
         </CardTitle>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-green-600 border-green-600">
-            {items.filter(i => i.interacao.compareceu).length} ✓
-          </Badge>
-          <Badge variant="secondary">{items.length} total</Badge>
-        </div>
+        <Badge variant="secondary">{items.length} pendentes</Badge>
       </CardHeader>
       <CardContent>
         {items.length === 0 ? (
@@ -129,22 +123,12 @@ export function ExperimentaisHoje({ items, onRefresh, onReagendar }: Experimenta
             {items.map((item) => (
               <div
                 key={item.interacao.id}
-                className={cn(
-                  "p-4 rounded-lg space-y-3 border-l-4 transition-colors",
-                  item.interacao.compareceu 
-                    ? "bg-green-50 dark:bg-green-950/30 border-l-green-500" 
-                    : "bg-muted/50 border-l-amber-500"
-                )}
+                className="p-4 bg-muted/50 rounded-lg space-y-3"
               >
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="flex items-center gap-2">
-                      {item.interacao.compareceu && (
-                        <CheckCircle2 className="w-4 h-4 text-green-600" />
-                      )}
-                      <p className={cn("font-medium", item.interacao.compareceu && "text-green-700 dark:text-green-400")}>
-                        {item.lead.nome}
-                      </p>
+                      <p className="font-medium">{item.lead.nome}</p>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -162,15 +146,9 @@ export function ExperimentaisHoje({ items, onRefresh, onReagendar }: Experimenta
                       <Clock className="w-4 h-4" />
                       {item.interacao.hora_experimental || '--:--'}
                     </div>
-                    {item.interacao.compareceu ? (
-                      <Badge className="mt-1 bg-green-100 text-green-700 border-green-300">
-                        Compareceu ✓
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="mt-1 border-amber-400 text-amber-600">
-                        Aguardando
-                      </Badge>
-                    )}
+                    <Badge variant="outline" className="mt-1">
+                      {statusLabels[item.lead.status_funil] || item.lead.status_funil}
+                    </Badge>
                   </div>
                 </div>
 

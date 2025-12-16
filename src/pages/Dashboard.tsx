@@ -257,11 +257,10 @@ export default function Dashboard() {
         detailedItems.push(experimentalItem);
       }
 
-      // Experimentais de hoje - sempre mostra independente do período
+      // Experimentais de hoje - só mostra quem ainda não compareceu
       if (interacao.data_experimental === today) {
-        todayItems.push(experimentalItem);
-        // Pendências são apenas as que ainda não compareceram
         if (interacao.compareceu !== true) {
+          todayItems.push(experimentalItem);
           pendenciasHojeItems.push(experimentalItem);
         }
       }
