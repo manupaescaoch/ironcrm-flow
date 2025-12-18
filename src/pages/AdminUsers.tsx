@@ -145,8 +145,24 @@ export default function AdminUsers() {
     setFetchError({ type: null, message: '' });
 
     try {
-      // supabase.functions.invoke automatically includes the session token
-      const { data, error } = await supabase.functions.invoke('list-users');
+      // Get fresh session to ensure token is available
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      if (!sessionData.session?.access_token) {
+        setFetchError({
+          type: 'unauthorized',
+          message: 'Sessão expirada. Faça login novamente.',
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Pass token explicitly to ensure it's included
+      const { data, error } = await supabase.functions.invoke('list-users', {
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      });
 
       // Handle invoke errors (network issues, function not found, etc.)
       if (error) {
@@ -217,6 +233,12 @@ export default function AdminUsers() {
 
     setCreating(true);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.access_token) {
+        toast({ title: 'Sessão expirada', description: 'Faça login novamente.', variant: 'destructive' });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('create-user', {
         body: { 
           name: newUserName.trim(),
@@ -225,6 +247,7 @@ export default function AdminUsers() {
           role: newUserRole,
           unidade_ids: newUserUnidades
         },
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
       });
 
       if (error) throw error;
@@ -260,8 +283,15 @@ export default function AdminUsers() {
   const handleRoleChange = async (userId: string, newRole: string) => {
     setUpdatingUserId(userId);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.access_token) {
+        toast({ title: 'Sessão expirada', description: 'Faça login novamente.', variant: 'destructive' });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('update-user-role', {
         body: { userId, role: newRole },
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
       });
 
       if (error) throw error;
@@ -294,8 +324,15 @@ export default function AdminUsers() {
 
     setDeletingUserId(userToDelete.id);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.access_token) {
+        toast({ title: 'Sessão expirada', description: 'Faça login novamente.', variant: 'destructive' });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('delete-user', {
         body: { userId: userToDelete.id },
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
       });
 
       if (error) throw error;
@@ -338,8 +375,15 @@ export default function AdminUsers() {
 
     setUpdatingName(true);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.access_token) {
+        toast({ title: 'Sessão expirada', description: 'Faça login novamente.', variant: 'destructive' });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('update-user-name', {
         body: { userId: editingUser.id, name: editName.trim() },
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
       });
 
       if (error) throw error;
@@ -383,8 +427,15 @@ export default function AdminUsers() {
 
     setUpdatingUnidades(true);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.access_token) {
+        toast({ title: 'Sessão expirada', description: 'Faça login novamente.', variant: 'destructive' });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('update-user-unidades', {
         body: { userId: editingUnidadesUser.id, unidade_ids: editUnidadeIds },
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
       });
 
       if (error) throw error;
