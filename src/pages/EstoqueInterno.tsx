@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { HistoricoMovimentacoes } from '@/components/estoque/HistoricoMovimentacoes';
+import { RelatorioConsumo } from '@/components/estoque/RelatorioConsumo';
 
 const CATEGORIAS = ['Limpeza', 'Café', 'Suplementação Interna', 'Operacional', 'Administrativo'] as const;
 const UNIDADES = ['un', 'litro', 'kg', 'pacote', 'caixa'] as const;
@@ -457,6 +458,9 @@ export default function EstoqueInterno() {
 
         {/* Histórico de Movimentações */}
         <HistoricoMovimentacoes insumos={insumos} />
+
+        {/* Relatório de Consumo */}
+        <RelatorioConsumo insumos={insumos} />
 
         {/* Modal Movimentação */}
         <Dialog open={movimentacaoOpen} onOpenChange={setMovimentacaoOpen}>
