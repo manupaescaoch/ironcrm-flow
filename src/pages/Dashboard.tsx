@@ -562,7 +562,11 @@ export default function Dashboard() {
   }, [unidadeAtual]);
 
   const fetchData = useCallback(async () => {
-    if (!unidadeAtual || unidadeLoading) return;
+    if (unidadeLoading) return;
+    if (!unidadeAtual) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     await Promise.all([fetchStats(), fetchExperimentais(), fetchPeriodStats(), fetchMatriculas(), fetchFollowUp()]);
     setLoading(false);
