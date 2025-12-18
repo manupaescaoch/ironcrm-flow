@@ -20,6 +20,7 @@ export type Database = {
           id: string
           insumo_id: string
           quantidade_atual: number
+          unidade_id: string
           updated_at: string
         }
         Insert: {
@@ -27,6 +28,7 @@ export type Database = {
           id?: string
           insumo_id: string
           quantidade_atual?: number
+          unidade_id?: string
           updated_at?: string
         }
         Update: {
@@ -34,6 +36,7 @@ export type Database = {
           id?: string
           insumo_id?: string
           quantidade_atual?: number
+          unidade_id?: string
           updated_at?: string
         }
         Relationships: [
@@ -42,6 +45,13 @@ export type Database = {
             columns: ["insumo_id"]
             isOneToOne: true
             referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_interno_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -55,6 +65,7 @@ export type Database = {
           id: string
           nome_insumo: string
           quantidade_minima: number
+          unidade_id: string | null
           unidade_medida: string
           updated_at: string
         }
@@ -66,6 +77,7 @@ export type Database = {
           id?: string
           nome_insumo: string
           quantidade_minima?: number
+          unidade_id?: string | null
           unidade_medida: string
           updated_at?: string
         }
@@ -77,10 +89,19 @@ export type Database = {
           id?: string
           nome_insumo?: string
           quantidade_minima?: number
+          unidade_id?: string | null
           unidade_medida?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "insumos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       interacoes: {
         Row: {
@@ -113,6 +134,7 @@ export type Database = {
           tipo_atendimento: string | null
           treinador_experimental: string | null
           treinador_responsavel: string | null
+          unidade_id: string
           valor_plano: number | null
         }
         Insert: {
@@ -145,6 +167,7 @@ export type Database = {
           tipo_atendimento?: string | null
           treinador_experimental?: string | null
           treinador_responsavel?: string | null
+          unidade_id?: string
           valor_plano?: number | null
         }
         Update: {
@@ -177,6 +200,7 @@ export type Database = {
           tipo_atendimento?: string | null
           treinador_experimental?: string | null
           treinador_responsavel?: string | null
+          unidade_id?: string
           valor_plano?: number | null
         }
         Relationships: [
@@ -185,6 +209,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interacoes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -209,6 +240,7 @@ export type Database = {
           plano_escolhido: string | null
           status_funil: string
           telefone: string | null
+          unidade_id: string
           updated_at: string
           user_id: string | null
         }
@@ -231,6 +263,7 @@ export type Database = {
           plano_escolhido?: string | null
           status_funil?: string
           telefone?: string | null
+          unidade_id?: string
           updated_at?: string
           user_id?: string | null
         }
@@ -253,10 +286,19 @@ export type Database = {
           plano_escolhido?: string | null
           status_funil?: string
           telefone?: string | null
+          unidade_id?: string
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "leads_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       movimentacoes_estoque: {
         Row: {
@@ -269,6 +311,7 @@ export type Database = {
           responsavel: string
           setor: string | null
           tipo: string
+          unidade_id: string
         }
         Insert: {
           created_at?: string
@@ -280,6 +323,7 @@ export type Database = {
           responsavel: string
           setor?: string | null
           tipo: string
+          unidade_id?: string
         }
         Update: {
           created_at?: string
@@ -291,6 +335,7 @@ export type Database = {
           responsavel?: string
           setor?: string | null
           tipo?: string
+          unidade_id?: string
         }
         Relationships: [
           {
@@ -298,6 +343,13 @@ export type Database = {
             columns: ["insumo_id"]
             isOneToOne: false
             referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_estoque_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -320,6 +372,7 @@ export type Database = {
           tempo_medio_vida: number
           ticket_medio: number
           total_a_vencer: number | null
+          unidade_id: string
           updated_at: string
           vip: number
         }
@@ -340,6 +393,7 @@ export type Database = {
           tempo_medio_vida?: number
           ticket_medio?: number
           total_a_vencer?: number | null
+          unidade_id?: string
           updated_at?: string
           vip?: number
         }
@@ -360,10 +414,19 @@ export type Database = {
           tempo_medio_vida?: number
           ticket_medio?: number
           total_a_vencer?: number | null
+          unidade_id?: string
           updated_at?: string
           vip?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "relatorio_gerencial_zn_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       unidades: {
         Row: {
