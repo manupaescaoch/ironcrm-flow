@@ -10,7 +10,6 @@ import { format, isSameDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface ExperimentalItem {
   lead: Lead;
@@ -27,7 +26,6 @@ interface ExperimentaisSemanaProps {
 
 export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, endDate }: ExperimentaisSemanaProps) {
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
 
@@ -234,30 +232,28 @@ export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, 
                                   </div>
                                 )}
                                 
-                                {/* Admin controls */}
-                                {isAdmin && (
-                                  <div className="flex items-center justify-between pt-2 border-t border-muted">
-                                    <div className="flex items-center gap-3">
-                                      <div className="flex items-center gap-2">
-                                        <Switch
-                                          checked={item.interacao.compareceu || false}
-                                          onCheckedChange={(value) => handleToggleCompareceu(item, value)}
-                                          disabled={loading[item.interacao.id]}
-                                        />
-                                        <span className="text-sm font-medium">Compareceu</span>
-                                      </div>
+                                {/* Marcar presença */}
+                                <div className="flex items-center justify-between pt-2 border-t border-muted">
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2">
+                                      <Switch
+                                        checked={item.interacao.compareceu || false}
+                                        onCheckedChange={(value) => handleToggleCompareceu(item, value)}
+                                        disabled={loading[item.interacao.id]}
+                                      />
+                                      <span className="text-sm font-medium">Compareceu</span>
                                     </div>
-                                    
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => onReagendar(item)}
-                                    >
-                                      <RefreshCw className="w-4 h-4 mr-1" />
-                                      Reagendar
-                                    </Button>
                                   </div>
-                                )}
+
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => onReagendar(item)}
+                                  >
+                                    <RefreshCw className="w-4 h-4 mr-1" />
+                                    Reagendar
+                                  </Button>
+                                </div>
                               </div>
                             )}
                           </div>
