@@ -145,35 +145,8 @@ export default function AdminUsers() {
     setFetchError({ type: null, message: '' });
 
     try {
-      // First, try to refresh the session to ensure we have a valid token
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !sessionData.session) {
-        console.log('No valid session found');
-        setFetchError({
-          type: 'unauthorized',
-          message: 'Sessão expirada. Faça login novamente.',
-        });
-        setLoading(false);
-        return;
-      }
-
-      const accessToken = sessionData.session.access_token;
-
-      if (!accessToken) {
-        setFetchError({
-          type: 'unauthorized',
-          message: 'Acesso não autorizado. Faça login novamente.',
-        });
-        setLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase.functions.invoke('list-users', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      // supabase.functions.invoke automatically includes the session token
+      const { data, error } = await supabase.functions.invoke('list-users');
 
       // Handle invoke errors (network issues, function not found, etc.)
       if (error) {
@@ -244,8 +217,6 @@ export default function AdminUsers() {
 
     setCreating(true);
     try {
-      const accessToken = session?.access_token;
-
       const { data, error } = await supabase.functions.invoke('create-user', {
         body: { 
           name: newUserName.trim(),
@@ -253,9 +224,6 @@ export default function AdminUsers() {
           password: newUserPassword,
           role: newUserRole,
           unidade_ids: newUserUnidades
-        },
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
         },
       });
 
@@ -292,13 +260,8 @@ export default function AdminUsers() {
   const handleRoleChange = async (userId: string, newRole: string) => {
     setUpdatingUserId(userId);
     try {
-      const accessToken = session?.access_token;
-
       const { data, error } = await supabase.functions.invoke('update-user-role', {
         body: { userId, role: newRole },
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
       });
 
       if (error) throw error;
@@ -331,13 +294,8 @@ export default function AdminUsers() {
 
     setDeletingUserId(userToDelete.id);
     try {
-      const accessToken = session?.access_token;
-
       const { data, error } = await supabase.functions.invoke('delete-user', {
         body: { userId: userToDelete.id },
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
       });
 
       if (error) throw error;
@@ -380,13 +338,8 @@ export default function AdminUsers() {
 
     setUpdatingName(true);
     try {
-      const accessToken = session?.access_token;
-
       const { data, error } = await supabase.functions.invoke('update-user-name', {
         body: { userId: editingUser.id, name: editName.trim() },
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
       });
 
       if (error) throw error;
@@ -430,13 +383,8 @@ export default function AdminUsers() {
 
     setUpdatingUnidades(true);
     try {
-      const accessToken = session?.access_token;
-
       const { data, error } = await supabase.functions.invoke('update-user-unidades', {
         body: { userId: editingUnidadesUser.id, unidade_ids: editUnidadeIds },
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
       });
 
       if (error) throw error;
