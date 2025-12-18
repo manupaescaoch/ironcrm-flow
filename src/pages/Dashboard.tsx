@@ -728,7 +728,8 @@ export default function Dashboard() {
               <CalendarCheck className="w-5 h-5 text-sky-500" />
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-sky-600">{stats.aulasAgendadas}</p>
+              <p className="text-3xl font-bold text-sky-600">{periodStats.experimentaisPeriodo}</p>
+              <p className="text-xs text-muted-foreground mt-1">No período</p>
             </CardContent>
           </Card>
 
