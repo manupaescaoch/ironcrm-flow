@@ -98,7 +98,7 @@ export default function Comissoes() {
     // Fetch interacoes with fechou_matricula = true and data_fechamento in the range
     const { data: interacoesData, error: interacoesError } = await supabase
       .from('interacoes')
-      .select('*, leads(nome)')
+      .select('*, leads(nome, cadastrado_por)')
       .eq('fechou_matricula', true)
       .eq('unidade_id', unidadeAtual.id)
       .gte('data_fechamento', startDateStr)
@@ -115,6 +115,7 @@ export default function Comissoes() {
     const mappedData: InteracaoComLead[] = (interacoesData || []).map((int: any) => ({
       ...int,
       lead_nome: int.leads?.nome || 'Lead não encontrado',
+      lead_cadastrado_por: int.leads?.cadastrado_por || null,
     }));
 
     setInteracoes(mappedData);
@@ -161,8 +162,8 @@ export default function Comissoes() {
       const comissao = int.comissao_comercial || 0;
       if (comissao <= 0) return;
 
-      // Use cadastrado_por from the interaction (copied from lead)
-      const cadastrador = (int as any).cadastrado_por || 'Não informado';
+      // Use cadastrado_por from the LEAD (who originally registered the lead in the system)
+      const cadastrador = (int as any).lead_cadastrado_por || 'Não informado';
       
       const current = grouped.get(cadastrador) || { matriculas: 0, comissao: 0 };
       grouped.set(cadastrador, {
