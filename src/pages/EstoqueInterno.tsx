@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Package, AlertTriangle, AlertCircle, Clock, Plus, Minus, Settings, PackagePlus } from 'lucide-react';
+import { Package, AlertTriangle, AlertCircle, Clock, Plus, Minus, Settings, PackagePlus, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -67,12 +67,22 @@ export default function EstoqueInterno() {
   const queryClient = useQueryClient();
   
   const [novoInsumoOpen, setNovoInsumoOpen] = useState(false);
+  const [editarInsumoOpen, setEditarInsumoOpen] = useState(false);
   const [movimentacaoOpen, setMovimentacaoOpen] = useState(false);
   const [selectedInsumo, setSelectedInsumo] = useState<Insumo | null>(null);
   const [tipoMovimentacao, setTipoMovimentacao] = useState<'entrada' | 'retirada' | 'ajuste'>('entrada');
   
   // Form states
   const [novoInsumo, setNovoInsumo] = useState({
+    codigo_insumo: '',
+    nome_insumo: '',
+    categoria: '',
+    unidade_medida: '',
+    quantidade_minima: 0,
+  });
+  
+  const [editInsumo, setEditInsumo] = useState({
+    id: '',
     codigo_insumo: '',
     nome_insumo: '',
     categoria: '',
@@ -173,7 +183,11 @@ export default function EstoqueInterno() {
   // Mutations
   const criarInsumoMutation = useMutation({
     mutationFn: async (data: typeof novoInsumo) => {
-      const { error } = await supabase.from('insumos').insert(data);
+      const { error } = await supabase.from('insumos').insert({
+        ...data,
+        codigo_insumo: data.codigo_insumo.toUpperCase(),
+        nome_insumo: data.nome_insumo.toUpperCase(),
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -184,6 +198,27 @@ export default function EstoqueInterno() {
     },
     onError: (error: Error) => {
       toast({ title: 'Erro ao cadastrar insumo', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const editarInsumoMutation = useMutation({
+    mutationFn: async (data: typeof editInsumo) => {
+      const { error } = await supabase.from('insumos').update({
+        codigo_insumo: data.codigo_insumo.toUpperCase(),
+        nome_insumo: data.nome_insumo.toUpperCase(),
+        categoria: data.categoria,
+        unidade_medida: data.unidade_medida,
+        quantidade_minima: data.quantidade_minima,
+      }).eq('id', data.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['insumos'] });
+      setEditarInsumoOpen(false);
+      toast({ title: 'Insumo atualizado com sucesso!' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao atualizar insumo', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -211,6 +246,26 @@ export default function EstoqueInterno() {
       return;
     }
     criarInsumoMutation.mutate(novoInsumo);
+  };
+
+  const handleEditarInsumo = () => {
+    if (!editInsumo.codigo_insumo || !editInsumo.nome_insumo || !editInsumo.categoria || !editInsumo.unidade_medida) {
+      toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
+      return;
+    }
+    editarInsumoMutation.mutate(editInsumo);
+  };
+
+  const openEditarInsumo = (insumo: Insumo) => {
+    setEditInsumo({
+      id: insumo.id,
+      codigo_insumo: insumo.codigo_insumo,
+      nome_insumo: insumo.nome_insumo,
+      categoria: insumo.categoria,
+      unidade_medida: insumo.unidade_medida,
+      quantidade_minima: insumo.quantidade_minima,
+    });
+    setEditarInsumoOpen(true);
   };
 
   const handleRegistrarMovimentacao = () => {
@@ -272,7 +327,7 @@ export default function EstoqueInterno() {
                       <Label>Código *</Label>
                       <Input 
                         value={novoInsumo.codigo_insumo} 
-                        onChange={e => setNovoInsumo(p => ({ ...p, codigo_insumo: e.target.value }))}
+                        onChange={e => setNovoInsumo(p => ({ ...p, codigo_insumo: e.target.value.toUpperCase() }))}
                         placeholder="Ex: LIM001"
                       />
                     </div>
@@ -280,8 +335,8 @@ export default function EstoqueInterno() {
                       <Label>Nome *</Label>
                       <Input 
                         value={novoInsumo.nome_insumo} 
-                        onChange={e => setNovoInsumo(p => ({ ...p, nome_insumo: e.target.value }))}
-                        placeholder="Ex: Desinfetante"
+                        onChange={e => setNovoInsumo(p => ({ ...p, nome_insumo: e.target.value.toUpperCase() }))}
+                        placeholder="Ex: DESINFETANTE"
                       />
                     </div>
                   </div>
@@ -441,9 +496,14 @@ export default function EstoqueInterno() {
                               <Minus className="h-4 w-4 text-destructive" />
                             </Button>
                             {isAdmin && (
-                              <Button size="icon" variant="outline" onClick={() => openMovimentacao(item, 'ajuste')} title="Ajuste">
-                                <Settings className="h-4 w-4" />
-                              </Button>
+                              <>
+                                <Button size="icon" variant="outline" onClick={() => openMovimentacao(item, 'ajuste')} title="Ajuste">
+                                  <Settings className="h-4 w-4" />
+                                </Button>
+                                <Button size="icon" variant="outline" onClick={() => openEditarInsumo(item)} title="Editar">
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </>
                             )}
                           </div>
                         </TableCell>
@@ -519,6 +579,64 @@ export default function EstoqueInterno() {
                 </Button>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal Editar Insumo */}
+        <Dialog open={editarInsumoOpen} onOpenChange={setEditarInsumoOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Insumo</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Código *</Label>
+                  <Input 
+                    value={editInsumo.codigo_insumo} 
+                    onChange={e => setEditInsumo(p => ({ ...p, codigo_insumo: e.target.value.toUpperCase() }))}
+                  />
+                </div>
+                <div>
+                  <Label>Nome *</Label>
+                  <Input 
+                    value={editInsumo.nome_insumo} 
+                    onChange={e => setEditInsumo(p => ({ ...p, nome_insumo: e.target.value.toUpperCase() }))}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Categoria *</Label>
+                  <Select value={editInsumo.categoria} onValueChange={v => setEditInsumo(p => ({ ...p, categoria: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIAS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Unidade *</Label>
+                  <Select value={editInsumo.unidade_medida} onValueChange={v => setEditInsumo(p => ({ ...p, unidade_medida: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      {UNIDADES.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label>Quantidade Mínima</Label>
+                <Input 
+                  type="number" 
+                  value={editInsumo.quantidade_minima} 
+                  onChange={e => setEditInsumo(p => ({ ...p, quantidade_minima: parseInt(e.target.value) || 0 }))}
+                />
+              </div>
+              <Button onClick={handleEditarInsumo} className="w-full" disabled={editarInsumoMutation.isPending}>
+                {editarInsumoMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
