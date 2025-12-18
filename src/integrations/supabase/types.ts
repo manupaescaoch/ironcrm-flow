@@ -14,6 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
+      estoque_interno: {
+        Row: {
+          created_at: string
+          id: string
+          insumo_id: string
+          quantidade_atual: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          insumo_id: string
+          quantidade_atual?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          insumo_id?: string
+          quantidade_atual?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_interno_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: true
+            referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      insumos: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          codigo_insumo: string
+          created_at: string
+          id: string
+          nome_insumo: string
+          quantidade_minima: number
+          unidade_medida: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria: string
+          codigo_insumo: string
+          created_at?: string
+          id?: string
+          nome_insumo: string
+          quantidade_minima?: number
+          unidade_medida: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          codigo_insumo?: string
+          created_at?: string
+          id?: string
+          nome_insumo?: string
+          quantidade_minima?: number
+          unidade_medida?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       interacoes: {
         Row: {
           agendou_experimental: boolean | null
@@ -189,6 +257,50 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      movimentacoes_estoque: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          insumo_id: string
+          observacao: string | null
+          quantidade: number
+          responsavel: string
+          setor: string | null
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          insumo_id: string
+          observacao?: string | null
+          quantidade: number
+          responsavel: string
+          setor?: string | null
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          insumo_id?: string
+          observacao?: string | null
+          quantidade?: number
+          responsavel?: string
+          setor?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacoes_estoque_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "insumos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       relatorio_gerencial_zn: {
         Row: {
