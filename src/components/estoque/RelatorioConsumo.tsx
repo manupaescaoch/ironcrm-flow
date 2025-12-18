@@ -28,11 +28,11 @@ interface RelatorioConsumoProps {
 }
 
 const CORES_CATEGORIAS: Record<string, string> = {
-  'Limpeza': 'hsl(var(--chart-1))',
-  'Café': 'hsl(var(--chart-2))',
-  'Suplementação Interna': 'hsl(var(--chart-3))',
-  'Operacional': 'hsl(var(--chart-4))',
-  'Administrativo': 'hsl(var(--chart-5))',
+  'Copa e Recepção': 'hsl(var(--chart-1))',
+  'Suplementos (uso interno)': 'hsl(var(--chart-2))',
+  'Limpeza': 'hsl(var(--chart-3))',
+  'Descartáveis': 'hsl(var(--chart-4))',
+  'Higiene Pessoal': 'hsl(var(--chart-5))',
 };
 
 const CORES_ARRAY = [
@@ -69,11 +69,11 @@ export function RelatorioConsumo({ insumos }: RelatorioConsumoProps) {
       const mes = subMonths(new Date(), i);
       const chave = format(mes, 'yyyy-MM');
       meses[chave] = {
+        'Copa e Recepção': 0,
+        'Suplementos (uso interno)': 0,
         'Limpeza': 0,
-        'Café': 0,
-        'Suplementação Interna': 0,
-        'Operacional': 0,
-        'Administrativo': 0,
+        'Descartáveis': 0,
+        'Higiene Pessoal': 0,
       };
     }
 
@@ -219,11 +219,11 @@ export function RelatorioConsumo({ insumos }: RelatorioConsumoProps) {
                     }} 
                   />
                   <Legend />
+                  <Line type="monotone" dataKey="Copa e Recepção" stroke={CORES_CATEGORIAS['Copa e Recepção']} strokeWidth={2} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="Suplementos (uso interno)" stroke={CORES_CATEGORIAS['Suplementos (uso interno)']} strokeWidth={2} dot={{ r: 4 }} />
                   <Line type="monotone" dataKey="Limpeza" stroke={CORES_CATEGORIAS['Limpeza']} strokeWidth={2} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="Café" stroke={CORES_CATEGORIAS['Café']} strokeWidth={2} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="Suplementação Interna" stroke={CORES_CATEGORIAS['Suplementação Interna']} strokeWidth={2} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="Operacional" stroke={CORES_CATEGORIAS['Operacional']} strokeWidth={2} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="Administrativo" stroke={CORES_CATEGORIAS['Administrativo']} strokeWidth={2} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="Descartáveis" stroke={CORES_CATEGORIAS['Descartáveis']} strokeWidth={2} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="Higiene Pessoal" stroke={CORES_CATEGORIAS['Higiene Pessoal']} strokeWidth={2} dot={{ r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
