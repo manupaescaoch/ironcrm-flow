@@ -16,6 +16,7 @@ import RelatorioGerencialZN from "./pages/RelatorioGerencialZN";
 import Indicacoes from "./pages/Indicacoes";
 import AdminUsers from "./pages/AdminUsers";
 import Backups from "./pages/Backups";
+import EstoqueInterno from "./pages/EstoqueInterno";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -177,6 +178,14 @@ const AppRoutes = () => (
         <AdminRoute>
           <Backups />
         </AdminRoute>
+      }
+    />
+    <Route
+      path="/estoque"
+      element={
+        <ProtectedRoute>
+          <EstoqueInterno />
+        </ProtectedRoute>
       }
     />
     <Route path="*" element={<NotFound />} />
