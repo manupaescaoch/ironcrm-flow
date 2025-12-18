@@ -668,19 +668,22 @@ export default function Dashboard() {
     }).format(value);
   };
 
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-full">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-        </div>
-      </Layout>
-    );
-  }
-
   return (
     <Layout>
       <div className="p-8">
+        {(loading || unidadeLoading) && (
+          <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Carregando experimentais, confirmações e pendências…</span>
+          </div>
+        )}
+
+        {!unidadeAtual && !unidadeLoading && (
+          <div className="mb-6 rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+            Nenhuma unidade selecionada. Selecione uma unidade no menu lateral para ver os dados.
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <DateRangeFilter
