@@ -19,7 +19,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { HistoricoMovimentacoes } from '@/components/estoque/HistoricoMovimentacoes';
-import { RelatorioConsumo } from '@/components/estoque/RelatorioConsumo';
 import { useUnidade } from '@/contexts/UnidadeContext';
 
 const CATEGORIAS = ['Copa e Recepção', 'Suplementos (uso interno)', 'Limpeza', 'Descartáveis', 'Higiene Pessoal'] as const;
@@ -769,9 +768,6 @@ export default function EstoqueInterno() {
 
         {/* Histórico de Movimentações */}
         <HistoricoMovimentacoes insumos={insumos} />
-
-        {/* Relatório de Consumo */}
-        <RelatorioConsumo insumos={insumos} />
 
         {/* Modal Movimentação */}
         <Dialog open={movimentacaoOpen} onOpenChange={setMovimentacaoOpen}>
