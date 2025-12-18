@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUnidade } from '@/contexts/UnidadeContext';
 import { Lead, Interacao } from '@/types/database';
 import { Users, UserPlus, CalendarCheck, Loader2, Calendar, Award, Eye, ChevronDown, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -71,6 +72,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
+  const { unidadeAtual, loading: unidadeLoading } = useUnidade();
   
   const [stats, setStats] = useState<Stats>({ total: 0, novos: 0, aulasAgendadas: 0 });
   const [periodStats, setPeriodStats] = useState<PeriodStats>({ experimentaisPeriodo: 0, matriculasPeriodo: 0 });
@@ -110,11 +112,16 @@ export default function Dashboard() {
   const today = format(new Date(), 'yyyy-MM-dd');
   const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd');
 
-  const fetchStats = async () => {
-    const { data: leads } = await supabase
+  const fetchStats = useCallback(async () => {
+    if (!unidadeAtual) return;
+    
+    let query = supabase
       .from('leads')
       .select('*')
-      .eq('ativo', true);
+      .eq('ativo', true)
+      .eq('unidade_id', unidadeAtual.id);
+
+    const { data: leads } = await query;
 
     if (leads) {
       const typedLeads = leads as unknown as Lead[];
@@ -124,9 +131,11 @@ export default function Dashboard() {
         aulasAgendadas: typedLeads.filter(l => l.status_funil === 'aula_agendada').length,
       });
     }
-  };
+  }, [unidadeAtual]);
 
   const fetchPeriodStats = useCallback(async () => {
+    if (!unidadeAtual) return;
+    
     const startDateStr = format(startDate, 'yyyy-MM-dd');
     const endDateStr = format(endDate, 'yyyy-MM-dd');
 
@@ -135,6 +144,7 @@ export default function Dashboard() {
       .from('interacoes')
       .select('*', { count: 'exact', head: true })
       .eq('agendou_experimental', true)
+      .eq('unidade_id', unidadeAtual.id)
       .gte('data_experimental', startDateStr)
       .lte('data_experimental', endDateStr);
 
@@ -143,6 +153,7 @@ export default function Dashboard() {
       .from('interacoes')
       .select('*', { count: 'exact', head: true })
       .eq('fechou_matricula', true)
+      .eq('unidade_id', unidadeAtual.id)
       .gte('data_fechamento', startDateStr)
       .lte('data_fechamento', endDateStr);
 
@@ -150,9 +161,11 @@ export default function Dashboard() {
       experimentaisPeriodo: experimentaisCount || 0,
       matriculasPeriodo: matriculasCount || 0,
     });
-  }, [startDate, endDate]);
+  }, [startDate, endDate, unidadeAtual]);
 
   const fetchExperimentais = useCallback(async () => {
+    if (!unidadeAtual) return;
+    
     const startDateStr = format(startDate, 'yyyy-MM-dd');
     const endDateStr = format(endDate, 'yyyy-MM-dd');
 
@@ -185,6 +198,7 @@ export default function Dashboard() {
         )
       `)
       .eq('agendou_experimental', true)
+      .eq('unidade_id', unidadeAtual.id)
       .gte('data_experimental', minDate)
       .lte('data_experimental', maxDate)
       .order('data_experimental', { ascending: true })
@@ -279,9 +293,11 @@ export default function Dashboard() {
     setPendenciasAmanha(pendenciasAmanhaItems);
     setExperimentaisSemana(weekItems);
     setExperimentaisDetalhados(detailedItems);
-  }, [today, tomorrow, startDate, endDate]);
+  }, [today, tomorrow, startDate, endDate, unidadeAtual]);
 
   const fetchMatriculas = useCallback(async () => {
+    if (!unidadeAtual) return;
+    
     const startDateStr = format(startDate, 'yyyy-MM-dd');
     const endDateStr = format(endDate, 'yyyy-MM-dd');
 
@@ -312,6 +328,7 @@ export default function Dashboard() {
         )
       `)
       .eq('fechou_matricula', true)
+      .eq('unidade_id', unidadeAtual.id)
       .gte('data_fechamento', startDateStr)
       .lte('data_fechamento', endDateStr)
       .order('data_fechamento', { ascending: false });
@@ -384,9 +401,11 @@ export default function Dashboard() {
     });
 
     setMatriculasDetalhadas(matriculaItems);
-  }, [startDate, endDate]);
+  }, [startDate, endDate, unidadeAtual]);
 
   const fetchFollowUp = useCallback(async () => {
+    if (!unidadeAtual) return;
+    
     // Fetch all interacoes where compareceu = true and fechou_matricula is not true
     // This captures all leads that attended experimental but haven't closed
     const { data: followUpData } = await supabase
@@ -446,6 +465,7 @@ export default function Dashboard() {
       `)
       .eq('compareceu', true)
       .eq('agendou_experimental', true)
+      .eq('unidade_id', unidadeAtual.id)
       .order('data_experimental', { ascending: false });
 
     if (!followUpData || followUpData.length === 0) {
@@ -539,17 +559,18 @@ export default function Dashboard() {
     } else {
       setFollowUpItems(items);
     }
-  }, []);
+  }, [unidadeAtual]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    if (!unidadeAtual || unidadeLoading) return;
     setLoading(true);
     await Promise.all([fetchStats(), fetchExperimentais(), fetchPeriodStats(), fetchMatriculas(), fetchFollowUp()]);
     setLoading(false);
-  };
+  }, [fetchStats, fetchExperimentais, fetchPeriodStats, fetchMatriculas, fetchFollowUp, unidadeAtual, unidadeLoading]);
 
   useEffect(() => {
     fetchData();
-  }, [startDate, endDate]);
+  }, [fetchData]);
 
   const handleReagendar = (item: ExperimentalItem) => {
     setSelectedItem(item);

@@ -43,6 +43,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUnidade } from '@/contexts/UnidadeContext';
 import { Lead, StatusFunil, PlanoEscolhido } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Eye, Trash2, Loader2, Pencil, Filter, Upload, FileSpreadsheet, Users, TrendingUp, UserCheck, UserX, CalendarIcon } from 'lucide-react';
@@ -124,6 +125,7 @@ const REQUIRED_COLUMNS = ['nome_completo', 'telefone', 'origem', 'atendido_por',
 
 export default function CRM() {
   const { user } = useAuth();
+  const { unidadeAtual, loading: unidadeLoading } = useUnidade();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -192,16 +194,15 @@ export default function CRM() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchLeads();
-  }, []);
 
-  const fetchLeads = async () => {
+  const fetchLeads = useCallback(async () => {
+    if (!unidadeAtual) return;
     setLoading(true);
     const { data, error } = await supabase
       .from('leads')
       .select('*')
       .eq('ativo', true)
+      .eq('unidade_id', unidadeAtual.id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -210,7 +211,13 @@ export default function CRM() {
       setLeads((data as unknown as Lead[]) || []);
     }
     setLoading(false);
-  };
+  }, [unidadeAtual, toast]);
+
+  useEffect(() => {
+    if (unidadeAtual && !unidadeLoading) {
+      fetchLeads();
+    }
+  }, [unidadeAtual, unidadeLoading, fetchLeads]);
 
   const uniqueOrigens = useMemo(() => {
     const origens = leads.map(l => l.origem).filter(Boolean) as string[];
@@ -283,6 +290,11 @@ export default function CRM() {
       dataAulaExperimental = `${dataStr}T${horaStr}:00`;
     }
 
+    if (!unidadeAtual) {
+      toast({ title: 'Nenhuma unidade selecionada', variant: 'destructive' });
+      return;
+    }
+
     const { data: leadData, error } = await supabase.from('leads').insert({
       nome: formData.nome.trim(),
       email: formData.email.trim() || null,
@@ -295,6 +307,7 @@ export default function CRM() {
       created_by: user?.id,
       data_aula_experimental: dataAulaExperimental,
       hora_aula_experimental: formData.hora_aula_experimental || null,
+      unidade_id: unidadeAtual.id,
     }).select().single();
 
     if (error) {

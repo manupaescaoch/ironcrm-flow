@@ -1,7 +1,15 @@
 import { ReactNode, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUnidade } from '@/contexts/UnidadeContext';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { 
   LayoutDashboard, 
   Users, 
@@ -14,7 +22,8 @@ import {
   Database,
   Building2,
   Gift,
-  Package
+  Package,
+  MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/logo.png';
@@ -32,13 +41,14 @@ const allNavItems = [
   { href: '/indicacoes', label: 'Indicações', icon: Gift, roles: ['admin', 'recepcao', 'comercial'] },
   { href: '/estoque', label: 'Estoque', icon: Package, roles: ['admin', 'recepcao', 'comercial'] },
   { href: '/relatorio', label: 'Relatório Vendas', icon: FileText, roles: ['admin'] },
-  { href: '/relatorio-gerencial-zn', label: 'Gerencial ZN', icon: Building2, roles: ['admin'] },
+  { href: '/relatorio-gerencial', label: 'Gerencial', icon: Building2, roles: ['admin'] },
   { href: '/backups', label: 'Backups', icon: Database, roles: ['admin'] },
   { href: '/admin-users', label: 'Usuários', icon: Settings, roles: ['admin'] },
 ];
 
 export function Layout({ children }: LayoutProps) {
   const { signOut, user, userRole } = useAuth();
+  const { unidadeAtual, unidadesPermitidas, setUnidadeAtual, hasMultipleUnidades, loading: unidadeLoading } = useUnidade();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -70,14 +80,53 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </div>
 
+        {/* Unit Selector - Only show if user has multiple units */}
+        {hasMultipleUnidades && unidadeAtual && (
+          <div className="px-4 py-3 border-b border-sidebar-border">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+              <MapPin className="w-3 h-3" />
+              <span>Unidade Atual</span>
+            </div>
+            <Select 
+              value={unidadeAtual.id} 
+              onValueChange={(value) => {
+                const unidade = unidadesPermitidas.find(u => u.id === value);
+                if (unidade) setUnidadeAtual(unidade);
+              }}
+            >
+              <SelectTrigger className="w-full bg-sidebar-accent/50 border-sidebar-border">
+                <SelectValue placeholder="Selecione a unidade" />
+              </SelectTrigger>
+              <SelectContent>
+                {unidadesPermitidas.map((unidade) => (
+                  <SelectItem key={unidade.id} value={unidade.id}>
+                    {unidade.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Show current unit badge if only one unit */}
+        {!hasMultipleUnidades && unidadeAtual && !unidadeLoading && (
+          <div className="px-4 py-3 border-b border-sidebar-border">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-sidebar-foreground">{unidadeAtual.nome}</span>
+            </div>
+          </div>
+        )}
+
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.href;
+            const isActive = location.pathname === item.href || 
+              (item.href === '/relatorio-gerencial' && location.pathname === '/relatorio-gerencial-zn');
             return (
               <Link
                 key={item.href}
-                to={item.href}
+                to={item.href === '/relatorio-gerencial' ? '/relatorio-gerencial-zn' : item.href}
                 className={cn(
                   'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
                   isActive
