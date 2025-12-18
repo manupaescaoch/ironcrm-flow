@@ -191,6 +191,7 @@ export function HistoricoMovimentacoes({ insumos }: HistoricoMovimentacoesProps)
                 <SelectItem value="Café">Café</SelectItem>
                 <SelectItem value="Treino">Treino</SelectItem>
                 <SelectItem value="Administrativo">Administrativo</SelectItem>
+                <SelectItem value="Recepção">Recepção</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -19,9 +19,9 @@ import { ptBR } from 'date-fns/locale';
 import { HistoricoMovimentacoes } from '@/components/estoque/HistoricoMovimentacoes';
 import { RelatorioConsumo } from '@/components/estoque/RelatorioConsumo';
 
-const CATEGORIAS = ['Limpeza', 'Café', 'Suplementação Interna', 'Operacional', 'Administrativo'] as const;
-const UNIDADES = ['un', 'litro', 'kg', 'pacote', 'caixa'] as const;
-const SETORES = ['Limpeza', 'Café', 'Treino', 'Administrativo'] as const;
+const CATEGORIAS = ['Copa e Recepção', 'Suplementos (uso interno)', 'Limpeza', 'Descartáveis', 'Higiene Pessoal'] as const;
+const UNIDADES = ['un', 'pacote', 'litro', 'kg', 'caixa'] as const;
+const SETORES = ['Limpeza', 'Café', 'Treino', 'Administrativo', 'Recepção'] as const;
 
 type Insumo = {
   id: string;
