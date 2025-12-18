@@ -37,6 +37,11 @@ All colors MUST be HSL.
     --ring: 225 100% 50%;
 
     --radius: 0.5rem;
+    
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 45 93% 47%;
+    --warning-foreground: 0 0% 100%;
 
     --sidebar-background: 240 10% 8%;
     --sidebar-foreground: 240 5% 90%;
@@ -85,6 +90,11 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 5% 95%;
     --sidebar-border: 240 8% 18%;
     --sidebar-ring: 225 100% 50%;
+    
+    --success: 142 76% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 45 93% 55%;
+    --warning-foreground: 0 0% 10%;
   }
 }
 
