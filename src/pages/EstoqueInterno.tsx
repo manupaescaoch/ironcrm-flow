@@ -413,12 +413,12 @@ export default function EstoqueInterno() {
 
   const getStatusBadge = (status: string, diasRestantes: number | null) => {
     if (status === 'Crítico' || (diasRestantes !== null && diasRestantes < 5)) {
-      return <Badge variant="destructive">Crítico</Badge>;
+      return <Badge className="bg-destructive text-destructive-foreground animate-pulse">Crítico</Badge>;
     }
     if (status === 'Atenção' || (diasRestantes !== null && diasRestantes < 10)) {
-      return <Badge className="bg-yellow-500">Atenção</Badge>;
+      return <Badge className="bg-warning text-warning-foreground">Atenção</Badge>;
     }
-    return <Badge className="bg-green-500">OK</Badge>;
+    return <Badge className="bg-success text-success-foreground">OK</Badge>;
   };
 
   return (
@@ -499,47 +499,61 @@ export default function EstoqueInterno() {
         </div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="border-l-4 border-l-primary bg-gradient-to-br from-primary/5 to-transparent">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total de Insumos</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total de Insumos</CardTitle>
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Package className="h-5 w-5 text-primary" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totalInsumos}</div>
+              <div className="text-3xl font-bold">{totalInsumos}</div>
+              <p className="text-xs text-muted-foreground mt-1">itens cadastrados</p>
             </CardContent>
           </Card>
-          <Card>
+          
+          <Card className="border-l-4 border-l-warning bg-gradient-to-br from-warning/5 to-transparent">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Em Alerta</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Em Alerta</CardTitle>
+              <div className="p-2 bg-warning/10 rounded-lg">
+                <AlertTriangle className="h-5 w-5 text-warning" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-500">{insumosAlerta}</div>
+              <div className="text-3xl font-bold text-warning">{insumosAlerta}</div>
+              <p className="text-xs text-muted-foreground mt-1">próximos do mínimo</p>
             </CardContent>
           </Card>
-          <Card>
+          
+          <Card className={`border-l-4 border-l-destructive bg-gradient-to-br from-destructive/5 to-transparent ${insumosCriticos > 0 ? 'ring-2 ring-destructive/30' : ''}`}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Críticos</CardTitle>
-              <AlertCircle className="h-4 w-4 text-destructive" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Críticos</CardTitle>
+              <div className={`p-2 bg-destructive/10 rounded-lg ${insumosCriticos > 0 ? 'animate-pulse' : ''}`}>
+                <AlertCircle className="h-5 w-5 text-destructive" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-destructive">{insumosCriticos}</div>
+              <div className="text-3xl font-bold text-destructive">{insumosCriticos}</div>
+              <p className="text-xs text-muted-foreground mt-1">abaixo do mínimo</p>
             </CardContent>
           </Card>
-          <Card>
+          
+          <Card className="border-l-4 border-l-muted-foreground">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Última Movimentação</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Última Movimentação</CardTitle>
+              <div className="p-2 bg-muted rounded-lg">
+                <Clock className="h-5 w-5 text-muted-foreground" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-sm font-medium">
+              <div className="text-lg font-bold">
                 {ultimaMovimentacao 
-                  ? format(new Date(ultimaMovimentacao.created_at), "dd/MM HH:mm", { locale: ptBR })
+                  ? format(new Date(ultimaMovimentacao.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })
                   : 'Nenhuma'}
               </div>
               {ultimaMovimentacao && (
-                <p className="text-xs text-muted-foreground">{ultimaMovimentacao.responsavel}</p>
+                <p className="text-xs text-muted-foreground mt-1">por {ultimaMovimentacao.responsavel}</p>
               )}
             </CardContent>
           </Card>
@@ -580,15 +594,15 @@ export default function EstoqueInterno() {
                     size="sm"
                     onClick={() => setFiltroStatus(status)}
                     className={
-                      status === 'Crítico' ? (filtroStatus === status ? 'bg-destructive hover:bg-destructive/90' : 'border-destructive text-destructive hover:bg-destructive/10') :
-                      status === 'Atenção' ? (filtroStatus === status ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : 'border-yellow-500 text-yellow-600 hover:bg-yellow-500/10') :
-                      status === 'OK' ? (filtroStatus === status ? 'bg-green-500 hover:bg-green-600 text-white' : 'border-green-500 text-green-600 hover:bg-green-500/10') :
+                      status === 'Crítico' ? (filtroStatus === status ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' : 'border-destructive/50 text-destructive hover:bg-destructive/10') :
+                      status === 'Atenção' ? (filtroStatus === status ? 'bg-warning hover:bg-warning/90 text-warning-foreground' : 'border-warning/50 text-warning hover:bg-warning/10') :
+                      status === 'OK' ? (filtroStatus === status ? 'bg-success hover:bg-success/90 text-success-foreground' : 'border-success/50 text-success hover:bg-success/10') :
                       ''
                     }
                   >
-                    {status === 'Crítico' && '🔴 '}
-                    {status === 'Atenção' && '🟡 '}
-                    {status === 'OK' && '🟢 '}
+                    {status === 'Crítico' && <AlertCircle className="h-3 w-3 mr-1" />}
+                    {status === 'Atenção' && <AlertTriangle className="h-3 w-3 mr-1" />}
+                    {status === 'OK' && <Package className="h-3 w-3 mr-1" />}
                     {status}
                   </Button>
                 ))}
@@ -610,64 +624,84 @@ export default function EstoqueInterno() {
         </Card>
 
         {/* Tabela Principal */}
-        <Card>
-          <CardHeader>
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-muted/30 border-b">
             <CardTitle className="flex items-center justify-between">
-              <span>Controle de Estoque</span>
-              <span className="text-sm font-normal text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-primary" />
+                <span>Controle de Estoque</span>
+              </div>
+              <Badge variant="outline" className="font-normal">
                 Ordenado por criticidade
-              </span>
+              </Badge>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Insumo</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Unidade</TableHead>
-                    <TableHead className="text-right">Atual</TableHead>
-                    <TableHead className="text-right">Mínimo</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Méd. Diária</TableHead>
-                    <TableHead className="text-right">Méd. Semanal</TableHead>
-                    <TableHead className="text-right">Méd. Mensal</TableHead>
-                    <TableHead className="text-right bg-muted/50 font-bold">⏳ Dias Restantes</TableHead>
-                    <TableHead>Última Retirada</TableHead>
-                    <TableHead>Ações</TableHead>
+                  <TableRow className="bg-muted/20 hover:bg-muted/20">
+                    <TableHead className="font-semibold">Insumo</TableHead>
+                    <TableHead className="font-semibold">Categoria</TableHead>
+                    <TableHead className="font-semibold text-center">Unidade</TableHead>
+                    <TableHead className="font-semibold text-center">Atual</TableHead>
+                    <TableHead className="font-semibold text-center">Mínimo</TableHead>
+                    <TableHead className="font-semibold text-center">Status</TableHead>
+                    <TableHead className="font-semibold text-center">Méd/Dia</TableHead>
+                    <TableHead className="font-semibold text-center">Méd/Sem</TableHead>
+                    <TableHead className="font-semibold text-center">Méd/Mês</TableHead>
+                    <TableHead className="font-semibold text-center bg-primary/10 text-primary">⏳ Dias Rest.</TableHead>
+                    <TableHead className="font-semibold">Última Retirada</TableHead>
+                    <TableHead className="font-semibold text-center">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {insumosFiltradosOrdenados.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
-                        {temFiltrosAtivos ? 'Nenhum insumo encontrado' : (isAdmin ? 'Nenhum insumo cadastrado. Clique em "Novo Insumo" para começar.' : 'Nenhum insumo cadastrado.')}
+                      <TableCell colSpan={12} className="text-center py-12 text-muted-foreground">
+                        <Package className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                        {temFiltrosAtivos ? 'Nenhum insumo encontrado com os filtros aplicados' : 'Nenhum insumo cadastrado. Clique em "Novo Insumo" para começar.'}
                       </TableCell>
                     </TableRow>
                   ) : (
                     insumosFiltradosOrdenados.map(item => (
-                      <TableRow key={item.id} className={item.status_estoque === 'Crítico' ? 'bg-destructive/10' : item.status_estoque === 'Atenção' ? 'bg-yellow-500/10' : ''}>
+                      <TableRow 
+                        key={item.id} 
+                        className={`
+                          transition-colors
+                          ${item.status_estoque === 'Crítico' ? 'bg-destructive/5 hover:bg-destructive/10 border-l-4 border-l-destructive' : ''} 
+                          ${item.status_estoque === 'Atenção' ? 'bg-warning/5 hover:bg-warning/10 border-l-4 border-l-warning' : ''}
+                          ${item.status_estoque === 'OK' ? 'hover:bg-muted/50' : ''}
+                        `}
+                      >
                         <TableCell>
                           <div>
-                            <span className="font-medium">{item.nome_insumo}</span>
-                            <p className="text-xs text-muted-foreground">{item.codigo_insumo}</p>
+                            <span className="font-semibold">{item.nome_insumo}</span>
+                            <p className="text-xs text-muted-foreground font-mono">{item.codigo_insumo}</p>
                           </div>
                         </TableCell>
-                        <TableCell>{item.categoria}</TableCell>
-                        <TableCell>{item.unidade_medida}</TableCell>
-                        <TableCell className="text-right font-medium">{item.quantidade_atual}</TableCell>
-                        <TableCell className="text-right">{item.quantidade_minima}</TableCell>
-                        <TableCell>{getStatusBadge(item.status_estoque, item.dias_restantes)}</TableCell>
-                        <TableCell className="text-right">{item.media_diaria}</TableCell>
-                        <TableCell className="text-right">{item.media_semanal}</TableCell>
-                        <TableCell className="text-right">{item.media_mensal}</TableCell>
-                        <TableCell className="text-right bg-muted/30">
+                        <TableCell>
+                          <Badge variant="outline" className="font-normal text-xs">
+                            {item.categoria}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center text-muted-foreground">{item.unidade_medida}</TableCell>
+                        <TableCell className="text-center">
+                          <span className={`font-bold text-lg ${item.status_estoque === 'Crítico' ? 'text-destructive' : item.status_estoque === 'Atenção' ? 'text-warning' : ''}`}>
+                            {item.quantidade_atual}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center text-muted-foreground">{item.quantidade_minima}</TableCell>
+                        <TableCell className="text-center">{getStatusBadge(item.status_estoque, item.dias_restantes)}</TableCell>
+                        <TableCell className="text-center text-sm">{item.media_diaria}</TableCell>
+                        <TableCell className="text-center text-sm">{item.media_semanal}</TableCell>
+                        <TableCell className="text-center text-sm">{item.media_mensal}</TableCell>
+                        <TableCell className="text-center bg-primary/5">
                           {item.dias_restantes !== null ? (
-                            <span className={`font-bold px-2 py-1 rounded ${
+                            <span className={`inline-flex items-center justify-center font-bold px-3 py-1.5 rounded-full text-sm ${
                               item.dias_restantes < 5 ? 'bg-destructive/20 text-destructive' : 
-                              item.dias_restantes < 10 ? 'bg-yellow-500/20 text-yellow-700' : 
-                              'bg-green-500/20 text-green-700'
+                              item.dias_restantes < 10 ? 'bg-warning/20 text-warning' : 
+                              'bg-success/20 text-success'
                             }`}>
                               {item.dias_restantes} dias
                             </span>
@@ -682,30 +716,33 @@ export default function EstoqueInterno() {
                           ) : '—'}
                         </TableCell>
                         <TableCell>
-                          <div className="flex gap-1">
-                            <Button size="icon" variant="outline" onClick={() => openMovimentacao(item, 'entrada')} title="Entrada">
-                              <Plus className="h-4 w-4 text-green-600" />
+                          <div className="flex gap-1 justify-center">
+                            <Button size="icon" variant="outline" onClick={() => openMovimentacao(item, 'entrada')} title="Entrada" className="h-8 w-8 border-success/50 hover:bg-success/10 hover:border-success">
+                              <Plus className="h-4 w-4 text-success" />
                             </Button>
-                            <Button size="icon" variant="outline" onClick={() => openMovimentacao(item, 'retirada')} title="Retirada">
+                            <Button size="icon" variant="outline" onClick={() => openMovimentacao(item, 'retirada')} title="Retirada" className="h-8 w-8 border-destructive/50 hover:bg-destructive/10 hover:border-destructive">
                               <Minus className="h-4 w-4 text-destructive" />
                             </Button>
-                            <Button size="icon" variant="outline" onClick={() => openMovimentacao(item, 'ajuste')} title="Ajuste">
+                            <Button size="icon" variant="outline" onClick={() => openMovimentacao(item, 'ajuste')} title="Ajuste" className="h-8 w-8">
                               <Settings className="h-4 w-4" />
                             </Button>
-                            <Button size="icon" variant="outline" onClick={() => openEditarInsumo(item)} title="Editar">
-                              <Pencil className="h-4 w-4" />
+                            <Button size="icon" variant="outline" onClick={() => openEditarInsumo(item)} title="Editar" className="h-8 w-8 border-primary/50 hover:bg-primary/10 hover:border-primary">
+                              <Pencil className="h-4 w-4 text-primary" />
                             </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button size="icon" variant="outline" title="Excluir">
+                                <Button size="icon" variant="outline" title="Excluir" className="h-8 w-8 border-destructive/50 hover:bg-destructive/10 hover:border-destructive">
                                   <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                  <AlertDialogTitle className="flex items-center gap-2">
+                                    <AlertCircle className="h-5 w-5 text-destructive" />
+                                    Confirmar exclusão
+                                  </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Tem certeza que deseja excluir o insumo "{item.nome_insumo}"? Esta ação não pode ser desfeita.
+                                    Tem certeza que deseja excluir o insumo <strong>"{item.nome_insumo}"</strong>? Esta ação não pode ser desfeita.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
