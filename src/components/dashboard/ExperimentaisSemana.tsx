@@ -56,7 +56,11 @@ export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, 
       .eq('id', item.interacao.id);
 
     if (interacaoError) {
-      toast({ title: 'Erro ao atualizar', variant: 'destructive' });
+      toast({ 
+        title: 'Erro ao marcar presença', 
+        description: interacaoError.message || 'Erro desconhecido',
+        variant: 'destructive' 
+      });
       setLoading(prev => ({ ...prev, [item.interacao.id]: false }));
       return;
     }
