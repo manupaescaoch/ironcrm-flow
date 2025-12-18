@@ -118,6 +118,16 @@ Deno.serve(async (req) => {
       // Continue without roles - not a critical error
     }
 
+    // 7. Get unidades from user_unidades table for each user
+    const { data: userUnidades, error: unidadesError } = await supabaseAdmin
+      .from('user_unidades')
+      .select('user_id, unidade_id');
+
+    if (unidadesError) {
+      console.error('Error fetching user unidades:', unidadesError);
+      // Continue without unidades - not a critical error
+    }
+
     // Map roles by user_id
     const roleMap = new Map<string, string>();
     if (userRoles && Array.isArray(userRoles)) {
@@ -131,6 +141,16 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Map unidades by user_id
+    const unidadesMap = new Map<string, string[]>();
+    if (userUnidades && Array.isArray(userUnidades)) {
+      userUnidades.forEach((uu: { user_id: string; unidade_id: string }) => {
+        const existing = unidadesMap.get(uu.user_id) || [];
+        existing.push(uu.unidade_id);
+        unidadesMap.set(uu.user_id, existing);
+      });
+    }
+
     const formattedUsers = users.map(u => ({
       id: u.id,
       email: u.email || null,
@@ -138,6 +158,7 @@ Deno.serve(async (req) => {
       role: roleMap.get(u.id) || null,
       created_at: u.created_at,
       last_sign_in_at: u.last_sign_in_at || null,
+      unidade_ids: unidadesMap.get(u.id) || [],
     }));
 
     console.log(`Successfully listed ${formattedUsers.length} users`);

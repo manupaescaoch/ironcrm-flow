@@ -40,13 +40,19 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Users, Shield, UserCheck, Briefcase, Trash2, AlertTriangle, ShieldX, RefreshCw, Plus, UserPlus, Pencil } from 'lucide-react';
+import { Loader2, Users, Shield, UserCheck, Briefcase, Trash2, AlertTriangle, ShieldX, RefreshCw, UserPlus, Pencil, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { UserRole } from '@/contexts/AuthContext';
+
+interface Unidade {
+  id: string;
+  nome: string;
+}
 
 interface UserData {
   id: string;
@@ -55,6 +61,7 @@ interface UserData {
   role: UserRole | null;
   created_at: string;
   last_sign_in_at: string | null;
+  unidade_ids: string[];
 }
 
 type FetchError = {
@@ -70,6 +77,7 @@ const roleOptions: { value: string; label: string; icon: typeof Shield }[] = [
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<UserData[]>([]);
+  const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<FetchError>({ type: null, message: '' });
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
@@ -83,15 +91,22 @@ export default function AdminUsers() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState<string>('comercial');
+  const [newUserUnidades, setNewUserUnidades] = useState<string[]>([]);
   
   // Edit name state
   const [editNameDialogOpen, setEditNameDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [editName, setEditName] = useState('');
   const [updatingName, setUpdatingName] = useState(false);
+
+  // Edit unidades state
+  const [editUnidadesDialogOpen, setEditUnidadesDialogOpen] = useState(false);
+  const [editingUnidadesUser, setEditingUnidadesUser] = useState<UserData | null>(null);
+  const [editUnidadeIds, setEditUnidadeIds] = useState<string[]>([]);
+  const [updatingUnidades, setUpdatingUnidades] = useState(false);
   
   const { toast } = useToast();
-  const { user: currentUser, session, isAdmin, canAccessAdminUsers } = useAuth();
+  const { user: currentUser, session, canAccessAdminUsers } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -108,9 +123,22 @@ export default function AdminUsers() {
 
   useEffect(() => {
     if (session) {
+      fetchUnidades();
       fetchUsers();
     }
   }, [session]);
+
+  const fetchUnidades = async () => {
+    const { data, error } = await supabase
+      .from('unidades')
+      .select('id, nome')
+      .eq('ativo', true)
+      .order('nome');
+    
+    if (!error && data) {
+      setUnidades(data);
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -223,7 +251,8 @@ export default function AdminUsers() {
           name: newUserName.trim(),
           email: newUserEmail, 
           password: newUserPassword,
-          role: newUserRole 
+          role: newUserRole,
+          unidade_ids: newUserUnidades
         },
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -232,18 +261,6 @@ export default function AdminUsers() {
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-
-      // Add new user to local state
-      if (data?.user) {
-        setUsers(prev => [...prev, {
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.name || null,
-          role: data.user.role as UserRole | null,
-          created_at: new Date().toISOString(),
-          last_sign_in_at: null,
-        }]);
-      }
 
       toast({
         title: 'Usuário criado!',
@@ -255,6 +272,7 @@ export default function AdminUsers() {
       setNewUserEmail('');
       setNewUserPassword('');
       setNewUserRole('comercial');
+      setNewUserUnidades([]);
       setCreateDialogOpen(false);
 
       // Refresh list
@@ -399,6 +417,63 @@ export default function AdminUsers() {
     } finally {
       setUpdatingName(false);
     }
+  };
+
+  const handleEditUnidades = (user: UserData) => {
+    setEditingUnidadesUser(user);
+    setEditUnidadeIds(user.unidade_ids || []);
+    setEditUnidadesDialogOpen(true);
+  };
+
+  const handleUpdateUnidades = async () => {
+    if (!editingUnidadesUser) return;
+
+    setUpdatingUnidades(true);
+    try {
+      const accessToken = session?.access_token;
+
+      const { data, error } = await supabase.functions.invoke('update-user-unidades', {
+        body: { userId: editingUnidadesUser.id, unidade_ids: editUnidadeIds },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Update local state
+      setUsers(prev =>
+        prev.map(user =>
+          user.id === editingUnidadesUser.id ? { ...user, unidade_ids: editUnidadeIds } : user
+        )
+      );
+
+      toast({
+        title: 'Unidades atualizadas!',
+        description: 'As unidades do usuário foram atualizadas.',
+      });
+
+      setEditUnidadesDialogOpen(false);
+      setEditingUnidadesUser(null);
+      setEditUnidadeIds([]);
+    } catch (error: any) {
+      console.error('Error updating unidades:', error);
+      toast({
+        title: 'Erro ao atualizar unidades',
+        description: error.message || 'Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdatingUnidades(false);
+    }
+  };
+
+  const getUnidadeNames = (unidadeIds: string[]) => {
+    if (!unidadeIds || unidadeIds.length === 0) return 'Nenhuma';
+    return unidadeIds
+      .map(id => unidades.find(u => u.id === id)?.nome || 'Desconhecida')
+      .join(', ');
   };
 
   const getRoleBadge = (role: UserRole | null) => {
@@ -556,10 +631,10 @@ export default function AdminUsers() {
                   <TableRow>
                     <TableHead>Nome</TableHead>
                     <TableHead>Email</TableHead>
+                    <TableHead>Unidades</TableHead>
                     <TableHead>Role Atual</TableHead>
                     <TableHead>Alterar Role</TableHead>
                     <TableHead>Criado em</TableHead>
-                    <TableHead>Último login</TableHead>
                     <TableHead className="w-24">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -587,6 +662,22 @@ export default function AdminUsers() {
                         {currentUser?.id === user.id && (
                           <Badge variant="outline" className="ml-2 text-xs">Você</Badge>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground max-w-32 truncate" title={getUnidadeNames(user.unidade_ids)}>
+                            {getUnidadeNames(user.unidade_ids)}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => handleEditUnidades(user)}
+                            title="Editar unidades"
+                          >
+                            <Building2 className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </TableCell>
                       <TableCell>{getRoleBadge(user.role)}</TableCell>
                       <TableCell>
@@ -616,9 +707,6 @@ export default function AdminUsers() {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {formatDate(user.created_at)}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDate(user.last_sign_in_at)}
                       </TableCell>
                       <TableCell>
                         <Button
@@ -706,6 +794,39 @@ export default function AdminUsers() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label>Unidades</Label>
+              <div className="border rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
+                {unidades.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhuma unidade cadastrada</p>
+                ) : (
+                  unidades.map((unidade) => (
+                    <div key={unidade.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`new-unidade-${unidade.id}`}
+                        checked={newUserUnidades.includes(unidade.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setNewUserUnidades([...newUserUnidades, unidade.id]);
+                          } else {
+                            setNewUserUnidades(newUserUnidades.filter(id => id !== unidade.id));
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor={`new-unidade-${unidade.id}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {unidade.nome}
+                      </label>
+                    </div>
+                  ))
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Selecione as unidades que o usuário terá acesso
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
@@ -772,6 +893,59 @@ export default function AdminUsers() {
             </Button>
             <Button onClick={handleUpdateName} disabled={updatingName}>
               {updatingName && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Unidades Dialog */}
+      <Dialog open={editUnidadesDialogOpen} onOpenChange={setEditUnidadesDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Unidades do Usuário</DialogTitle>
+            <DialogDescription>
+              Selecione as unidades que o usuário terá acesso.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="border rounded-lg p-3 space-y-2 max-h-48 overflow-y-auto">
+              {unidades.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma unidade cadastrada</p>
+              ) : (
+                unidades.map((unidade) => (
+                  <div key={unidade.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`edit-unidade-${unidade.id}`}
+                      checked={editUnidadeIds.includes(unidade.id)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setEditUnidadeIds([...editUnidadeIds, unidade.id]);
+                        } else {
+                          setEditUnidadeIds(editUnidadeIds.filter(id => id !== unidade.id));
+                        }
+                      }}
+                    />
+                    <label
+                      htmlFor={`edit-unidade-${unidade.id}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      {unidade.nome}
+                    </label>
+                  </div>
+                ))
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Usuário: {editingUnidadesUser?.email}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditUnidadesDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateUnidades} disabled={updatingUnidades}>
+              {updatingUnidades && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Salvar
             </Button>
           </DialogFooter>
