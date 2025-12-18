@@ -168,8 +168,8 @@ export default function Dashboard() {
     if (!unidadeAtual) return;
     
     const now = new Date();
-    const weekStart = format(startOfWeek(now, { weekStartsOn: 0 }), 'yyyy-MM-dd');
-    const weekEnd = format(endOfWeek(now, { weekStartsOn: 0 }), 'yyyy-MM-dd');
+    const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
     const { count } = await supabase
       .from('interacoes')
