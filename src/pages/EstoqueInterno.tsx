@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Package, AlertTriangle, AlertCircle, Clock, Plus, Minus, Settings, PackagePlus, Pencil, Search, X } from 'lucide-react';
+import { Package, AlertTriangle, AlertCircle, Clock, Plus, Minus, Settings, PackagePlus, Pencil, Search, X, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -309,6 +310,20 @@ export default function EstoqueInterno() {
     },
     onError: (error: Error) => {
       toast({ title: 'Erro ao registrar movimentação', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const excluirInsumoMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('insumos').update({ ativo: false }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['insumos', unidadeAtual?.id] });
+      toast({ title: 'Insumo excluído com sucesso!' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao excluir insumo', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -640,15 +655,37 @@ export default function EstoqueInterno() {
                             <Button size="icon" variant="outline" onClick={() => openMovimentacao(item, 'retirada')} title="Retirada">
                               <Minus className="h-4 w-4 text-destructive" />
                             </Button>
+                            <Button size="icon" variant="outline" onClick={() => openMovimentacao(item, 'ajuste')} title="Ajuste">
+                              <Settings className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="outline" onClick={() => openEditarInsumo(item)} title="Editar">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
                             {isAdmin && (
-                              <>
-                                <Button size="icon" variant="outline" onClick={() => openMovimentacao(item, 'ajuste')} title="Ajuste">
-                                  <Settings className="h-4 w-4" />
-                                </Button>
-                                <Button size="icon" variant="outline" onClick={() => openEditarInsumo(item)} title="Editar">
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                              </>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="icon" variant="outline" title="Excluir">
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja excluir o insumo "{item.nome_insumo}"? Esta ação não pode ser desfeita.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => excluirInsumoMutation.mutate(item.id)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Excluir
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             )}
                           </div>
                         </TableCell>
