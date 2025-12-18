@@ -34,6 +34,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useUnidade } from '@/contexts/UnidadeContext';
 
 interface InteracaoComLead extends Interacao {
   lead_nome?: string;
@@ -72,14 +73,16 @@ export default function Comissoes() {
   const [selectedPerson, setSelectedPerson] = useState<{ name: string; type: 'cadastrador' | 'fechador' } | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { unidadeAtual, loading: unidadeLoading } = useUnidade();
 
   useEffect(() => {
-    if (mes && ano) {
+    if (mes && ano && unidadeAtual) {
       fetchComissoes();
     }
-  }, [mes, ano]);
+  }, [mes, ano, unidadeAtual]);
 
   const fetchComissoes = async () => {
+    if (!unidadeAtual) return;
     setLoading(true);
 
     const mesNum = parseInt(mes);
@@ -97,6 +100,7 @@ export default function Comissoes() {
       .from('interacoes')
       .select('*, leads(nome)')
       .eq('fechou_matricula', true)
+      .eq('unidade_id', unidadeAtual.id)
       .gte('data_fechamento', startDateStr)
       .lte('data_fechamento', endDateStr)
       .order('data_fechamento', { ascending: false });
