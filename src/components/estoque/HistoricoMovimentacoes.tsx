@@ -8,11 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { History, Search, X, ChevronDown, ChevronUp, Plus, Minus, Settings, ArrowUpDown, Filter, Calendar, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
+import { History, Search, X, ChevronDown, ChevronUp, Plus, Minus, Settings, ArrowUpDown, Filter, Calendar, TrendingUp, TrendingDown, RefreshCw, FileDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useUnidade } from '@/contexts/UnidadeContext';
+import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 type Insumo = {
   id: string;
@@ -39,6 +42,7 @@ const ITEMS_PER_PAGE = 15;
 
 export function HistoricoMovimentacoes({ insumos }: HistoricoMovimentacoesProps) {
   const { unidadeAtual } = useUnidade();
+  const { toast } = useToast();
   const [buscaGlobal, setBuscaGlobal] = useState('');
   const [filtroResponsavel, setFiltroResponsavel] = useState('');
   const [filtroInsumo, setFiltroInsumo] = useState('todos');
@@ -160,6 +164,133 @@ export function HistoricoMovimentacoes({ insumos }: HistoricoMovimentacoesProps)
     setItemsVisiveis(ITEMS_PER_PAGE);
   };
 
+  const exportarPDF = () => {
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      
+      // Título
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Histórico de Movimentações', pageWidth / 2, 20, { align: 'center' });
+      
+      // Subtítulo com período e unidade
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Unidade: ${unidadeAtual?.nome || 'N/A'}`, pageWidth / 2, 28, { align: 'center' });
+      doc.text(`Período: ${format(new Date(dataInicio), 'dd/MM/yyyy')} a ${format(new Date(dataFim), 'dd/MM/yyyy')}`, pageWidth / 2, 34, { align: 'center' });
+      doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}`, pageWidth / 2, 40, { align: 'center' });
+      
+      // Resumo
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Resumo', 14, 52);
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const resumoData = [
+        ['Total de Movimentações', kpis.totalMovimentacoes.toString()],
+        ['Entradas', `+${kpis.totalEntradas} (${kpis.countEntradas} mov.)`],
+        ['Retiradas', `-${kpis.totalRetiradas} (${kpis.countRetiradas} mov.)`],
+        ['Ajustes', kpis.totalAjustes.toString()],
+      ];
+      
+      autoTable(doc, {
+        startY: 56,
+        head: [['Indicador', 'Valor']],
+        body: resumoData,
+        theme: 'grid',
+        headStyles: { fillColor: [59, 130, 246], fontSize: 9 },
+        bodyStyles: { fontSize: 9 },
+        columnStyles: { 0: { fontStyle: 'bold' } },
+        margin: { left: 14, right: 14 },
+        tableWidth: 80,
+      });
+      
+      // Tabela de movimentações
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      const tableStartY = (doc as any).lastAutoTable.finalY + 12;
+      doc.text('Detalhamento das Movimentações', 14, tableStartY);
+      
+      const tableData = movimentacoesFiltradas.map(mov => [
+        format(new Date(mov.created_at), 'dd/MM/yyyy HH:mm'),
+        getInsumoNome(mov.insumo_id),
+        getInsumoCodigo(mov.insumo_id),
+        mov.tipo.charAt(0).toUpperCase() + mov.tipo.slice(1),
+        mov.tipo === 'retirada' ? `-${mov.quantidade}` : mov.tipo === 'entrada' ? `+${mov.quantidade}` : mov.quantidade.toString(),
+        mov.setor || '-',
+        mov.responsavel,
+        mov.observacao || '-',
+      ]);
+      
+      autoTable(doc, {
+        startY: tableStartY + 4,
+        head: [['Data/Hora', 'Insumo', 'Código', 'Tipo', 'Qtd', 'Setor', 'Responsável', 'Obs.']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246], fontSize: 8 },
+        bodyStyles: { fontSize: 7 },
+        columnStyles: {
+          0: { cellWidth: 25 },
+          1: { cellWidth: 30 },
+          2: { cellWidth: 18 },
+          3: { cellWidth: 18 },
+          4: { cellWidth: 12, halign: 'center' },
+          5: { cellWidth: 20 },
+          6: { cellWidth: 25 },
+          7: { cellWidth: 'auto' },
+        },
+        margin: { left: 14, right: 14 },
+        didParseCell: (data) => {
+          if (data.section === 'body' && data.column.index === 3) {
+            const tipo = data.cell.raw?.toString().toLowerCase();
+            if (tipo === 'entrada') {
+              data.cell.styles.textColor = [34, 197, 94];
+            } else if (tipo === 'retirada') {
+              data.cell.styles.textColor = [239, 68, 68];
+            }
+          }
+          if (data.section === 'body' && data.column.index === 4) {
+            const valor = data.cell.raw?.toString();
+            if (valor?.startsWith('+')) {
+              data.cell.styles.textColor = [34, 197, 94];
+              data.cell.styles.fontStyle = 'bold';
+            } else if (valor?.startsWith('-')) {
+              data.cell.styles.textColor = [239, 68, 68];
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
+        },
+      });
+      
+      // Rodapé com número de páginas
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Página ${i} de ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+      }
+      
+      // Salvar o PDF
+      const fileName = `historico_movimentacoes_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`;
+      doc.save(fileName);
+      
+      toast({
+        title: 'PDF exportado com sucesso!',
+        description: `Arquivo ${fileName} gerado.`,
+      });
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+      toast({
+        title: 'Erro ao exportar PDF',
+        description: 'Ocorreu um erro ao gerar o arquivo.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const temFiltrosAtivos = buscaGlobal || filtroResponsavel || filtroInsumo !== 'todos' || filtroTipo !== 'todos' || filtroSetor !== 'todos';
   
   const movimentacoesVisiveis = movimentacoesFiltradas.slice(0, itemsVisiveis);
@@ -177,6 +308,16 @@ export function HistoricoMovimentacoes({ insumos }: HistoricoMovimentacoesProps)
           </CardTitle>
           
           <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={exportarPDF}
+              disabled={movimentacoesFiltradas.length === 0}
+              className="gap-2"
+            >
+              <FileDown className="h-4 w-4" />
+              Exportar PDF
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => refetch()} title="Atualizar">
               <RefreshCw className="h-4 w-4" />
             </Button>
