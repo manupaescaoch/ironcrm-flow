@@ -111,7 +111,7 @@ export function ExperimentaisHoje({ items, onRefresh, onReagendar }: Experimenta
           <Calendar className="w-5 h-5 text-primary" />
           Experimentais de Hoje
         </CardTitle>
-        <Badge variant="secondary">{items.length} pendentes</Badge>
+        <Badge variant="secondary">{items.length}</Badge>
       </CardHeader>
       <CardContent>
         {items.length === 0 ? (
