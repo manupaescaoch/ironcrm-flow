@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     }
 
     // 5. Parse request body
-    const { name, email, password, role } = await req.json();
+    const { name, email, password, role, unidade_ids } = await req.json();
 
     if (!email || !password) {
       return new Response(JSON.stringify({ error: 'email and password are required' }), {
@@ -117,6 +117,24 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 8. Add user_unidades if specified
+    if (unidade_ids && Array.isArray(unidade_ids) && unidade_ids.length > 0 && newUser.user) {
+      const userUnidadesData = unidade_ids.map((unidade_id: string, index: number) => ({
+        user_id: newUser.user!.id,
+        unidade_id,
+        is_default: index === 0, // First one is default
+      }));
+
+      const { error: unidadesError } = await supabase
+        .from('user_unidades')
+        .insert(userUnidadesData);
+
+      if (unidadesError) {
+        console.error('Error inserting user_unidades:', unidadesError);
+        // User was created but unidades failed - log but don't fail
+      }
+    }
+
     console.log(`Successfully created user ${email} with id ${newUser.user?.id}`);
 
     return new Response(
@@ -125,7 +143,9 @@ Deno.serve(async (req) => {
         user: {
           id: newUser.user?.id,
           email: newUser.user?.email,
-          role: role || null
+          name: name || null,
+          role: role || null,
+          unidade_ids: unidade_ids || []
         }
       }),
       {
