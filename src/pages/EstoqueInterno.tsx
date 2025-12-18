@@ -406,69 +406,67 @@ export default function EstoqueInterno() {
               <TrendingUp className="w-4 h-4 mr-2" />
               Relatório de Consumo
             </Button>
-            {isAdmin && (
-              <Dialog open={novoInsumoOpen} onOpenChange={setNovoInsumoOpen}>
-                <DialogTrigger asChild>
-                  <Button><PackagePlus className="w-4 h-4 mr-2" />Novo Insumo</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Cadastrar Novo Insumo</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>Código *</Label>
-                        <Input 
-                          value={novoInsumo.codigo_insumo} 
-                          onChange={e => setNovoInsumo(p => ({ ...p, codigo_insumo: e.target.value.toUpperCase() }))}
-                          placeholder="Ex: LIM001"
-                        />
-                      </div>
-                      <div>
-                        <Label>Nome *</Label>
-                        <Input 
-                          value={novoInsumo.nome_insumo} 
-                          onChange={e => setNovoInsumo(p => ({ ...p, nome_insumo: e.target.value.toUpperCase() }))}
-                          placeholder="Ex: DESINFETANTE"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>Categoria *</Label>
-                        <Select value={novoInsumo.categoria} onValueChange={v => setNovoInsumo(p => ({ ...p, categoria: v }))}>
-                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                          <SelectContent>
-                            {CATEGORIAS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Unidade *</Label>
-                        <Select value={novoInsumo.unidade_medida} onValueChange={v => setNovoInsumo(p => ({ ...p, unidade_medida: v }))}>
-                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                          <SelectContent>
-                            {UNIDADES.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
+            <Dialog open={novoInsumoOpen} onOpenChange={setNovoInsumoOpen}>
+              <DialogTrigger asChild>
+                <Button><PackagePlus className="w-4 h-4 mr-2" />Novo Insumo</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Cadastrar Novo Insumo</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Quantidade Mínima</Label>
+                      <Label>Código *</Label>
                       <Input 
-                        type="number" 
-                        value={novoInsumo.quantidade_minima} 
-                        onChange={e => setNovoInsumo(p => ({ ...p, quantidade_minima: parseInt(e.target.value) || 0 }))}
+                        value={novoInsumo.codigo_insumo} 
+                        onChange={e => setNovoInsumo(p => ({ ...p, codigo_insumo: e.target.value.toUpperCase() }))}
+                        placeholder="Ex: LIM001"
                       />
                     </div>
-                    <Button onClick={handleCriarInsumo} className="w-full" disabled={criarInsumoMutation.isPending}>
-                      {criarInsumoMutation.isPending ? 'Salvando...' : 'Cadastrar Insumo'}
-                    </Button>
+                    <div>
+                      <Label>Nome *</Label>
+                      <Input 
+                        value={novoInsumo.nome_insumo} 
+                        onChange={e => setNovoInsumo(p => ({ ...p, nome_insumo: e.target.value.toUpperCase() }))}
+                        placeholder="Ex: DESINFETANTE"
+                      />
+                    </div>
                   </div>
-                </DialogContent>
-              </Dialog>
-            )}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Categoria *</Label>
+                      <Select value={novoInsumo.categoria} onValueChange={v => setNovoInsumo(p => ({ ...p, categoria: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          {CATEGORIAS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Unidade *</Label>
+                      <Select value={novoInsumo.unidade_medida} onValueChange={v => setNovoInsumo(p => ({ ...p, unidade_medida: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          {UNIDADES.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Quantidade Mínima</Label>
+                    <Input 
+                      type="number" 
+                      value={novoInsumo.quantidade_minima} 
+                      onChange={e => setNovoInsumo(p => ({ ...p, quantidade_minima: parseInt(e.target.value) || 0 }))}
+                    />
+                  </div>
+                  <Button onClick={handleCriarInsumo} className="w-full" disabled={criarInsumoMutation.isPending}>
+                    {criarInsumoMutation.isPending ? 'Salvando...' : 'Cadastrar Insumo'}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
