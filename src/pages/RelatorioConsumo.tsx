@@ -1,15 +1,19 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend, AreaChart, Area } from 'recharts';
-import { TrendingUp, PieChart as PieIcon, ArrowLeft, Package, Activity, Calendar, Layers } from 'lucide-react';
+import { TrendingUp, PieChart as PieIcon, ArrowLeft, Package, Activity, Calendar as CalendarIcon, Layers } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { format, subMonths, startOfMonth } from 'date-fns';
+import { format, subMonths, startOfMonth, endOfMonth, differenceInMonths, eachMonthOfInterval, subDays, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 type Insumo = {
   id: string;
@@ -26,6 +30,8 @@ type Movimentacao = {
   setor: string | null;
   created_at: string;
 };
+
+type PeriodoOption = '3m' | '6m' | '12m' | 'custom';
 
 const CORES_CATEGORIAS: Record<string, string> = {
   'Copa e Recepção': 'hsl(var(--chart-1))',
@@ -46,6 +52,37 @@ const CORES_ARRAY = [
 export default function RelatorioConsumo() {
   const { unidadeAtual } = useUnidade();
   const navigate = useNavigate();
+  
+  // Período states
+  const [periodo, setPeriodo] = useState<PeriodoOption>('6m');
+  const [dataInicio, setDataInicio] = useState<Date | undefined>(startOfMonth(subMonths(new Date(), 5)));
+  const [dataFim, setDataFim] = useState<Date | undefined>(endOfMonth(new Date()));
+
+  // Calcular datas baseado no período selecionado
+  const { dataInicioCalc, dataFimCalc, numMeses } = useMemo(() => {
+    const hoje = new Date();
+    let inicio: Date;
+    let fim = endOfMonth(hoje);
+    
+    if (periodo === 'custom' && dataInicio && dataFim) {
+      inicio = startOfMonth(dataInicio);
+      fim = endOfMonth(dataFim);
+    } else {
+      const meses = periodo === '3m' ? 3 : periodo === '12m' ? 12 : 6;
+      inicio = startOfMonth(subMonths(hoje, meses - 1));
+    }
+    
+    const numMeses = Math.max(1, differenceInMonths(fim, inicio) + 1);
+    
+    return { dataInicioCalc: inicio, dataFimCalc: fim, numMeses };
+  }, [periodo, dataInicio, dataFim]);
+
+  const periodoLabel = useMemo(() => {
+    if (periodo === 'custom' && dataInicio && dataFim) {
+      return `${format(dataInicio, 'MMM/yy', { locale: ptBR })} - ${format(dataFim, 'MMM/yy', { locale: ptBR })}`;
+    }
+    return periodo === '3m' ? 'Últimos 3 meses' : periodo === '12m' ? 'Últimos 12 meses' : 'Últimos 6 meses';
+  }, [periodo, dataInicio, dataFim]);
 
   // Fetch insumos
   const { data: insumos = [] } = useQuery({
@@ -63,18 +100,18 @@ export default function RelatorioConsumo() {
     enabled: !!unidadeAtual,
   });
 
-  // Fetch movimentações dos últimos 6 meses
+  // Fetch movimentações baseado no período
   const { data: movimentacoes = [] } = useQuery({
-    queryKey: ['relatorio_consumo_6m', unidadeAtual?.id],
+    queryKey: ['relatorio_consumo', unidadeAtual?.id, dataInicioCalc.toISOString(), dataFimCalc.toISOString()],
     queryFn: async () => {
       if (!unidadeAtual) return [];
-      const seisAtras = startOfMonth(subMonths(new Date(), 5)).toISOString();
       const { data, error } = await supabase
         .from('movimentacoes_estoque')
         .select('*')
         .eq('tipo', 'retirada')
         .eq('unidade_id', unidadeAtual.id)
-        .gte('created_at', seisAtras)
+        .gte('created_at', dataInicioCalc.toISOString())
+        .lte('created_at', dataFimCalc.toISOString())
         .order('created_at', { ascending: true });
       if (error) throw error;
       return data as Movimentacao[];
@@ -86,8 +123,9 @@ export default function RelatorioConsumo() {
   const dadosTendenciaMensal = useMemo(() => {
     const meses: Record<string, Record<string, number>> = {};
     
-    for (let i = 5; i >= 0; i--) {
-      const mes = subMonths(new Date(), i);
+    // Gerar todos os meses do período
+    const mesesIntervalo = eachMonthOfInterval({ start: dataInicioCalc, end: dataFimCalc });
+    mesesIntervalo.forEach(mes => {
       const chave = format(mes, 'yyyy-MM');
       meses[chave] = {
         'Copa e Recepção': 0,
@@ -96,7 +134,7 @@ export default function RelatorioConsumo() {
         'Descartáveis': 0,
         'Higiene Pessoal': 0,
       };
-    }
+    });
 
     movimentacoes.forEach(mov => {
       const mesChave = format(new Date(mov.created_at), 'yyyy-MM');
@@ -111,7 +149,7 @@ export default function RelatorioConsumo() {
       ...categorias,
       total: Object.values(categorias).reduce((a, b) => a + b, 0),
     }));
-  }, [movimentacoes, insumos]);
+  }, [movimentacoes, insumos, dataInicioCalc, dataFimCalc]);
 
   // Dados para gráfico de pizza
   const dadosPizza = useMemo(() => {
@@ -168,17 +206,17 @@ export default function RelatorioConsumo() {
       .sort((a, b) => b.quantidade - a.quantidade);
   }, [movimentacoes]);
 
-  // Consumo diário (últimos 30 dias)
+  // Consumo diário (últimos 30 dias do período)
   const consumoDiario = useMemo(() => {
     const dias: Record<string, number> = {};
-    const hoje = new Date();
+    const fimPeriodo = dataFimCalc;
+    const inicioDiario = subDays(fimPeriodo, 29);
     
-    for (let i = 29; i >= 0; i--) {
-      const dia = new Date(hoje);
-      dia.setDate(dia.getDate() - i);
+    const diasIntervalo = eachDayOfInterval({ start: inicioDiario, end: fimPeriodo });
+    diasIntervalo.forEach(dia => {
       const chave = format(dia, 'yyyy-MM-dd');
       dias[chave] = 0;
-    }
+    });
 
     movimentacoes.forEach(mov => {
       const diaChave = format(new Date(mov.created_at), 'yyyy-MM-dd');
@@ -191,7 +229,7 @@ export default function RelatorioConsumo() {
       dia: format(new Date(dia), 'dd/MM', { locale: ptBR }),
       quantidade,
     }));
-  }, [movimentacoes]);
+  }, [movimentacoes, dataFimCalc]);
 
   const totalConsumo = movimentacoes.reduce((sum, m) => sum + m.quantidade, 0);
   const mesAtual = dadosTendenciaMensal[dadosTendenciaMensal.length - 1]?.total || 0;
@@ -202,7 +240,7 @@ export default function RelatorioConsumo() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate('/estoque')}>
               <ArrowLeft className="h-5 w-5" />
@@ -212,9 +250,86 @@ export default function RelatorioConsumo() {
                 <TrendingUp className="h-8 w-8 text-primary" />
                 Relatório de Consumo e Tendências
               </h1>
-              <p className="text-muted-foreground">{unidadeAtual?.nome || 'Selecione uma unidade'} • Últimos 6 meses</p>
+              <p className="text-muted-foreground">{unidadeAtual?.nome || 'Selecione uma unidade'} • {periodoLabel}</p>
             </div>
           </div>
+          
+          {/* Filtro de Período */}
+          <Card className="p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm font-medium text-muted-foreground">Período:</span>
+              <div className="flex gap-2">
+                <Button 
+                  variant={periodo === '3m' ? 'default' : 'outline'} 
+                  size="sm"
+                  onClick={() => setPeriodo('3m')}
+                >
+                  3 meses
+                </Button>
+                <Button 
+                  variant={periodo === '6m' ? 'default' : 'outline'} 
+                  size="sm"
+                  onClick={() => setPeriodo('6m')}
+                >
+                  6 meses
+                </Button>
+                <Button 
+                  variant={periodo === '12m' ? 'default' : 'outline'} 
+                  size="sm"
+                  onClick={() => setPeriodo('12m')}
+                >
+                  12 meses
+                </Button>
+                <Button 
+                  variant={periodo === 'custom' ? 'default' : 'outline'} 
+                  size="sm"
+                  onClick={() => setPeriodo('custom')}
+                >
+                  Personalizado
+                </Button>
+              </div>
+              
+              {periodo === 'custom' && (
+                <div className="flex gap-2 items-center">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal", !dataInicio && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dataInicio ? format(dataInicio, "MMM/yyyy", { locale: ptBR }) : "Início"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dataInicio}
+                        onSelect={setDataInicio}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <span className="text-muted-foreground">até</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal", !dataFim && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dataFim ? format(dataFim, "MMM/yyyy", { locale: ptBR }) : "Fim"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dataFim}
+                        onSelect={setDataFim}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+            </div>
+          </Card>
         </div>
 
         {/* KPIs principais */}
@@ -235,12 +350,12 @@ export default function RelatorioConsumo() {
           <Card className="bg-gradient-to-br from-chart-2/10 to-chart-2/5 border-chart-2/20">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
+                <CalendarIcon className="h-4 w-4" />
                 Média Mensal
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{Math.round(totalConsumo / 6).toLocaleString()}</div>
+              <div className="text-3xl font-bold">{Math.round(totalConsumo / numMeses).toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">unidades/mês</p>
             </CardContent>
           </Card>
@@ -279,7 +394,7 @@ export default function RelatorioConsumo() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5" />
-              Consumo Diário (últimos 30 dias)
+              Consumo Diário (últimos 30 dias do período)
             </CardTitle>
           </CardHeader>
           <CardContent>
