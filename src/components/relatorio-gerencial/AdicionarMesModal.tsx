@@ -32,11 +32,12 @@ interface AdicionarMesModalProps {
   onClose: () => void;
   editingRecord: RelatorioMes | null;
   existingMonths: string[];
+  unidadeId?: string;
 }
 
 const CAPACIDADE_ZN = 450; // Fixed capacity for ZN
 
-export function AdicionarMesModal({ open, onClose, editingRecord, existingMonths }: AdicionarMesModalProps) {
+export function AdicionarMesModal({ open, onClose, editingRecord, existingMonths, unidadeId }: AdicionarMesModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -107,12 +108,14 @@ export function AdicionarMesModal({ open, onClose, editingRecord, existingMonths
           .eq('id', editingRecord.id);
         if (error) throw error;
       } else {
+        if (!unidadeId) throw new Error('Nenhuma unidade selecionada');
         const { error } = await supabase
           .from('relatorio_gerencial_zn')
           .insert({
             ...data,
             capacidade_zn: CAPACIDADE_ZN,
-            total_a_vencer: data.total_a_vencer || null
+            total_a_vencer: data.total_a_vencer || null,
+            unidade_id: unidadeId,
           });
         if (error) throw error;
       }

@@ -19,6 +19,7 @@ import { CalendarIcon, Users, Gift, Info, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Helmet } from 'react-helmet';
 import { useToast } from '@/hooks/use-toast';
+import { useUnidade } from '@/contexts/UnidadeContext';
 
 type PeriodFilter = 'all' | 'current_month' | 'previous_month' | 'custom';
 
@@ -47,6 +48,7 @@ export default function Indicacoes() {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { unidadeAtual } = useUnidade();
 
   // Calculate date range based on filter
   const dateRange = useMemo(() => {
@@ -71,23 +73,27 @@ export default function Indicacoes() {
 
   // Fetch ALL indicações for global total (not affected by filter)
   const { data: allIndicacoes = [] } = useQuery({
-    queryKey: ['indicacoes-total'],
+    queryKey: ['indicacoes-total', unidadeAtual?.id],
     queryFn: async () => {
+      if (!unidadeAtual) return [];
       const { data, error } = await supabase
         .from('interacoes')
         .select('id, quem_indicou, fechou_matricula')
+        .eq('unidade_id', unidadeAtual.id)
         .not('quem_indicou', 'is', null)
         .neq('quem_indicou', '');
 
       if (error) throw error;
       return data || [];
     },
+    enabled: !!unidadeAtual,
   });
 
   // Fetch indicações filtered by period (for table and period KPIs)
   const { data: indicacoes = [], isLoading } = useQuery({
-    queryKey: ['indicacoes-periodo', dateRange?.start, dateRange?.end],
+    queryKey: ['indicacoes-periodo', dateRange?.start, dateRange?.end, unidadeAtual?.id],
     queryFn: async () => {
+      if (!unidadeAtual) return [];
       let query = supabase
         .from('interacoes')
         .select(`
@@ -99,6 +105,7 @@ export default function Indicacoes() {
           fechou_matricula,
           leads!inner(nome)
         `)
+        .eq('unidade_id', unidadeAtual.id)
         .not('quem_indicou', 'is', null)
         .neq('quem_indicou', '');
 
@@ -125,6 +132,7 @@ export default function Indicacoes() {
         fechou_matricula: item.fechou_matricula || false,
       })) as Indicacao[];
     },
+    enabled: !!unidadeAtual,
   });
 
   // Global metrics (not affected by filter)

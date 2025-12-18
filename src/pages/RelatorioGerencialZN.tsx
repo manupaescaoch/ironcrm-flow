@@ -28,6 +28,7 @@ import { format, parse, startOfMonth, endOfMonth, isWithinInterval, compareAsc }
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { AdicionarMesModal } from '@/components/relatorio-gerencial/AdicionarMesModal';
+import { useUnidade } from '@/contexts/UnidadeContext';
 import { KPICard } from '@/components/relatorio-gerencial/KPICard';
 import { GraficosRelatorio } from '@/components/relatorio-gerencial/GraficosRelatorio';
 import { TabelaHistorico } from '@/components/relatorio-gerencial/TabelaHistorico';
@@ -68,6 +69,7 @@ export default function RelatorioGerencialZN() {
   const { isAdmin } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { unidadeAtual } = useUnidade();
   
   const monthOptions = useMemo(() => generateMonthOptions(), []);
   const [mesInicial, setMesInicial] = useState(monthOptions[Math.max(0, monthOptions.length - 6)]);
@@ -78,16 +80,19 @@ export default function RelatorioGerencialZN() {
 
   // Fetch all reports
   const { data: relatorios = [], isLoading } = useQuery({
-    queryKey: ['relatorio-gerencial-zn'],
+    queryKey: ['relatorio-gerencial-zn', unidadeAtual?.id],
     queryFn: async () => {
+      if (!unidadeAtual) return [];
       const { data, error } = await supabase
         .from('relatorio_gerencial_zn')
         .select('*')
+        .eq('unidade_id', unidadeAtual.id)
         .order('mes_ano', { ascending: true });
       
       if (error) throw error;
       return data as RelatorioMes[];
-    }
+    },
+    enabled: !!unidadeAtual,
   });
 
   // Filter reports by selected period
@@ -143,7 +148,7 @@ export default function RelatorioGerencialZN() {
     
     // Title
     doc.setFontSize(18);
-    doc.text('Relatório Gerencial - Zona Norte', pageWidth / 2, 20, { align: 'center' });
+    doc.text(`Relatório Gerencial - ${unidadeAtual?.nome || 'Unidade'}`, pageWidth / 2, 20, { align: 'center' });
     
     doc.setFontSize(12);
     doc.text(`Período: ${formatMesAno(filtroAplicado.mesInicial)} a ${formatMesAno(filtroAplicado.mesFinal)}`, pageWidth / 2, 30, { align: 'center' });
@@ -237,8 +242,8 @@ export default function RelatorioGerencialZN() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Relatório Gerencial – Zona Norte</h1>
-            <p className="text-muted-foreground">Análise mensal de indicadores da unidade ZN</p>
+            <h1 className="text-2xl font-bold text-foreground">Relatório Gerencial – {unidadeAtual?.nome || 'Selecione uma unidade'}</h1>
+            <p className="text-muted-foreground">Análise mensal de indicadores da unidade</p>
             {ultimaAtualizacao && (
               <p className="text-xs text-muted-foreground mt-1">
                 Última atualização: {format(ultimaAtualizacao, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
@@ -284,12 +289,12 @@ export default function RelatorioGerencialZN() {
             <div className="flex flex-col md:flex-row gap-4 items-end">
               <div className="flex-1">
                 <label className="text-sm font-medium text-foreground mb-2 block">Unidade</label>
-                <Select value="zn" disabled>
+                <Select value="current" disabled>
                   <SelectTrigger>
-                    <SelectValue placeholder="Zona Norte" />
+                    <SelectValue placeholder={unidadeAtual?.nome || 'Selecione'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="zn">Zona Norte</SelectItem>
+                    <SelectItem value="current">{unidadeAtual?.nome || 'Selecione uma unidade'}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -446,6 +451,7 @@ export default function RelatorioGerencialZN() {
           onClose={handleCloseModal}
           editingRecord={editingRecord}
           existingMonths={relatorios.map(r => r.mes_ano)}
+          unidadeId={unidadeAtual?.id}
         />
       </div>
     </Layout>

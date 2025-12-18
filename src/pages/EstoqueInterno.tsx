@@ -18,6 +18,7 @@ import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { HistoricoMovimentacoes } from '@/components/estoque/HistoricoMovimentacoes';
 import { RelatorioConsumo } from '@/components/estoque/RelatorioConsumo';
+import { useUnidade } from '@/contexts/UnidadeContext';
 
 const CATEGORIAS = ['Copa e Recepção', 'Suplementos (uso interno)', 'Limpeza', 'Descartáveis', 'Higiene Pessoal'] as const;
 const UNIDADES = ['un', 'pacote', 'litro', 'kg', 'caixa'] as const;
@@ -66,6 +67,7 @@ export default function EstoqueInterno() {
   const { toast } = useToast();
   const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
+  const { unidadeAtual } = useUnidade();
   
   const [novoInsumoOpen, setNovoInsumoOpen] = useState(false);
   const [editarInsumoOpen, setEditarInsumoOpen] = useState(false);
@@ -105,43 +107,52 @@ export default function EstoqueInterno() {
 
   // Fetch insumos
   const { data: insumos = [] } = useQuery({
-    queryKey: ['insumos'],
+    queryKey: ['insumos', unidadeAtual?.id],
     queryFn: async () => {
+      if (!unidadeAtual) return [];
       const { data, error } = await supabase
         .from('insumos')
         .select('*')
         .eq('ativo', true)
+        .eq('unidade_id', unidadeAtual.id)
         .order('nome_insumo');
       if (error) throw error;
       return data as Insumo[];
     },
+    enabled: !!unidadeAtual,
   });
 
   // Fetch estoque
   const { data: estoque = [] } = useQuery({
-    queryKey: ['estoque_interno'],
+    queryKey: ['estoque_interno', unidadeAtual?.id],
     queryFn: async () => {
+      if (!unidadeAtual) return [];
       const { data, error } = await supabase
         .from('estoque_interno')
-        .select('*');
+        .select('*')
+        .eq('unidade_id', unidadeAtual.id);
       if (error) throw error;
       return data as EstoqueInterno[];
     },
+    enabled: !!unidadeAtual,
   });
 
   // Fetch movimentações últimos 30 dias
   const { data: movimentacoes = [] } = useQuery({
-    queryKey: ['movimentacoes_estoque'],
+    queryKey: ['movimentacoes_estoque', unidadeAtual?.id],
     queryFn: async () => {
+      if (!unidadeAtual) return [];
       const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
       const { data, error } = await supabase
         .from('movimentacoes_estoque')
         .select('*')
+        .eq('unidade_id', unidadeAtual.id)
         .gte('created_at', thirtyDaysAgo)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data as Movimentacao[];
     },
+    enabled: !!unidadeAtual,
   });
 
   // Calcular dados consolidados
@@ -238,15 +249,17 @@ export default function EstoqueInterno() {
   // Mutations
   const criarInsumoMutation = useMutation({
     mutationFn: async (data: typeof novoInsumo) => {
+      if (!unidadeAtual) throw new Error('Nenhuma unidade selecionada');
       const { error } = await supabase.from('insumos').insert({
         ...data,
         codigo_insumo: data.codigo_insumo.toUpperCase(),
         nome_insumo: data.nome_insumo.toUpperCase(),
+        unidade_id: unidadeAtual.id,
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['insumos'] });
+      queryClient.invalidateQueries({ queryKey: ['insumos', unidadeAtual?.id] });
       setNovoInsumoOpen(false);
       setNovoInsumo({ codigo_insumo: '', nome_insumo: '', categoria: '', unidade_medida: '', quantidade_minima: 0 });
       toast({ title: 'Insumo cadastrado com sucesso!' });
@@ -268,7 +281,7 @@ export default function EstoqueInterno() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['insumos'] });
+      queryClient.invalidateQueries({ queryKey: ['insumos', unidadeAtual?.id] });
       setEditarInsumoOpen(false);
       toast({ title: 'Insumo atualizado com sucesso!' });
     },
@@ -279,12 +292,16 @@ export default function EstoqueInterno() {
 
   const registrarMovimentacaoMutation = useMutation({
     mutationFn: async (data: { insumo_id: string; tipo: string; quantidade: number; setor: string | null; responsavel: string; observacao: string | null }) => {
-      const { error } = await supabase.from('movimentacoes_estoque').insert(data);
+      if (!unidadeAtual) throw new Error('Nenhuma unidade selecionada');
+      const { error } = await supabase.from('movimentacoes_estoque').insert({
+        ...data,
+        unidade_id: unidadeAtual.id,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['estoque_interno'] });
-      queryClient.invalidateQueries({ queryKey: ['movimentacoes_estoque'] });
+      queryClient.invalidateQueries({ queryKey: ['estoque_interno', unidadeAtual?.id] });
+      queryClient.invalidateQueries({ queryKey: ['movimentacoes_estoque', unidadeAtual?.id] });
       setMovimentacaoOpen(false);
       setMovimentacao({ quantidade: 0, setor: '', responsavel: '', observacao: '' });
       setSelectedInsumo(null);
@@ -365,7 +382,7 @@ export default function EstoqueInterno() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Estoque Interno - Insumos</h1>
-            <p className="text-muted-foreground">Iron Club Zona Norte</p>
+            <p className="text-muted-foreground">{unidadeAtual?.nome || 'Selecione uma unidade'}</p>
           </div>
           {isAdmin && (
             <Dialog open={novoInsumoOpen} onOpenChange={setNovoInsumoOpen}>

@@ -47,6 +47,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useUnidade } from '@/contexts/UnidadeContext';
 
 interface EnrollmentRow {
   id: string;
@@ -72,6 +73,7 @@ export default function RelatorioVendas() {
   const [loading, setLoading] = useState(false);
   const [enrollments, setEnrollments] = useState<EnrollmentRow[]>([]);
   const { toast } = useToast();
+  const { unidadeAtual } = useUnidade();
 
   // Date filters
   const [dataInicial, setDataInicial] = useState<Date>(startOfMonth(new Date()));
@@ -97,10 +99,13 @@ export default function RelatorioVendas() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   useEffect(() => {
-    fetchEnrollments();
-  }, [dataInicial, dataFinal]);
+    if (unidadeAtual) {
+      fetchEnrollments();
+    }
+  }, [dataInicial, dataFinal, unidadeAtual]);
 
   const fetchEnrollments = async () => {
+    if (!unidadeAtual) return;
     setLoading(true);
 
     const startDateStr = format(dataInicial, 'yyyy-MM-dd');
@@ -121,6 +126,7 @@ export default function RelatorioVendas() {
         leads(nome, telefone, origem)
       `)
       .eq('fechou_matricula', true)
+      .eq('unidade_id', unidadeAtual.id)
       .gte('data_fechamento', startDateStr)
       .lte('data_fechamento', endDateStr)
       .order('data_fechamento', { ascending: false });
