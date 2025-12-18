@@ -7,13 +7,16 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend, AreaChart, Area } from 'recharts';
-import { TrendingUp, PieChart as PieIcon, ArrowLeft, Package, Activity, Calendar as CalendarIcon, Layers } from 'lucide-react';
+import { TrendingUp, PieChart as PieIcon, ArrowLeft, Package, Activity, Calendar as CalendarIcon, Layers, FileDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subMonths, startOfMonth, endOfMonth, differenceInMonths, eachMonthOfInterval, subDays, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 type Insumo = {
   id: string;
@@ -52,6 +55,7 @@ const CORES_ARRAY = [
 export default function RelatorioConsumo() {
   const { unidadeAtual } = useUnidade();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Período states
   const [periodo, setPeriodo] = useState<PeriodoOption>('6m');
@@ -236,6 +240,180 @@ export default function RelatorioConsumo() {
   const mesAnterior = dadosTendenciaMensal[dadosTendenciaMensal.length - 2]?.total || 0;
   const variacaoMensal = mesAnterior > 0 ? ((mesAtual - mesAnterior) / mesAnterior * 100).toFixed(1) : '0';
 
+  // Função para exportar PDF
+  const exportarPDF = () => {
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      let yPos = 20;
+
+      // Título
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Relatório de Consumo de Estoque', pageWidth / 2, yPos, { align: 'center' });
+      yPos += 10;
+
+      // Subtítulo com período e unidade
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${unidadeAtual?.nome || 'Unidade'} • ${periodoLabel}`, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 5;
+      doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 15;
+
+      // KPIs - Resumo
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Resumo do Período', 14, yPos);
+      yPos += 8;
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const kpis = [
+        ['Total Consumido', `${totalConsumo.toLocaleString()} unidades`],
+        ['Média Mensal', `${Math.round(totalConsumo / numMeses).toLocaleString()} unidades/mês`],
+        ['Variação Mensal', `${Number(variacaoMensal) >= 0 ? '+' : ''}${variacaoMensal}%`],
+        ['Total de Retiradas', `${movimentacoes.length} movimentações`],
+      ];
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Indicador', 'Valor']],
+        body: kpis,
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246] },
+        margin: { left: 14, right: 14 },
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+
+      // Tendência Mensal por Categoria
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Tendência Mensal por Categoria', 14, yPos);
+      yPos += 8;
+
+      const tendenciaHeaders = ['Mês', 'Copa e Recepção', 'Suplementos', 'Limpeza', 'Descartáveis', 'Higiene Pessoal', 'Total'];
+      const tendenciaData = dadosTendenciaMensal.map(item => [
+        item.mes,
+        item['Copa e Recepção'].toString(),
+        item['Suplementos (uso interno)'].toString(),
+        item['Limpeza'].toString(),
+        item['Descartáveis'].toString(),
+        item['Higiene Pessoal'].toString(),
+        item.total.toString(),
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [tendenciaHeaders],
+        body: tendenciaData,
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246], fontSize: 8 },
+        bodyStyles: { fontSize: 8 },
+        margin: { left: 14, right: 14 },
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+
+      // Verificar se precisa de nova página
+      if (yPos > 240) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // Distribuição por Categoria
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Distribuição por Categoria', 14, yPos);
+      yPos += 8;
+
+      const categoriaData = dadosPizza.map(item => [
+        item.name,
+        item.value.toLocaleString(),
+        `${((item.value / totalConsumo) * 100).toFixed(1)}%`,
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Categoria', 'Quantidade', 'Percentual']],
+        body: categoriaData,
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246] },
+        margin: { left: 14, right: 14 },
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+
+      // Verificar se precisa de nova página
+      if (yPos > 200) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // Top 10 Insumos
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Top 10 Insumos Mais Consumidos', 14, yPos);
+      yPos += 8;
+
+      const topInsumosData = topInsumos.map((item, index) => [
+        `${index + 1}º`,
+        item.nome,
+        item.categoria,
+        item.quantidade.toLocaleString(),
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['#', 'Insumo', 'Categoria', 'Quantidade']],
+        body: topInsumosData,
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246] },
+        margin: { left: 14, right: 14 },
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+
+      // Verificar se precisa de nova página
+      if (yPos > 200) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // Consumo por Setor
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Consumo por Setor', 14, yPos);
+      yPos += 8;
+
+      const setorData = consumoPorSetor.map(item => [
+        item.setor,
+        item.quantidade.toLocaleString(),
+        `${((item.quantidade / totalConsumo) * 100).toFixed(1)}%`,
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Setor', 'Quantidade', 'Percentual']],
+        body: setorData,
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246] },
+        margin: { left: 14, right: 14 },
+      });
+
+      // Salvar PDF
+      const fileName = `relatorio-consumo-${unidadeAtual?.slug || 'estoque'}-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      doc.save(fileName);
+
+      toast({ title: 'PDF exportado com sucesso!' });
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+      toast({ title: 'Erro ao exportar PDF', variant: 'destructive' });
+    }
+  };
+
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -254,82 +432,90 @@ export default function RelatorioConsumo() {
             </div>
           </div>
           
-          {/* Filtro de Período */}
-          <Card className="p-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground">Período:</span>
-              <div className="flex gap-2">
-                <Button 
-                  variant={periodo === '3m' ? 'default' : 'outline'} 
-                  size="sm"
-                  onClick={() => setPeriodo('3m')}
-                >
-                  3 meses
-                </Button>
-                <Button 
-                  variant={periodo === '6m' ? 'default' : 'outline'} 
-                  size="sm"
-                  onClick={() => setPeriodo('6m')}
-                >
-                  6 meses
-                </Button>
-                <Button 
-                  variant={periodo === '12m' ? 'default' : 'outline'} 
-                  size="sm"
-                  onClick={() => setPeriodo('12m')}
-                >
-                  12 meses
-                </Button>
-                <Button 
-                  variant={periodo === 'custom' ? 'default' : 'outline'} 
-                  size="sm"
-                  onClick={() => setPeriodo('custom')}
-                >
-                  Personalizado
-                </Button>
-              </div>
-              
-              {periodo === 'custom' && (
-                <div className="flex gap-2 items-center">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal", !dataInicio && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dataInicio ? format(dataInicio, "MMM/yyyy", { locale: ptBR }) : "Início"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={dataInicio}
-                        onSelect={setDataInicio}
-                        initialFocus
-                        className="p-3 pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <span className="text-muted-foreground">até</span>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal", !dataFim && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dataFim ? format(dataFim, "MMM/yyyy", { locale: ptBR }) : "Fim"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={dataFim}
-                        onSelect={setDataFim}
-                        initialFocus
-                        className="p-3 pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Filtro de Período */}
+            <Card className="p-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-sm font-medium text-muted-foreground">Período:</span>
+                <div className="flex gap-2">
+                  <Button 
+                    variant={periodo === '3m' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setPeriodo('3m')}
+                  >
+                    3 meses
+                  </Button>
+                  <Button 
+                    variant={periodo === '6m' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setPeriodo('6m')}
+                  >
+                    6 meses
+                  </Button>
+                  <Button 
+                    variant={periodo === '12m' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setPeriodo('12m')}
+                  >
+                    12 meses
+                  </Button>
+                  <Button 
+                    variant={periodo === 'custom' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setPeriodo('custom')}
+                  >
+                    Personalizado
+                  </Button>
                 </div>
-              )}
-            </div>
-          </Card>
+                
+                {periodo === 'custom' && (
+                  <div className="flex gap-2 items-center">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal", !dataInicio && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {dataInicio ? format(dataInicio, "MMM/yyyy", { locale: ptBR }) : "Início"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={dataInicio}
+                          onSelect={setDataInicio}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <span className="text-muted-foreground">até</span>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal", !dataFim && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {dataFim ? format(dataFim, "MMM/yyyy", { locale: ptBR }) : "Fim"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={dataFim}
+                          onSelect={setDataFim}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+              </div>
+            </Card>
+            
+            {/* Botão Exportar PDF */}
+            <Button onClick={exportarPDF} className="gap-2">
+              <FileDown className="h-4 w-4" />
+              Exportar PDF
+            </Button>
+          </div>
         </div>
 
         {/* KPIs principais */}
