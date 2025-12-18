@@ -22,7 +22,7 @@ import { ReagendarModal } from '@/components/dashboard/ReagendarModal';
 import { FollowUpCard } from '@/components/dashboard/FollowUpCard';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
-import { format, addDays } from 'date-fns';
+import { format, addDays, startOfWeek, endOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
@@ -76,6 +76,7 @@ export default function Dashboard() {
   
   const [stats, setStats] = useState<Stats>({ total: 0, novos: 0, aulasAgendadas: 0 });
   const [periodStats, setPeriodStats] = useState<PeriodStats>({ experimentaisPeriodo: 0, matriculasPeriodo: 0 });
+  const [experimentaisSemanaCount, setExperimentaisSemanaCount] = useState(0);
   const [loading, setLoading] = useState(true);
   
   // Date filter state - inicia com "Todo Histórico" (inclui futuro)
@@ -162,6 +163,24 @@ export default function Dashboard() {
       matriculasPeriodo: matriculasCount || 0,
     });
   }, [startDate, endDate, unidadeAtual]);
+
+  const fetchWeeklyStats = useCallback(async () => {
+    if (!unidadeAtual) return;
+    
+    const now = new Date();
+    const weekStart = format(startOfWeek(now, { weekStartsOn: 0 }), 'yyyy-MM-dd');
+    const weekEnd = format(endOfWeek(now, { weekStartsOn: 0 }), 'yyyy-MM-dd');
+
+    const { count } = await supabase
+      .from('interacoes')
+      .select('*', { count: 'exact', head: true })
+      .eq('agendou_experimental', true)
+      .eq('unidade_id', unidadeAtual.id)
+      .gte('data_experimental', weekStart)
+      .lte('data_experimental', weekEnd);
+
+    setExperimentaisSemanaCount(count || 0);
+  }, [unidadeAtual]);
 
   const fetchExperimentais = useCallback(async () => {
     if (!unidadeAtual) return;
@@ -566,9 +585,9 @@ export default function Dashboard() {
       return;
     }
     setLoading(true);
-    await Promise.all([fetchStats(), fetchExperimentais(), fetchPeriodStats(), fetchMatriculas(), fetchFollowUp()]);
+    await Promise.all([fetchStats(), fetchExperimentais(), fetchPeriodStats(), fetchWeeklyStats(), fetchMatriculas(), fetchFollowUp()]);
     setLoading(false);
-  }, [fetchStats, fetchExperimentais, fetchPeriodStats, fetchMatriculas, fetchFollowUp, unidadeAtual, unidadeLoading]);
+  }, [fetchStats, fetchExperimentais, fetchPeriodStats, fetchWeeklyStats, fetchMatriculas, fetchFollowUp, unidadeAtual, unidadeLoading]);
 
   useEffect(() => {
     fetchData();
@@ -755,7 +774,7 @@ export default function Dashboard() {
               <Calendar className="w-5 h-5 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-purple-600">{periodStats.experimentaisPeriodo}</p>
+              <p className="text-3xl font-bold text-purple-600">{experimentaisSemanaCount}</p>
               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                 Clique para ver detalhes <ChevronDown className="w-3 h-3" />
               </p>
