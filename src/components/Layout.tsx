@@ -79,7 +79,7 @@ export function Layout({ children }: LayoutProps) {
               <Building2 className="w-3 h-3" />
               <span className="uppercase tracking-wider font-medium">Unidade</span>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-32 overflow-y-auto scrollbar-hide">
               {unidadesPermitidas.map((unidade) => {
                 const isSelected = unidadeAtual.id === unidade.id;
                 return (
