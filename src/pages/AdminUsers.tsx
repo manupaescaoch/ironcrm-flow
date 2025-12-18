@@ -642,8 +642,8 @@ export default function AdminUsers() {
                     <TableRow key={user.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <span className={user.name ? 'font-medium' : 'text-muted-foreground italic'}>
-                            {user.name || 'Sem nome'}
+                          <span className={user.name ? 'font-medium uppercase' : 'text-muted-foreground italic'}>
+                            {user.name?.toUpperCase() || 'Sem nome'}
                           </span>
                           <Button
                             variant="ghost"
