@@ -3,13 +3,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { 
   LayoutDashboard, 
   Users, 
@@ -22,8 +15,7 @@ import {
   Database,
   Building2,
   Gift,
-  Package,
-  MapPin
+  Package
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/logo.png';
@@ -80,39 +72,61 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </div>
 
-        {/* Unit Selector - Only show if user has multiple units */}
+        {/* Unit Selector - Visual cards for multiple units */}
         {hasMultipleUnidades && unidadeAtual && (
-          <div className="px-4 py-3 border-b border-sidebar-border">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-              <MapPin className="w-3 h-3" />
-              <span>Unidade Atual</span>
+          <div className="px-3 py-4 border-b border-sidebar-border">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3 px-1">
+              <Building2 className="w-3 h-3" />
+              <span className="uppercase tracking-wider font-medium">Unidade</span>
             </div>
-            <Select 
-              value={unidadeAtual.id} 
-              onValueChange={(value) => {
-                const unidade = unidadesPermitidas.find(u => u.id === value);
-                if (unidade) setUnidadeAtual(unidade);
-              }}
-            >
-              <SelectTrigger className="w-full bg-sidebar-accent/50 border-sidebar-border">
-                <SelectValue placeholder="Selecione a unidade" />
-              </SelectTrigger>
-              <SelectContent>
-                {unidadesPermitidas.map((unidade) => (
-                  <SelectItem key={unidade.id} value={unidade.id}>
-                    {unidade.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              {unidadesPermitidas.map((unidade) => {
+                const isSelected = unidadeAtual.id === unidade.id;
+                return (
+                  <button
+                    key={unidade.id}
+                    onClick={() => setUnidadeAtual(unidade)}
+                    className={cn(
+                      'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
+                      'border text-left',
+                      isSelected
+                        ? 'bg-primary/10 border-primary/30 text-primary shadow-sm'
+                        : 'bg-sidebar-accent/30 border-transparent hover:bg-sidebar-accent/60 text-sidebar-foreground hover:border-sidebar-border'
+                    )}
+                  >
+                    <div className={cn(
+                      'w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold',
+                      isSelected 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-sidebar-accent text-muted-foreground'
+                    )}>
+                      {unidade.nome.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={cn(
+                        'text-sm font-medium truncate',
+                        isSelected ? 'text-primary' : 'text-sidebar-foreground'
+                      )}>
+                        {unidade.nome}
+                      </p>
+                    </div>
+                    {isSelected && (
+                      <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
         {/* Show current unit badge if only one unit */}
         {!hasMultipleUnidades && unidadeAtual && !unidadeLoading && (
-          <div className="px-4 py-3 border-b border-sidebar-border">
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-primary" />
+          <div className="px-3 py-4 border-b border-sidebar-border">
+            <div className="flex items-center gap-3 px-1">
+              <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+                <Building2 className="w-4 h-4 text-primary" />
+              </div>
               <span className="text-sm font-medium text-sidebar-foreground">{unidadeAtual.nome}</span>
             </div>
           </div>
