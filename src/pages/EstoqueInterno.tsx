@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -240,6 +240,34 @@ export default function EstoqueInterno() {
   const insumosAlerta = insumosComEstoque.filter(i => i.status_estoque === 'Atenção').length;
   const insumosCriticos = insumosComEstoque.filter(i => i.status_estoque === 'Crítico').length;
   const ultimaMovimentacao = movimentacoes[0];
+  
+  // Controle para evitar notificações repetidas
+  const notificadosRef = useRef<Set<string>>(new Set());
+  
+  // Notificação automática de estoque crítico
+  useEffect(() => {
+    const criticos = insumosComEstoque.filter(i => i.status_estoque === 'Crítico');
+    
+    criticos.forEach(insumo => {
+      if (!notificadosRef.current.has(insumo.id)) {
+        notificadosRef.current.add(insumo.id);
+        toast({
+          title: '⚠️ Estoque Crítico',
+          description: `${insumo.nome_insumo} está com quantidade abaixo do mínimo (${insumo.quantidade_atual}/${insumo.quantidade_minima} ${insumo.unidade_medida})`,
+          variant: 'destructive',
+          duration: 8000,
+        });
+      }
+    });
+    
+    // Limpar notificados que não são mais críticos
+    notificadosRef.current.forEach(id => {
+      const aindaCritico = criticos.some(i => i.id === id);
+      if (!aindaCritico) {
+        notificadosRef.current.delete(id);
+      }
+    });
+  }, [insumosComEstoque, toast]);
   
   const limparFiltros = () => {
     setBusca('');
