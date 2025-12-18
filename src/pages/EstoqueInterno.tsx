@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { HistoricoMovimentacoes } from '@/components/estoque/HistoricoMovimentacoes';
 
 const CATEGORIAS = ['Limpeza', 'Café', 'Suplementação Interna', 'Operacional', 'Administrativo'] as const;
 const UNIDADES = ['un', 'litro', 'kg', 'pacote', 'caixa'] as const;
@@ -453,6 +454,9 @@ export default function EstoqueInterno() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Histórico de Movimentações */}
+        <HistoricoMovimentacoes insumos={insumos} />
 
         {/* Modal Movimentação */}
         <Dialog open={movimentacaoOpen} onOpenChange={setMovimentacaoOpen}>
