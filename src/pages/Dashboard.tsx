@@ -271,12 +271,10 @@ export default function Dashboard() {
         detailedItems.push(experimentalItem);
       }
 
-      // Experimentais de hoje - mostra todos; pendência = quem ainda não compareceu
-      if (interacao.data_experimental === today) {
+      // Experimentais de hoje - só mostra quem ainda não compareceu
+      if (interacao.data_experimental === today && interacao.compareceu !== true) {
         todayItems.push(experimentalItem);
-        if (interacao.compareceu !== true) {
-          pendenciasHojeItems.push(experimentalItem);
-        }
+        pendenciasHojeItems.push(experimentalItem);
       }
       // Confirmações para amanhã - sempre mostra independente do período
       else if (interacao.data_experimental === tomorrow) {
