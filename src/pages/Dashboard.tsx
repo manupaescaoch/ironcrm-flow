@@ -271,10 +271,10 @@ export default function Dashboard() {
         detailedItems.push(experimentalItem);
       }
 
-      // Experimentais de hoje - só mostra quem ainda não compareceu
+      // Experimentais de hoje - mostra todos; pendência = quem ainda não compareceu
       if (interacao.data_experimental === today) {
+        todayItems.push(experimentalItem);
         if (interacao.compareceu !== true) {
-          todayItems.push(experimentalItem);
           pendenciasHojeItems.push(experimentalItem);
         }
       }
