@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Package, AlertTriangle, AlertCircle, Clock, Plus, Minus, Settings, PackagePlus, Pencil } from 'lucide-react';
+import { Package, AlertTriangle, AlertCircle, Clock, Plus, Minus, Settings, PackagePlus, Pencil, Search, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +22,7 @@ import { RelatorioConsumo } from '@/components/estoque/RelatorioConsumo';
 const CATEGORIAS = ['Copa e Recepção', 'Suplementos (uso interno)', 'Limpeza', 'Descartáveis', 'Higiene Pessoal'] as const;
 const UNIDADES = ['un', 'pacote', 'litro', 'kg', 'caixa'] as const;
 const SETORES = ['Limpeza', 'Café', 'Treino', 'Administrativo', 'Recepção'] as const;
+const STATUS_OPTIONS = ['Todos', 'Crítico', 'Atenção', 'OK'] as const;
 
 type Insumo = {
   id: string;
@@ -71,6 +72,11 @@ export default function EstoqueInterno() {
   const [movimentacaoOpen, setMovimentacaoOpen] = useState(false);
   const [selectedInsumo, setSelectedInsumo] = useState<Insumo | null>(null);
   const [tipoMovimentacao, setTipoMovimentacao] = useState<'entrada' | 'retirada' | 'ajuste'>('entrada');
+  
+  // Filtros e busca
+  const [busca, setBusca] = useState('');
+  const [filtroCategoria, setFiltroCategoria] = useState('Todas');
+  const [filtroStatus, setFiltroStatus] = useState('Todos');
   
   // Form states
   const [novoInsumo, setNovoInsumo] = useState({
@@ -174,11 +180,60 @@ export default function EstoqueInterno() {
     };
   });
 
-  // KPIs
+  // Filtragem e ordenação automática
+  const insumosFiltradosOrdenados = useMemo(() => {
+    let resultado = [...insumosComEstoque];
+    
+    // Aplicar busca
+    if (busca.trim()) {
+      const termoBusca = busca.toLowerCase().trim();
+      resultado = resultado.filter(item =>
+        item.nome_insumo.toLowerCase().includes(termoBusca) ||
+        item.codigo_insumo.toLowerCase().includes(termoBusca) ||
+        item.categoria.toLowerCase().includes(termoBusca) ||
+        item.unidade_medida.toLowerCase().includes(termoBusca)
+      );
+    }
+    
+    // Aplicar filtro de categoria
+    if (filtroCategoria !== 'Todas') {
+      resultado = resultado.filter(item => item.categoria === filtroCategoria);
+    }
+    
+    // Aplicar filtro de status
+    if (filtroStatus !== 'Todos') {
+      resultado = resultado.filter(item => item.status_estoque === filtroStatus);
+    }
+    
+    // Ordenação automática: Crítico > Atenção > OK, depois por dias restantes
+    const statusPrioridade = { 'Crítico': 0, 'Atenção': 1, 'OK': 2 };
+    resultado.sort((a, b) => {
+      // Primeiro por status
+      const statusDiff = statusPrioridade[a.status_estoque] - statusPrioridade[b.status_estoque];
+      if (statusDiff !== 0) return statusDiff;
+      
+      // Depois por dias restantes (null = infinito, vai pro final)
+      const diasA = a.dias_restantes ?? 999999;
+      const diasB = b.dias_restantes ?? 999999;
+      return diasA - diasB;
+    });
+    
+    return resultado;
+  }, [insumosComEstoque, busca, filtroCategoria, filtroStatus]);
+
+  // KPIs (baseados nos dados totais, não filtrados)
   const totalInsumos = insumos.length;
   const insumosAlerta = insumosComEstoque.filter(i => i.status_estoque === 'Atenção').length;
   const insumosCriticos = insumosComEstoque.filter(i => i.status_estoque === 'Crítico').length;
   const ultimaMovimentacao = movimentacoes[0];
+  
+  const limparFiltros = () => {
+    setBusca('');
+    setFiltroCategoria('Todas');
+    setFiltroStatus('Todos');
+  };
+  
+  const temFiltrosAtivos = busca.trim() || filtroCategoria !== 'Todas' || filtroStatus !== 'Todos';
 
   // Mutations
   const criarInsumoMutation = useMutation({
@@ -424,10 +479,79 @@ export default function EstoqueInterno() {
           </Card>
         </div>
 
+        {/* Busca e Filtros */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* Busca Global */}
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={busca}
+                  onChange={e => setBusca(e.target.value)}
+                  placeholder="🔎 Buscar insumo por nome, código ou categoria"
+                  className="pl-9"
+                />
+              </div>
+              
+              {/* Filtro Categoria */}
+              <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
+                <SelectTrigger className="w-full lg:w-[220px]">
+                  <SelectValue placeholder="Categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Todas">Todas as Categorias</SelectItem>
+                  {CATEGORIAS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              
+              {/* Filtro Status - Chips */}
+              <div className="flex gap-2 flex-wrap">
+                {STATUS_OPTIONS.map(status => (
+                  <Button
+                    key={status}
+                    variant={filtroStatus === status ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFiltroStatus(status)}
+                    className={
+                      status === 'Crítico' ? (filtroStatus === status ? 'bg-destructive hover:bg-destructive/90' : 'border-destructive text-destructive hover:bg-destructive/10') :
+                      status === 'Atenção' ? (filtroStatus === status ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : 'border-yellow-500 text-yellow-600 hover:bg-yellow-500/10') :
+                      status === 'OK' ? (filtroStatus === status ? 'bg-green-500 hover:bg-green-600 text-white' : 'border-green-500 text-green-600 hover:bg-green-500/10') :
+                      ''
+                    }
+                  >
+                    {status === 'Crítico' && '🔴 '}
+                    {status === 'Atenção' && '🟡 '}
+                    {status === 'OK' && '🟢 '}
+                    {status}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            
+            {temFiltrosAtivos && (
+              <div className="mt-3 flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {insumosFiltradosOrdenados.length} resultado(s)
+                </span>
+                <Button variant="ghost" size="sm" onClick={limparFiltros} className="gap-1 h-7">
+                  <X className="h-3 w-3" />
+                  Limpar filtros
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Tabela Principal */}
         <Card>
           <CardHeader>
-            <CardTitle>Controle de Estoque</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Controle de Estoque</span>
+              <span className="text-sm font-normal text-muted-foreground">
+                Ordenado por criticidade
+              </span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -443,20 +567,20 @@ export default function EstoqueInterno() {
                     <TableHead className="text-right">Méd. Diária</TableHead>
                     <TableHead className="text-right">Méd. Semanal</TableHead>
                     <TableHead className="text-right">Méd. Mensal</TableHead>
-                    <TableHead className="text-right">Dias Restantes</TableHead>
+                    <TableHead className="text-right bg-muted/50 font-bold">⏳ Dias Restantes</TableHead>
                     <TableHead>Última Retirada</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {insumosComEstoque.length === 0 ? (
+                  {insumosFiltradosOrdenados.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
-                        Nenhum insumo cadastrado. {isAdmin && 'Clique em "Novo Insumo" para começar.'}
+                        {temFiltrosAtivos ? 'Nenhum insumo encontrado' : (isAdmin ? 'Nenhum insumo cadastrado. Clique em "Novo Insumo" para começar.' : 'Nenhum insumo cadastrado.')}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    insumosComEstoque.map(item => (
+                    insumosFiltradosOrdenados.map(item => (
                       <TableRow key={item.id} className={item.status_estoque === 'Crítico' ? 'bg-destructive/10' : item.status_estoque === 'Atenção' ? 'bg-yellow-500/10' : ''}>
                         <TableCell>
                           <div>
@@ -472,12 +596,16 @@ export default function EstoqueInterno() {
                         <TableCell className="text-right">{item.media_diaria}</TableCell>
                         <TableCell className="text-right">{item.media_semanal}</TableCell>
                         <TableCell className="text-right">{item.media_mensal}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right bg-muted/30">
                           {item.dias_restantes !== null ? (
-                            <span className={item.dias_restantes < 5 ? 'text-destructive font-bold' : item.dias_restantes < 10 ? 'text-yellow-600 font-medium' : ''}>
+                            <span className={`font-bold px-2 py-1 rounded ${
+                              item.dias_restantes < 5 ? 'bg-destructive/20 text-destructive' : 
+                              item.dias_restantes < 10 ? 'bg-yellow-500/20 text-yellow-700' : 
+                              'bg-green-500/20 text-green-700'
+                            }`}>
                               {item.dias_restantes} dias
                             </span>
-                          ) : '—'}
+                          ) : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell>
                           {item.ultima_retirada ? (
