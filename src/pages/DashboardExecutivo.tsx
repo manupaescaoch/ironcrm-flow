@@ -356,14 +356,39 @@ export default function DashboardExecutivo() {
       .sort((a, b) => b.matriculas - a.matriculas);
   }, [interacoes]);
 
+  // ==================== PADRONIZAÇÃO DE TREINADORES ====================
+  const padronizarTreinador = (nome: string | null | undefined): string => {
+    if (!nome || nome.trim() === '') return 'NAO INFORMADO';
+    
+    const normalizado = nome.trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    
+    // Mapeamento de treinadores conhecidos
+    if (/^thais/.test(normalizado)) return 'THAIS';
+    if (/^gabriela/.test(normalizado)) return 'GABRIELA LIMA';
+    if (/^natanael/.test(normalizado)) return 'NATANAEL DA SILVA';
+    if (/^andreza/.test(normalizado)) return 'ANDREZA TEODORO';
+    if (/^gabriel$/.test(normalizado) || normalizado === 'gabriel') return 'GABRIEL';
+    if (/^sistema/.test(normalizado)) return 'SISTEMA';
+    if (/^(nao informado|n[aã]o informado|desconhecido|vazio|null|undefined|-|n\/a)/.test(normalizado)) {
+      return 'NAO INFORMADO';
+    }
+    
+    return nome.trim().toUpperCase();
+  };
+
   // ==================== PERFORMANCE TREINADORES ====================
   const performanceTreinadores = useMemo(() => {
     const grouped = new Map<string, { aulas: number; matriculas: number }>();
 
     interacoes.forEach(int => {
-      const treinador = int.treinador_responsavel;
-      if (!treinador) return;
-
+      const treinadorOriginal = int.treinador_responsavel;
+      if (!treinadorOriginal) return;
+      
+      // Excluir MANU PAES
+      if (deveExcluirResponsavel(treinadorOriginal)) return;
+      
+      const treinador = padronizarTreinador(treinadorOriginal);
       const current = grouped.get(treinador) || { aulas: 0, matriculas: 0 };
       
       // Count experimental classes given
