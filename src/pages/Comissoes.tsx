@@ -214,15 +214,80 @@ export default function Comissoes() {
     return 0;
   };
 
+  // ==================== VALIDAÇÃO DE TREINADOR ====================
+  const isValidTreinador = (nome: string | null | undefined): boolean => {
+    if (!nome || nome.trim() === '') return false;
+    
+    const normalizado = nome.trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    
+    // Padrões inválidos - frases, observações, origens, etc.
+    const invalidPatterns = [
+      /sem experimental/i,
+      /indicacao/i,
+      /indicação/i,
+      /recepcao/i,
+      /recepção/i,
+      /transferencia/i,
+      /transferência/i,
+      /zona sul/i,
+      /zona norte/i,
+      /veio da/i,
+      /aluno veio/i,
+      /unidade/i,
+      /processo/i,
+      /justificativa/i,
+      /observacao/i,
+      /observação/i,
+      /n\/a/i,
+      /nao informado/i,
+      /não informado/i,
+    ];
+    
+    // Se contém qualquer padrão inválido, retorna false
+    for (const pattern of invalidPatterns) {
+      if (pattern.test(normalizado)) return false;
+    }
+    
+    // Se tem mais de 5 palavras, provavelmente é uma frase/observação
+    const palavras = nome.trim().split(/\s+/);
+    if (palavras.length > 5) return false;
+    
+    return true;
+  };
+
+  // ==================== PADRONIZAÇÃO DE TREINADOR ====================
+  const padronizarTreinador = (nome: string): string => {
+    const normalizado = nome.trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    
+    // Mapeamento de nomes conhecidos
+    if (/^josadaque/.test(normalizado)) return 'JOSADAQUE JOSE DA SILVA';
+    if (/^lucia/.test(normalizado) || /^lúcia/.test(normalizado)) return 'LUCIA HELENA PINTO LOPES';
+    if (/^stela/.test(normalizado)) return 'STELA';
+    if (/^thais/.test(normalizado) || /^thaís/.test(normalizado)) return 'THAIS';
+    if (/^gabriela/.test(normalizado)) return 'GABRIELA LIMA';
+    if (/^natanael/.test(normalizado)) return 'NATANAEL DA SILVA';
+    if (/^andreza/.test(normalizado)) return 'ANDREZA TEODORO';
+    if (/^gabriel$/.test(normalizado)) return 'GABRIEL';
+    if (/^sistema/.test(normalizado)) return 'SISTEMA';
+    
+    // Se não matchou, retorna em caixa alta
+    return nome.trim().toUpperCase();
+  };
+
   // Group by treinador responsável pelo fechamento with bonus calculation
   const bonusTreinadores = useMemo(() => {
     const grouped = new Map<string, { matriculas: number; faturamento: number }>();
 
-    // Only consider interactions with a trainer assigned
+    // Only consider interactions with a valid trainer assigned
     filteredInteracoes.forEach((int) => {
-      const treinador = int.treinador_responsavel;
-      if (!treinador || treinador.trim() === '') return; // Skip rows without trainer
+      const treinadorOriginal = int.treinador_responsavel;
       
+      // Skip invalid trainers
+      if (!isValidTreinador(treinadorOriginal)) return;
+      
+      const treinador = padronizarTreinador(treinadorOriginal!);
       const current = grouped.get(treinador) || { matriculas: 0, faturamento: 0 };
       grouped.set(treinador, {
         matriculas: current.matriculas + 1,
