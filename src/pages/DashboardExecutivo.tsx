@@ -255,6 +255,61 @@ export default function DashboardExecutivo() {
     return { rows, mediaNoShow, melhorDia, piorDia };
   }, [interacoes]);
 
+  // ==================== PADRONIZAÇÃO DE RESPONSÁVEIS ====================
+  const deveExcluirResponsavel = (nome: string | null | undefined): boolean => {
+    if (!nome) return false;
+    const normalizado = nome.trim().toLowerCase();
+    return normalizado === 'manu paes' || 
+           normalizado === 'emanuel.paes@gmail.com' ||
+           normalizado.includes('manu paes');
+  };
+
+  const padronizarResponsavel = (nome: string | null | undefined): string => {
+    if (!nome || nome.trim() === '') return 'NAO INFORMADO';
+    
+    const normalizado = nome.trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // Remove acentos
+    
+    // THAIS
+    if (/^thais/.test(normalizado)) {
+      return 'THAIS';
+    }
+    
+    // GABRIELA LIMA
+    if (/^gabriela/.test(normalizado)) {
+      return 'GABRIELA LIMA';
+    }
+    
+    // NATANAEL DA SILVA
+    if (/^natanael/.test(normalizado)) {
+      return 'NATANAEL DA SILVA';
+    }
+    
+    // ANDREZA TEODORO
+    if (/^andreza/.test(normalizado)) {
+      return 'ANDREZA TEODORO';
+    }
+    
+    // GABRIEL
+    if (/^gabriel$/.test(normalizado) || normalizado === 'gabriel') {
+      return 'GABRIEL';
+    }
+    
+    // SISTEMA
+    if (/^sistema/.test(normalizado)) {
+      return 'SISTEMA';
+    }
+    
+    // NAO INFORMADO
+    if (/^(nao informado|n[aã]o informado|desconhecido|vazio|null|undefined|-|n\/a)/.test(normalizado) ||
+        normalizado === '') {
+      return 'NAO INFORMADO';
+    }
+    
+    // Se não matchou, retorna em caixa alta
+    return nome.trim().toUpperCase();
+  };
+
   // ==================== PERFORMANCE POR RESPONSÁVEL ====================
   const performanceResponsavel = useMemo(() => {
     const grouped = new Map<string, { agendamentos: number; comparecimentos: number; matriculas: number }>();
@@ -262,21 +317,30 @@ export default function DashboardExecutivo() {
     interacoes.forEach(int => {
       // For agendamentos, use quem_agendou or atendido_por
       if (int.agendou_experimental) {
-        const resp = int.quem_agendou || int.atendido_por || 'Não informado';
+        const respOriginal = int.quem_agendou || int.atendido_por || '';
+        if (deveExcluirResponsavel(respOriginal)) return;
+        
+        const resp = padronizarResponsavel(respOriginal);
         const current = grouped.get(resp) || { agendamentos: 0, comparecimentos: 0, matriculas: 0 };
         grouped.set(resp, { ...current, agendamentos: current.agendamentos + 1 });
       }
       
       // For comparecimentos
       if (int.compareceu) {
-        const resp = int.atendido_por || 'Não informado';
+        const respOriginal = int.atendido_por || '';
+        if (deveExcluirResponsavel(respOriginal)) return;
+        
+        const resp = padronizarResponsavel(respOriginal);
         const current = grouped.get(resp) || { agendamentos: 0, comparecimentos: 0, matriculas: 0 };
         grouped.set(resp, { ...current, comparecimentos: current.comparecimentos + 1 });
       }
 
       // For matriculas, use responsavel_fechamento
       if (int.fechou_matricula) {
-        const resp = int.responsavel_fechamento || int.atendido_por || 'Não informado';
+        const respOriginal = int.responsavel_fechamento || int.atendido_por || '';
+        if (deveExcluirResponsavel(respOriginal)) return;
+        
+        const resp = padronizarResponsavel(respOriginal);
         const current = grouped.get(resp) || { agendamentos: 0, comparecimentos: 0, matriculas: 0 };
         grouped.set(resp, { ...current, matriculas: current.matriculas + 1 });
       }
@@ -286,7 +350,7 @@ export default function DashboardExecutivo() {
       .map(([responsavel, data]) => ({
         responsavel,
         ...data,
-        conversao: data.comparecimentos > 0 ? (data.matriculas / data.comparecimentos) * 100 : 0,
+        conversao: data.agendamentos > 0 ? (data.matriculas / data.agendamentos) * 100 : 0,
       }))
       .filter(r => r.agendamentos > 0 || r.comparecimentos > 0 || r.matriculas > 0)
       .sort((a, b) => b.matriculas - a.matriculas);
