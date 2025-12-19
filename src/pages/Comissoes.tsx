@@ -214,6 +214,15 @@ export default function Comissoes() {
     return 0;
   };
 
+  // ==================== EXCLUSÃO DE RESPONSÁVEIS ====================
+  const deveExcluirResponsavel = (nome: string | null | undefined): boolean => {
+    if (!nome) return false;
+    const normalizado = nome.trim().toLowerCase();
+    return normalizado === 'manu paes' || 
+           normalizado === 'emanuel.paes@gmail.com' ||
+           normalizado.includes('manu paes');
+  };
+
   // ==================== VALIDAÇÃO DE TREINADOR ====================
   const isValidTreinador = (nome: string | null | undefined): boolean => {
     if (!nome || nome.trim() === '') return false;
@@ -261,7 +270,7 @@ export default function Comissoes() {
     const normalizado = nome.trim().toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     
-    // Mapeamento de nomes conhecidos
+    // Mapeamento de nomes conhecidos (igual ao Dashboard Executivo)
     if (/^josadaque/.test(normalizado)) return 'JOSADAQUE JOSE DA SILVA';
     if (/^lucia/.test(normalizado) || /^lúcia/.test(normalizado)) return 'LUCIA HELENA PINTO LOPES';
     if (/^stela/.test(normalizado)) return 'STELA';
@@ -271,6 +280,9 @@ export default function Comissoes() {
     if (/^andreza/.test(normalizado)) return 'ANDREZA TEODORO';
     if (/^gabriel$/.test(normalizado)) return 'GABRIEL';
     if (/^sistema/.test(normalizado)) return 'SISTEMA';
+    if (/^(nao informado|n[aã]o informado|desconhecido|vazio|null|undefined|-|n\/a)/.test(normalizado)) {
+      return 'NAO INFORMADO';
+    }
     
     // Se não matchou, retorna em caixa alta
     return nome.trim().toUpperCase();
@@ -278,36 +290,59 @@ export default function Comissoes() {
 
   // Group by treinador responsável pelo fechamento with bonus calculation
   const bonusTreinadores = useMemo(() => {
-    const grouped = new Map<string, { matriculas: number; faturamento: number }>();
+    const grouped = new Map<string, { aulas: number; matriculas: number; faturamento: number }>();
 
     // Only consider interactions with a valid trainer assigned
     filteredInteracoes.forEach((int) => {
       const treinadorOriginal = int.treinador_responsavel;
       
-      // Skip invalid trainers
+      // Skip invalid trainers and excluded names
       if (!isValidTreinador(treinadorOriginal)) return;
+      if (deveExcluirResponsavel(treinadorOriginal)) return;
       
       const treinador = padronizarTreinador(treinadorOriginal!);
-      const current = grouped.get(treinador) || { matriculas: 0, faturamento: 0 };
-      grouped.set(treinador, {
-        matriculas: current.matriculas + 1,
-        faturamento: current.faturamento + (int.valor_plano || 0),
-      });
+      const current = grouped.get(treinador) || { aulas: 0, matriculas: 0, faturamento: 0 };
+      
+      // Count experimental classes given (compareceu = true)
+      if (int.compareceu) {
+        current.aulas += 1;
+      }
+      
+      // Count matriculas generated (fechou_matricula = true)
+      if (int.fechou_matricula) {
+        current.matriculas += 1;
+        current.faturamento += (int.valor_plano || 0);
+      }
+
+      grouped.set(treinador, current);
     });
 
     return Array.from(grouped.entries())
       .map(([treinador, data]) => {
-        const bonusPorAluno = calculateBonusPorAluno(data.matriculas);
-        const bonusTotal = data.matriculas * bonusPorAluno;
+        const { aulas, matriculas, faturamento } = data;
+        const conversao = aulas > 0 ? (matriculas / aulas) * 100 : 0;
+        
+        // Bonus calculation (igual ao Dashboard Executivo)
+        let bonusPorAluno = 0;
+        if (matriculas >= 11) bonusPorAluno = 40;
+        else if (matriculas >= 8) bonusPorAluno = 30;
+        else if (matriculas >= 5) bonusPorAluno = 25;
+        else if (matriculas >= 1) bonusPorAluno = 20;
+        
+        const bonusTotal = matriculas * bonusPorAluno;
+        
         return {
           treinador,
-          matriculas: data.matriculas,
-          faturamento: data.faturamento,
+          aulas,
+          matriculas,
+          faturamento,
+          conversao,
           bonusPorAluno,
           bonusTotal,
         };
       })
-      .sort((a, b) => b.bonusTotal - a.bonusTotal); // Sort by bonus_total descending
+      .filter(t => t.aulas > 0 || t.matriculas > 0)
+      .sort((a, b) => b.matriculas - a.matriculas);
   }, [filteredInteracoes]);
 
   // Calculate trainer bonus totals
@@ -794,7 +829,10 @@ export default function Comissoes() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Treinador</TableHead>
-                        <TableHead className="text-center">Matrículas Fechadas</TableHead>
+                        <TableHead className="text-center">Aulas</TableHead>
+                        <TableHead className="text-center">Matrículas</TableHead>
+                        <TableHead className="text-center">Conversão</TableHead>
+                        <TableHead className="text-right">Bônus/Aluno</TableHead>
                         <TableHead className="text-right">Bônus Total</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -802,7 +840,10 @@ export default function Comissoes() {
                       {bonusTreinadores.map((item, index) => (
                         <TableRow key={index}>
                           <TableCell className="font-medium">{item.treinador}</TableCell>
+                          <TableCell className="text-center">{item.aulas}</TableCell>
                           <TableCell className="text-center">{item.matriculas}</TableCell>
+                          <TableCell className="text-center">{item.conversao.toFixed(1)}%</TableCell>
+                          <TableCell className="text-right">{formatCurrency(item.bonusPorAluno)}</TableCell>
                           <TableCell className="text-right font-semibold text-green-600">
                             {formatCurrency(item.bonusTotal)}
                           </TableCell>
@@ -811,8 +852,13 @@ export default function Comissoes() {
                       <TableRow className="bg-muted/50">
                         <TableCell className="font-bold">Total</TableCell>
                         <TableCell className="text-center font-bold">
+                          {bonusTreinadores.reduce((sum, t) => sum + t.aulas, 0)}
+                        </TableCell>
+                        <TableCell className="text-center font-bold">
                           {treinadorStats.totalMatriculas}
                         </TableCell>
+                        <TableCell className="text-center">-</TableCell>
+                        <TableCell className="text-right">-</TableCell>
                         <TableCell className="text-right font-bold text-green-600">
                           {formatCurrency(treinadorStats.totalBonus)}
                         </TableCell>
