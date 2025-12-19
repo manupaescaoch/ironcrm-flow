@@ -16,14 +16,10 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { WhatsAppLink, normalizePhoneForWhatsApp } from '@/components/WhatsAppLink';
 import { useNavigate } from 'react-router-dom';
-
-interface FollowUpItem {
-  lead: Lead;
-  interacao: Interacao;
-}
+import { EventoItem } from './EventosHoje';
 
 interface FollowUpCardProps {
-  items: FollowUpItem[];
+  items: EventoItem[];
   onRefresh: () => void;
 }
 
@@ -48,11 +44,11 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
   const { userName, isAdmin, user } = useAuth();
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [notInterestedModalOpen, setNotInterestedModalOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<FollowUpItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<EventoItem | null>(null);
   const [selectedReason, setSelectedReason] = useState('preco');
   const [loading, setLoading] = useState(false);
 
-  const getTimeSinceClass = (item: FollowUpItem) => {
+  const getTimeSinceClass = (item: EventoItem) => {
     const dateStr = item.interacao.data_experimental;
     const timeStr = item.interacao.hora_experimental;
     
@@ -77,12 +73,12 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
     }
   };
 
-  const isLateFollowUp = (item: FollowUpItem) => {
+  const isLateFollowUp = (item: EventoItem) => {
     const { hours } = getTimeSinceClass(item);
     return hours >= 48 && !item.lead.follow_up_whatsapp_enviado;
   };
 
-  const handleSendFollowUp = (item: FollowUpItem) => {
+  const handleSendFollowUp = (item: EventoItem) => {
     const message = FOLLOW_UP_MESSAGE.replace('{{nome}}', item.lead.nome.split(' ')[0]);
     const phone = normalizePhoneForWhatsApp(item.lead.telefone || '');
     const encodedMessage = encodeURIComponent(message);
@@ -120,7 +116,7 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
     }
   };
 
-  const handleNotInterested = (item: FollowUpItem) => {
+  const handleNotInterested = (item: EventoItem) => {
     setSelectedItem(item);
     setSelectedReason('preco');
     setNotInterestedModalOpen(true);

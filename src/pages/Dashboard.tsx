@@ -450,78 +450,51 @@ export default function Dashboard() {
       return;
     }
 
-    const items: ExperimentalItem[] = [];
+    const items: EventoItem[] = [];
     const seenLeadIds = new Set<string>();
     
     followUpData.forEach((interacaoData: any) => {
       if (!interacaoData.leads) return;
-      // Ignorar leads inativos
       if (interacaoData.leads.ativo === false) return;
-      // Skip if lead already has fechou_matricula in any interacao
       if (interacaoData.fechou_matricula === true) return;
-      // Skip duplicates (show only the most recent experimental per lead)
       if (seenLeadIds.has(interacaoData.lead_id)) return;
       seenLeadIds.add(interacaoData.lead_id);
 
       const lead: Lead = {
-        id: interacaoData.leads.id,
-        nome: interacaoData.leads.nome,
-        email: interacaoData.leads.email,
-        telefone: interacaoData.leads.telefone,
-        origem: interacaoData.leads.origem,
-        status_funil: interacaoData.leads.status_funil,
-        plano_escolhido: interacaoData.leads.plano_escolhido,
+        id: interacaoData.leads.id, nome: interacaoData.leads.nome, email: interacaoData.leads.email,
+        telefone: interacaoData.leads.telefone, origem: interacaoData.leads.origem,
+        status_funil: interacaoData.leads.status_funil, plano_escolhido: interacaoData.leads.plano_escolhido,
         data_aula_experimental: interacaoData.leads.data_aula_experimental,
         hora_aula_experimental: interacaoData.leads.hora_aula_experimental,
-        observacoes: interacaoData.leads.observacoes,
-        atendido_por: interacaoData.leads.atendido_por,
-        cadastrado_por: interacaoData.leads.cadastrado_por,
-        ativo: interacaoData.leads.ativo,
-        user_id: interacaoData.leads.user_id,
-        created_by: interacaoData.leads.created_by,
-        created_at: interacaoData.leads.created_at,
-        updated_at: interacaoData.leads.updated_at,
+        observacoes: interacaoData.leads.observacoes, atendido_por: interacaoData.leads.atendido_por,
+        cadastrado_por: interacaoData.leads.cadastrado_por, ativo: interacaoData.leads.ativo,
+        user_id: interacaoData.leads.user_id, created_by: interacaoData.leads.created_by,
+        created_at: interacaoData.leads.created_at, updated_at: interacaoData.leads.updated_at,
         follow_up_whatsapp_enviado: interacaoData.leads.follow_up_whatsapp_enviado || false,
         follow_up_enviado_em: interacaoData.leads.follow_up_enviado_em,
         follow_up_responsavel: interacaoData.leads.follow_up_responsavel,
       };
 
       const interacao: Interacao = {
-        id: interacaoData.id,
-        lead_id: interacaoData.lead_id,
-        tipo: interacaoData.tipo,
-        descricao: interacaoData.descricao,
-        data_interacao: interacaoData.data_interacao,
-        created_at: interacaoData.created_at,
-        created_by: interacaoData.created_by,
-        atendido_por: interacaoData.atendido_por,
-        atendido_por_tipo: interacaoData.atendido_por_tipo,
-        agendou_experimental: interacaoData.agendou_experimental,
-        data_experimental: interacaoData.data_experimental,
-        hora_experimental: interacaoData.hora_experimental,
-        compareceu: interacaoData.compareceu,
-        confirmado: interacaoData.confirmado,
-        reagendou: interacaoData.reagendou,
-        fechou_matricula: interacaoData.fechou_matricula,
-        plano_escolhido: interacaoData.plano_escolhido,
-        valor_plano: interacaoData.valor_plano,
-        comissao_comercial: interacaoData.comissao_comercial,
-        comissao_recepcao: interacaoData.comissao_recepcao,
-        comissao_cadastrador: interacaoData.comissao_cadastrador,
-        cadastrado_por: interacaoData.cadastrado_por,
-        data_fechamento: interacaoData.data_fechamento,
-        responsavel_fechamento: interacaoData.responsavel_fechamento,
-        treinador_responsavel: interacaoData.treinador_responsavel,
-        treinador_experimental: interacaoData.treinador_experimental,
-        origem_fechamento: interacaoData.origem_fechamento,
-        quem_agendou: interacaoData.quem_agendou,
-        tipo_atendimento: interacaoData.tipo_atendimento,
-        data_avaliacao: interacaoData.data_avaliacao || null,
-        hora_avaliacao: interacaoData.hora_avaliacao || null,
+        id: interacaoData.id, lead_id: interacaoData.lead_id, tipo: interacaoData.tipo,
+        descricao: interacaoData.descricao, data_interacao: interacaoData.data_interacao,
+        created_at: interacaoData.created_at, created_by: interacaoData.created_by,
+        atendido_por: interacaoData.atendido_por, atendido_por_tipo: interacaoData.atendido_por_tipo,
+        agendou_experimental: interacaoData.agendou_experimental, data_experimental: interacaoData.data_experimental,
+        hora_experimental: interacaoData.hora_experimental, compareceu: interacaoData.compareceu,
+        confirmado: interacaoData.confirmado, reagendou: interacaoData.reagendou,
+        fechou_matricula: interacaoData.fechou_matricula, plano_escolhido: interacaoData.plano_escolhido,
+        valor_plano: interacaoData.valor_plano, comissao_comercial: interacaoData.comissao_comercial,
+        comissao_recepcao: interacaoData.comissao_recepcao, comissao_cadastrador: interacaoData.comissao_cadastrador,
+        cadastrado_por: interacaoData.cadastrado_por, data_fechamento: interacaoData.data_fechamento,
+        responsavel_fechamento: interacaoData.responsavel_fechamento, treinador_responsavel: interacaoData.treinador_responsavel,
+        treinador_experimental: interacaoData.treinador_experimental, origem_fechamento: interacaoData.origem_fechamento,
+        quem_agendou: interacaoData.quem_agendou, tipo_atendimento: interacaoData.tipo_atendimento,
+        data_avaliacao: interacaoData.data_avaliacao || null, hora_avaliacao: interacaoData.hora_avaliacao || null,
         status_avaliacao: interacaoData.status_avaliacao || null,
       };
       
-      items.push({ lead, interacao });
+      items.push({ lead, interacao, tipoEvento: 'experimental' });
     });
 
     // Check if any of these leads have closed matricula in other interacoes
@@ -548,21 +521,21 @@ export default function Dashboard() {
       return;
     }
     setLoading(true);
-    await Promise.all([fetchStats(), fetchExperimentais(), fetchPeriodStats(), fetchWeeklyStats(), fetchMatriculas(), fetchFollowUp()]);
+    await Promise.all([fetchStats(), fetchEventos(), fetchPeriodStats(), fetchWeeklyStats(), fetchMatriculas(), fetchFollowUp()]);
     setLoading(false);
-  }, [fetchStats, fetchExperimentais, fetchPeriodStats, fetchWeeklyStats, fetchMatriculas, fetchFollowUp, unidadeAtual, unidadeLoading]);
+  }, [fetchStats, fetchEventos, fetchPeriodStats, fetchWeeklyStats, fetchMatriculas, fetchFollowUp, unidadeAtual, unidadeLoading]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const handleReagendar = (item: ExperimentalItem) => {
+  const handleReagendar = (item: EventoItem) => {
     setSelectedItem(item);
     setReagendarModalOpen(true);
   };
 
   const handleReagendarSuccess = () => {
-    fetchExperimentais();
+    fetchEventos();
   };
 
   const handleExperimentaisCardClick = () => {
@@ -785,15 +758,15 @@ export default function Dashboard() {
 
           <TabsContent value="diario" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <ExperimentaisHoje
-                items={experimentaisHoje}
-                onRefresh={fetchExperimentais}
+              <EventosHoje
+                items={eventosHoje}
+                onRefresh={fetchEventos}
                 onReagendar={handleReagendar}
               />
               
               <ConfirmacoesAmanha
                 items={confirmacoesAmanha}
-                onRefresh={fetchExperimentais}
+                onRefresh={fetchEventos}
                 onReagendar={handleReagendar}
               />
               
@@ -858,7 +831,7 @@ export default function Dashboard() {
             <ExperimentaisSemana
               items={experimentaisSemana}
               onReagendar={handleReagendar}
-              onRefresh={fetchExperimentais}
+              onRefresh={fetchEventos}
               startDate={startDate}
               endDate={endDate}
             />

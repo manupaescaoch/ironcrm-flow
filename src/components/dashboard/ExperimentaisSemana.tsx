@@ -10,15 +10,11 @@ import { format, isSameDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
-interface ExperimentalItem {
-  lead: Lead;
-  interacao: Interacao;
-}
+import { EventoItem } from './EventosHoje';
 
 interface ExperimentaisSemanaProps {
-  items: ExperimentalItem[];
-  onReagendar: (item: ExperimentalItem) => void;
+  items: EventoItem[];
+  onReagendar: (item: EventoItem) => void;
   onRefresh: () => void;
   startDate: Date;
   endDate: Date;
@@ -31,13 +27,15 @@ export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, 
 
   // Group by date
   const groupedByDate = items.reduce((acc, item) => {
-    const dateStr = item.interacao.data_experimental || '';
+    const dateStr = item.tipoEvento === 'avaliacao' 
+      ? item.interacao.data_avaliacao || ''
+      : item.interacao.data_experimental || '';
     if (!acc[dateStr]) {
       acc[dateStr] = [];
     }
     acc[dateStr].push(item);
     return acc;
-  }, {} as Record<string, ExperimentalItem[]>);
+  }, {} as Record<string, EventoItem[]>);
 
   // Sort dates
   const sortedDates = Object.keys(groupedByDate).sort();
@@ -46,7 +44,7 @@ export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, 
     setExpandedItems(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const handleToggleCompareceu = async (item: ExperimentalItem, value: boolean) => {
+  const handleToggleCompareceu = async (item: EventoItem, value: boolean) => {
     setLoading(prev => ({ ...prev, [item.interacao.id]: true }));
     
     // Update interacao
@@ -84,7 +82,7 @@ export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, 
     setLoading(prev => ({ ...prev, [item.interacao.id]: false }));
   };
 
-  const getStatusBadge = (item: ExperimentalItem) => {
+  const getStatusBadge = (item: EventoItem) => {
     const itemDate = item.interacao.data_experimental ? parseISO(item.interacao.data_experimental) : null;
     const isToday = itemDate && isSameDay(itemDate, new Date());
     const isPast = itemDate && itemDate < new Date() && !isToday;
