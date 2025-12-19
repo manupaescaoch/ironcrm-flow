@@ -55,6 +55,7 @@ interface EnrollmentRow {
   lead_nome: string;
   lead_telefone: string | null;
   lead_origem: string | null;
+  lead_cadastrado_por: string | null;
   atendido_por: string | null;
   responsavel_fechamento: string | null;
   treinador_responsavel: string | null;
@@ -83,6 +84,7 @@ export default function RelatorioVendas() {
   const [filterAtendidoPor, setFilterAtendidoPor] = useState<string>('all');
   const [filterResponsavelFechamento, setFilterResponsavelFechamento] = useState<string>('all');
   const [filterTreinador, setFilterTreinador] = useState<string>('all');
+  const [filterCadastrador, setFilterCadastrador] = useState<string>('all');
   const [filterOrigem, setFilterOrigem] = useState<string>('all');
 
   // Distinct values for filters
@@ -90,6 +92,7 @@ export default function RelatorioVendas() {
   const [distinctResponsavel, setDistinctResponsavel] = useState<string[]>([]);
   const [distinctTreinador, setDistinctTreinador] = useState<string[]>([]);
   const [distinctOrigem, setDistinctOrigem] = useState<string[]>([]);
+  const [distinctCadastrador, setDistinctCadastrador] = useState<string[]>([]);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -123,7 +126,7 @@ export default function RelatorioVendas() {
         valor_plano,
         comissao_comercial,
         comissao_recepcao,
-        leads(nome, telefone, origem)
+        leads(nome, telefone, origem, cadastrado_por)
       `)
       .eq('fechou_matricula', true)
       .eq('unidade_id', unidadeAtual.id)
@@ -143,6 +146,7 @@ export default function RelatorioVendas() {
       lead_nome: row.leads?.nome || 'Lead não encontrado',
       lead_telefone: row.leads?.telefone || null,
       lead_origem: row.leads?.origem || null,
+      lead_cadastrado_por: row.leads?.cadastrado_por || null,
       atendido_por: row.atendido_por,
       responsavel_fechamento: row.responsavel_fechamento,
       treinador_responsavel: row.treinador_responsavel,
@@ -159,11 +163,13 @@ export default function RelatorioVendas() {
     const responsaveis = [...new Set(mapped.map(e => e.responsavel_fechamento).filter(Boolean))] as string[];
     const treinadores = [...new Set(mapped.map(e => e.treinador_responsavel).filter(Boolean))] as string[];
     const origens = [...new Set(mapped.map(e => e.lead_origem).filter(Boolean))] as string[];
+    const cadastradores = [...new Set(mapped.map(e => e.lead_cadastrado_por).filter(Boolean))] as string[];
 
     setDistinctAtendidoPor(atendidos.sort());
     setDistinctResponsavel(responsaveis.sort());
     setDistinctTreinador(treinadores.sort());
     setDistinctOrigem(origens.sort());
+    setDistinctCadastrador(cadastradores.sort());
 
     setCurrentPage(1);
     setLoading(false);
@@ -176,9 +182,10 @@ export default function RelatorioVendas() {
       if (filterResponsavelFechamento !== 'all' && e.responsavel_fechamento !== filterResponsavelFechamento) return false;
       if (filterTreinador !== 'all' && e.treinador_responsavel !== filterTreinador) return false;
       if (filterOrigem !== 'all' && e.lead_origem !== filterOrigem) return false;
+      if (filterCadastrador !== 'all' && e.lead_cadastrado_por !== filterCadastrador) return false;
       return true;
     });
-  }, [enrollments, filterAtendidoPor, filterResponsavelFechamento, filterTreinador, filterOrigem]);
+  }, [enrollments, filterAtendidoPor, filterResponsavelFechamento, filterTreinador, filterOrigem, filterCadastrador]);
 
   // Sort enrollments
   const sortedEnrollments = useMemo(() => {
@@ -296,6 +303,7 @@ export default function RelatorioVendas() {
       e.lead_nome,
       e.lead_telefone || '-',
       e.lead_origem || '-',
+      e.lead_cadastrado_por || '-',
       e.atendido_por || '-',
       e.responsavel_fechamento || '-',
       e.treinador_responsavel || '-',
@@ -312,17 +320,19 @@ export default function RelatorioVendas() {
         'Lead',
         'Telefone',
         'Origem',
+        'Cadastrador',
         'Atendido por',
         'Resp. Fechamento',
         'Treinador',
         'Plano',
         'Valor',
-        'Com. Comercial',
-        'Com. Recepção',
+        'Com. Cad. (3%)',
+        'Com. Fech. (2%)',
       ]],
       body: tableData,
       foot: [[
         'TOTAL',
+        '',
         '',
         '',
         '',
@@ -500,6 +510,22 @@ export default function RelatorioVendas() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Cadastrador */}
+              <div className="space-y-2">
+                <Label>Cadastrador</Label>
+                <Select value={filterCadastrador} onValueChange={setFilterCadastrador}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {distinctCadastrador.map((v) => (
+                      <SelectItem key={v} value={v}>{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -587,19 +613,20 @@ export default function RelatorioVendas() {
                         <SortableHeader field="lead_nome">Lead</SortableHeader>
                         <TableHead>Telefone</TableHead>
                         <TableHead>Origem</TableHead>
+                        <TableHead>Cadastrador</TableHead>
                         <TableHead>Atendido por</TableHead>
                         <SortableHeader field="responsavel_fechamento">Resp. Fechamento</SortableHeader>
                         <TableHead>Treinador</TableHead>
                         <TableHead>Plano</TableHead>
                         <SortableHeader field="valor_plano">Valor (R$)</SortableHeader>
-                        <TableHead className="text-right">Com. Comercial</TableHead>
-                        <TableHead className="text-right">Com. Recepção</TableHead>
+                        <TableHead className="text-right">Com. Cad. (3%)</TableHead>
+                        <TableHead className="text-right">Com. Fech. (2%)</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {paginatedEnrollments.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                             Nenhuma matrícula encontrada no período selecionado.
                           </TableCell>
                         </TableRow>
@@ -611,6 +638,7 @@ export default function RelatorioVendas() {
                               <TableCell className="font-medium">{enrollment.lead_nome}</TableCell>
                               <TableCell><WhatsAppLink phone={enrollment.lead_telefone} /></TableCell>
                               <TableCell>{enrollment.lead_origem || '-'}</TableCell>
+                              <TableCell>{enrollment.lead_cadastrado_por || '-'}</TableCell>
                               <TableCell>{enrollment.atendido_por || '-'}</TableCell>
                               <TableCell>{enrollment.responsavel_fechamento || '-'}</TableCell>
                               <TableCell>{enrollment.treinador_responsavel || '-'}</TableCell>
@@ -622,7 +650,7 @@ export default function RelatorioVendas() {
                           ))}
                           {/* Totals Row */}
                           <TableRow className="bg-muted/50 font-bold border-t-2">
-                            <TableCell colSpan={8}>TOTAL</TableCell>
+                            <TableCell colSpan={9}>TOTAL</TableCell>
                             <TableCell>{formatCurrency(stats.totalValorPlano)}</TableCell>
                             <TableCell className="text-right text-green-600">{formatCurrency(stats.totalComissaoComercial)}</TableCell>
                             <TableCell className="text-right text-amber-600">{formatCurrency(stats.totalComissaoRecepcao)}</TableCell>
