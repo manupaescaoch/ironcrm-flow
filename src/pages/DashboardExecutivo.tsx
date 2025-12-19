@@ -138,52 +138,52 @@ export default function DashboardExecutivo() {
 
   // ==================== PADRONIZAÇÃO DE ORIGENS ====================
   const padronizarOrigem = (origem: string | null | undefined): string => {
-    if (!origem || origem.trim() === '') return 'Não Informado';
+    if (!origem || origem.trim() === '') return 'NÃO INFORMADO';
     
     const normalizado = origem.trim().toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // Remove acentos
     
     // WhatsApp
     if (/^(whats|whasapp|whatspp|whatsapp|wpp|zap|zapzap)/.test(normalizado)) {
-      return 'WhatsApp';
+      return 'WHATSAPP';
     }
     
     // Instagram
     if (/^(insta|instagram|instagran|ig)/.test(normalizado)) {
-      return 'Instagram';
+      return 'INSTAGRAM';
     }
     
     // Tráfego Pago
     if (/^(trafego|ads|anuncio|anuncios|google ads|meta ads|facebook ads|campanha|patrocinado)/.test(normalizado) ||
         normalizado.includes('pago') || normalizado.includes('ads')) {
-      return 'Tráfego Pago';
+      return 'TRÁFEGO PAGO';
     }
     
     // Indicação
     if (/^(indica|idicacao|indicacao|indicacoes)/.test(normalizado) ||
         normalizado.includes('indica')) {
-      return 'Indicação';
+      return 'INDICAÇÃO';
     }
     
     // Visita Presencial
     if (/^(presencial|visita|pessoalmente|diretamente|unidade|na academia|passou na frente|passando)/.test(normalizado) ||
         normalizado.includes('presencial') || normalizado.includes('visita')) {
-      return 'Visita Presencial';
+      return 'VISITA PRESENCIAL';
     }
     
     // Terceiros
     if (/^(terceiro|parceiro|empresa|convenio|corporativo|b2b)/.test(normalizado) ||
         normalizado.includes('terceiro') || normalizado.includes('parceiro')) {
-      return 'Terceiros';
+      return 'TERCEIROS';
     }
     
     // Não Informado
     if (/^(nao informado|n[aã]o informado|desconhecido|sem informacao|vazio|null|undefined|-|n\/a)/.test(normalizado)) {
-      return 'Não Informado';
+      return 'NÃO INFORMADO';
     }
     
-    // Se não matchou nenhum padrão, retorna a origem original capitalizada
-    return origem.trim();
+    // Se não matchou nenhum padrão, retorna a origem original em caixa alta
+    return origem.trim().toUpperCase();
   };
 
   // ==================== ORIGEM DOS LEADS ====================
