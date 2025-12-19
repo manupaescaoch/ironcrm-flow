@@ -4,23 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Clock, Save, RefreshCw, AlertTriangle, MessageCircle } from 'lucide-react';
+import { Clock, Save, RefreshCw, AlertTriangle, MessageCircle, Calendar, Activity } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Lead, Interacao } from '@/types/database';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { normalizePhoneForWhatsApp } from '@/components/WhatsAppLink';
-
-interface ExperimentalItem {
-  lead: Lead;
-  interacao: Interacao;
-}
+import { EventoItem } from './EventosHoje';
 
 interface ConfirmacoesAmanhaProps {
-  items: ExperimentalItem[];
+  items: EventoItem[];
   onRefresh: () => void;
-  onReagendar: (item: ExperimentalItem) => void;
+  onReagendar: (item: EventoItem) => void;
 }
 
 export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: ConfirmacoesAmanhaProps) {
@@ -31,7 +27,7 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
   const currentHour = new Date().getHours();
   const isLateWarning = currentHour >= 20;
 
-  const handleConfirmar = async (item: ExperimentalItem, checked: boolean) => {
+  const handleConfirmar = async (item: EventoItem, checked: boolean) => {
     setLoading(prev => ({ ...prev, [item.interacao.id]: true }));
     
     const { error } = await supabase
@@ -49,7 +45,7 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
     setLoading(prev => ({ ...prev, [item.interacao.id]: false }));
   };
 
-  const handleSaveObs = async (item: ExperimentalItem) => {
+  const handleSaveObs = async (item: EventoItem) => {
     const obs = observations[item.interacao.id];
     if (!obs) return;
 
@@ -69,18 +65,22 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
     setLoading(prev => ({ ...prev, [`obs-${item.interacao.id}`]: false }));
   };
 
-  const openWhatsApp = (item: ExperimentalItem) => {
+  const openWhatsApp = (item: EventoItem) => {
     const phone = normalizePhoneForWhatsApp(item.lead.telefone || '');
-    const dataFormatada = item.interacao.data_experimental 
-      ? format(new Date(item.interacao.data_experimental + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })
-      : 'amanhã';
-    const hora = item.interacao.hora_experimental 
-      ? item.interacao.hora_experimental.slice(0, 5) 
-      : '';
+    const isAvaliacao = item.tipoEvento === 'avaliacao';
     
+    const dataEvento = isAvaliacao ? item.interacao.data_avaliacao : item.interacao.data_experimental;
+    const horaEvento = isAvaliacao ? item.interacao.hora_avaliacao : item.interacao.hora_experimental;
+    
+    const dataFormatada = dataEvento 
+      ? format(new Date(dataEvento + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })
+      : 'amanhã';
+    const hora = horaEvento ? horaEvento.slice(0, 5) : '';
+    
+    const tipoTexto = isAvaliacao ? 'avaliação física' : 'aula experimental';
     const message = `Olá, ${item.lead.nome}!
 
-Sua aula experimental está confirmada para:
+Sua ${tipoTexto} está confirmada para:
 📅 ${dataFormatada}
 🕙 ${hora}
 
@@ -94,6 +94,15 @@ Equipe IRON CLUB`;
     
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
+  };
+
+  const getHoraEvento = (item: EventoItem): string => {
+    if (item.tipoEvento === 'avaliacao') {
+      const hora = item.interacao.hora_avaliacao;
+      return hora ? hora.slice(0, 5).replace(/^0/, '') : '--:--';
+    }
+    const hora = item.interacao.hora_experimental;
+    return hora ? hora.slice(0, 5).replace(/^0/, '') : '--:--';
   };
 
   return (
@@ -110,14 +119,14 @@ Equipe IRON CLUB`;
           <div className="flex items-center gap-2 p-3 mb-3 bg-orange-500/10 border border-orange-500/30 rounded-lg text-orange-600">
             <AlertTriangle className="w-5 h-5" />
             <span className="text-sm font-medium">
-              Atenção: experimentais ainda não confirmados após as 20h!
+              Atenção: eventos ainda não confirmados após as 20h!
             </span>
           </div>
         )}
         
         {items.length === 0 ? (
           <p className="text-muted-foreground text-center py-4">
-            Todas as aulas de amanhã foram confirmadas
+            Todos os eventos de amanhã foram confirmados
           </p>
         ) : (
           <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
@@ -145,10 +154,21 @@ Equipe IRON CLUB`;
                   <div className="text-right">
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Clock className="w-4 h-4" />
-                      {item.interacao.hora_experimental 
-                        ? item.interacao.hora_experimental.slice(0, 5).replace(/^0/, '')
-                        : '--:--'}
+                      {getHoraEvento(item)}
                     </div>
+                    <Badge 
+                      variant="outline" 
+                      className={item.tipoEvento === 'avaliacao' 
+                        ? 'mt-1 bg-teal-100 text-teal-700 border-teal-300' 
+                        : 'mt-1 bg-purple-100 text-purple-700 border-purple-300'
+                      }
+                    >
+                      {item.tipoEvento === 'avaliacao' ? (
+                        <><Activity className="w-3 h-3 mr-1" /> Avaliação</>
+                      ) : (
+                        <><Calendar className="w-3 h-3 mr-1" /> Experimental</>
+                      )}
+                    </Badge>
                   </div>
                 </div>
 

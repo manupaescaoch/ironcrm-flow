@@ -2,24 +2,36 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
-import { AlertCircle, Clock, RefreshCw } from 'lucide-react';
+import { AlertCircle, Clock, RefreshCw, Calendar, Activity } from 'lucide-react';
 import { Lead, Interacao } from '@/types/database';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-interface ExperimentalItem {
-  lead: Lead;
-  interacao: Interacao;
-}
+import { EventoItem } from './EventosHoje';
 
 interface PendenciasDiaProps {
-  pendenciasHoje: ExperimentalItem[];
-  pendenciasAmanha: ExperimentalItem[];
-  onReagendar: (item: ExperimentalItem) => void;
+  pendenciasHoje: EventoItem[];
+  pendenciasAmanha: EventoItem[];
+  onReagendar: (item: EventoItem) => void;
 }
 
 export function PendenciasDia({ pendenciasHoje, pendenciasAmanha, onReagendar }: PendenciasDiaProps) {
   const totalPendencias = pendenciasHoje.length + pendenciasAmanha.length;
+
+  const getHoraEvento = (item: EventoItem): string => {
+    if (item.tipoEvento === 'avaliacao') {
+      return item.interacao.hora_avaliacao || '--:--';
+    }
+    return item.interacao.hora_experimental || '--:--';
+  };
+
+  const getDataEvento = (item: EventoItem): string => {
+    const dataEvento = item.tipoEvento === 'avaliacao' 
+      ? item.interacao.data_avaliacao 
+      : item.interacao.data_experimental;
+    
+    if (!dataEvento) return '-';
+    return format(new Date(dataEvento), "dd/MM", { locale: ptBR });
+  };
 
   return (
     <Card>
@@ -59,13 +71,24 @@ export function PendenciasDia({ pendenciasHoje, pendenciasAmanha, onReagendar }:
                       <div className="text-right">
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <Clock className="w-4 h-4" />
-                          {item.interacao.hora_experimental || '--:--'}
+                          {getHoraEvento(item)}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {item.interacao.data_experimental 
-                            ? format(new Date(item.interacao.data_experimental), "dd/MM", { locale: ptBR })
-                            : '-'}
+                          {getDataEvento(item)}
                         </p>
+                        <Badge 
+                          variant="outline" 
+                          className={item.tipoEvento === 'avaliacao' 
+                            ? 'mt-1 bg-teal-100 text-teal-700 border-teal-300 text-xs' 
+                            : 'mt-1 bg-purple-100 text-purple-700 border-purple-300 text-xs'
+                          }
+                        >
+                          {item.tipoEvento === 'avaliacao' ? (
+                            <><Activity className="w-3 h-3 mr-1" /> Aval.</>
+                          ) : (
+                            <><Calendar className="w-3 h-3 mr-1" /> Exp.</>
+                          )}
+                        </Badge>
                       </div>
                     </div>
                     <div className="mt-2 flex justify-end">
@@ -105,13 +128,24 @@ export function PendenciasDia({ pendenciasHoje, pendenciasAmanha, onReagendar }:
                       <div className="text-right">
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <Clock className="w-4 h-4" />
-                          {item.interacao.hora_experimental || '--:--'}
+                          {getHoraEvento(item)}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {item.interacao.data_experimental 
-                            ? format(new Date(item.interacao.data_experimental), "dd/MM", { locale: ptBR })
-                            : '-'}
+                          {getDataEvento(item)}
                         </p>
+                        <Badge 
+                          variant="outline" 
+                          className={item.tipoEvento === 'avaliacao' 
+                            ? 'mt-1 bg-teal-100 text-teal-700 border-teal-300 text-xs' 
+                            : 'mt-1 bg-purple-100 text-purple-700 border-purple-300 text-xs'
+                          }
+                        >
+                          {item.tipoEvento === 'avaliacao' ? (
+                            <><Activity className="w-3 h-3 mr-1" /> Aval.</>
+                          ) : (
+                            <><Calendar className="w-3 h-3 mr-1" /> Exp.</>
+                          )}
+                        </Badge>
                       </div>
                     </div>
                     <div className="mt-2 flex justify-end">
