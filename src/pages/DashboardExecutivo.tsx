@@ -136,19 +136,69 @@ export default function DashboardExecutivo() {
     ];
   }, [leads, interacoes]);
 
+  // ==================== PADRONIZAÇÃO DE ORIGENS ====================
+  const padronizarOrigem = (origem: string | null | undefined): string => {
+    if (!origem || origem.trim() === '') return 'Não Informado';
+    
+    const normalizado = origem.trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // Remove acentos
+    
+    // WhatsApp
+    if (/^(whats|whasapp|whatspp|whatsapp|wpp|zap|zapzap)/.test(normalizado)) {
+      return 'WhatsApp';
+    }
+    
+    // Instagram
+    if (/^(insta|instagram|instagran|ig)/.test(normalizado)) {
+      return 'Instagram';
+    }
+    
+    // Tráfego Pago
+    if (/^(trafego|ads|anuncio|anuncios|google ads|meta ads|facebook ads|campanha|patrocinado)/.test(normalizado) ||
+        normalizado.includes('pago') || normalizado.includes('ads')) {
+      return 'Tráfego Pago';
+    }
+    
+    // Indicação
+    if (/^(indica|idicacao|indicacao|indicacoes)/.test(normalizado) ||
+        normalizado.includes('indica')) {
+      return 'Indicação';
+    }
+    
+    // Visita Presencial
+    if (/^(presencial|visita|pessoalmente|diretamente|unidade|na academia|passou na frente|passando)/.test(normalizado) ||
+        normalizado.includes('presencial') || normalizado.includes('visita')) {
+      return 'Visita Presencial';
+    }
+    
+    // Terceiros
+    if (/^(terceiro|parceiro|empresa|convenio|corporativo|b2b)/.test(normalizado) ||
+        normalizado.includes('terceiro') || normalizado.includes('parceiro')) {
+      return 'Terceiros';
+    }
+    
+    // Não Informado
+    if (/^(nao informado|n[aã]o informado|desconhecido|sem informacao|vazio|null|undefined|-|n\/a)/.test(normalizado)) {
+      return 'Não Informado';
+    }
+    
+    // Se não matchou nenhum padrão, retorna a origem original capitalizada
+    return origem.trim();
+  };
+
   // ==================== ORIGEM DOS LEADS ====================
   const origemData = useMemo(() => {
     const grouped = new Map<string, { leads: number; matriculas: number }>();
     
     leads.forEach(lead => {
-      const origem = lead.origem || 'Não informado';
+      const origem = padronizarOrigem(lead.origem);
       const current = grouped.get(origem) || { leads: 0, matriculas: 0 };
       grouped.set(origem, { ...current, leads: current.leads + 1 });
     });
 
     interacoes.filter(i => i.fechou_matricula === true).forEach(int => {
       const lead = leads.find(l => l.id === int.lead_id);
-      const origem = lead?.origem || 'Não informado';
+      const origem = padronizarOrigem(lead?.origem);
       const current = grouped.get(origem) || { leads: 0, matriculas: 0 };
       grouped.set(origem, { ...current, matriculas: current.matriculas + 1 });
     });
