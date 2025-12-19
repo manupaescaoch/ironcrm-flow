@@ -420,7 +420,7 @@ export default function DashboardExecutivo() {
 
         return { treinador, aulas, matriculas, conversao, bonusPorAluno, bonusTotal };
       })
-      .filter(t => t.aulas > 0)
+      .filter(t => t.aulas > 0 || t.matriculas > 0)
       .sort((a, b) => b.matriculas - a.matriculas);
   }, [interacoes]);
 
