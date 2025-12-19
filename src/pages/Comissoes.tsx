@@ -143,14 +143,12 @@ export default function Comissoes() {
     const totalComissaoCadastrador = filteredInteracoes.reduce((sum, int) => sum + (int.comissao_comercial || 0), 0);
     // Fechador commission (2%) - stored in comissao_recepcao
     const totalComissaoFechador = filteredInteracoes.reduce((sum, int) => sum + (int.comissao_recepcao || 0), 0);
-    const totalComissoes = totalComissaoCadastrador + totalComissaoFechador;
 
     return {
       totalMatriculas,
       ticketMedio,
       totalComissaoCadastrador,
       totalComissaoFechador,
-      totalComissoes,
     };
   }, [filteredInteracoes]);
 
@@ -352,6 +350,11 @@ export default function Comissoes() {
     return { totalMatriculas, totalBonus };
   }, [bonusTreinadores]);
 
+  // Total commissions including trainer bonus
+  const totalComissoes = useMemo(() => {
+    return stats.totalComissaoCadastrador + stats.totalComissaoFechador + treinadorStats.totalBonus;
+  }, [stats.totalComissaoCadastrador, stats.totalComissaoFechador, treinadorStats.totalBonus]);
+
   // Leads for the selected person modal
   const leadsForModal = useMemo(() => {
     if (!selectedPerson) return [];
@@ -402,9 +405,10 @@ export default function Comissoes() {
     doc.text(`Ticket Médio: ${formatCurrency(stats.ticketMedio)}`, 14, 48);
     doc.text(`Total Cadastrador (3%): ${formatCurrency(stats.totalComissaoCadastrador)}`, 14, 54);
     doc.text(`Total Fechador (2%): ${formatCurrency(stats.totalComissaoFechador)}`, 14, 60);
-    doc.text(`Total Comissões: ${formatCurrency(stats.totalComissoes)}`, 14, 66);
+    doc.text(`Total Bônus Treinador: ${formatCurrency(treinadorStats.totalBonus)}`, 14, 66);
+    doc.text(`Total Comissões: ${formatCurrency(totalComissoes)}`, 14, 72);
     
-    let yPos = 80;
+    let yPos = 86;
     
     // Cadastrador Table
     if (comissoesCadastrador.length > 0) {
@@ -595,7 +599,7 @@ export default function Comissoes() {
         ) : (
           <>
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
@@ -652,6 +656,20 @@ export default function Comissoes() {
                 </CardContent>
               </Card>
 
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-blue-600/10 rounded-lg flex items-center justify-center">
+                      <Award className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Bônus Treinador</p>
+                      <p className="text-2xl font-bold">{formatCurrency(treinadorStats.totalBonus)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card className="bg-primary/5 border-primary/20">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
@@ -660,7 +678,7 @@ export default function Comissoes() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Total Comissões</p>
-                      <p className="text-2xl font-bold text-primary">{formatCurrency(stats.totalComissoes)}</p>
+                      <p className="text-2xl font-bold text-primary">{formatCurrency(totalComissoes)}</p>
                     </div>
                   </div>
                 </CardContent>
