@@ -109,6 +109,10 @@ export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps)
     setLoading(prev => ({ ...prev, [`obs-${item.interacao.id}`]: false }));
   };
 
+  const getPrimeiroNome = (nomeCompleto: string): string => {
+    return nomeCompleto.split(' ')[0];
+  };
+
   const openWhatsApp = (item: EventoItem) => {
     const phone = normalizePhoneForWhatsApp(item.lead.telefone || '');
     const isAvaliacao = item.tipoEvento === 'avaliacao';
@@ -117,12 +121,56 @@ export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps)
     const horaEvento = isAvaliacao ? item.interacao.hora_avaliacao : item.interacao.hora_experimental;
     
     const dataFormatada = dataEvento 
-      ? format(new Date(dataEvento + 'T12:00:00'), "dd/MM", { locale: ptBR })
+      ? format(new Date(dataEvento + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })
       : 'hoje';
     const hora = horaEvento || '';
+    const primeiroNome = getPrimeiroNome(item.lead.nome);
     
-    const tipoTexto = isAvaliacao ? 'avaliação física' : 'aula experimental';
-    const message = `Olá ${item.lead.nome}! Sua ${tipoTexto} na IRON CLUB está confirmada para hoje (${dataFormatada}) às ${hora}. Estamos te esperando! 💪`;
+    let message: string;
+    
+    if (isAvaliacao) {
+      message = `Olá ${primeiroNome}!
+
+Este é um lembrete da sua avaliação física agendada para:
+
+📅 Data: ${dataFormatada}
+🕐 Horário: ${hora}
+
+
+⚠️ Informações Importantes para o Dia da Avaliação
+
+
+🍽️ Alimentação
+
+- Compareça em jejum de no mínimo 2 horas (sem comer ou beber).
+
+
+👕 Vestimenta
+
+- Remova relógios, colares, anéis e pulseiras
+
+- A avaliação será realizada descalço e sem meias
+
+- Vista roupas confortáveis
+
+
+✅ Cuidados Prévios
+
+- Evite bebidas alcoólicas no dia anterior
+
+- Não realize exercícios antes da medição
+
+- Utilize o banheiro antes do procedimento
+
+
+Em caso de dúvidas ou necessidade de reagendamento, entre em contato conosco.
+
+
+Aguardamos você! 💪`;
+    } else {
+      message = `Olá ${primeiroNome}! Sua aula experimental na IRON CLUB está confirmada para hoje (${dataFormatada}) às ${hora}. Estamos te esperando! 💪`;
+    }
+    
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };
