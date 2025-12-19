@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Lead, Interacao, StatusFunil, PlanoEscolhido } from '@/types/database';
+import { Lead, Interacao, StatusFunil, PlanoEscolhido, StatusAvaliacao } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Pencil, CheckCircle, XCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
@@ -67,6 +67,23 @@ const ORIGEM_OPTIONS = [
   'Embaixador / Parceria',
 ] as const;
 
+// Opções de tipo de interação
+const TIPO_INTERACAO_OPTIONS = [
+  'Ligação',
+  'WhatsApp',
+  'Presencial',
+  'Avaliação Física',
+  'Outro',
+] as const;
+
+// Opções de status de avaliação física
+const STATUS_AVALIACAO_OPTIONS: { value: StatusAvaliacao; label: string; emoji: string }[] = [
+  { value: 'agendada', label: 'Avaliação Agendada', emoji: '📅' },
+  { value: 'realizada', label: 'Avaliação Realizada', emoji: '✅' },
+  { value: 'faltou', label: 'Faltou', emoji: '❌' },
+  { value: 'reagendada', label: 'Reagendada', emoji: '🔄' },
+];
+
 interface InteracaoForm {
   id?: string;
   tipo: string;
@@ -85,6 +102,10 @@ interface InteracaoForm {
   responsavel_fechamento: string;
   treinador_responsavel: string;
   quem_indicou: string;
+  // Avaliação Física fields
+  data_avaliacao: string;
+  hora_avaliacao: string;
+  status_avaliacao: StatusAvaliacao | null;
 }
 
 const initialFormState: InteracaoForm = {
@@ -104,6 +125,10 @@ const initialFormState: InteracaoForm = {
   responsavel_fechamento: '',
   treinador_responsavel: '',
   quem_indicou: '',
+  // Avaliação Física fields
+  data_avaliacao: '',
+  hora_avaliacao: '',
+  status_avaliacao: null,
 };
 
 const atendidoPorOptions = [
@@ -261,6 +286,10 @@ export default function LeadDetail() {
       responsavel_fechamento: interacao.responsavel_fechamento || '',
       treinador_responsavel: interacao.treinador_responsavel || '',
       quem_indicou: (interacao as any).quem_indicou || '',
+      // Avaliação Física fields
+      data_avaliacao: interacao.data_avaliacao || '',
+      hora_avaliacao: interacao.hora_avaliacao || '',
+      status_avaliacao: interacao.status_avaliacao || null,
     });
     setIsEditing(true);
     setSheetOpen(true);
@@ -311,6 +340,10 @@ export default function LeadDetail() {
       responsavel_fechamento: formData.responsavel_fechamento.trim() || null,
       treinador_responsavel: formData.treinador_responsavel.trim() || null,
       quem_indicou: formData.fechou_matricula ? (formData.quem_indicou.trim() || null) : null,
+      // Avaliação Física fields
+      data_avaliacao: formData.tipo === 'Avaliação Física' ? (formData.data_avaliacao || null) : null,
+      hora_avaliacao: formData.tipo === 'Avaliação Física' ? (formData.hora_avaliacao || null) : null,
+      status_avaliacao: formData.tipo === 'Avaliação Física' ? formData.status_avaliacao : null,
     };
 
     let interacaoError;
@@ -628,20 +661,42 @@ export default function LeadDetail() {
                                int.atendido_por || '-'}
                             </TableCell>
                             <TableCell>
-                              <div className="flex flex-col gap-1 text-xs">
-                                <span className="flex items-center gap-1">
-                                  {int.agendou_experimental ? <CheckCircle className="w-3 h-3 text-green-500" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
-                                  Agendou
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  {int.compareceu ? <CheckCircle className="w-3 h-3 text-green-500" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
-                                  Compareceu
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  {int.fechou_matricula ? <CheckCircle className="w-3 h-3 text-green-500" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
-                                  Matriculou
-                                </span>
-                              </div>
+                              {int.tipo === 'Avaliação Física' ? (
+                                <div className="flex flex-col gap-1 text-xs">
+                                  <span className={`font-medium ${
+                                    int.status_avaliacao === 'realizada' ? 'text-green-600' :
+                                    int.status_avaliacao === 'agendada' ? 'text-blue-600' :
+                                    int.status_avaliacao === 'faltou' ? 'text-red-600' :
+                                    int.status_avaliacao === 'reagendada' ? 'text-amber-600' : ''
+                                  }`}>
+                                    {int.status_avaliacao === 'agendada' && '📅 Agendada'}
+                                    {int.status_avaliacao === 'realizada' && '✅ Realizada'}
+                                    {int.status_avaliacao === 'faltou' && '❌ Faltou'}
+                                    {int.status_avaliacao === 'reagendada' && '🔄 Reagendada'}
+                                    {!int.status_avaliacao && '- Pendente'}
+                                  </span>
+                                  {int.data_avaliacao && (
+                                    <span className="text-muted-foreground">
+                                      {formatDate(int.data_avaliacao)}
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="flex flex-col gap-1 text-xs">
+                                  <span className="flex items-center gap-1">
+                                    {int.agendou_experimental ? <CheckCircle className="w-3 h-3 text-green-500" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+                                    Agendou
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    {int.compareceu ? <CheckCircle className="w-3 h-3 text-green-500" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+                                    Compareceu
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    {int.fechou_matricula ? <CheckCircle className="w-3 h-3 text-green-500" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+                                    Matriculou
+                                  </span>
+                                </div>
+                              )}
                             </TableCell>
                             <TableCell>{int.plano_escolhido || '-'}</TableCell>
                             <TableCell>{int.valor_plano > 0 ? formatCurrency(int.valor_plano) : '-'}</TableCell>
@@ -741,6 +796,29 @@ export default function LeadDetail() {
                             <span className="font-medium">{formatDate(int.data_fechamento)}</span>
                           </div>
                         )}
+                        {/* Avaliação Física info */}
+                        {int.tipo === 'Avaliação Física' && int.data_avaliacao && (
+                          <div>
+                            <span className="text-muted-foreground">Avaliação: </span>
+                            <span className="font-medium">{formatDateTime(int.data_avaliacao, int.hora_avaliacao)}</span>
+                          </div>
+                        )}
+                        {int.tipo === 'Avaliação Física' && int.status_avaliacao && (
+                          <div>
+                            <span className="text-muted-foreground">Status: </span>
+                            <span className={`font-medium ${
+                              int.status_avaliacao === 'realizada' ? 'text-green-600' :
+                              int.status_avaliacao === 'agendada' ? 'text-blue-600' :
+                              int.status_avaliacao === 'faltou' ? 'text-red-600' :
+                              int.status_avaliacao === 'reagendada' ? 'text-amber-600' : ''
+                            }`}>
+                              {int.status_avaliacao === 'agendada' && '📅 Agendada'}
+                              {int.status_avaliacao === 'realizada' && '✅ Realizada'}
+                              {int.status_avaliacao === 'faltou' && '❌ Faltou'}
+                              {int.status_avaliacao === 'reagendada' && '🔄 Reagendada'}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -759,11 +837,21 @@ export default function LeadDetail() {
             <div className="space-y-4 mt-6">
               <div className="space-y-2">
                 <Label>Tipo *</Label>
-                <Input
+                <Select
                   value={formData.tipo}
-                  onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-                  placeholder="Ex: Ligação, WhatsApp, Presencial"
-                />
+                  onValueChange={(v) => setFormData({ ...formData, tipo: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIPO_INTERACAO_OPTIONS.map((tipo) => (
+                      <SelectItem key={tipo} value={tipo}>
+                        {tipo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Atendido Por</Label>
@@ -783,6 +871,57 @@ export default function LeadDetail() {
                   rows={2}
                 />
               </div>
+
+              {/* Bloco Avaliação Física - só aparece quando tipo = Avaliação Física */}
+              {formData.tipo === 'Avaliação Física' && (
+                <div className="p-4 border rounded-lg bg-muted/30 space-y-4">
+                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                    📋 Avaliação Física
+                  </h4>
+                  
+                  {/* Data e Hora */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Data da Avaliação</Label>
+                      <Input
+                        type="date"
+                        value={formData.data_avaliacao}
+                        onChange={(e) => setFormData({ ...formData, data_avaliacao: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Hora da Avaliação</Label>
+                      <Input
+                        type="time"
+                        value={formData.hora_avaliacao}
+                        onChange={(e) => setFormData({ ...formData, hora_avaliacao: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Status Toggles */}
+                  <div className="space-y-2">
+                    <Label>Status da Avaliação</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {STATUS_AVALIACAO_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, status_avaliacao: option.value })}
+                          className={`p-3 rounded-lg border text-sm font-medium transition-all flex items-center gap-2 justify-center ${
+                            formData.status_avaliacao === option.value
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-background hover:bg-muted border-border'
+                          }`}
+                        >
+                          <span>{option.emoji}</span>
+                          <span>{option.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Toggles */}
               <div className="grid grid-cols-2 gap-4">

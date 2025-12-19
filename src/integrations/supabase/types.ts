@@ -116,11 +116,13 @@ export type Database = {
           confirmado: boolean | null
           created_at: string
           created_by: string | null
+          data_avaliacao: string | null
           data_experimental: string | null
           data_fechamento: string | null
           data_interacao: string
           descricao: string | null
           fechou_matricula: boolean | null
+          hora_avaliacao: string | null
           hora_experimental: string | null
           id: string
           lead_id: string
@@ -130,6 +132,7 @@ export type Database = {
           quem_indicou: string | null
           reagendou: boolean | null
           responsavel_fechamento: string | null
+          status_avaliacao: string | null
           tipo: string
           tipo_atendimento: string | null
           treinador_experimental: string | null
@@ -149,11 +152,13 @@ export type Database = {
           confirmado?: boolean | null
           created_at?: string
           created_by?: string | null
+          data_avaliacao?: string | null
           data_experimental?: string | null
           data_fechamento?: string | null
           data_interacao?: string
           descricao?: string | null
           fechou_matricula?: boolean | null
+          hora_avaliacao?: string | null
           hora_experimental?: string | null
           id?: string
           lead_id: string
@@ -163,6 +168,7 @@ export type Database = {
           quem_indicou?: string | null
           reagendou?: boolean | null
           responsavel_fechamento?: string | null
+          status_avaliacao?: string | null
           tipo: string
           tipo_atendimento?: string | null
           treinador_experimental?: string | null
@@ -182,11 +188,13 @@ export type Database = {
           confirmado?: boolean | null
           created_at?: string
           created_by?: string | null
+          data_avaliacao?: string | null
           data_experimental?: string | null
           data_fechamento?: string | null
           data_interacao?: string
           descricao?: string | null
           fechou_matricula?: boolean | null
+          hora_avaliacao?: string | null
           hora_experimental?: string | null
           id?: string
           lead_id?: string
@@ -196,6 +204,7 @@ export type Database = {
           quem_indicou?: string | null
           reagendou?: boolean | null
           responsavel_fechamento?: string | null
+          status_avaliacao?: string | null
           tipo?: string
           tipo_atendimento?: string | null
           treinador_experimental?: string | null
