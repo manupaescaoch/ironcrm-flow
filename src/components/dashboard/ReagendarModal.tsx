@@ -6,18 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Lead, Interacao } from '@/types/database';
 import { Loader2 } from 'lucide-react';
-
-interface ExperimentalItem {
-  lead: Lead;
-  interacao: Interacao;
-}
+import { EventoItem } from './EventosHoje';
 
 interface ReagendarModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  item: ExperimentalItem | null;
+  item: EventoItem | null;
   onSuccess: () => void;
 }
 
@@ -36,17 +31,27 @@ export function ReagendarModal({ open, onOpenChange, item, onSuccess }: Reagenda
 
     setLoading(true);
 
-    // Update the interaction
+    const isAvaliacao = item.tipoEvento === 'avaliacao';
+
+    // Update the interaction based on type
+    const updateData = isAvaliacao ? {
+      data_avaliacao: novaData,
+      hora_avaliacao: novoHorario,
+      status_avaliacao: 'reagendada',
+      confirmado: false,
+      descricao: observacao || item.interacao.descricao,
+    } : {
+      data_experimental: novaData,
+      hora_experimental: novoHorario,
+      confirmado: false,
+      compareceu: null,
+      reagendou: true,
+      descricao: observacao || item.interacao.descricao,
+    };
+
     const { error: interacaoError } = await supabase
       .from('interacoes')
-      .update({
-        data_experimental: novaData,
-        hora_experimental: novoHorario,
-        confirmado: false,
-        compareceu: null,
-        reagendou: true,
-        descricao: observacao || item.interacao.descricao,
-      })
+      .update(updateData)
       .eq('id', item.interacao.id);
 
     if (interacaoError) {
@@ -55,37 +60,38 @@ export function ReagendarModal({ open, onOpenChange, item, onSuccess }: Reagenda
       return;
     }
 
-    // Update lead status back to aula_agendada
-    const { error: leadError } = await supabase
-      .from('leads')
-      .update({ status_funil: 'aula_agendada' })
-      .eq('id', item.lead.id);
-
-    if (leadError) {
-      toast({ title: 'Erro ao atualizar status do lead', variant: 'destructive' });
-    } else {
-      toast({ title: 'Experimental reagendado com sucesso!' });
-      onOpenChange(false);
-      setNovaData('');
-      setNovoHorario('');
-      setObservacao('');
-      onSuccess();
+    // Update lead status back to aula_agendada only for experimental
+    if (!isAvaliacao) {
+      await supabase
+        .from('leads')
+        .update({ status_funil: 'aula_agendada' })
+        .eq('id', item.lead.id);
     }
+
+    const tipoTexto = isAvaliacao ? 'Avaliação física' : 'Experimental';
+    toast({ title: `${tipoTexto} reagendado com sucesso!` });
+    onOpenChange(false);
+    setNovaData('');
+    setNovoHorario('');
+    setObservacao('');
+    onSuccess();
 
     setLoading(false);
   };
+
+  const tipoTexto = item?.tipoEvento === 'avaliacao' ? 'Avaliação Física' : 'Experimental';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Reagendar Experimental</DialogTitle>
+          <DialogTitle>Reagendar {tipoTexto}</DialogTitle>
         </DialogHeader>
         
         {item && (
           <div className="space-y-4 py-4">
             <p className="text-sm text-muted-foreground">
-              Reagendando aula experimental de <strong>{item.lead.nome}</strong>
+              Reagendando {tipoTexto.toLowerCase()} de <strong>{item.lead.nome}</strong>
             </p>
             
             <div className="space-y-2">
