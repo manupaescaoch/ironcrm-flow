@@ -255,14 +255,20 @@ export default function DashboardExecutivo() {
     return { rows, mediaNoShow, melhorDia, piorDia };
   }, [interacoes]);
 
-  // ==================== PADRONIZAÇÃO DE RESPONSÁVEIS ====================
+  // ==================== EXCLUSÃO DE RESPONSÁVEIS ====================
   const deveExcluirResponsavel = (nome: string | null | undefined): boolean => {
     if (!nome) return false;
-    const normalizado = nome.trim().toLowerCase();
+    const normalizado = nome.trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     return normalizado === 'manu paes' || 
+           normalizado === 'manu' ||
            normalizado === 'emanuel.paes@gmail.com' ||
-           normalizado.includes('manu paes');
+           normalizado.includes('manu paes') ||
+           normalizado.includes('manu ') ||
+           /^manu/.test(normalizado);
   };
+
+  // ==================== PADRONIZAÇÃO DE RESPONSÁVEIS ====================
 
   const padronizarResponsavel = (nome: string | null | undefined): string => {
     if (!nome || nome.trim() === '') return 'NAO INFORMADO';
