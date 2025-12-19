@@ -40,6 +40,8 @@ export interface Lead {
   follow_up_responsavel: string | null;
 }
 
+export type StatusAvaliacao = 'agendada' | 'realizada' | 'faltou' | 'reagendada';
+
 export interface Interacao {
   id: string;
   lead_id: string;
@@ -70,6 +72,10 @@ export interface Interacao {
   origem_fechamento: string | null;
   quem_agendou: string | null;
   tipo_atendimento: string | null;
+  // Avaliação Física fields
+  data_avaliacao: string | null;
+  hora_avaliacao: string | null;
+  status_avaliacao: StatusAvaliacao | null;
 }
 
 export interface Database {

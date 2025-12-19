@@ -35,6 +35,9 @@ interface Stats {
 interface PeriodStats {
   experimentaisPeriodo: number;
   matriculasPeriodo: number;
+  avaliacoesAgendadas: number;
+  avaliacoesRealizadas: number;
+  avaliacoesHoje: number;
 }
 
 interface ExperimentalItem {
@@ -75,7 +78,7 @@ export default function Dashboard() {
   const { unidadeAtual, loading: unidadeLoading } = useUnidade();
   
   const [stats, setStats] = useState<Stats>({ total: 0, novos: 0, aulasAgendadas: 0 });
-  const [periodStats, setPeriodStats] = useState<PeriodStats>({ experimentaisPeriodo: 0, matriculasPeriodo: 0 });
+  const [periodStats, setPeriodStats] = useState<PeriodStats>({ experimentaisPeriodo: 0, matriculasPeriodo: 0, avaliacoesAgendadas: 0, avaliacoesRealizadas: 0, avaliacoesHoje: 0 });
   const [experimentaisSemanaCount, setExperimentaisSemanaCount] = useState(0);
   const [loading, setLoading] = useState(true);
   
@@ -158,11 +161,42 @@ export default function Dashboard() {
       .gte('data_fechamento', startDateStr)
       .lte('data_fechamento', endDateStr);
 
+    // Fetch avaliações agendadas no período
+    const { count: avalAgendadas } = await supabase
+      .from('interacoes')
+      .select('*', { count: 'exact', head: true })
+      .eq('tipo', 'Avaliação Física')
+      .eq('status_avaliacao', 'agendada')
+      .eq('unidade_id', unidadeAtual.id)
+      .gte('data_avaliacao', startDateStr)
+      .lte('data_avaliacao', endDateStr);
+
+    // Fetch avaliações realizadas no período
+    const { count: avalRealizadas } = await supabase
+      .from('interacoes')
+      .select('*', { count: 'exact', head: true })
+      .eq('tipo', 'Avaliação Física')
+      .eq('status_avaliacao', 'realizada')
+      .eq('unidade_id', unidadeAtual.id)
+      .gte('data_avaliacao', startDateStr)
+      .lte('data_avaliacao', endDateStr);
+
+    // Fetch avaliações de hoje
+    const { count: avalHoje } = await supabase
+      .from('interacoes')
+      .select('*', { count: 'exact', head: true })
+      .eq('tipo', 'Avaliação Física')
+      .eq('unidade_id', unidadeAtual.id)
+      .eq('data_avaliacao', today);
+
     setPeriodStats({
       experimentaisPeriodo: experimentaisCount || 0,
       matriculasPeriodo: matriculasCount || 0,
+      avaliacoesAgendadas: avalAgendadas || 0,
+      avaliacoesRealizadas: avalRealizadas || 0,
+      avaliacoesHoje: avalHoje || 0,
     });
-  }, [startDate, endDate, unidadeAtual]);
+  }, [startDate, endDate, unidadeAtual, today]);
 
   const fetchWeeklyStats = useCallback(async () => {
     if (!unidadeAtual) return;
@@ -277,6 +311,9 @@ export default function Dashboard() {
         origem_fechamento: item.origem_fechamento,
         quem_agendou: item.quem_agendou,
         tipo_atendimento: item.tipo_atendimento,
+        data_avaliacao: item.data_avaliacao || null,
+        hora_avaliacao: item.hora_avaliacao || null,
+        status_avaliacao: item.status_avaliacao || null,
       };
 
       const experimentalItem: ExperimentalItem = { lead, interacao };
@@ -412,6 +449,9 @@ export default function Dashboard() {
         origem_fechamento: null,
         quem_agendou: null,
         tipo_atendimento: null,
+        data_avaliacao: null,
+        hora_avaliacao: null,
+        status_avaliacao: null,
       };
       
       matriculaItems.push({ lead, interacao });
@@ -556,6 +596,9 @@ export default function Dashboard() {
         origem_fechamento: interacaoData.origem_fechamento,
         quem_agendou: interacaoData.quem_agendou,
         tipo_atendimento: interacaoData.tipo_atendimento,
+        data_avaliacao: interacaoData.data_avaliacao || null,
+        hora_avaliacao: interacaoData.hora_avaliacao || null,
+        status_avaliacao: interacaoData.status_avaliacao || null,
       };
       
       items.push({ lead, interacao });
