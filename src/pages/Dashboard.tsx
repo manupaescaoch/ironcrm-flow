@@ -13,7 +13,7 @@ import { Lead, Interacao } from '@/types/database';
 import { Users, UserPlus, CalendarCheck, Loader2, Calendar, Award, Eye, ChevronDown, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { ExperimentaisHoje } from '@/components/dashboard/ExperimentaisHoje';
+import { EventosHoje, EventoItem } from '@/components/dashboard/EventosHoje';
 import { ConfirmacoesAmanha } from '@/components/dashboard/ConfirmacoesAmanha';
 import { PendenciasDia } from '@/components/dashboard/PendenciasDia';
 import { ExperimentaisSemana } from '@/components/dashboard/ExperimentaisSemana';
@@ -35,14 +35,6 @@ interface Stats {
 interface PeriodStats {
   experimentaisPeriodo: number;
   matriculasPeriodo: number;
-  avaliacoesAgendadas: number;
-  avaliacoesRealizadas: number;
-  avaliacoesHoje: number;
-}
-
-interface ExperimentalItem {
-  lead: Lead;
-  interacao: Interacao;
 }
 
 interface MatriculaItem {
@@ -78,7 +70,7 @@ export default function Dashboard() {
   const { unidadeAtual, loading: unidadeLoading } = useUnidade();
   
   const [stats, setStats] = useState<Stats>({ total: 0, novos: 0, aulasAgendadas: 0 });
-  const [periodStats, setPeriodStats] = useState<PeriodStats>({ experimentaisPeriodo: 0, matriculasPeriodo: 0, avaliacoesAgendadas: 0, avaliacoesRealizadas: 0, avaliacoesHoje: 0 });
+  const [periodStats, setPeriodStats] = useState<PeriodStats>({ experimentaisPeriodo: 0, matriculasPeriodo: 0 });
   const [experimentaisSemanaCount, setExperimentaisSemanaCount] = useState(0);
   const [loading, setLoading] = useState(true);
   
@@ -87,21 +79,21 @@ export default function Dashboard() {
   const [startDate, setStartDate] = useState(() => new Date(2020, 0, 1));
   const [endDate, setEndDate] = useState(() => new Date(2030, 11, 31));
   
-  // Experimental control state
-  const [experimentaisHoje, setExperimentaisHoje] = useState<ExperimentalItem[]>([]);
-  const [confirmacoesAmanha, setConfirmacoesAmanha] = useState<ExperimentalItem[]>([]);
-  const [pendenciasHoje, setPendenciasHoje] = useState<ExperimentalItem[]>([]);
-  const [pendenciasAmanha, setPendenciasAmanha] = useState<ExperimentalItem[]>([]);
-  const [experimentaisSemana, setExperimentaisSemana] = useState<ExperimentalItem[]>([]);
+  // Eventos control state (unified Experimental + Avaliação Física)
+  const [eventosHoje, setEventosHoje] = useState<EventoItem[]>([]);
+  const [confirmacoesAmanha, setConfirmacoesAmanha] = useState<EventoItem[]>([]);
+  const [pendenciasHoje, setPendenciasHoje] = useState<EventoItem[]>([]);
+  const [pendenciasAmanha, setPendenciasAmanha] = useState<EventoItem[]>([]);
+  const [experimentaisSemana, setExperimentaisSemana] = useState<EventoItem[]>([]);
   
   // Detailed lists state
-  const [experimentaisDetalhados, setExperimentaisDetalhados] = useState<ExperimentalItem[]>([]);
+  const [experimentaisDetalhados, setExperimentaisDetalhados] = useState<EventoItem[]>([]);
   const [matriculasDetalhadas, setMatriculasDetalhadas] = useState<MatriculaItem[]>([]);
   const [showExperimentaisSection, setShowExperimentaisSection] = useState(false);
   const [showMatriculasSection, setShowMatriculasSection] = useState(false);
   
   // Follow-up state
-  const [followUpItems, setFollowUpItems] = useState<ExperimentalItem[]>([]);
+  const [followUpItems, setFollowUpItems] = useState<EventoItem[]>([]);
   const [showFollowUpSection, setShowFollowUpSection] = useState(false);
   const followUpSectionRef = useRef<HTMLDivElement>(null);
   
@@ -111,7 +103,7 @@ export default function Dashboard() {
   
   // Modal state
   const [reagendarModalOpen, setReagendarModalOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<ExperimentalItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<EventoItem | null>(null);
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd');
@@ -161,42 +153,11 @@ export default function Dashboard() {
       .gte('data_fechamento', startDateStr)
       .lte('data_fechamento', endDateStr);
 
-    // Fetch avaliações agendadas no período
-    const { count: avalAgendadas } = await supabase
-      .from('interacoes')
-      .select('*', { count: 'exact', head: true })
-      .eq('tipo', 'Avaliação Física')
-      .eq('status_avaliacao', 'agendada')
-      .eq('unidade_id', unidadeAtual.id)
-      .gte('data_avaliacao', startDateStr)
-      .lte('data_avaliacao', endDateStr);
-
-    // Fetch avaliações realizadas no período
-    const { count: avalRealizadas } = await supabase
-      .from('interacoes')
-      .select('*', { count: 'exact', head: true })
-      .eq('tipo', 'Avaliação Física')
-      .eq('status_avaliacao', 'realizada')
-      .eq('unidade_id', unidadeAtual.id)
-      .gte('data_avaliacao', startDateStr)
-      .lte('data_avaliacao', endDateStr);
-
-    // Fetch avaliações de hoje
-    const { count: avalHoje } = await supabase
-      .from('interacoes')
-      .select('*', { count: 'exact', head: true })
-      .eq('tipo', 'Avaliação Física')
-      .eq('unidade_id', unidadeAtual.id)
-      .eq('data_avaliacao', today);
-
     setPeriodStats({
       experimentaisPeriodo: experimentaisCount || 0,
       matriculasPeriodo: matriculasCount || 0,
-      avaliacoesAgendadas: avalAgendadas || 0,
-      avaliacoesRealizadas: avalRealizadas || 0,
-      avaliacoesHoje: avalHoje || 0,
     });
-  }, [startDate, endDate, unidadeAtual, today]);
+  }, [startDate, endDate, unidadeAtual]);
 
   const fetchWeeklyStats = useCallback(async () => {
     if (!unidadeAtual) return;
@@ -216,135 +177,94 @@ export default function Dashboard() {
     setExperimentaisSemanaCount(count || 0);
   }, [unidadeAtual]);
 
-  const fetchExperimentais = useCallback(async () => {
+  const fetchEventos = useCallback(async () => {
     if (!unidadeAtual) return;
     
     const startDateStr = format(startDate, 'yyyy-MM-dd');
     const endDateStr = format(endDate, 'yyyy-MM-dd');
-
-    // Calcular o menor e maior range para incluir hoje/amanhã E o período selecionado
     const minDate = startDateStr < today ? startDateStr : today;
     const maxDate = endDateStr > tomorrow ? endDateStr : tomorrow;
 
-    // Fetch all interactions with experimental scheduled in the extended range
+    // Fetch experimentais
     const { data: experimentaisData } = await supabase
       .from('interacoes')
-      .select(`
-        *,
-        leads (
-          id,
-          nome,
-          telefone,
-          email,
-          origem,
-          status_funil,
-          plano_escolhido,
-          cadastrado_por,
-          atendido_por,
-          observacoes,
-          data_aula_experimental,
-          created_by,
-          user_id,
-          ativo,
-          created_at,
-          updated_at
-        )
-      `)
+      .select(`*, leads (id, nome, telefone, email, origem, status_funil, plano_escolhido, cadastrado_por, atendido_por, observacoes, data_aula_experimental, created_by, user_id, ativo, created_at, updated_at)`)
       .eq('agendou_experimental', true)
       .eq('unidade_id', unidadeAtual.id)
       .gte('data_experimental', minDate)
-      .lte('data_experimental', maxDate)
-      .order('data_experimental', { ascending: true })
-      .order('hora_experimental', { ascending: true });
+      .lte('data_experimental', maxDate);
 
-    if (!experimentaisData || experimentaisData.length === 0) {
-      setExperimentaisHoje([]);
-      setConfirmacoesAmanha([]);
-      setPendenciasHoje([]);
-      setPendenciasAmanha([]);
-      setExperimentaisSemana([]);
-      setExperimentaisDetalhados([]);
-      return;
-    }
+    // Fetch avaliações físicas
+    const { data: avaliacoesData } = await supabase
+      .from('interacoes')
+      .select(`*, leads (id, nome, telefone, email, origem, status_funil, plano_escolhido, cadastrado_por, atendido_por, observacoes, data_aula_experimental, created_by, user_id, ativo, created_at, updated_at)`)
+      .eq('tipo', 'Avaliação Física')
+      .eq('unidade_id', unidadeAtual.id)
+      .gte('data_avaliacao', minDate)
+      .lte('data_avaliacao', maxDate);
 
-    // Process interactions
-    const todayItems: ExperimentalItem[] = [];
-    const tomorrowItems: ExperimentalItem[] = [];
-    const pendenciasHojeItems: ExperimentalItem[] = [];
-    const pendenciasAmanhaItems: ExperimentalItem[] = [];
-    const weekItems: ExperimentalItem[] = [];
-    const detailedItems: ExperimentalItem[] = [];
+    const todayItems: EventoItem[] = [];
+    const tomorrowItems: EventoItem[] = [];
+    const pendenciasHojeItems: EventoItem[] = [];
+    const pendenciasAmanhaItems: EventoItem[] = [];
+    const weekItems: EventoItem[] = [];
+    const detailedItems: EventoItem[] = [];
 
-    experimentaisData.forEach((item: any) => {
-      if (!item.leads) return;
-      // Ignorar leads inativos
-      if (item.leads.ativo === false) return;
+    const processItem = (item: any, tipoEvento: 'experimental' | 'avaliacao') => {
+      if (!item.leads || item.leads.ativo === false) return;
       
       const lead: Lead = item.leads as Lead;
       const interacao: Interacao = {
-        id: item.id,
-        lead_id: item.lead_id,
-        tipo: item.tipo,
-        descricao: item.descricao,
-        data_interacao: item.data_interacao,
-        created_at: item.created_at,
-        created_by: item.created_by,
-        atendido_por: item.atendido_por,
-        atendido_por_tipo: item.atendido_por_tipo,
-        agendou_experimental: item.agendou_experimental,
-        data_experimental: item.data_experimental,
-        hora_experimental: item.hora_experimental,
-        compareceu: item.compareceu,
-        confirmado: item.confirmado,
-        reagendou: item.reagendou,
-        fechou_matricula: item.fechou_matricula,
-        plano_escolhido: item.plano_escolhido,
-        valor_plano: item.valor_plano,
-        comissao_comercial: item.comissao_comercial,
-        comissao_recepcao: item.comissao_recepcao,
-        comissao_cadastrador: item.comissao_cadastrador,
-        cadastrado_por: item.cadastrado_por,
-        data_fechamento: item.data_fechamento,
-        responsavel_fechamento: item.responsavel_fechamento,
-        treinador_responsavel: item.treinador_responsavel,
-        treinador_experimental: item.treinador_experimental,
-        origem_fechamento: item.origem_fechamento,
-        quem_agendou: item.quem_agendou,
-        tipo_atendimento: item.tipo_atendimento,
-        data_avaliacao: item.data_avaliacao || null,
-        hora_avaliacao: item.hora_avaliacao || null,
+        id: item.id, lead_id: item.lead_id, tipo: item.tipo, descricao: item.descricao,
+        data_interacao: item.data_interacao, created_at: item.created_at, created_by: item.created_by,
+        atendido_por: item.atendido_por, atendido_por_tipo: item.atendido_por_tipo,
+        agendou_experimental: item.agendou_experimental, data_experimental: item.data_experimental,
+        hora_experimental: item.hora_experimental, compareceu: item.compareceu, confirmado: item.confirmado,
+        reagendou: item.reagendou, fechou_matricula: item.fechou_matricula, plano_escolhido: item.plano_escolhido,
+        valor_plano: item.valor_plano, comissao_comercial: item.comissao_comercial,
+        comissao_recepcao: item.comissao_recepcao, comissao_cadastrador: item.comissao_cadastrador,
+        cadastrado_por: item.cadastrado_por, data_fechamento: item.data_fechamento,
+        responsavel_fechamento: item.responsavel_fechamento, treinador_responsavel: item.treinador_responsavel,
+        treinador_experimental: item.treinador_experimental, origem_fechamento: item.origem_fechamento,
+        quem_agendou: item.quem_agendou, tipo_atendimento: item.tipo_atendimento,
+        data_avaliacao: item.data_avaliacao || null, hora_avaliacao: item.hora_avaliacao || null,
         status_avaliacao: item.status_avaliacao || null,
       };
 
-      const experimentalItem: ExperimentalItem = { lead, interacao };
-      
-      const startDateStr = format(startDate, 'yyyy-MM-dd');
-      const endDateStr = format(endDate, 'yyyy-MM-dd');
-      
-      // Add to week view and detailed list only if within selected period
-      if (interacao.data_experimental >= startDateStr && interacao.data_experimental <= endDateStr) {
-        weekItems.push(experimentalItem);
-        detailedItems.push(experimentalItem);
+      const eventoItem: EventoItem = { lead, interacao, tipoEvento };
+      const dataEvento = tipoEvento === 'avaliacao' ? interacao.data_avaliacao : interacao.data_experimental;
+      const isAgendado = tipoEvento === 'avaliacao' 
+        ? interacao.status_avaliacao === 'agendada'
+        : interacao.compareceu !== true;
+
+      if (dataEvento && dataEvento >= startDateStr && dataEvento <= endDateStr) {
+        weekItems.push(eventoItem);
+        if (tipoEvento === 'experimental') detailedItems.push(eventoItem);
       }
 
-      // Experimentais de hoje - só mostra quem ainda não compareceu
-      if (interacao.data_experimental === today && interacao.compareceu !== true) {
-        todayItems.push(experimentalItem);
-        pendenciasHojeItems.push(experimentalItem);
+      if (dataEvento === today && isAgendado) {
+        todayItems.push(eventoItem);
+        pendenciasHojeItems.push(eventoItem);
+      } else if (dataEvento === tomorrow && !interacao.confirmado) {
+        tomorrowItems.push(eventoItem);
+        pendenciasAmanhaItems.push(eventoItem);
       }
-      // Confirmações para amanhã - sempre mostra independente do período
-      else if (interacao.data_experimental === tomorrow) {
-        if (!interacao.confirmado) {
-          tomorrowItems.push(experimentalItem);
-          pendenciasAmanhaItems.push(experimentalItem);
-        }
-      }
-    });
+    };
 
-    setExperimentaisHoje(todayItems);
-    setConfirmacoesAmanha(tomorrowItems);
-    setPendenciasHoje(pendenciasHojeItems);
-    setPendenciasAmanha(pendenciasAmanhaItems);
+    experimentaisData?.forEach(item => processItem(item, 'experimental'));
+    avaliacoesData?.forEach(item => processItem(item, 'avaliacao'));
+
+    // Sort by time
+    const sortByTime = (a: EventoItem, b: EventoItem) => {
+      const horaA = a.tipoEvento === 'avaliacao' ? a.interacao.hora_avaliacao : a.interacao.hora_experimental;
+      const horaB = b.tipoEvento === 'avaliacao' ? b.interacao.hora_avaliacao : b.interacao.hora_experimental;
+      return (horaA || '').localeCompare(horaB || '');
+    };
+
+    setEventosHoje(todayItems.sort(sortByTime));
+    setConfirmacoesAmanha(tomorrowItems.sort(sortByTime));
+    setPendenciasHoje(pendenciasHojeItems.sort(sortByTime));
+    setPendenciasAmanha(pendenciasAmanhaItems.sort(sortByTime));
     setExperimentaisSemana(weekItems);
     setExperimentaisDetalhados(detailedItems);
   }, [today, tomorrow, startDate, endDate, unidadeAtual]);
