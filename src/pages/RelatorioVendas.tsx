@@ -39,7 +39,8 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  ArrowUpDown
+  ArrowUpDown,
+  Award
 } from 'lucide-react';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
@@ -234,6 +235,38 @@ export default function RelatorioVendas() {
     };
   }, [filteredEnrollments]);
 
+  // Calculate trainer bonus (same logic as Comissoes page)
+  const treinadorStats = useMemo(() => {
+    const grouped = new Map<string, { matriculas: number }>();
+
+    filteredEnrollments.forEach((e) => {
+      const treinador = e.treinador_responsavel;
+      if (!treinador || treinador.trim() === '') return;
+      
+      const current = grouped.get(treinador) || { matriculas: 0 };
+      current.matriculas += 1;
+      grouped.set(treinador, current);
+    });
+
+    let totalBonus = 0;
+    grouped.forEach((data) => {
+      const { matriculas } = data;
+      let bonusPorAluno = 0;
+      if (matriculas >= 11) bonusPorAluno = 40;
+      else if (matriculas >= 8) bonusPorAluno = 30;
+      else if (matriculas >= 5) bonusPorAluno = 25;
+      else if (matriculas >= 1) bonusPorAluno = 20;
+      totalBonus += matriculas * bonusPorAluno;
+    });
+
+    return { totalBonus };
+  }, [filteredEnrollments]);
+
+  // Total commissions including trainer bonus
+  const totalComissoes = useMemo(() => {
+    return stats.totalComissaoComercial + stats.totalComissaoRecepcao + treinadorStats.totalBonus;
+  }, [stats.totalComissaoComercial, stats.totalComissaoRecepcao, treinadorStats.totalBonus]);
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -294,8 +327,10 @@ export default function RelatorioVendas() {
     doc.setFont('helvetica', 'normal');
     doc.text(`Matrículas no período: ${stats.totalMatriculas}`, 14, 44);
     doc.text(`Faturamento total: ${formatCurrency(stats.totalValorPlano)}`, 14, 50);
-    doc.text(`Comissão Comercial: ${formatCurrency(stats.totalComissaoComercial)}`, 100, 44);
-    doc.text(`Comissão Recepção: ${formatCurrency(stats.totalComissaoRecepcao)}`, 100, 50);
+    doc.text(`Comissão Cadastrador (3%): ${formatCurrency(stats.totalComissaoComercial)}`, 100, 44);
+    doc.text(`Comissão Fechador (2%): ${formatCurrency(stats.totalComissaoRecepcao)}`, 100, 50);
+    doc.text(`Bônus Treinador: ${formatCurrency(treinadorStats.totalBonus)}`, 200, 44);
+    doc.text(`Total Comissões: ${formatCurrency(totalComissoes)}`, 200, 50);
 
     // Table
     const tableData = sortedEnrollments.map(e => [
@@ -537,7 +572,7 @@ export default function RelatorioVendas() {
         ) : (
           <>
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 md:mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6 md:mb-8">
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
@@ -545,7 +580,7 @@ export default function RelatorioVendas() {
                       <Users className="w-6 h-6 text-blue-500" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Matrículas no período</p>
+                      <p className="text-sm text-muted-foreground">Matrículas</p>
                       <p className="text-2xl font-bold">{stats.totalMatriculas}</p>
                     </div>
                   </div>
@@ -559,7 +594,7 @@ export default function RelatorioVendas() {
                       <TrendingUp className="w-6 h-6 text-purple-500" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Faturamento total</p>
+                      <p className="text-sm text-muted-foreground">Faturamento</p>
                       <p className="text-2xl font-bold">{formatCurrency(stats.totalValorPlano)}</p>
                     </div>
                   </div>
@@ -573,7 +608,7 @@ export default function RelatorioVendas() {
                       <Briefcase className="w-6 h-6 text-green-500" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Comissão Comercial</p>
+                      <p className="text-sm text-muted-foreground">Cadastrador (3%)</p>
                       <p className="text-2xl font-bold">{formatCurrency(stats.totalComissaoComercial)}</p>
                     </div>
                   </div>
@@ -587,8 +622,36 @@ export default function RelatorioVendas() {
                       <UserCheck className="w-6 h-6 text-amber-500" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Comissão Recepção</p>
+                      <p className="text-sm text-muted-foreground">Fechador (2%)</p>
                       <p className="text-2xl font-bold">{formatCurrency(stats.totalComissaoRecepcao)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-blue-600/10 rounded-lg flex items-center justify-center">
+                      <Award className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Bônus Treinador</p>
+                      <p className="text-2xl font-bold">{formatCurrency(treinadorStats.totalBonus)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-primary/5 border-primary/20">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center">
+                      <DollarSign className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Comissões</p>
+                      <p className="text-2xl font-bold text-primary">{formatCurrency(totalComissoes)}</p>
                     </div>
                   </div>
                 </CardContent>
