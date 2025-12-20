@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Calendar, Clock, Save, RefreshCw, MessageCircle, Activity } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar, Clock, Save, RefreshCw, MessageCircle, Activity, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Lead, Interacao } from '@/types/database';
@@ -24,29 +25,41 @@ interface EventosHojeProps {
   onReagendar: (item: EventoItem) => void;
 }
 
-const statusLabels: Record<string, string> = {
-  novo: 'Novo',
-  contato_inicial: 'Contato Inicial',
-  aula_agendada: 'Experimental Agendada',
-  aula_realizada: 'Experimental Realizada',
-  negociacao: 'Negociação',
-  convertido: 'Convertido',
-  perdido: 'Perdido',
-};
+const TREINADORES = [
+  'Guilherme',
+  'Diogo', 
+  'Luiz',
+  'Ivan',
+  'Andrey',
+  'Lucas',
+  'Rafael',
+];
 
 export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps) {
   const { toast } = useToast();
   const [observations, setObservations] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [treinadores, setTreinadores] = useState<Record<string, string>>({});
 
   const handleMarcarPresenca = async (item: EventoItem, checked: boolean) => {
+    const treinadorSelecionado = treinadores[item.interacao.id] || item.interacao.treinador_experimental;
+    
+    // Se está marcando presença e não selecionou treinador (para experimental)
+    if (checked && item.tipoEvento === 'experimental' && !treinadorSelecionado) {
+      toast({ title: 'Selecione o treinador que ministrou a aula', variant: 'destructive' });
+      return;
+    }
+    
     setLoading(prev => ({ ...prev, [item.interacao.id]: true }));
     
     if (item.tipoEvento === 'experimental') {
-      // Update interacao for experimental
+      // Update interacao for experimental with trainer
       const { error: interacaoError } = await supabase
         .from('interacoes')
-        .update({ compareceu: checked })
+        .update({ 
+          compareceu: checked,
+          treinador_experimental: checked ? treinadorSelecionado : null
+        })
         .eq('id', item.interacao.id);
 
       if (interacaoError) {
@@ -264,6 +277,25 @@ Aguardamos você! 💪`;
                     <Save className="w-4 h-4" />
                   </Button>
                 </div>
+
+                {item.tipoEvento === 'experimental' && (
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <Select
+                      value={treinadores[item.interacao.id] || item.interacao.treinador_experimental || ''}
+                      onValueChange={(value) => setTreinadores(prev => ({ ...prev, [item.interacao.id]: value }))}
+                    >
+                      <SelectTrigger className="h-8 w-[160px] text-sm">
+                        <SelectValue placeholder="Treinador" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TREINADORES.map((t) => (
+                          <SelectItem key={t} value={t}>{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
