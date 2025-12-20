@@ -962,7 +962,7 @@ export default function LeadDetail() {
                   <Input
                     value={formData.treinador_responsavel}
                     onChange={(e) => setFormData({ ...formData, treinador_responsavel: e.target.value })}
-                    placeholder="Nome do treinador que ministrou a aula"
+                    placeholder="NOME DO TREINADOR"
                     list="treinadores-list"
                   />
                   <datalist id="treinadores-list">
