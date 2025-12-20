@@ -600,84 +600,84 @@ export default function Comissoes() {
           <>
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-              <Card>
+              <Card className="bg-card border shadow-sm">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                      <Users className="w-6 h-6 text-blue-500" />
+                    <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                      <Users className="w-6 h-6 text-blue-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Matrículas</p>
-                      <p className="text-2xl font-bold">{stats.totalMatriculas}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Matrículas</p>
+                      <p className="text-2xl font-bold text-foreground">{stats.totalMatriculas}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-card border shadow-sm">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center">
-                      <TrendingUp className="w-6 h-6 text-purple-500" />
+                    <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-purple-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Ticket Médio</p>
-                      <p className="text-2xl font-bold">{formatCurrency(stats.ticketMedio)}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Ticket Médio</p>
+                      <p className="text-2xl font-bold text-foreground">{formatCurrency(stats.ticketMedio)}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-card border shadow-sm">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center">
-                      <Briefcase className="w-6 h-6 text-green-500" />
+                    <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
+                      <Briefcase className="w-6 h-6 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Cadastrador (3%)</p>
-                      <p className="text-2xl font-bold">{formatCurrency(stats.totalComissaoCadastrador)}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Cadastrador (3%)</p>
+                      <p className="text-2xl font-bold text-green-600">{formatCurrency(stats.totalComissaoCadastrador)}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-card border shadow-sm">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-amber-500/10 rounded-lg flex items-center justify-center">
-                      <UserCheck className="w-6 h-6 text-amber-500" />
+                    <div className="w-12 h-12 bg-amber-500/20 rounded-lg flex items-center justify-center">
+                      <UserCheck className="w-6 h-6 text-amber-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Fechador (2%)</p>
-                      <p className="text-2xl font-bold">{formatCurrency(stats.totalComissaoFechador)}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Fechador (2%)</p>
+                      <p className="text-2xl font-bold text-amber-600">{formatCurrency(stats.totalComissaoFechador)}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-card border shadow-sm">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-blue-600/10 rounded-lg flex items-center justify-center">
-                      <Award className="w-6 h-6 text-blue-600" />
+                    <div className="w-12 h-12 bg-blue-600/20 rounded-lg flex items-center justify-center">
+                      <Award className="w-6 h-6 text-blue-700" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Bônus Treinador</p>
-                      <p className="text-2xl font-bold">{formatCurrency(treinadorStats.totalBonus)}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Bônus Treinador</p>
+                      <p className="text-2xl font-bold text-blue-600">{formatCurrency(treinadorStats.totalBonus)}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-primary/5 border-primary/20">
+              <Card className="bg-primary/10 border-primary/30 shadow-sm">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center">
+                    <div className="w-12 h-12 bg-primary/30 rounded-lg flex items-center justify-center">
                       <DollarSign className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Total Comissões</p>
+                      <p className="text-sm font-medium text-muted-foreground">Total Comissões</p>
                       <p className="text-2xl font-bold text-primary">{formatCurrency(totalComissoes)}</p>
                     </div>
                   </div>
