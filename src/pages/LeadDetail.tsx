@@ -955,6 +955,28 @@ export default function LeadDetail() {
                 </div>
               </div>
 
+              {/* Treinador Experimental - aparece quando Compareceu está ativo */}
+              {formData.compareceu && (
+                <div className="space-y-2">
+                  <Label>Treinador da Aula Experimental</Label>
+                  <Input
+                    value={formData.treinador_responsavel}
+                    onChange={(e) => setFormData({ ...formData, treinador_responsavel: e.target.value })}
+                    placeholder="Nome do treinador que ministrou a aula"
+                    list="treinadores-list"
+                  />
+                  <datalist id="treinadores-list">
+                    <option value="Guilherme" />
+                    <option value="Diogo" />
+                    <option value="Luiz" />
+                    <option value="Ivan" />
+                    <option value="Andrey" />
+                    <option value="Lucas" />
+                    <option value="Rafael" />
+                  </datalist>
+                </div>
+              )}
+
               {/* Experimental Date/Time - always visible when agendou_experimental or for editing */}
               {(formData.agendou_experimental || isEditing) && (
                 <div className="grid grid-cols-2 gap-4">
