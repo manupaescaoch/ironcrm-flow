@@ -230,7 +230,6 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
             {sortedItems.map((item) => {
               const timeSince = getTimeSinceClass(item);
               const isLate = isLateFollowUp(item);
-              const isSent = item.lead.follow_up_whatsapp_enviado;
               
               return (
                 <div
@@ -239,9 +238,7 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
                     "p-4 rounded-lg border transition-all",
                     isLate 
                       ? "border-red-400 bg-red-50/50 dark:bg-red-950/20" 
-                      : isSent 
-                        ? "border-green-200 bg-green-50/30 dark:bg-green-950/10"
-                        : "border-border bg-card"
+                      : "border-border bg-card"
                   )}
                 >
                   {isLate && (
@@ -279,32 +276,25 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
                     </p>
                   )}
                   
-                  {isSent ? (
-                    <div className="flex items-center gap-2 text-green-600 text-sm">
-                      <CheckCircle className="w-4 h-4" />
-                      <span>Mensagem enviada por {item.lead.follow_up_responsavel}</span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        size="sm"
-                        className="w-full bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => handleSendFollowUp(item)}
-                      >
-                        <MessageCircle className="w-4 h-4 mr-2" />
-                        📲 Enviar Follow Up
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full text-red-600 border-red-200 hover:bg-red-50"
-                        onClick={() => handleNotInterested(item)}
-                      >
-                        <XCircle className="w-4 h-4 mr-2" />
-                        🚫 Não interessado
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      size="sm"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => handleSendFollowUp(item)}
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      📲 Enviar Follow Up
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                      onClick={() => handleNotInterested(item)}
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />
+                      🚫 Não interessado
+                    </Button>
+                  </div>
                 </div>
               );
             })}
