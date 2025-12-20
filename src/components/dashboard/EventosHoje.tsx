@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, Clock, Save, RefreshCw, MessageCircle, Activity, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -281,19 +280,18 @@ Aguardamos você! 💪`;
                 {item.tipoEvento === 'experimental' && (
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-muted-foreground" />
-                    <Select
+                    <Input
+                      placeholder="Nome do treinador"
                       value={treinadores[item.interacao.id] || item.interacao.treinador_experimental || ''}
-                      onValueChange={(value) => setTreinadores(prev => ({ ...prev, [item.interacao.id]: value }))}
-                    >
-                      <SelectTrigger className="h-8 w-[160px] text-sm">
-                        <SelectValue placeholder="Treinador" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TREINADORES.map((t) => (
-                          <SelectItem key={t} value={t}>{t}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      onChange={(e) => setTreinadores(prev => ({ ...prev, [item.interacao.id]: e.target.value }))}
+                      className="h-8 w-[160px] text-sm"
+                      list={`treinadores-${item.interacao.id}`}
+                    />
+                    <datalist id={`treinadores-${item.interacao.id}`}>
+                      {TREINADORES.map((t) => (
+                        <option key={t} value={t} />
+                      ))}
+                    </datalist>
                   </div>
                 )}
 
