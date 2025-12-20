@@ -709,7 +709,8 @@ export default function EstoqueInterno() {
                         <TableCell>
                           {item.ultima_retirada ? (
                             <div>
-                              <span className="text-sm">{format(new Date(item.ultima_retirada), "dd/MM", { locale: ptBR })}</span>
+                              <span className="text-sm font-medium">{format(new Date(item.ultima_retirada), "dd/MM/yy", { locale: ptBR })}</span>
+                              <span className="text-sm text-muted-foreground ml-1">{format(new Date(item.ultima_retirada), "HH:mm", { locale: ptBR })}</span>
                               <p className="text-xs text-muted-foreground">{item.responsavel_ultima_retirada}</p>
                             </div>
                           ) : '—'}
