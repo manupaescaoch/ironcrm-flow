@@ -91,6 +91,7 @@ Deno.serve(async (req) => {
 
       // Generate follow-ups for each type if not exists
       const followUpTypes: { tipo: string; dias: number }[] = [
+        { tipo: 'D+1', dias: 1 },
         { tipo: 'D+7', dias: 7 },
         { tipo: 'D+15', dias: 15 },
         { tipo: 'D+30', dias: 30 },
