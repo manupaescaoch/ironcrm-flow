@@ -831,14 +831,14 @@ export default function Dashboard() {
         {/* Follow Up Section - Manuais + Automáticos */}
         {showFollowUpSection && (
           <div ref={followUpSectionRef} className="mb-8 space-y-6">
-            {/* Follow-ups Automáticos (D+7, D+15, D+30) */}
-            {autoFollowUpItems.length > 0 && (
-              <AutoFollowUpCard items={autoFollowUpItems} onRefresh={fetchData} />
-            )}
-            
             {/* Follow-ups Manuais (pós-experimental sem follow-up enviado) */}
             {followUpItems.length > 0 && (
               <FollowUpCard items={followUpItems} onRefresh={fetchData} />
+            )}
+            
+            {/* Follow-ups Automáticos (D+7, D+15, D+30) */}
+            {autoFollowUpItems.length > 0 && (
+              <AutoFollowUpCard items={autoFollowUpItems} onRefresh={fetchData} />
             )}
             
             {/* Mensagem quando não há nenhum */}
