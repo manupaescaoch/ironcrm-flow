@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { MessageCircle, AlertTriangle, Clock, XCircle, CheckCircle, Info, Phone, Eye, CalendarDays } from 'lucide-react';
+import { MessageCircle, AlertTriangle, Clock, XCircle, CheckCircle, Info, Phone, Eye, CalendarDays, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -215,11 +215,16 @@ export function AutoFollowUpCard({ items, onRefresh }: AutoFollowUpCardProps) {
     }
   };
 
-  // Ordenar: atrasados primeiro, depois por data prevista
+  // Ordenar: D+1 primeiro, depois atrasados, depois por data prevista
   const sortedItems = [...items].sort((a, b) => {
     const aInfo = getTimeInfo(a);
     const bInfo = getTimeInfo(b);
     
+    // D+1 sempre primeiro (prioridade máxima)
+    if (a.tipo === 'D+1' && b.tipo !== 'D+1') return -1;
+    if (a.tipo !== 'D+1' && b.tipo === 'D+1') return 1;
+    
+    // Depois os atrasados
     if (aInfo.isLate && !bInfo.isLate) return -1;
     if (!aInfo.isLate && bInfo.isLate) return 1;
     
@@ -227,6 +232,7 @@ export function AutoFollowUpCard({ items, onRefresh }: AutoFollowUpCardProps) {
   });
 
   const lateCount = items.filter(i => getTimeInfo(i).isLate).length;
+  const d1Count = items.filter(i => i.tipo === 'D+1').length;
 
   return (
     <Card className="col-span-full">
@@ -254,7 +260,13 @@ export function AutoFollowUpCard({ items, onRefresh }: AutoFollowUpCardProps) {
             Mensagens prontas por estágio - clique para enviar via WhatsApp
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {d1Count > 0 && (
+            <Badge variant="outline" className="border-emerald-500 text-emerald-600 bg-emerald-50 animate-pulse">
+              <Zap className="w-3 h-3 mr-1" />
+              {d1Count} D+1 prioritário{d1Count !== 1 ? 's' : ''}
+            </Badge>
+          )}
           {lateCount > 0 && (
             <Badge variant="outline" className="border-red-500 text-red-600 bg-red-50">
               {lateCount} atrasado{lateCount !== 1 ? 's' : ''}
@@ -285,16 +297,35 @@ export function AutoFollowUpCard({ items, onRefresh }: AutoFollowUpCardProps) {
               const timeInfo = getTimeInfo(item);
               const tipoInfo = TIPO_LABELS[item.tipo];
               
+              const isD1 = item.tipo === 'D+1';
+              
               return (
                 <div
                   key={item.id}
                   className={cn(
-                    "p-4 rounded-lg border transition-all",
-                    timeInfo.isLate 
-                      ? "border-red-400 bg-red-50/50 dark:bg-red-950/20" 
-                      : "border-border bg-card"
+                    "p-4 rounded-lg border transition-all relative",
+                    isD1 && !timeInfo.isLate
+                      ? "border-emerald-400 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 ring-2 ring-emerald-200 dark:ring-emerald-800"
+                      : timeInfo.isLate 
+                        ? "border-red-400 bg-red-50/50 dark:bg-red-950/20" 
+                        : "border-border bg-card"
                   )}
                 >
+                  {isD1 && !timeInfo.isLate && (
+                    <div className="absolute -top-2 -right-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg">
+                        <Zap className="w-3 h-3" />
+                      </span>
+                    </div>
+                  )}
+                  
+                  {isD1 && !timeInfo.isLate && (
+                    <div className="flex items-center gap-2 mb-3 text-emerald-600">
+                      <Zap className="w-4 h-4" />
+                      <span className="text-xs font-bold uppercase tracking-wide">⚡ PRIORIDADE MÁXIMA</span>
+                    </div>
+                  )}
+                  
                   {timeInfo.isLate && (
                     <div className="flex items-center gap-2 mb-3 text-red-600">
                       <AlertTriangle className="w-4 h-4" />
