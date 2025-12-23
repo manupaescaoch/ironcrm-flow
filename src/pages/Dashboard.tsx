@@ -879,7 +879,19 @@ export default function Dashboard() {
               <PendenciasDia
                 pendenciasHoje={pendenciasHoje}
                 pendenciasAmanha={pendenciasAmanha}
+                followUpsHoje={autoFollowUpItems.filter(item => {
+                  const dataPrevista = new Date(item.data_prevista);
+                  const hoje = new Date();
+                  return dataPrevista.toDateString() === hoje.toDateString();
+                })}
                 onReagendar={handleReagendar}
+                onFollowUpClick={(item) => {
+                  // Scroll to follow-up section and open it
+                  setShowFollowUpSection(true);
+                  setTimeout(() => {
+                    followUpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }, 100);
+                }}
               />
             </div>
           </TabsContent>
