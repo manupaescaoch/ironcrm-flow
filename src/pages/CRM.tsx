@@ -4,6 +4,7 @@ import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -736,7 +737,14 @@ export default function CRM() {
     <Layout>
       <div className="p-8">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">CRM - Leads</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold">CRM - Leads</h1>
+            {unidadeAtual && (
+              <Badge variant="outline" className="text-sm font-medium px-3 py-1 bg-primary/10 text-primary border-primary/20">
+                {unidadeAtual.nome}
+              </Badge>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <Dialog open={importDialogOpen} onOpenChange={(open) => {
               setImportDialogOpen(open);
