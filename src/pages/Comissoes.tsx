@@ -134,6 +134,15 @@ export default function Comissoes() {
     );
   }, [interacoes, filterFuncionario]);
 
+  // ==================== EXCLUSÃO DE RESPONSÁVEIS ====================
+  const deveExcluirResponsavel = (nome: string | null | undefined): boolean => {
+    if (!nome) return false;
+    const normalizado = nome.trim().toLowerCase();
+    return normalizado === 'manu paes' || 
+           normalizado === 'emanuel.paes@gmail.com' ||
+           normalizado.includes('manu paes');
+  };
+
   // Calculate summary stats with new commission logic
   const stats = useMemo(() => {
     const totalMatriculas = filteredInteracoes.length;
@@ -225,14 +234,6 @@ export default function Comissoes() {
     return 0;
   };
 
-  // ==================== EXCLUSÃO DE RESPONSÁVEIS ====================
-  const deveExcluirResponsavel = (nome: string | null | undefined): boolean => {
-    if (!nome) return false;
-    const normalizado = nome.trim().toLowerCase();
-    return normalizado === 'manu paes' || 
-           normalizado === 'emanuel.paes@gmail.com' ||
-           normalizado.includes('manu paes');
-  };
 
   // ==================== VALIDAÇÃO DE TREINADOR ====================
   const isValidTreinador = (nome: string | null | undefined): boolean => {
