@@ -7,4 +7,4 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.cleanup-duplicates]
-verify_jwt = true
+verify_jwt = false

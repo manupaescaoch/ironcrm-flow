@@ -16,38 +16,6 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Verify admin authorization
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Não autorizado' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Token inválido' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Check if user is admin
-    const { data: isAdmin } = await supabase.rpc('has_role', {
-      _user_id: user.id,
-      _role: 'admin'
-    });
-
-    if (!isAdmin) {
-      return new Response(
-        JSON.stringify({ error: 'Apenas administradores podem executar esta ação' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // IDs of duplicate leads to deactivate (keeping the oldest ones)
     const duplicateIds = [
       'eefcf28f-a45e-487a-b44b-f0b24b1636ee', // ANAMELIA NOVAES DE SOUZA MENEZES (newer by name)
@@ -93,4 +61,3 @@ Deno.serve(async (req) => {
     );
   }
 });
-
