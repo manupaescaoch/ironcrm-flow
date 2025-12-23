@@ -409,7 +409,7 @@ export default function Kanban() {
                             {lead.atendido_por && (
                               <div className="flex items-center gap-2 text-muted-foreground">
                                 <UserCheck className="w-3 h-3 flex-shrink-0" />
-                                <span className="truncate">{lead.atendido_por}</span>
+                                <span className="truncate">{lead.atendido_por?.toUpperCase()}</span>
                               </div>
                             )}
                             <div className="flex items-center gap-2 text-muted-foreground">

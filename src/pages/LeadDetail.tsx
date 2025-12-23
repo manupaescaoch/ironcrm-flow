@@ -494,7 +494,7 @@ export default function LeadDetail() {
           <Card>
             <CardContent className="pt-4">
               <p className="text-xs text-muted-foreground">Cadastrado Por</p>
-              <p className="font-semibold">{lead.cadastrado_por || '-'}</p>
+              <p className="font-semibold">{lead.cadastrado_por?.toUpperCase() || '-'}</p>
             </CardContent>
           </Card>
           <Card>
@@ -658,7 +658,7 @@ export default function LeadDetail() {
                             <TableCell>
                               {int.atendido_por_tipo === 'comercial' ? 'Comercial' : 
                                int.atendido_por_tipo === 'espontaneo_recepcao' ? 'Espontâneo' : 
-                               int.atendido_por || '-'}
+                               int.atendido_por?.toUpperCase() || '-'}
                             </TableCell>
                             <TableCell>
                               {int.tipo === 'Avaliação Física' ? (
@@ -769,7 +769,7 @@ export default function LeadDetail() {
                           <span className="font-medium">
                             {int.atendido_por_tipo === 'comercial' ? 'Comercial (agendamento)' : 
                              int.atendido_por_tipo === 'espontaneo_recepcao' ? 'Espontâneo Recepção' : 
-                             int.atendido_por || '-'}
+                             int.atendido_por?.toUpperCase() || '-'}
                           </span>
                         </div>
                         {int.data_experimental && (
