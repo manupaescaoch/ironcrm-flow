@@ -580,6 +580,10 @@ export type Database = {
         Args: { lead_ids: string[] }
         Returns: number
       }
+      admin_update_cadastrador: {
+        Args: { new_name: string; old_name: string }
+        Returns: number
+      }
       generate_follow_ups_for_lead: {
         Args: { p_lead_id: string }
         Returns: undefined
