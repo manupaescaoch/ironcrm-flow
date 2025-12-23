@@ -44,7 +44,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Users, Shield, UserCheck, Briefcase, Trash2, AlertTriangle, ShieldX, RefreshCw, UserPlus, Pencil, Building2 } from 'lucide-react';
+import { Loader2, Users, Shield, UserCheck, Briefcase, Trash2, AlertTriangle, ShieldX, RefreshCw, UserPlus, Pencil, Building2, ArrowUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { UserRole } from '@/contexts/AuthContext';
@@ -104,6 +104,9 @@ export default function AdminUsers() {
   const [editingUnidadesUser, setEditingUnidadesUser] = useState<UserData | null>(null);
   const [editUnidadeIds, setEditUnidadeIds] = useState<string[]>([]);
   const [updatingUnidades, setUpdatingUnidades] = useState(false);
+  
+  // Uppercase update state
+  const [updatingUppercase, setUpdatingUppercase] = useState(false);
   
   const { toast } = useToast();
   const { user: currentUser, session, canAccessAdminUsers } = useAuth();
@@ -468,6 +471,38 @@ export default function AdminUsers() {
     }
   };
 
+  const handleUpdateUppercase = async () => {
+    setUpdatingUppercase(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.access_token) {
+        toast({ title: 'Sessão expirada', description: 'Faça login novamente.', variant: 'destructive' });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('update-uppercase-fields', {
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: 'Dados atualizados!',
+        description: data?.message || 'Campos atualizados para caixa alta.',
+      });
+    } catch (error: any) {
+      console.error('Error updating uppercase:', error);
+      toast({
+        title: 'Erro ao atualizar',
+        description: error.message || 'Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdatingUppercase(false);
+    }
+  };
+
   const getUnidadeNames = (unidadeIds: string[]) => {
     if (!unidadeIds || unidadeIds.length === 0) return 'Nenhuma';
     return unidadeIds
@@ -563,10 +598,24 @@ export default function AdminUsers() {
               <p className="text-muted-foreground">Gerencie os roles e permissões dos usuários</p>
             </div>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <UserPlus className="w-4 h-4 mr-2" />
-            Novo Usuário
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleUpdateUppercase}
+              disabled={updatingUppercase}
+            >
+              {updatingUppercase ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <ArrowUp className="w-4 h-4 mr-2" />
+              )}
+              Atualizar Caixa Alta
+            </Button>
+            <Button onClick={() => setCreateDialogOpen(true)}>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Novo Usuário
+            </Button>
+          </div>
         </div>
 
         {/* Role Legend */}
