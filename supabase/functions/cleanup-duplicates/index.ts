@@ -27,27 +27,25 @@ Deno.serve(async (req) => {
       'db07c3dc-82e3-4f35-8022-7f42d8eae0f1', // PEDRO ADVINCULA FALCÃO FILHO (newer by phone)
     ];
 
-    console.log(`Deactivating ${duplicateIds.length} duplicate leads...`);
+    console.log(`Deactivating ${duplicateIds.length} duplicate leads using admin function...`);
 
-    // Deactivate duplicate leads
-    const { data, error } = await supabase
-      .from('leads')
-      .update({ ativo: false })
-      .in('id', duplicateIds)
-      .select('id, nome, telefone, cadastrado_por, created_at');
+    // Use the admin function to bypass triggers
+    const { data, error } = await supabase.rpc('admin_cleanup_duplicate_leads', {
+      lead_ids: duplicateIds
+    });
 
     if (error) {
       console.error('Error deactivating leads:', error);
       throw error;
     }
 
-    console.log(`Successfully deactivated ${data?.length || 0} leads:`, data);
+    console.log(`Successfully deactivated ${data} leads`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `${data?.length || 0} leads duplicados foram desativados`,
-        deactivated: data
+        message: `${data} leads duplicados foram desativados`,
+        count: data
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
