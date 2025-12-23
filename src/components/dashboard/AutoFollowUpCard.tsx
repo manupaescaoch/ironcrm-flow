@@ -19,7 +19,7 @@ import { useNavigate } from 'react-router-dom';
 export interface FollowUpAutoItem {
   id: string;
   lead_id: string;
-  tipo: 'D+7' | 'D+15' | 'D+30';
+  tipo: 'D+1' | 'D+7' | 'D+15' | 'D+30';
   data_referencia: string;
   data_prevista: string;
   status: 'pendente' | 'concluido' | 'cancelado';
@@ -41,6 +41,15 @@ interface AutoFollowUpCardProps {
 
 // Mensagens prontas por estágio
 const FOLLOW_UP_MESSAGES: Record<string, string> = {
+  'D+1': `Oi, {{nome}}! Bom dia 😊
+
+Passando pra saber como você acordou hoje depois do treino de ontem 💪
+Sentiu o corpo?
+
+Quando a gente fala de acompanhamento de perto, é justamente pra evoluir com segurança e constância, sem ficar perdido no treino.
+
+Se fizer sentido pra você, posso te explicar com calma como funciona pra seguir treinando com a gente na IRON.`,
+
   'D+7': `Oi, {{nome}}! Tudo certo?
 Passando pra saber o que achou da experiência na Iron 😊
 Ficou alguma dúvida ou algo que você queira ajustar antes de decidir?`,
@@ -64,6 +73,7 @@ const NOT_INTERESTED_REASONS = [
 ];
 
 const TIPO_LABELS: Record<string, { label: string; color: string; bgColor: string }> = {
+  'D+1': { label: 'D+1', color: 'text-green-700', bgColor: 'bg-green-100' },
   'D+7': { label: 'D+7', color: 'text-blue-700', bgColor: 'bg-blue-100' },
   'D+15': { label: 'D+15', color: 'text-orange-700', bgColor: 'bg-orange-100' },
   'D+30': { label: 'D+30', color: 'text-red-700', bgColor: 'bg-red-100' },
@@ -234,7 +244,7 @@ export function AutoFollowUpCard({ items, onRefresh }: AutoFollowUpCardProps) {
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
                   <p className="text-sm">
-                    Follow-ups automáticos em D+7, D+15 e D+30 após a aula experimental ou último contato.
+                    Follow-ups automáticos em D+1, D+7, D+15 e D+30 após a aula experimental.
                   </p>
                 </TooltipContent>
               </Tooltip>
