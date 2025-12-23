@@ -316,49 +316,76 @@ export default function DashboardExecutivo() {
     return nome.trim().toUpperCase();
   };
 
-  // ==================== PERFORMANCE POR RESPONSÁVEL ====================
-  const performanceResponsavel = useMemo(() => {
-    const grouped = new Map<string, { agendamentos: number; comparecimentos: number; matriculas: number }>();
+  // ==================== PERFORMANCE POR CADASTRADOR ====================
+  const performanceCadastrador = useMemo(() => {
+    const grouped = new Map<string, { leads: number; agendamentos: number; matriculas: number }>();
 
     interacoes.forEach(int => {
-      // For agendamentos, use quem_agendou or atendido_por
-      if (int.agendou_experimental) {
-        const respOriginal = int.quem_agendou || int.atendido_por || '';
-        if (deveExcluirResponsavel(respOriginal)) return;
+      const cadastradorOriginal = int.cadastrado_por || '';
+      if (!cadastradorOriginal || deveExcluirResponsavel(cadastradorOriginal)) return;
+      
+      const cadastrador = padronizarResponsavel(cadastradorOriginal);
+      const current = grouped.get(cadastrador) || { leads: 0, agendamentos: 0, matriculas: 0 };
+      
+      // Count leads (any interaction counts as a lead contact)
+      grouped.set(cadastrador, { 
+        ...current, 
+        leads: current.leads + 1,
+        agendamentos: current.agendamentos + (int.agendou_experimental ? 1 : 0),
+        matriculas: current.matriculas + (int.fechou_matricula ? 1 : 0)
+      });
+    });
+
+    return Array.from(grouped.entries())
+      .map(([cadastrador, data]) => ({
+        cadastrador,
+        ...data,
+        conversao: data.agendamentos > 0 ? (data.matriculas / data.agendamentos) * 100 : 0,
+      }))
+      .filter(r => r.leads > 0 || r.agendamentos > 0 || r.matriculas > 0)
+      .sort((a, b) => b.matriculas - a.matriculas);
+  }, [interacoes]);
+
+  // ==================== PERFORMANCE POR FECHADOR ====================
+  const performanceFechador = useMemo(() => {
+    const grouped = new Map<string, { atendimentos: number; comparecimentos: number; matriculas: number; valorTotal: number }>();
+
+    interacoes.forEach(int => {
+      // Fechador é quem fechou a matrícula (responsavel_fechamento)
+      if (int.fechou_matricula) {
+        const fechadorOriginal = int.responsavel_fechamento || int.atendido_por || '';
+        if (!fechadorOriginal || deveExcluirResponsavel(fechadorOriginal)) return;
         
-        const resp = padronizarResponsavel(respOriginal);
-        const current = grouped.get(resp) || { agendamentos: 0, comparecimentos: 0, matriculas: 0 };
-        grouped.set(resp, { ...current, agendamentos: current.agendamentos + 1 });
+        const fechador = padronizarResponsavel(fechadorOriginal);
+        const current = grouped.get(fechador) || { atendimentos: 0, comparecimentos: 0, matriculas: 0, valorTotal: 0 };
+        grouped.set(fechador, { 
+          ...current, 
+          matriculas: current.matriculas + 1,
+          valorTotal: current.valorTotal + (int.valor_plano || 0)
+        });
       }
       
-      // For comparecimentos
+      // Contabilizar atendimentos e comparecimentos
       if (int.compareceu) {
-        const respOriginal = int.atendido_por || '';
-        if (deveExcluirResponsavel(respOriginal)) return;
+        const atendidoOriginal = int.atendido_por || '';
+        if (!atendidoOriginal || deveExcluirResponsavel(atendidoOriginal)) return;
         
-        const resp = padronizarResponsavel(respOriginal);
-        const current = grouped.get(resp) || { agendamentos: 0, comparecimentos: 0, matriculas: 0 };
-        grouped.set(resp, { ...current, comparecimentos: current.comparecimentos + 1 });
-      }
-
-      // For matriculas, use responsavel_fechamento
-      if (int.fechou_matricula) {
-        const respOriginal = int.responsavel_fechamento || int.atendido_por || '';
-        if (deveExcluirResponsavel(respOriginal)) return;
-        
-        const resp = padronizarResponsavel(respOriginal);
-        const current = grouped.get(resp) || { agendamentos: 0, comparecimentos: 0, matriculas: 0 };
-        grouped.set(resp, { ...current, matriculas: current.matriculas + 1 });
+        const atendido = padronizarResponsavel(atendidoOriginal);
+        const current = grouped.get(atendido) || { atendimentos: 0, comparecimentos: 0, matriculas: 0, valorTotal: 0 };
+        grouped.set(atendido, { 
+          ...current, 
+          comparecimentos: current.comparecimentos + 1
+        });
       }
     });
 
     return Array.from(grouped.entries())
-      .map(([responsavel, data]) => ({
-        responsavel,
+      .map(([fechador, data]) => ({
+        fechador,
         ...data,
-        conversao: data.agendamentos > 0 ? (data.matriculas / data.agendamentos) * 100 : 0,
+        conversao: data.comparecimentos > 0 ? (data.matriculas / data.comparecimentos) * 100 : 0,
       }))
-      .filter(r => r.agendamentos > 0 || r.comparecimentos > 0 || r.matriculas > 0)
+      .filter(r => r.comparecimentos > 0 || r.matriculas > 0)
       .sort((a, b) => b.matriculas - a.matriculas);
   }, [interacoes]);
 
@@ -439,7 +466,8 @@ export default function DashboardExecutivo() {
     const conversaoGeral = totalComparecimentos > 0 ? (totalMatriculas / totalComparecimentos) * 100 : 0;
     const mediaNoShow = agendaPresenca.mediaNoShow;
 
-    const melhorResponsavel = performanceResponsavel.length > 0 ? performanceResponsavel[0].responsavel : '-';
+    const melhorCadastrador = performanceCadastrador.length > 0 ? performanceCadastrador[0].cadastrador : '-';
+    const melhorFechador = performanceFechador.length > 0 ? performanceFechador[0].fechador : '-';
     const melhorTreinador = performanceTreinadores.length > 0 ? performanceTreinadores[0].treinador : '-';
 
     return {
@@ -449,10 +477,11 @@ export default function DashboardExecutivo() {
       totalMatriculas,
       conversaoGeral,
       mediaNoShow,
-      melhorResponsavel,
+      melhorCadastrador,
+      melhorFechador,
       melhorTreinador,
     };
-  }, [leads, interacoes, agendaPresenca, performanceResponsavel, performanceTreinadores]);
+  }, [leads, interacoes, agendaPresenca, performanceCadastrador, performanceFechador, performanceTreinadores]);
 
   const formatDate = (dateString: string) => {
     try {
@@ -545,21 +574,43 @@ export default function DashboardExecutivo() {
     doc.addPage();
     yPos = 20;
 
-    // Performance por Responsável
+    // Performance por Cadastrador
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Performance por Responsável', 14, yPos);
+    doc.text('Performance por Cadastrador', 14, yPos);
     yPos += 8;
 
     autoTable(doc, {
       startY: yPos,
-      head: [['Responsável', 'Agendamentos', 'Comparecimentos', 'Matrículas', 'Conversão']],
-      body: performanceResponsavel.map(item => [
-        item.responsavel,
+      head: [['Cadastrador', 'Leads', 'Agendamentos', 'Matrículas', 'Conversão']],
+      body: performanceCadastrador.map(item => [
+        item.cadastrador,
+        item.leads,
         item.agendamentos,
-        item.comparecimentos,
         item.matriculas,
         `${item.conversao.toFixed(1)}%`
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235] },
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+
+    // Performance por Fechador
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Performance por Fechador', 14, yPos);
+    yPos += 8;
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Fechador', 'Comparecimentos', 'Matrículas', 'Conversão', 'Valor Total']],
+      body: performanceFechador.map(item => [
+        item.fechador,
+        item.comparecimentos,
+        item.matriculas,
+        `${item.conversao.toFixed(1)}%`,
+        formatCurrency(item.valorTotal)
       ]),
       theme: 'striped',
       headStyles: { fillColor: [37, 99, 235] },
@@ -606,7 +657,8 @@ export default function DashboardExecutivo() {
         ['Total Matrículas', resumoFinal.totalMatriculas],
         ['Conversão Geral', `${resumoFinal.conversaoGeral.toFixed(1)}%`],
         ['Média No-Show', `${resumoFinal.mediaNoShow.toFixed(1)}%`],
-        ['Melhor Responsável', resumoFinal.melhorResponsavel],
+        ['Melhor Cadastrador', resumoFinal.melhorCadastrador],
+        ['Melhor Fechador', resumoFinal.melhorFechador],
         ['Melhor Treinador', resumoFinal.melhorTreinador],
       ],
       theme: 'striped',
@@ -900,33 +952,33 @@ export default function DashboardExecutivo() {
               </CardContent>
             </Card>
 
-            {/* 5. PERFORMANCE POR RESPONSÁVEL */}
+            {/* 5. PERFORMANCE POR CADASTRADOR */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-amber-500" /> Performance por Responsável
+                  <Users className="w-5 h-5 text-blue-500" /> Performance por Cadastrador
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Responsável</TableHead>
+                      <TableHead>Cadastrador</TableHead>
+                      <TableHead className="text-center">Leads</TableHead>
                       <TableHead className="text-center">Agendamentos</TableHead>
-                      <TableHead className="text-center">Comparecimentos</TableHead>
                       <TableHead className="text-center">Matrículas</TableHead>
                       <TableHead className="text-center">Conversão (%)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {performanceResponsavel.map((item, i) => (
+                    {performanceCadastrador.map((item, i) => (
                       <TableRow key={i}>
                         <TableCell className="font-medium">
                           {i === 0 && item.matriculas > 0 && <Award className="w-4 h-4 inline mr-2 text-amber-500" />}
-                          {item.responsavel}
+                          {item.cadastrador}
                         </TableCell>
+                        <TableCell className="text-center">{item.leads}</TableCell>
                         <TableCell className="text-center">{item.agendamentos}</TableCell>
-                        <TableCell className="text-center">{item.comparecimentos}</TableCell>
                         <TableCell className="text-center font-semibold">{item.matriculas}</TableCell>
                         <TableCell className="text-center">
                           <span className={item.conversao >= 50 ? 'text-green-600 font-medium' : ''}>
@@ -935,7 +987,56 @@ export default function DashboardExecutivo() {
                         </TableCell>
                       </TableRow>
                     ))}
-                    {performanceResponsavel.length === 0 && (
+                    {performanceCadastrador.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                          Nenhum dado disponível
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* 6. PERFORMANCE POR FECHADOR */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-amber-500" /> Performance por Fechador
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fechador</TableHead>
+                      <TableHead className="text-center">Comparecimentos</TableHead>
+                      <TableHead className="text-center">Matrículas</TableHead>
+                      <TableHead className="text-center">Conversão (%)</TableHead>
+                      <TableHead className="text-right">Valor Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {performanceFechador.map((item, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="font-medium">
+                          {i === 0 && item.matriculas > 0 && <Award className="w-4 h-4 inline mr-2 text-amber-500" />}
+                          {item.fechador}
+                        </TableCell>
+                        <TableCell className="text-center">{item.comparecimentos}</TableCell>
+                        <TableCell className="text-center font-semibold">{item.matriculas}</TableCell>
+                        <TableCell className="text-center">
+                          <span className={item.conversao >= 50 ? 'text-green-600 font-medium' : ''}>
+                            {item.conversao.toFixed(1)}%
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-green-600">
+                          {formatCurrency(item.valorTotal)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {performanceFechador.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                           Nenhum dado disponível
@@ -1046,8 +1147,12 @@ export default function DashboardExecutivo() {
                     <p className="text-sm text-muted-foreground">Média No-Show</p>
                   </div>
                   <div className="text-center p-4">
-                    <p className="text-lg font-bold">{resumoFinal.melhorResponsavel}</p>
-                    <p className="text-sm text-muted-foreground">Melhor Responsável</p>
+                    <p className="text-lg font-bold">{resumoFinal.melhorCadastrador}</p>
+                    <p className="text-sm text-muted-foreground">Melhor Cadastrador</p>
+                  </div>
+                  <div className="text-center p-4">
+                    <p className="text-lg font-bold">{resumoFinal.melhorFechador}</p>
+                    <p className="text-sm text-muted-foreground">Melhor Fechador</p>
                   </div>
                   <div className="text-center p-4">
                     <p className="text-lg font-bold">{resumoFinal.melhorTreinador}</p>
