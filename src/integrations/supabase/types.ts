@@ -56,6 +56,63 @@ export type Database = {
           },
         ]
       }
+      follow_ups: {
+        Row: {
+          concluido_em: string | null
+          concluido_por: string | null
+          created_at: string
+          data_prevista: string
+          data_referencia: string
+          id: string
+          lead_id: string
+          status: string
+          tipo: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string
+          data_prevista: string
+          data_referencia: string
+          id?: string
+          lead_id: string
+          status?: string
+          tipo: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Update: {
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string
+          data_prevista?: string
+          data_referencia?: string
+          id?: string
+          lead_id?: string
+          status?: string
+          tipo?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follow_ups_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_ups_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       insumos: {
         Row: {
           ativo: boolean
@@ -519,6 +576,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_follow_ups_for_lead: {
+        Args: { p_lead_id: string }
+        Returns: undefined
+      }
       get_user_role: { Args: { p_user_id: string }; Returns: string }
       get_user_unidades: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
