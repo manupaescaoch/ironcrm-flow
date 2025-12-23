@@ -14,6 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      escala: {
+        Row: {
+          ano: number
+          created_at: string
+          created_by: string | null
+          feriado: boolean
+          final_de_semana: string
+          id: string
+          mes: number
+          observacoes: string | null
+          recepcao: string | null
+          seguranca: string | null
+          servicos_gerais: string | null
+          treinador: string | null
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          created_by?: string | null
+          feriado?: boolean
+          final_de_semana: string
+          id?: string
+          mes: number
+          observacoes?: string | null
+          recepcao?: string | null
+          seguranca?: string | null
+          servicos_gerais?: string | null
+          treinador?: string | null
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          created_by?: string | null
+          feriado?: boolean
+          final_de_semana?: string
+          id?: string
+          mes?: number
+          observacoes?: string | null
+          recepcao?: string | null
+          seguranca?: string | null
+          servicos_gerais?: string | null
+          treinador?: string | null
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escala_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estoque_interno: {
         Row: {
           created_at: string
