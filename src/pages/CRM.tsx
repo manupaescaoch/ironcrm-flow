@@ -311,7 +311,18 @@ export default function CRM() {
     }).select().single();
 
     if (error) {
-      toast({ title: 'Erro ao criar lead', description: error.message, variant: 'destructive' });
+      // Check if it's a duplicate lead error from the database trigger
+      if (error.code === '23505' || error.message?.includes('Lead duplicado detectado')) {
+        const match = error.message.match(/Lead existente: (.+) - /);
+        const nomeExistente = match ? match[1] : 'outro lead';
+        toast({ 
+          title: 'Lead duplicado', 
+          description: `Este telefone já está cadastrado para "${nomeExistente}".`,
+          variant: 'destructive' 
+        });
+      } else {
+        toast({ title: 'Erro ao criar lead', description: error.message, variant: 'destructive' });
+      }
       return;
     }
 
