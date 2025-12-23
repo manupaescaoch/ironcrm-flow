@@ -111,59 +111,7 @@ export function PendenciasDia({ pendenciasHoje, pendenciasAmanha, followUpsHoje 
               </div>
             )}
 
-            {/* 2º PRIORIDADE: Follow-ups do Dia (D+1, D+7, etc.) */}
-            {followUpsHoje.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-emerald-500 hover:bg-emerald-600">
-                    <Zap className="w-3 h-3 mr-1" />
-                    Follow-ups do Dia
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">({followUpsHoje.length})</span>
-                </div>
-                {followUpsHoje.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge className={
-                            item.tipo === 'D+1' 
-                              ? 'bg-emerald-100 text-emerald-700 text-xs' 
-                              : 'bg-blue-100 text-blue-700 text-xs'
-                          }>
-                            {item.tipo}
-                          </Badge>
-                        </div>
-                        <p className="font-medium">{item.lead.nome?.toUpperCase()}</p>
-                        <WhatsAppLink phone={item.lead.telefone || ''} className="text-sm" />
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground">
-                          Ref: {format(parseISO(item.data_referencia), "dd/MM", { locale: ptBR })}
-                        </p>
-                      </div>
-                    </div>
-                    {onFollowUpClick && (
-                      <div className="mt-2 flex justify-end">
-                        <Button
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                          onClick={() => onFollowUpClick(item)}
-                        >
-                          <MessageCircle className="w-4 h-4 mr-1" />
-                          WhatsApp
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* 3º PRIORIDADE: Pendências de Hoje (sem marcar presença) */}
+            {/* 2º PRIORIDADE: Pendências de Hoje (sem marcar presença) */}
             {pendenciasHoje.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -213,6 +161,58 @@ export function PendenciasDia({ pendenciasHoje, pendenciasAmanha, followUpsHoje 
                         Reagendar
                       </Button>
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 3º PRIORIDADE: Follow-ups do Dia (D+1, D+7, etc.) */}
+            {followUpsHoje.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-emerald-500 hover:bg-emerald-600">
+                    <Zap className="w-3 h-3 mr-1" />
+                    Follow-ups do Dia
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">({followUpsHoje.length})</span>
+                </div>
+                {followUpsHoje.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge className={
+                            item.tipo === 'D+1' 
+                              ? 'bg-emerald-100 text-emerald-700 text-xs' 
+                              : 'bg-blue-100 text-blue-700 text-xs'
+                          }>
+                            {item.tipo}
+                          </Badge>
+                        </div>
+                        <p className="font-medium">{item.lead.nome?.toUpperCase()}</p>
+                        <WhatsAppLink phone={item.lead.telefone || ''} className="text-sm" />
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">
+                          Ref: {format(parseISO(item.data_referencia), "dd/MM", { locale: ptBR })}
+                        </p>
+                      </div>
+                    </div>
+                    {onFollowUpClick && (
+                      <div className="mt-2 flex justify-end">
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => onFollowUpClick(item)}
+                        >
+                          <MessageCircle className="w-4 h-4 mr-1" />
+                          WhatsApp
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
