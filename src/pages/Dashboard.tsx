@@ -459,8 +459,8 @@ export default function Dashboard() {
       if (!interacaoData.leads) return;
       if (interacaoData.leads.ativo === false) return;
       if (interacaoData.fechou_matricula === true) return;
-      // Filtrar leads com status perdido (não interessados)
-      if (interacaoData.leads.status_funil === 'perdido') return;
+      // Filtrar leads com status perdido ou convertido
+      if (['perdido', 'convertido'].includes(interacaoData.leads.status_funil)) return;
       // Filtrar leads que já receberam follow-up (verifica truthy para cobrir null/undefined)
       if (interacaoData.leads.follow_up_whatsapp_enviado) return;
       if (seenLeadIds.has(interacaoData.lead_id)) return;
