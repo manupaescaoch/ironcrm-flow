@@ -202,7 +202,7 @@ export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, 
                                   </div>
                                   <div>
                                     <span className="text-muted-foreground">Cadastrado por:</span>
-                                    <p className="font-medium">{item.lead.cadastrado_por || '-'}</p>
+                                    <p className="font-medium">{item.lead.cadastrado_por?.toUpperCase() || '-'}</p>
                                   </div>
                                 </div>
                                 

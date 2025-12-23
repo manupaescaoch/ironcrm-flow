@@ -1099,7 +1099,7 @@ export default function CRM() {
                             ? format(new Date(lead.data_aula_experimental), 'HH:mm', { locale: ptBR })
                             : '-'}
                         </TableCell>
-                        <TableCell>{lead.cadastrado_por || '-'}</TableCell>
+                        <TableCell>{lead.cadastrado_por?.toUpperCase() || '-'}</TableCell>
                         <TableCell>{formatDate(lead.created_at)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
