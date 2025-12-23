@@ -455,7 +455,7 @@ export default function LeadDetail() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <h1 className="text-3xl font-bold">{lead.nome}</h1>
+              <h1 className="text-3xl font-bold">{lead.nome?.toUpperCase()}</h1>
               <p className="text-muted-foreground">
                 Cadastrado em {format(new Date(lead.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
               </p>
@@ -468,7 +468,7 @@ export default function LeadDetail() {
           <Card>
             <CardContent className="pt-4">
               <p className="text-xs text-muted-foreground">Nome Completo</p>
-              <p className="font-semibold truncate">{lead.nome}</p>
+              <p className="font-semibold truncate">{lead.nome?.toUpperCase()}</p>
             </CardContent>
           </Card>
           <Card>

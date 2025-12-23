@@ -65,7 +65,7 @@ export function PendenciasDia({ pendenciasHoje, pendenciasAmanha, onReagendar }:
                   >
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="font-medium">{item.lead.nome}</p>
+                        <p className="font-medium">{item.lead.nome?.toUpperCase()}</p>
                         <WhatsAppLink phone={item.lead.telefone || ''} className="text-sm" />
                       </div>
                       <div className="text-right">
@@ -122,7 +122,7 @@ export function PendenciasDia({ pendenciasHoje, pendenciasAmanha, onReagendar }:
                   >
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="font-medium">{item.lead.nome}</p>
+                        <p className="font-medium">{item.lead.nome?.toUpperCase()}</p>
                         <WhatsAppLink phone={item.lead.telefone || ''} className="text-sm" />
                       </div>
                       <div className="text-right">

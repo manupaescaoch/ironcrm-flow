@@ -151,7 +151,7 @@ export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, 
                                   {item.interacao.hora_experimental || '--:--'}
                                 </div>
                                 <div className="min-w-0">
-                                  <p className="font-medium truncate">{item.lead.nome}</p>
+                                  <p className="font-medium truncate">{item.lead.nome?.toUpperCase()}</p>
                                   <WhatsAppLink phone={item.lead.telefone || ''} className="text-sm" />
                                 </div>
                               </div>

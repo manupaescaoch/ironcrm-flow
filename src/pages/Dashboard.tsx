@@ -985,7 +985,7 @@ export default function Dashboard() {
                       <TableBody>
                         {experimentaisDetalhados.map((item) => (
                           <TableRow key={item.interacao.id}>
-                            <TableCell className="font-medium">{item.lead.nome}</TableCell>
+                            <TableCell className="font-medium">{item.lead.nome?.toUpperCase()}</TableCell>
                             <TableCell>
                               <WhatsAppLink phone={item.lead.telefone} />
                             </TableCell>
@@ -1088,7 +1088,7 @@ export default function Dashboard() {
                         {matriculasDetalhadas.map((item) => (
                           <TableRow key={item.interacao.id}>
                             <TableCell>{formatDate(item.interacao.data_fechamento)}</TableCell>
-                            <TableCell className="font-medium">{item.lead.nome}</TableCell>
+                            <TableCell className="font-medium">{item.lead.nome?.toUpperCase()}</TableCell>
                             <TableCell>
                               <WhatsAppLink phone={item.lead.telefone} />
                             </TableCell>

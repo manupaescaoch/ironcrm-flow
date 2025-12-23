@@ -302,7 +302,7 @@ export function AutoFollowUpCard({ items, onRefresh }: AutoFollowUpCardProps) {
                           {timeInfo.text}
                         </span>
                       </div>
-                      <h4 className="font-semibold text-foreground">{item.lead.nome}</h4>
+                      <h4 className="font-semibold text-foreground">{item.lead.nome?.toUpperCase()}</h4>
                       <div className="flex items-center gap-2 mt-1">
                         <Phone className="w-3 h-3 text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">{item.lead.telefone || '-'}</span>

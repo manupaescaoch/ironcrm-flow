@@ -250,7 +250,7 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
                   
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h4 className="font-semibold text-foreground">{item.lead.nome}</h4>
+                      <h4 className="font-semibold text-foreground">{item.lead.nome?.toUpperCase()}</h4>
                       <div className="flex items-center gap-2 mt-1">
                         <Phone className="w-3 h-3 text-muted-foreground" />
                         <WhatsAppLink phone={item.lead.telefone} className="text-sm" />

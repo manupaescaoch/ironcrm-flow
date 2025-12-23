@@ -388,7 +388,7 @@ export default function Kanban() {
                               <User className="w-5 h-5 text-primary" />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="font-semibold text-sm truncate">{lead.nome}</p>
+                              <p className="font-semibold text-sm truncate">{lead.nome?.toUpperCase()}</p>
                               {lead.telefone && (
                                 <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                                   <Phone className="w-3 h-3" />

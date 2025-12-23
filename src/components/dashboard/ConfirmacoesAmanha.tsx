@@ -139,7 +139,7 @@ Equipe IRON CLUB`;
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="font-medium">{item.lead.nome}</p>
+                    <p className="font-medium">{item.lead.nome?.toUpperCase()}</p>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
