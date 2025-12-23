@@ -538,7 +538,7 @@ export default function Dashboard() {
       console.error('Erro ao chamar edge function:', err);
     }
     
-    // Buscar follow-ups pendentes
+    // Buscar follow-ups pendentes (todos, não apenas os vencidos)
     const { data: followUpsData, error } = await supabase
       .from('follow_ups')
       .select(`
@@ -560,7 +560,6 @@ export default function Dashboard() {
       `)
       .eq('unidade_id', unidadeAtual.id)
       .eq('status', 'pendente')
-      .lte('data_prevista', new Date().toISOString())
       .order('data_prevista', { ascending: true });
 
     if (error) {
