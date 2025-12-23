@@ -593,6 +593,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      normalize_phone: { Args: { phone: string }; Returns: string }
       user_has_unidade_access: {
         Args: { _unidade_id: string; _user_id: string }
         Returns: boolean
