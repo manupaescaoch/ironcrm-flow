@@ -1,13 +1,16 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { WhatsAppLink, normalizePhoneForWhatsApp } from '@/components/WhatsAppLink';
-import { AlertCircle, Clock, RefreshCw, Calendar, Activity, Zap, MessageCircle } from 'lucide-react';
+import { AlertCircle, Clock, RefreshCw, Calendar, Activity, Zap, MessageCircle, X } from 'lucide-react';
 import { Lead, Interacao } from '@/types/database';
 import { format, parseISO, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { EventoItem } from './EventosHoje';
 import { FollowUpAutoItem } from './AutoFollowUpCard';
+
+type FilterType = 'all' | 'confirmar' | 'presenca' | 'followup';
 
 interface PendenciasDiaProps {
   pendenciasHoje: EventoItem[];
@@ -18,6 +21,7 @@ interface PendenciasDiaProps {
 }
 
 export function PendenciasDia({ pendenciasHoje, pendenciasAmanha, followUpsHoje = [], onReagendar, onFollowUpClick }: PendenciasDiaProps) {
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const totalPendencias = pendenciasHoje.length + pendenciasAmanha.length + followUpsHoje.length;
 
   const getHoraEvento = (item: EventoItem): string => {
@@ -36,6 +40,14 @@ export function PendenciasDia({ pendenciasHoje, pendenciasAmanha, followUpsHoje 
     return format(new Date(dataEvento), "dd/MM", { locale: ptBR });
   };
 
+  const handleFilterClick = (filter: FilterType) => {
+    setActiveFilter(prev => prev === filter ? 'all' : filter);
+  };
+
+  const showConfirmar = activeFilter === 'all' || activeFilter === 'confirmar';
+  const showPresenca = activeFilter === 'all' || activeFilter === 'presenca';
+  const showFollowup = activeFilter === 'all' || activeFilter === 'followup';
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -51,18 +63,45 @@ export function PendenciasDia({ pendenciasHoje, pendenciasAmanha, followUpsHoje 
         {totalPendencias > 0 && (
           <div className="flex flex-wrap gap-2 mt-2">
             {pendenciasAmanha.length > 0 && (
-              <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-300 text-xs">
+              <Badge 
+                variant="outline" 
+                className={`cursor-pointer transition-all text-xs ${
+                  activeFilter === 'confirmar' 
+                    ? 'bg-orange-500 text-white border-orange-500 ring-2 ring-orange-300' 
+                    : 'bg-orange-500/10 text-orange-600 border-orange-300 hover:bg-orange-500/20'
+                }`}
+                onClick={() => handleFilterClick('confirmar')}
+              >
                 🔔 Confirmar: {pendenciasAmanha.length}
+                {activeFilter === 'confirmar' && <X className="w-3 h-3 ml-1" />}
               </Badge>
             )}
             {pendenciasHoje.length > 0 && (
-              <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 text-xs">
+              <Badge 
+                variant="outline" 
+                className={`cursor-pointer transition-all text-xs ${
+                  activeFilter === 'presenca' 
+                    ? 'bg-destructive text-white border-destructive ring-2 ring-destructive/30' 
+                    : 'bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20'
+                }`}
+                onClick={() => handleFilterClick('presenca')}
+              >
                 Presença: {pendenciasHoje.length}
+                {activeFilter === 'presenca' && <X className="w-3 h-3 ml-1" />}
               </Badge>
             )}
             {followUpsHoje.length > 0 && (
-              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-300 text-xs">
+              <Badge 
+                variant="outline" 
+                className={`cursor-pointer transition-all text-xs ${
+                  activeFilter === 'followup' 
+                    ? 'bg-emerald-500 text-white border-emerald-500 ring-2 ring-emerald-300' 
+                    : 'bg-emerald-500/10 text-emerald-600 border-emerald-300 hover:bg-emerald-500/20'
+                }`}
+                onClick={() => handleFilterClick('followup')}
+              >
                 Follow-up: {followUpsHoje.length}
+                {activeFilter === 'followup' && <X className="w-3 h-3 ml-1" />}
               </Badge>
             )}
           </div>
@@ -76,7 +115,7 @@ export function PendenciasDia({ pendenciasHoje, pendenciasAmanha, followUpsHoje 
         ) : (
           <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
             {/* 1º PRIORIDADE: Pendências de Amanhã (Confirmação de Experimental) */}
-            {pendenciasAmanha.length > 0 && (
+            {showConfirmar && pendenciasAmanha.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Badge className="bg-orange-500 hover:bg-orange-600">
@@ -133,7 +172,7 @@ export function PendenciasDia({ pendenciasHoje, pendenciasAmanha, followUpsHoje 
             )}
 
             {/* 2º PRIORIDADE: Pendências de Hoje (sem marcar presença) */}
-            {pendenciasHoje.length > 0 && (
+            {showPresenca && pendenciasHoje.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Badge variant="destructive">Hoje — sem marcar presença</Badge>
@@ -188,7 +227,7 @@ export function PendenciasDia({ pendenciasHoje, pendenciasAmanha, followUpsHoje 
             )}
 
             {/* 3º PRIORIDADE: Follow-ups do Dia (D+1, D+7, etc.) */}
-            {followUpsHoje.length > 0 && (
+            {showFollowup && followUpsHoje.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Badge className="bg-emerald-500 hover:bg-emerald-600">
