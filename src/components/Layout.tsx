@@ -15,7 +15,8 @@ import {
   Database,
   Building2,
   Gift,
-  Package
+  Package,
+  CalendarDays
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/logo.png';
@@ -32,6 +33,7 @@ const allNavItems = [
   { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin'] },
   { href: '/indicacoes', label: 'Indicações', icon: Gift, roles: ['admin', 'recepcao', 'comercial'] },
   { href: '/estoque', label: 'Estoque', icon: Package, roles: ['admin', 'recepcao', 'comercial'] },
+  { href: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'recepcao', 'comercial'] },
   { href: '/relatorio', label: 'Relatório Vendas', icon: FileText, roles: ['admin'] },
   { href: '/relatorio-gerencial', label: 'Gerencial', icon: Building2, roles: ['admin'] },
   { href: '/backups', label: 'Backups', icon: Database, roles: ['admin'] },

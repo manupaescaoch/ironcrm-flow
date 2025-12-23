@@ -19,6 +19,7 @@ import AdminUsers from "./pages/AdminUsers";
 import Backups from "./pages/Backups";
 import EstoqueInterno from "./pages/EstoqueInterno";
 import RelatorioConsumo from "./pages/RelatorioConsumo";
+import Escala from "./pages/Escala";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -195,6 +196,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <RelatorioConsumo />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/escala"
+      element={
+        <ProtectedRoute>
+          <Escala />
         </ProtectedRoute>
       }
     />
