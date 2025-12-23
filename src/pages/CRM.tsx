@@ -91,6 +91,52 @@ const ORIGEM_OPTIONS = [
   'Embaixador / Parceria',
 ] as const;
 
+// Lista única de cadastradores válidos (FONTE ÚNICA DE VERDADE)
+const CADASTRADORES_VALIDOS = [
+  'ANDREZA TEODORO',
+  'THAIS',
+  'GABRIELA LIMA',
+  'NATANAEL DA SILVA',
+  'GABRIEL',
+] as const;
+
+// Função para normalizar nome do cadastrador
+const normalizeCadastrador = (nome: string | null | undefined): string => {
+  if (!nome) return '';
+  const normalizado = nome.trim().toUpperCase();
+  
+  // Mapeamento de variações conhecidas
+  const mapeamento: Record<string, string> = {
+    'ANDREZA': 'ANDREZA TEODORO',
+    'THAIS': 'THAIS',
+    'THAÍS': 'THAIS',
+    'GABRIELA': 'GABRIELA LIMA',
+    'NATANAEL': 'NATANAEL DA SILVA',
+    'GABRIEL': 'GABRIEL',
+    'MANU PAES': 'ANDREZA TEODORO',
+    'MANU': 'ANDREZA TEODORO',
+  };
+  
+  // Verifica mapeamento direto
+  if (mapeamento[normalizado]) {
+    return mapeamento[normalizado];
+  }
+  
+  // Verifica se já é um cadastrador válido
+  if (CADASTRADORES_VALIDOS.includes(normalizado as typeof CADASTRADORES_VALIDOS[number])) {
+    return normalizado;
+  }
+  
+  // Verifica por correspondência parcial
+  for (const [key, value] of Object.entries(mapeamento)) {
+    if (normalizado.includes(key)) {
+      return value;
+    }
+  }
+  
+  return normalizado; // Retorna em caixa alta se não encontrar mapeamento
+};
+
 // Função para validar/normalizar origem
 const validateOrigem = (origem: string | null | undefined): string => {
   if (!origem) return 'WhatsApp';
@@ -151,13 +197,15 @@ export default function CRM() {
     hora_aula_experimental: '',
   });
 
-  // Get user display name for "Cadastrado Por" field
-  const getUserDisplayName = () => {
+  // Get user display name for "Cadastrado Por" field - normalizado para CAIXA ALTA
+  const getUserDisplayName = (): string => {
     if (!user) return '';
     // Try to get name from user metadata, fallback to email
     const metadata = user.user_metadata as Record<string, unknown> | undefined;
     const name = metadata?.full_name || metadata?.name || metadata?.display_name;
-    return typeof name === 'string' && name.trim() ? name.trim() : (user.email || 'Usuário');
+    const displayName = typeof name === 'string' && name.trim() ? name.trim() : (user.email || 'Usuário');
+    // Normalizar para cadastrador válido
+    return normalizeCadastrador(displayName);
   };
   const { toast } = useToast();
 
@@ -224,9 +272,14 @@ export default function CRM() {
     return [...new Set(origens)];
   }, [leads]);
 
+  // Cadastradores normalizados (usa lista fixa para garantir consistência)
   const uniqueCadastradoPor = useMemo(() => {
-    const cadastradores = leads.map(l => l.cadastrado_por).filter(Boolean) as string[];
-    return [...new Set(cadastradores)];
+    // Combina cadastradores válidos com cadastradores existentes nos leads (normalizados)
+    const cadastradoresExistentes = leads
+      .map(l => normalizeCadastrador(l.cadastrado_por))
+      .filter(Boolean) as string[];
+    const todosNormalizados = [...new Set([...CADASTRADORES_VALIDOS, ...cadastradoresExistentes])];
+    return todosNormalizados.sort();
   }, [leads]);
 
   const handleCreate = async () => {
