@@ -161,7 +161,13 @@ export default function Comissoes() {
       if (comissao <= 0) return;
 
       // Use cadastrado_por from the LEAD (who originally registered the lead in the system)
-      const cadastrador = (int as any).lead_cadastrado_por || 'Não informado';
+      const cadastradorOriginal = (int as any).lead_cadastrado_por || 'Não informado';
+      
+      // Normalize name to uppercase and trim
+      const cadastrador = cadastradorOriginal.trim().toUpperCase();
+      
+      // Skip if excluded
+      if (deveExcluirResponsavel(cadastrador)) return;
       
       const current = grouped.get(cadastrador) || { matriculas: 0, comissao: 0 };
       grouped.set(cadastrador, {
@@ -186,7 +192,14 @@ export default function Comissoes() {
       const comissao = int.comissao_recepcao || 0;
       if (comissao <= 0) return;
 
-      const responsavel = int.responsavel_fechamento || 'Não informado';
+      const responsavelOriginal = int.responsavel_fechamento || 'Não informado';
+      
+      // Normalize name to uppercase and trim
+      const responsavel = responsavelOriginal.trim().toUpperCase();
+      
+      // Skip if excluded
+      if (deveExcluirResponsavel(responsavel)) return;
+      
       const current = grouped.get(responsavel) || { matriculas: 0, comissao: 0 };
       grouped.set(responsavel, {
         matriculas: current.matriculas + 1,
