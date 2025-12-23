@@ -299,14 +299,15 @@ export default function CRM() {
       return;
     }
 
-    // Validar telefone duplicado se telefone foi informado
-    if (formData.telefone.trim()) {
+    // Validar telefone duplicado se telefone foi informado (apenas na mesma unidade)
+    if (formData.telefone.trim() && unidadeAtual) {
       const telefoneNormalizado = formData.telefone.trim().replace(/\D/g, '');
       
       const { data: existingLeads } = await supabase
         .from('leads')
         .select('id, nome, telefone')
-        .eq('ativo', true);
+        .eq('ativo', true)
+        .eq('unidade_id', unidadeAtual.id);
       
       const duplicado = existingLeads?.find(lead => {
         const leadTelefone = lead.telefone?.replace(/\D/g, '');
@@ -602,11 +603,12 @@ export default function CRM() {
           return obj as unknown as CSVRow;
         });
 
-      // Fetch existing phone numbers to avoid duplicates
+      // Fetch existing phone numbers to avoid duplicates (apenas na mesma unidade)
       const { data: existingLeads } = await supabase
         .from('leads')
         .select('telefone')
         .eq('ativo', true)
+        .eq('unidade_id', unidadeAtual?.id || '')
         .not('telefone', 'is', null);
       
       const existingPhones = new Set(
@@ -644,6 +646,7 @@ export default function CRM() {
             created_by: user?.id || null,
             cadastrado_por: getUserDisplayName(),
             ativo: true,
+            unidade_id: unidadeAtual?.id,
           }));
 
         if (leadsToInsert.length > 0) {
