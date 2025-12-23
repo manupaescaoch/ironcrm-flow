@@ -576,6 +576,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_cleanup_duplicate_leads: {
+        Args: { lead_ids: string[] }
+        Returns: number
+      }
       generate_follow_ups_for_lead: {
         Args: { p_lead_id: string }
         Returns: undefined
