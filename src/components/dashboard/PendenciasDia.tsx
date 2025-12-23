@@ -54,7 +54,64 @@ export function PendenciasDia({ pendenciasHoje, pendenciasAmanha, followUpsHoje 
           </p>
         ) : (
           <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
-            {/* Follow-ups do Dia (D+1, D+7, etc.) */}
+            {/* 1º PRIORIDADE: Pendências de Amanhã (Confirmação de Experimental) */}
+            {pendenciasAmanha.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-orange-500 hover:bg-orange-600">
+                    🔔 Confirmar Experimental
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">({pendenciasAmanha.length})</span>
+                </div>
+                {pendenciasAmanha.map((item) => (
+                  <div
+                    key={item.interacao.id}
+                    className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-medium">{item.lead.nome?.toUpperCase()}</p>
+                        <WhatsAppLink phone={item.lead.telefone || ''} className="text-sm" />
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Clock className="w-4 h-4" />
+                          {getHoraEvento(item)}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {getDataEvento(item)}
+                        </p>
+                        <Badge 
+                          variant="outline" 
+                          className={item.tipoEvento === 'avaliacao' 
+                            ? 'mt-1 bg-teal-100 text-teal-700 border-teal-300 text-xs' 
+                            : 'mt-1 bg-purple-100 text-purple-700 border-purple-300 text-xs'
+                          }
+                        >
+                          {item.tipoEvento === 'avaliacao' ? (
+                            <><Activity className="w-3 h-3 mr-1" /> Aval.</>
+                          ) : (
+                            <><Calendar className="w-3 h-3 mr-1" /> Exp.</>
+                          )}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex justify-end">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onReagendar(item)}
+                      >
+                        <RefreshCw className="w-4 h-4 mr-1" />
+                        Reagendar
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 2º PRIORIDADE: Follow-ups do Dia (D+1, D+7, etc.) */}
             {followUpsHoje.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -106,7 +163,7 @@ export function PendenciasDia({ pendenciasHoje, pendenciasAmanha, followUpsHoje 
               </div>
             )}
 
-            {/* Pendências de Hoje */}
+            {/* 3º PRIORIDADE: Pendências de Hoje (sem marcar presença) */}
             {pendenciasHoje.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -117,63 +174,6 @@ export function PendenciasDia({ pendenciasHoje, pendenciasAmanha, followUpsHoje 
                   <div
                     key={item.interacao.id}
                     className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-medium">{item.lead.nome?.toUpperCase()}</p>
-                        <WhatsAppLink phone={item.lead.telefone || ''} className="text-sm" />
-                      </div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Clock className="w-4 h-4" />
-                          {getHoraEvento(item)}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {getDataEvento(item)}
-                        </p>
-                        <Badge 
-                          variant="outline" 
-                          className={item.tipoEvento === 'avaliacao' 
-                            ? 'mt-1 bg-teal-100 text-teal-700 border-teal-300 text-xs' 
-                            : 'mt-1 bg-purple-100 text-purple-700 border-purple-300 text-xs'
-                          }
-                        >
-                          {item.tipoEvento === 'avaliacao' ? (
-                            <><Activity className="w-3 h-3 mr-1" /> Aval.</>
-                          ) : (
-                            <><Calendar className="w-3 h-3 mr-1" /> Exp.</>
-                          )}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="mt-2 flex justify-end">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onReagendar(item)}
-                      >
-                        <RefreshCw className="w-4 h-4 mr-1" />
-                        Reagendar
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Pendências de Amanhã */}
-            {pendenciasAmanha.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-orange-500 hover:bg-orange-600">
-                    Amanhã — ainda não confirmado
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">({pendenciasAmanha.length})</span>
-                </div>
-                {pendenciasAmanha.map((item) => (
-                  <div
-                    key={item.interacao.id}
-                    className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg"
                   >
                     <div className="flex items-start justify-between">
                       <div>
