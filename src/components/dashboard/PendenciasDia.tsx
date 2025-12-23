@@ -38,14 +38,35 @@ export function PendenciasDia({ pendenciasHoje, pendenciasAmanha, followUpsHoje 
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 text-destructive" />
-          Pendências do Dia
-        </CardTitle>
-        <Badge variant={totalPendencias > 0 ? 'destructive' : 'secondary'}>
-          {totalPendencias}
-        </Badge>
+      <CardHeader className="pb-2">
+        <div className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-destructive" />
+            Pendências do Dia
+          </CardTitle>
+          <Badge variant={totalPendencias > 0 ? 'destructive' : 'secondary'}>
+            {totalPendencias}
+          </Badge>
+        </div>
+        {totalPendencias > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {pendenciasAmanha.length > 0 && (
+              <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-300 text-xs">
+                🔔 Confirmar: {pendenciasAmanha.length}
+              </Badge>
+            )}
+            {pendenciasHoje.length > 0 && (
+              <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 text-xs">
+                Presença: {pendenciasHoje.length}
+              </Badge>
+            )}
+            {followUpsHoje.length > 0 && (
+              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-300 text-xs">
+                Follow-up: {followUpsHoje.length}
+              </Badge>
+            )}
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         {totalPendencias === 0 ? (
