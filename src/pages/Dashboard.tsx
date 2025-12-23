@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { Lead, Interacao } from '@/types/database';
-import { Users, UserPlus, CalendarCheck, Loader2, Calendar, Award, Eye, ChevronDown, Trash2 } from 'lucide-react';
+import { Users, UserPlus, CalendarCheck, Loader2, Calendar, Award, Eye, ChevronDown, Trash2, MessageCircle } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { EventosHoje, EventoItem } from '@/components/dashboard/EventosHoje';
@@ -20,6 +20,7 @@ import { ExperimentaisSemana } from '@/components/dashboard/ExperimentaisSemana'
 import { DateRangeFilter } from '@/components/dashboard/DateRangeFilter';
 import { ReagendarModal } from '@/components/dashboard/ReagendarModal';
 import { FollowUpCard } from '@/components/dashboard/FollowUpCard';
+import { AutoFollowUpCard, FollowUpAutoItem } from '@/components/dashboard/AutoFollowUpCard';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format, addDays, startOfWeek, endOfWeek } from 'date-fns';
@@ -94,6 +95,7 @@ export default function Dashboard() {
   
   // Follow-up state
   const [followUpItems, setFollowUpItems] = useState<EventoItem[]>([]);
+  const [autoFollowUpItems, setAutoFollowUpItems] = useState<FollowUpAutoItem[]>([]);
   const [showFollowUpSection, setShowFollowUpSection] = useState(false);
   const followUpSectionRef = useRef<HTMLDivElement>(null);
   
@@ -518,6 +520,82 @@ export default function Dashboard() {
     }
   }, [unidadeAtual]);
 
+  const fetchAutoFollowUps = useCallback(async () => {
+    if (!unidadeAtual) return;
+    
+    // Primeiro, gerar novos follow-ups chamando a edge function
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-follow-ups', {
+        body: { unidade_id: unidadeAtual.id }
+      });
+      
+      if (error) {
+        console.error('Erro ao gerar follow-ups:', error);
+      } else {
+        console.log('Follow-ups gerados:', data);
+      }
+    } catch (err) {
+      console.error('Erro ao chamar edge function:', err);
+    }
+    
+    // Buscar follow-ups pendentes
+    const { data: followUpsData, error } = await supabase
+      .from('follow_ups')
+      .select(`
+        id,
+        lead_id,
+        tipo,
+        data_referencia,
+        data_prevista,
+        status,
+        concluido_por,
+        concluido_em,
+        leads (
+          id,
+          nome,
+          telefone,
+          email,
+          status_funil
+        )
+      `)
+      .eq('unidade_id', unidadeAtual.id)
+      .eq('status', 'pendente')
+      .lte('data_prevista', new Date().toISOString())
+      .order('data_prevista', { ascending: true });
+
+    if (error) {
+      console.error('Erro ao buscar follow-ups automáticos:', error);
+      return;
+    }
+
+    const items: FollowUpAutoItem[] = [];
+    followUpsData?.forEach((item: any) => {
+      if (!item.leads) return;
+      // Filtrar leads com status perdido ou convertido
+      if (['perdido', 'convertido'].includes(item.leads.status_funil)) return;
+      
+      items.push({
+        id: item.id,
+        lead_id: item.lead_id,
+        tipo: item.tipo,
+        data_referencia: item.data_referencia,
+        data_prevista: item.data_prevista,
+        status: item.status,
+        concluido_por: item.concluido_por,
+        concluido_em: item.concluido_em,
+        lead: {
+          id: item.leads.id,
+          nome: item.leads.nome,
+          telefone: item.leads.telefone,
+          email: item.leads.email,
+          status_funil: item.leads.status_funil,
+        },
+      });
+    });
+
+    setAutoFollowUpItems(items);
+  }, [unidadeAtual]);
+
   const fetchData = useCallback(async () => {
     if (unidadeLoading) return;
     if (!unidadeAtual) {
@@ -525,9 +603,9 @@ export default function Dashboard() {
       return;
     }
     setLoading(true);
-    await Promise.all([fetchStats(), fetchEventos(), fetchPeriodStats(), fetchWeeklyStats(), fetchMatriculas(), fetchFollowUp()]);
+    await Promise.all([fetchStats(), fetchEventos(), fetchPeriodStats(), fetchWeeklyStats(), fetchMatriculas(), fetchFollowUp(), fetchAutoFollowUps()]);
     setLoading(false);
-  }, [fetchStats, fetchEventos, fetchPeriodStats, fetchWeeklyStats, fetchMatriculas, fetchFollowUp, unidadeAtual, unidadeLoading]);
+  }, [fetchStats, fetchEventos, fetchPeriodStats, fetchWeeklyStats, fetchMatriculas, fetchFollowUp, fetchAutoFollowUps, unidadeAtual, unidadeLoading]);
 
   useEffect(() => {
     fetchData();
@@ -699,9 +777,9 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Follow Up KPI */}
+          {/* Follow Up KPI - agora conta manuais + automáticos */}
           <FollowUpKPI
-            pendingCount={followUpItems.filter(i => !i.lead.follow_up_whatsapp_enviado).length}
+            pendingCount={followUpItems.filter(i => !i.lead.follow_up_whatsapp_enviado).length + autoFollowUpItems.length}
             onClick={handleFollowUpCardClick}
             isActive={showFollowUpSection}
           />
@@ -751,10 +829,28 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Follow Up Section */}
+        {/* Follow Up Section - Manuais + Automáticos */}
         {showFollowUpSection && (
-          <div ref={followUpSectionRef} className="mb-8">
-            <FollowUpCard items={followUpItems} onRefresh={fetchData} />
+          <div ref={followUpSectionRef} className="mb-8 space-y-6">
+            {/* Follow-ups Automáticos (D+7, D+15, D+30) */}
+            {autoFollowUpItems.length > 0 && (
+              <AutoFollowUpCard items={autoFollowUpItems} onRefresh={fetchData} />
+            )}
+            
+            {/* Follow-ups Manuais (pós-experimental sem follow-up enviado) */}
+            {followUpItems.length > 0 && (
+              <FollowUpCard items={followUpItems} onRefresh={fetchData} />
+            )}
+            
+            {/* Mensagem quando não há nenhum */}
+            {autoFollowUpItems.length === 0 && followUpItems.length === 0 && (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground">
+                  <MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50 text-green-500" />
+                  <p>Nenhum follow-up pendente no momento!</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
