@@ -84,6 +84,17 @@ Deno.serve(async (req) => {
     const { error } = await supabase.auth.admin.deleteUser(userId);
 
     if (error) {
+      // If user not found, it means it was already deleted - treat as success
+      if (error.message === 'User not found' || (error as any).code === 'user_not_found') {
+        console.log(`User ${userId} was already deleted or not found - treating as success`);
+        return new Response(
+          JSON.stringify({ success: true, message: 'User already deleted' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        );
+      }
       console.error('Error deleting user:', error);
       throw error;
     }
