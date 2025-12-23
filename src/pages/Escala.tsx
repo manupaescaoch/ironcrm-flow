@@ -41,8 +41,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Edit, Trash2, Copy, Clock, Calendar } from 'lucide-react';
+import { Plus, Edit, Trash2, Copy, Clock, Calendar, FileDown } from 'lucide-react';
 import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Escala {
   id: string;
@@ -311,6 +313,74 @@ const EscalaPage = () => {
     return MESES.find(m => m.value === mes)?.label || 'N/A';
   };
 
+  const handleExportPDF = () => {
+    if (escalas.length === 0) {
+      toast.error('Nenhum dado para exportar');
+      return;
+    }
+
+    const doc = new jsPDF({ orientation: 'landscape' });
+    
+    // Title
+    const unidadeNome = filterUnidade !== 'all' ? getUnidadeNome(filterUnidade) : 'Todas as Unidades';
+    const mesNome = filterMes !== 'all' ? getMesNome(parseInt(filterMes)) : 'Todos os Meses';
+    const anoTexto = filterAno !== 'all' ? filterAno : 'Todos os Anos';
+    
+    doc.setFontSize(18);
+    doc.text('ESCALA DE TRABALHO', 148, 15, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.text(`${unidadeNome} - ${mesNome}/${anoTexto}`, 148, 23, { align: 'center' });
+    
+    // Horários info
+    doc.setFontSize(9);
+    doc.text('Horários: Treinador 08h-14h | Recepção 08h-12h | Serviços Gerais 10h-14h | Segurança 10h-14h', 148, 30, { align: 'center' });
+
+    // Table data
+    const tableData = escalas.map(escala => [
+      getUnidadeNome(escala.unidade_id),
+      `${getMesNome(escala.mes)}/${escala.ano}`,
+      escala.final_de_semana,
+      escala.treinador || '-',
+      escala.recepcao || '-',
+      escala.servicos_gerais || '-',
+      escala.seguranca || '-',
+      escala.feriado ? 'Sim' : 'Não',
+      escala.observacoes || '-',
+    ]);
+
+    autoTable(doc, {
+      head: [['Unidade', 'Mês/Ano', 'Final de Semana', 'Treinador', 'Recepção', 'Serv. Gerais', 'Segurança', 'Feriado', 'Observações']],
+      body: tableData,
+      startY: 35,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [59, 130, 246], textColor: 255 },
+      bodyStyles: { textColor: 50 },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      didParseCell: (data) => {
+        // Highlight holiday rows
+        if (data.section === 'body') {
+          const rowIndex = data.row.index;
+          if (escalas[rowIndex]?.feriado) {
+            data.cell.styles.fillColor = [255, 237, 213];
+          }
+        }
+      },
+    });
+
+    // Footer
+    const finalY = (doc as any).lastAutoTable.finalY || 35;
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text('A escala exibida é a referência oficial da unidade. Alterações só têm validade quando atualizadas no sistema.', 148, finalY + 10, { align: 'center' });
+    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 148, finalY + 15, { align: 'center' });
+
+    // Save
+    const fileName = `escala_${unidadeNome.replace(/\s+/g, '_')}_${mesNome}_${anoTexto}.pdf`;
+    doc.save(fileName);
+    toast.success('PDF exportado com sucesso!');
+  };
+
   return (
     <Layout>
       <div className="p-8">
@@ -324,12 +394,18 @@ const EscalaPage = () => {
               </Badge>
             )}
           </div>
-          {isAdmin && (
-            <Button onClick={() => handleOpenDialog()}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Escala
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleExportPDF} disabled={escalas.length === 0}>
+              <FileDown className="w-4 h-4 mr-2" />
+              Exportar PDF
             </Button>
-          )}
+            {isAdmin && (
+              <Button onClick={() => handleOpenDialog()}>
+                <Plus className="w-4 h-4 mr-2" />
+                Nova Escala
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Info Block */}
