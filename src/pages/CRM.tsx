@@ -1081,7 +1081,7 @@ export default function CRM() {
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => window.location.href = `/lead/${lead.id}`}
                       >
-                        <TableCell className="font-medium">{lead.nome}</TableCell>
+                        <TableCell className="font-medium">{lead.nome?.toUpperCase()}</TableCell>
                         <TableCell><WhatsAppLink phone={lead.telefone} /></TableCell>
                         <TableCell>{lead.origem || '-'}</TableCell>
                         <TableCell>
