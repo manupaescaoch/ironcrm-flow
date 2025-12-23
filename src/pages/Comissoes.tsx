@@ -134,6 +134,38 @@ export default function Comissoes() {
     );
   }, [interacoes, filterFuncionario]);
 
+  // ==================== NORMALIZAÇÃO DE CADASTRADORES ====================
+  const normalizeCadastrador = (nome: string | null | undefined): string => {
+    if (!nome) return 'NÃO INFORMADO';
+    const normalizado = nome.trim().toUpperCase();
+    
+    // Mapeamento de variações conhecidas
+    const mapeamento: Record<string, string> = {
+      'ANDREZA': 'ANDREZA TEODORO',
+      'THAIS': 'THAIS',
+      'THAÍS': 'THAIS',
+      'GABRIELA': 'GABRIELA LIMA',
+      'NATANAEL': 'NATANAEL DA SILVA',
+      'GABRIEL': 'GABRIEL',
+      'MANU PAES': 'ANDREZA TEODORO',
+      'MANU': 'ANDREZA TEODORO',
+    };
+    
+    // Verifica mapeamento direto
+    if (mapeamento[normalizado]) {
+      return mapeamento[normalizado];
+    }
+    
+    // Verifica por correspondência parcial
+    for (const [key, value] of Object.entries(mapeamento)) {
+      if (normalizado.includes(key)) {
+        return value;
+      }
+    }
+    
+    return normalizado;
+  };
+
   // ==================== EXCLUSÃO DE RESPONSÁVEIS ====================
   const deveExcluirResponsavel = (nome: string | null | undefined): boolean => {
     if (!nome) return false;
@@ -172,8 +204,8 @@ export default function Comissoes() {
       // Use cadastrado_por from the LEAD (who originally registered the lead in the system)
       const cadastradorOriginal = (int as any).lead_cadastrado_por || 'Não informado';
       
-      // Normalize name to uppercase and trim
-      const cadastrador = cadastradorOriginal.trim().toUpperCase();
+      // Normalize using the standard function
+      const cadastrador = normalizeCadastrador(cadastradorOriginal);
       
       // Skip if excluded
       if (deveExcluirResponsavel(cadastrador)) return;
@@ -203,8 +235,8 @@ export default function Comissoes() {
 
       const responsavelOriginal = int.responsavel_fechamento || 'Não informado';
       
-      // Normalize name to uppercase and trim
-      const responsavel = responsavelOriginal.trim().toUpperCase();
+      // Normalize using the standard function
+      const responsavel = normalizeCadastrador(responsavelOriginal);
       
       // Skip if excluded
       if (deveExcluirResponsavel(responsavel)) return;
