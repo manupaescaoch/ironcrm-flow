@@ -29,7 +29,7 @@ import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { AdicionarMesModal } from '@/components/relatorio-gerencial/AdicionarMesModal';
 import { useUnidade } from '@/contexts/UnidadeContext';
-import { KPICard } from '@/components/relatorio-gerencial/KPICard';
+import { KPICard } from '@/components/ui/kpi-card';
 import { GraficosRelatorio } from '@/components/relatorio-gerencial/GraficosRelatorio';
 import { TabelaHistorico } from '@/components/relatorio-gerencial/TabelaHistorico';
 import jsPDF from 'jspdf';
@@ -355,6 +355,7 @@ export default function RelatorioGerencialZN() {
                   value={mesAtual.ativos}
                   icon={Users}
                   variacao={calcVariacao(mesAtual.ativos, mesAnterior?.ativos)}
+                  variant="detailed"
                 />
                 <KPICard
                   title="Adimplentes"
@@ -362,6 +363,7 @@ export default function RelatorioGerencialZN() {
                   icon={Users}
                   variacao={calcVariacao(mesAtual.adimplentes, mesAnterior?.adimplentes)}
                   color="green"
+                  variant="detailed"
                 />
                 <KPICard
                   title="Inadimplentes"
@@ -370,6 +372,7 @@ export default function RelatorioGerencialZN() {
                   variacao={calcVariacao(mesAtual.inadimplentes, mesAnterior?.inadimplentes)}
                   color="red"
                   invertVariacao
+                  variant="detailed"
                 />
                 <KPICard
                   title="VIP"
@@ -377,6 +380,7 @@ export default function RelatorioGerencialZN() {
                   icon={Crown}
                   variacao={calcVariacao(mesAtual.vip, mesAnterior?.vip)}
                   color="amber"
+                  variant="detailed"
                 />
                 <KPICard
                   title="Suspensos"
@@ -384,6 +388,7 @@ export default function RelatorioGerencialZN() {
                   icon={PauseCircle}
                   variacao={calcVariacao(mesAtual.suspensos, mesAnterior?.suspensos)}
                   invertVariacao
+                  variant="detailed"
                 />
                 <KPICard
                   title="Churn"
@@ -392,12 +397,14 @@ export default function RelatorioGerencialZN() {
                   variacao={calcVariacao(mesAtual.churn_percentual, mesAnterior?.churn_percentual)}
                   color="red"
                   invertVariacao
+                  variant="detailed"
                 />
                 <KPICard
                   title="Tempo Médio de Vida"
                   value={`${mesAtual.tempo_medio_vida} meses`}
                   icon={Clock}
                   variacao={calcVariacao(mesAtual.tempo_medio_vida, mesAnterior?.tempo_medio_vida)}
+                  variant="detailed"
                 />
                 <KPICard
                   title="Cancelamentos"
@@ -406,6 +413,7 @@ export default function RelatorioGerencialZN() {
                   variacao={calcVariacao(mesAtual.cancelamentos, mesAnterior?.cancelamentos)}
                   color="red"
                   invertVariacao
+                  variant="detailed"
                 />
                 <KPICard
                   title="Renovações"
@@ -413,12 +421,14 @@ export default function RelatorioGerencialZN() {
                   icon={RefreshCw}
                   variacao={calcVariacao(mesAtual.renovacoes, mesAnterior?.renovacoes)}
                   color="green"
+                  variant="detailed"
                 />
                 <KPICard
                   title="Ocupação"
                   value={`${(((mesAtual.ativos + mesAtual.vip) / mesAtual.capacidade_zn) * 100).toFixed(1)}%`}
                   icon={Users}
                   subtitle={`${mesAtual.capacidade_zn - (mesAtual.ativos + mesAtual.vip)} vagas disponíveis de ${mesAtual.capacidade_zn}`}
+                  variant="detailed"
                 />
                 <KPICard
                   title="Ticket Médio"
@@ -426,6 +436,7 @@ export default function RelatorioGerencialZN() {
                   icon={Banknote}
                   variacao={calcVariacao(mesAtual.ticket_medio, mesAnterior?.ticket_medio)}
                   color="green"
+                  variant="detailed"
                 />
               </div>
             )}
