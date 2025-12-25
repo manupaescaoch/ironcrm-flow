@@ -23,6 +23,7 @@ import { FollowUpCard } from '@/components/dashboard/FollowUpCard';
 import { AutoFollowUpCard, FollowUpAutoItem } from '@/components/dashboard/AutoFollowUpCard';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
+import { RelatorioFollowUps } from '@/components/dashboard/RelatorioFollowUps';
 import { format, addDays, startOfWeek, endOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -831,25 +832,32 @@ export default function Dashboard() {
         {/* Follow Up Section - Manuais + Automáticos */}
         {showFollowUpSection && (
           <div ref={followUpSectionRef} className="mb-8 space-y-6">
-            {/* Follow-ups Manuais (pós-experimental sem follow-up enviado) */}
-            {followUpItems.length > 0 && (
-              <FollowUpCard items={followUpItems} onRefresh={fetchData} />
-            )}
-            
-            {/* Follow-ups Automáticos (D+7, D+15, D+30) */}
-            {autoFollowUpItems.length > 0 && (
-              <AutoFollowUpCard items={autoFollowUpItems} onRefresh={fetchData} />
-            )}
-            
-            {/* Mensagem quando não há nenhum */}
-            {autoFollowUpItems.length === 0 && followUpItems.length === 0 && (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  <MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50 text-green-500" />
-                  <p>Nenhum follow-up pendente no momento!</p>
-                </CardContent>
-              </Card>
-            )}
+            {/* KPIs e Relatório de Follow-ups */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <RelatorioFollowUps />
+              
+              <div className="space-y-6">
+                {/* Follow-ups Manuais (pós-experimental sem follow-up enviado) */}
+                {followUpItems.length > 0 && (
+                  <FollowUpCard items={followUpItems} onRefresh={fetchData} />
+                )}
+                
+                {/* Follow-ups Automáticos (D+7, D+15, D+30) */}
+                {autoFollowUpItems.length > 0 && (
+                  <AutoFollowUpCard items={autoFollowUpItems} onRefresh={fetchData} />
+                )}
+                
+                {/* Mensagem quando não há nenhum */}
+                {autoFollowUpItems.length === 0 && followUpItems.length === 0 && (
+                  <Card>
+                    <CardContent className="py-8 text-center text-muted-foreground">
+                      <MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50 text-green-500" />
+                      <p>Nenhum follow-up pendente no momento!</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
