@@ -98,6 +98,7 @@ export default function Dashboard() {
   const [followUpItems, setFollowUpItems] = useState<EventoItem[]>([]);
   const [autoFollowUpItems, setAutoFollowUpItems] = useState<FollowUpAutoItem[]>([]);
   const [showFollowUpSection, setShowFollowUpSection] = useState(false);
+  const [followUpTipoFilter, setFollowUpTipoFilter] = useState<string | null>(null);
   const followUpSectionRef = useRef<HTMLDivElement>(null);
   
   // Refs for scrolling
@@ -642,6 +643,17 @@ export default function Dashboard() {
     setShowFollowUpSection(true);
     setShowExperimentaisSection(false);
     setShowMatriculasSection(false);
+    setFollowUpTipoFilter(null); // Reset filter when clicking the main card
+    setTimeout(() => {
+      followUpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
+  const handleFollowUpTipoClick = (tipo: string) => {
+    setShowFollowUpSection(true);
+    setShowExperimentaisSection(false);
+    setShowMatriculasSection(false);
+    setFollowUpTipoFilter(tipo);
     setTimeout(() => {
       followUpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
@@ -834,17 +846,22 @@ export default function Dashboard() {
           <div ref={followUpSectionRef} className="mb-8 space-y-6">
             {/* KPIs e Relatório de Follow-ups */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <RelatorioFollowUps />
+              <RelatorioFollowUps onTipoClick={handleFollowUpTipoClick} />
               
               <div className="space-y-6">
                 {/* Follow-ups Manuais (pós-experimental sem follow-up enviado) */}
-                {followUpItems.length > 0 && (
+                {followUpItems.length > 0 && !followUpTipoFilter && (
                   <FollowUpCard items={followUpItems} onRefresh={fetchData} />
                 )}
                 
                 {/* Follow-ups Automáticos (D+7, D+15, D+30) */}
                 {autoFollowUpItems.length > 0 && (
-                  <AutoFollowUpCard items={autoFollowUpItems} onRefresh={fetchData} />
+                  <AutoFollowUpCard 
+                    items={autoFollowUpItems} 
+                    onRefresh={fetchData} 
+                    tipoFilter={followUpTipoFilter}
+                    onClearFilter={() => setFollowUpTipoFilter(null)}
+                  />
                 )}
                 
                 {/* Mensagem quando não há nenhum */}

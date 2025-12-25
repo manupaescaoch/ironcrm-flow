@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
-import { Loader2, TrendingUp, TrendingDown, Target, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, Target, CheckCircle, XCircle, Clock, ExternalLink } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 interface FollowUpStats {
@@ -16,6 +16,10 @@ interface FollowUpStats {
   taxaConversao: number;
 }
 
+interface RelatorioFollowUpsProps {
+  onTipoClick?: (tipo: string) => void;
+}
+
 const TIPO_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
   'D+1': { label: 'D+1', color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
   'D+7': { label: 'D+7', color: 'text-blue-700', bgColor: 'bg-blue-100' },
@@ -23,7 +27,7 @@ const TIPO_CONFIG: Record<string, { label: string; color: string; bgColor: strin
   'D+30': { label: 'D+30', color: 'text-red-700', bgColor: 'bg-red-100' },
 };
 
-export function RelatorioFollowUps() {
+export function RelatorioFollowUps({ onTipoClick }: RelatorioFollowUpsProps) {
   const [stats, setStats] = useState<FollowUpStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [totals, setTotals] = useState({ total: 0, concluidos: 0, conversoes: 0, taxaGeral: 0 });
@@ -169,7 +173,12 @@ export function RelatorioFollowUps() {
             return (
               <div 
                 key={stat.tipo} 
-                className="border rounded-lg p-3 space-y-2"
+                className={`border rounded-lg p-3 space-y-2 transition-colors ${
+                  onTipoClick && stat.pendentes > 0 
+                    ? 'cursor-pointer hover:bg-muted/50 hover:border-primary/50' 
+                    : ''
+                }`}
+                onClick={() => onTipoClick && stat.pendentes > 0 && onTipoClick(stat.tipo)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -208,9 +217,14 @@ export function RelatorioFollowUps() {
                       <CheckCircle className="w-3 h-3 text-green-600" />
                       {stat.concluidos} concluídos
                     </span>
-                    <span className="flex items-center gap-1">
+                    <span className={`flex items-center gap-1 ${
+                      onTipoClick && stat.pendentes > 0 ? 'text-primary font-medium' : ''
+                    }`}>
                       <Clock className="w-3 h-3 text-amber-600" />
                       {stat.pendentes} pendentes
+                      {onTipoClick && stat.pendentes > 0 && (
+                        <ExternalLink className="w-3 h-3 ml-1" />
+                      )}
                     </span>
                     <span className="flex items-center gap-1">
                       <XCircle className="w-3 h-3 text-red-600" />
