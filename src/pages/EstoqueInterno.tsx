@@ -25,9 +25,9 @@ import { useUnidade } from '@/contexts/UnidadeContext';
 const CATEGORIAS = ['Copa e Recepção', 'Suplementos (uso interno)', 'Limpeza', 'Descartáveis', 'Higiene Pessoal'] as const;
 const UNIDADES = ['un', 'pacote', 'litro', 'kg', 'caixa'] as const;
 const SETORES = ['Limpeza', 'Café', 'Treino', 'Administrativo', 'Recepção'] as const;
-const STATUS_OPTIONS = ['Todos', 'Ruptura', 'Crítico', 'Atenção', 'Normal'] as const;
+const STATUS_OPTIONS = ['Todos', 'Sem Estoque', 'Crítico', 'Atenção', 'Normal'] as const;
 
-type StatusEstoque = 'Normal' | 'Atenção' | 'Crítico' | 'Ruptura';
+type StatusEstoque = 'Normal' | 'Atenção' | 'Crítico' | 'Sem Estoque';
 
 type Insumo = {
   id: string;
@@ -89,9 +89,9 @@ function calcularStatusPreditivo(
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
 
-  // ☠️ Ruptura: estoque = 0 ou data atual > data de ruptura
-  if (quantidadeAtual === 0) return 'Ruptura';
-  if (dataRuptura && hoje > dataRuptura) return 'Ruptura';
+  // ☠️ Sem Estoque: estoque = 0 ou data atual > data de ruptura
+  if (quantidadeAtual === 0) return 'Sem Estoque';
+  if (dataRuptura && hoje > dataRuptura) return 'Sem Estoque';
 
   // 🔴 Crítico: data atual >= data limite de pedido
   if (dataLimitePedido && hoje >= dataLimitePedido) return 'Crítico';
@@ -293,8 +293,8 @@ export default function EstoqueInterno() {
       resultado = resultado.filter(item => item.status_estoque === filtroStatus);
     }
     
-    // Ordenação inteligente: Ruptura > Crítico > Atenção > Normal, depois por dias restantes
-    const statusPrioridade: Record<StatusEstoque, number> = { 'Ruptura': 0, 'Crítico': 1, 'Atenção': 2, 'Normal': 3 };
+    // Ordenação inteligente: Sem Estoque > Crítico > Atenção > Normal, depois por dias restantes
+    const statusPrioridade: Record<StatusEstoque, number> = { 'Sem Estoque': 0, 'Crítico': 1, 'Atenção': 2, 'Normal': 3 };
     resultado.sort((a, b) => {
       // Primeiro por status
       const statusDiff = statusPrioridade[a.status_estoque] - statusPrioridade[b.status_estoque];
@@ -311,7 +311,7 @@ export default function EstoqueInterno() {
 
   // KPIs (baseados nos dados totais, não filtrados)
   const totalInsumos = insumos.length;
-  const insumosRuptura = insumosComEstoque.filter(i => i.status_estoque === 'Ruptura').length;
+  const insumosRuptura = insumosComEstoque.filter(i => i.status_estoque === 'Sem Estoque').length;
   const insumosCriticos = insumosComEstoque.filter(i => i.status_estoque === 'Crítico').length;
   const insumosAtencao = insumosComEstoque.filter(i => i.status_estoque === 'Atenção').length;
   const ultimaMovimentacao = movimentacoes[0];
@@ -333,9 +333,9 @@ export default function EstoqueInterno() {
         const valorReposicao = insumo.valor_reposicao.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         const fornecedor = insumo.fornecedor_padrao || 'Não definido';
         
-        if (statusAtual === 'Ruptura') {
+        if (statusAtual === 'Sem Estoque') {
           toast({
-            title: '☠️ RUPTURA DE ESTOQUE',
+            title: '☠️ SEM ESTOQUE',
             description: `${insumo.nome_insumo} está sem estoque! Reposição: ${valorReposicao}. Fornecedor: ${fornecedor}.`,
             variant: 'destructive',
             duration: 10000,
@@ -519,8 +519,8 @@ export default function EstoqueInterno() {
 
   const getStatusBadge = (status: StatusEstoque) => {
     switch (status) {
-      case 'Ruptura':
-        return <Badge className="bg-black text-white animate-pulse gap-1"><Skull className="h-3 w-3" />Ruptura</Badge>;
+      case 'Sem Estoque':
+        return <Badge className="bg-black text-white animate-pulse gap-1"><Skull className="h-3 w-3" />Sem Estoque</Badge>;
       case 'Crítico':
         return <Badge className="bg-destructive text-destructive-foreground animate-pulse gap-1"><AlertCircle className="h-3 w-3" />Crítico</Badge>;
       case 'Atenção':
@@ -753,7 +753,7 @@ export default function EstoqueInterno() {
             
             <Card className={`border-l-4 border-l-black bg-gradient-to-br from-gray-900/10 to-transparent ${insumosRuptura > 0 ? 'ring-2 ring-black/30' : ''}`}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Ruptura</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Sem Estoque</CardTitle>
                 <div className={`p-2 bg-black/10 rounded-lg ${insumosRuptura > 0 ? 'animate-pulse' : ''}`}>
                   <Skull className="h-5 w-5 text-black" />
                 </div>
@@ -845,14 +845,14 @@ export default function EstoqueInterno() {
                       size="sm"
                       onClick={() => setFiltroStatus(status)}
                       className={
-                        status === 'Ruptura' ? (filtroStatus === status ? 'bg-black hover:bg-black/90 text-white' : 'border-black/50 text-black hover:bg-black/10') :
+                        status === 'Sem Estoque' ? (filtroStatus === status ? 'bg-black hover:bg-black/90 text-white' : 'border-black/50 text-black hover:bg-black/10') :
                         status === 'Crítico' ? (filtroStatus === status ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' : 'border-destructive/50 text-destructive hover:bg-destructive/10') :
                         status === 'Atenção' ? (filtroStatus === status ? 'bg-warning hover:bg-warning/90 text-warning-foreground' : 'border-warning/50 text-warning hover:bg-warning/10') :
                         status === 'Normal' ? (filtroStatus === status ? 'bg-success hover:bg-success/90 text-success-foreground' : 'border-success/50 text-success hover:bg-success/10') :
                         ''
                       }
                     >
-                      {status === 'Ruptura' && <Skull className="h-3 w-3 mr-1" />}
+                      {status === 'Sem Estoque' && <Skull className="h-3 w-3 mr-1" />}
                       {status === 'Crítico' && <AlertCircle className="h-3 w-3 mr-1" />}
                       {status === 'Atenção' && <AlertTriangle className="h-3 w-3 mr-1" />}
                       {status === 'Normal' && <Package className="h-3 w-3 mr-1" />}
@@ -960,7 +960,7 @@ export default function EstoqueInterno() {
                           key={item.id} 
                           className={`
                             transition-colors
-                            ${item.status_estoque === 'Ruptura' ? 'bg-black/5 hover:bg-black/10 border-l-4 border-l-black' : ''} 
+                            ${item.status_estoque === 'Sem Estoque' ? 'bg-black/5 hover:bg-black/10 border-l-4 border-l-black' : ''} 
                             ${item.status_estoque === 'Crítico' ? 'bg-destructive/5 hover:bg-destructive/10 border-l-4 border-l-destructive' : ''} 
                             ${item.status_estoque === 'Atenção' ? 'bg-warning/5 hover:bg-warning/10 border-l-4 border-l-warning' : ''}
                             ${item.status_estoque === 'Normal' ? 'hover:bg-muted/50' : ''}
@@ -980,7 +980,7 @@ export default function EstoqueInterno() {
                           <TableCell className="text-center">{getStatusBadge(item.status_estoque)}</TableCell>
                           <TableCell className="text-center">
                             <span className={`font-bold text-lg ${
-                              item.status_estoque === 'Ruptura' ? 'text-black' :
+                              item.status_estoque === 'Sem Estoque' ? 'text-black' :
                               item.status_estoque === 'Crítico' ? 'text-destructive' : 
                               item.status_estoque === 'Atenção' ? 'text-warning' : ''
                             }`}>

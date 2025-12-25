@@ -30,7 +30,7 @@ import { useUnidade } from '@/contexts/UnidadeContext';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-type StatusEstoque = 'Normal' | 'Atenção' | 'Crítico' | 'Ruptura';
+type StatusEstoque = 'Normal' | 'Atenção' | 'Crítico' | 'Sem Estoque';
 
 type Insumo = {
   id: string;
@@ -83,8 +83,8 @@ function calcularStatusPreditivo(
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
 
-  if (quantidadeAtual === 0) return 'Ruptura';
-  if (dataRuptura && hoje > dataRuptura) return 'Ruptura';
+  if (quantidadeAtual === 0) return 'Sem Estoque';
+  if (dataRuptura && hoje > dataRuptura) return 'Sem Estoque';
   if (dataLimitePedido && hoje >= dataLimitePedido) return 'Crítico';
   if (quantidadeAtual <= pontoPedido) return 'Atenção';
   return 'Normal';
@@ -254,7 +254,7 @@ export default function VisaoFinanceiraEstoque() {
   const kpis = useMemo(() => {
     const valorTotalEstoque = itensFinanceiros.reduce((sum, i) => sum + i.valor_estoque_atual, 0);
     const valorReposicaoNecessaria = itensAtencao.reduce((sum, i) => sum + i.valor_reposicao, 0);
-    const itensRupturaCritico = itensAtencao.filter(i => i.status_estoque === 'Ruptura' || i.status_estoque === 'Crítico').length;
+    const itensRupturaCritico = itensAtencao.filter(i => i.status_estoque === 'Sem Estoque' || i.status_estoque === 'Crítico').length;
     
     return {
       valorTotalEstoque,
@@ -266,8 +266,8 @@ export default function VisaoFinanceiraEstoque() {
 
   const getStatusBadge = (status: StatusEstoque) => {
     switch (status) {
-      case 'Ruptura':
-        return <Badge className="bg-black text-white gap-1"><Skull className="h-3 w-3" />Ruptura</Badge>;
+      case 'Sem Estoque':
+        return <Badge className="bg-black text-white gap-1"><Skull className="h-3 w-3" />Sem Estoque</Badge>;
       case 'Crítico':
         return <Badge className="bg-destructive text-destructive-foreground gap-1"><AlertCircle className="h-3 w-3" />Crítico</Badge>;
       case 'Atenção':
@@ -479,7 +479,7 @@ export default function VisaoFinanceiraEstoque() {
                         ) : (
                           itensAtencao.map(item => (
                             <TableRow key={item.id} className={`
-                              ${item.status_estoque === 'Ruptura' ? 'bg-black/5' : ''}
+                              ${item.status_estoque === 'Sem Estoque' ? 'bg-black/5' : ''}
                               ${item.status_estoque === 'Crítico' ? 'bg-destructive/5' : ''}
                               ${item.status_estoque === 'Atenção' ? 'bg-warning/5' : ''}
                             `}>

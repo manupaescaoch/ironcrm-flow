@@ -48,7 +48,7 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 
-type StatusEstoque = 'Normal' | 'Atenção' | 'Crítico' | 'Ruptura';
+type StatusEstoque = 'Normal' | 'Atenção' | 'Crítico' | 'Sem Estoque';
 type ClasseABC = 'A' | 'B' | 'C';
 
 type Insumo = {
@@ -105,7 +105,7 @@ const COLORS_STATUS = {
   Normal: 'hsl(var(--success))',
   'Atenção': 'hsl(var(--warning))',
   Crítico: 'hsl(var(--destructive))',
-  Ruptura: 'hsl(0, 0%, 0%)'
+  'Sem Estoque': 'hsl(0, 0%, 0%)'
 };
 
 function calcularStatusPreditivo(
@@ -113,8 +113,8 @@ function calcularStatusPreditivo(
   pontoPedido: number,
   diasRestantes: number | null
 ): StatusEstoque {
-  if (quantidadeAtual === 0) return 'Ruptura';
-  if (diasRestantes !== null && diasRestantes <= 0) return 'Ruptura';
+  if (quantidadeAtual === 0) return 'Sem Estoque';
+  if (diasRestantes !== null && diasRestantes <= 0) return 'Sem Estoque';
   if (diasRestantes !== null && diasRestantes <= 3) return 'Crítico';
   if (quantidadeAtual <= pontoPedido) return 'Atenção';
   return 'Normal';
@@ -262,7 +262,7 @@ export default function DashboardExecutivoEstoque() {
   // KPIs Executivos
   const kpis = useMemo(() => {
     const valorTotalEstoque = itensDashboard.reduce((sum, i) => sum + i.valor_estoque_atual, 0);
-    const itensRisco = itensDashboard.filter(i => i.status_estoque === 'Ruptura' || i.status_estoque === 'Crítico').length;
+    const itensRisco = itensDashboard.filter(i => i.status_estoque === 'Sem Estoque' || i.status_estoque === 'Crítico').length;
     
     // Acurácia: % de itens em nível adequado (Normal ou Atenção)
     const itensAdequados = itensDashboard.filter(i => i.status_estoque === 'Normal').length;
@@ -455,20 +455,20 @@ export default function DashboardExecutivoEstoque() {
     const normal = itensDashboard.filter(i => i.status_estoque === 'Normal').length;
     const atencao = itensDashboard.filter(i => i.status_estoque === 'Atenção').length;
     const critico = itensDashboard.filter(i => i.status_estoque === 'Crítico').length;
-    const ruptura = itensDashboard.filter(i => i.status_estoque === 'Ruptura').length;
+    const ruptura = itensDashboard.filter(i => i.status_estoque === 'Sem Estoque').length;
     
     return [
       { name: 'Normal', value: normal, color: COLORS_STATUS.Normal },
       { name: 'Atenção', value: atencao, color: COLORS_STATUS['Atenção'] },
       { name: 'Crítico', value: critico, color: COLORS_STATUS.Crítico },
-      { name: 'Ruptura', value: ruptura, color: COLORS_STATUS.Ruptura },
+      { name: 'Sem Estoque', value: ruptura, color: COLORS_STATUS['Sem Estoque'] },
     ];
   }, [itensDashboard]);
 
   const getStatusBadge = (status: StatusEstoque) => {
     switch (status) {
-      case 'Ruptura':
-        return <Badge className="bg-black text-white gap-1"><Skull className="h-3 w-3" />Ruptura</Badge>;
+      case 'Sem Estoque':
+        return <Badge className="bg-black text-white gap-1"><Skull className="h-3 w-3" />Sem Estoque</Badge>;
       case 'Crítico':
         return <Badge className="bg-destructive text-destructive-foreground gap-1"><AlertCircle className="h-3 w-3" />Crítico</Badge>;
       case 'Atenção':
