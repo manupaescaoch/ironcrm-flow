@@ -38,6 +38,9 @@ type Insumo = {
   quantidade_minima: number;
   lead_time_dias: number;
   estoque_seguranca_dias: number;
+  custo_unitario: number;
+  fornecedor_padrao: string | null;
+  quantidade_minima_compra: number;
   ativo: boolean;
 };
 
@@ -70,6 +73,10 @@ type InsumoComEstoque = Insumo & {
   data_limite_pedido: Date | null;
   ultima_retirada: string | null;
   responsavel_ultima_retirada: string | null;
+  // Campos financeiros calculados
+  valor_estoque_atual: number;
+  valor_ponto_pedido: number;
+  valor_reposicao: number;
 };
 
 // Função para calcular status preditivo
@@ -123,6 +130,9 @@ export default function EstoqueInterno() {
     quantidade_minima: 0,
     lead_time_dias: 3,
     estoque_seguranca_dias: 2,
+    custo_unitario: 0,
+    fornecedor_padrao: '',
+    quantidade_minima_compra: 1,
   });
   
   const [editInsumo, setEditInsumo] = useState({
@@ -134,6 +144,9 @@ export default function EstoqueInterno() {
     quantidade_minima: 0,
     lead_time_dias: 3,
     estoque_seguranca_dias: 2,
+    custo_unitario: 0,
+    fornecedor_padrao: '',
+    quantidade_minima_compra: 1,
   });
   
   const [movimentacao, setMovimentacao] = useState({
@@ -229,6 +242,13 @@ export default function EstoqueInterno() {
     // Última retirada
     const ultimaRetirada = retiradas[0];
     
+    // Cálculos financeiros
+    const custo = insumo.custo_unitario || 0;
+    const qtdMinimaCompra = insumo.quantidade_minima_compra || 1;
+    const valor_estoque_atual = quantidade_atual * custo;
+    const valor_ponto_pedido = ponto_pedido * custo;
+    const valor_reposicao = qtdMinimaCompra * custo;
+    
     return {
       ...insumo,
       quantidade_atual,
@@ -242,6 +262,9 @@ export default function EstoqueInterno() {
       data_limite_pedido,
       ultima_retirada: ultimaRetirada?.created_at || null,
       responsavel_ultima_retirada: ultimaRetirada?.responsavel || null,
+      valor_estoque_atual,
+      valor_ponto_pedido,
+      valor_reposicao,
     };
   });
 
@@ -307,25 +330,27 @@ export default function EstoqueInterno() {
         const dataLimiteFormatada = insumo.data_limite_pedido 
           ? format(insumo.data_limite_pedido, 'dd/MM/yyyy', { locale: ptBR })
           : 'N/A';
+        const valorReposicao = insumo.valor_reposicao.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const fornecedor = insumo.fornecedor_padrao || 'Não definido';
         
         if (statusAtual === 'Ruptura') {
           toast({
             title: '☠️ RUPTURA DE ESTOQUE',
-            description: `${insumo.nome_insumo} está sem estoque! Providencie reposição urgente.`,
+            description: `${insumo.nome_insumo} está sem estoque! Reposição: ${valorReposicao}. Fornecedor: ${fornecedor}.`,
             variant: 'destructive',
             duration: 10000,
           });
         } else if (statusAtual === 'Crítico') {
           toast({
             title: '🔴 Estoque Crítico',
-            description: `${insumo.nome_insumo}: ${insumo.dias_restantes ?? 0} dias restantes. Pedir até ${dataLimiteFormatada}. Lead time: ${insumo.lead_time_dias} dias.`,
+            description: `${insumo.nome_insumo}: ${insumo.dias_restantes ?? 0} dias. Reposição: ${valorReposicao}. Fornecedor: ${fornecedor}. Pedir até ${dataLimiteFormatada}.`,
             variant: 'destructive',
             duration: 8000,
           });
         } else if (statusAtual === 'Atenção') {
           toast({
             title: '🟡 Atenção - Hora de Pedir',
-            description: `${insumo.nome_insumo}: estoque abaixo do ponto de pedido (${insumo.ponto_pedido} ${insumo.unidade_medida}). Data limite: ${dataLimiteFormatada}.`,
+            description: `${insumo.nome_insumo}: Reposição: ${valorReposicao}. Fornecedor: ${fornecedor}. Data limite: ${dataLimiteFormatada}.`,
             duration: 6000,
           });
         }
@@ -363,7 +388,7 @@ export default function EstoqueInterno() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['insumos', unidadeAtual?.id] });
       setNovoInsumoOpen(false);
-      setNovoInsumo({ codigo_insumo: '', nome_insumo: '', categoria: '', unidade_medida: '', quantidade_minima: 0, lead_time_dias: 3, estoque_seguranca_dias: 2 });
+      setNovoInsumo({ codigo_insumo: '', nome_insumo: '', categoria: '', unidade_medida: '', quantidade_minima: 0, lead_time_dias: 3, estoque_seguranca_dias: 2, custo_unitario: 0, fornecedor_padrao: '', quantidade_minima_compra: 1 });
       toast({ title: 'Insumo cadastrado com sucesso!' });
     },
     onError: (error: Error) => {
@@ -381,6 +406,9 @@ export default function EstoqueInterno() {
         quantidade_minima: data.quantidade_minima,
         lead_time_dias: data.lead_time_dias,
         estoque_seguranca_dias: data.estoque_seguranca_dias,
+        custo_unitario: data.custo_unitario,
+        fornecedor_padrao: data.fornecedor_padrao || null,
+        quantidade_minima_compra: data.quantidade_minima_compra,
       }).eq('id', data.id);
       if (error) throw error;
     },
@@ -456,6 +484,9 @@ export default function EstoqueInterno() {
       quantidade_minima: insumo.quantidade_minima,
       lead_time_dias: insumo.lead_time_dias || 3,
       estoque_seguranca_dias: insumo.estoque_seguranca_dias || 2,
+      custo_unitario: insumo.custo_unitario || 0,
+      fornecedor_padrao: insumo.fornecedor_padrao || '',
+      quantidade_minima_compra: insumo.quantidade_minima_compra || 1,
     });
     setEditarInsumoOpen(true);
   };
@@ -620,6 +651,71 @@ export default function EstoqueInterno() {
                             onChange={e => setNovoInsumo(p => ({ ...p, estoque_seguranca_dias: parseInt(e.target.value) || 2 }))}
                           />
                         </div>
+                      </div>
+                    </div>
+                    
+                    {/* Campos financeiros */}
+                    <div className="border-t pt-4">
+                      <p className="text-sm font-medium text-muted-foreground mb-3">💰 Informações Financeiras</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="flex items-center gap-1 mb-1">
+                            <Label>Custo Unitário (R$)</Label>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p>Custo por unidade do item para cálculo de valor do estoque.</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <Input 
+                            type="number" 
+                            step="0.01"
+                            min={0}
+                            value={novoInsumo.custo_unitario} 
+                            onChange={e => setNovoInsumo(p => ({ ...p, custo_unitario: parseFloat(e.target.value) || 0 }))}
+                            placeholder="0,00"
+                          />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1 mb-1">
+                            <Label>Qtd. Mínima Compra</Label>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p>Quantidade mínima de compra (lote, caixa) exigida pelo fornecedor.</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <Input 
+                            type="number" 
+                            min={1}
+                            value={novoInsumo.quantidade_minima_compra} 
+                            onChange={e => setNovoInsumo(p => ({ ...p, quantidade_minima_compra: parseInt(e.target.value) || 1 }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <div className="flex items-center gap-1 mb-1">
+                          <Label>Fornecedor Padrão</Label>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p>Nome do fornecedor principal para este item.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <Input 
+                          value={novoInsumo.fornecedor_padrao} 
+                          onChange={e => setNovoInsumo(p => ({ ...p, fornecedor_padrao: e.target.value }))}
+                          placeholder="Ex: Distribuidora ABC"
+                        />
                       </div>
                     </div>
                     
@@ -1073,6 +1169,69 @@ export default function EstoqueInterno() {
                         onChange={e => setEditInsumo(p => ({ ...p, estoque_seguranca_dias: parseInt(e.target.value) || 2 }))}
                       />
                     </div>
+                  </div>
+                </div>
+                
+                {/* Campos financeiros */}
+                <div className="border-t pt-4">
+                  <p className="text-sm font-medium text-muted-foreground mb-3">💰 Informações Financeiras</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="flex items-center gap-1 mb-1">
+                        <Label>Custo Unitário (R$)</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Custo por unidade do item para cálculo de valor do estoque.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input 
+                        type="number" 
+                        step="0.01"
+                        min={0}
+                        value={editInsumo.custo_unitario} 
+                        onChange={e => setEditInsumo(p => ({ ...p, custo_unitario: parseFloat(e.target.value) || 0 }))}
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1 mb-1">
+                        <Label>Qtd. Mínima Compra</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Quantidade mínima de compra (lote, caixa) exigida pelo fornecedor.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input 
+                        type="number" 
+                        min={1}
+                        value={editInsumo.quantidade_minima_compra} 
+                        onChange={e => setEditInsumo(p => ({ ...p, quantidade_minima_compra: parseInt(e.target.value) || 1 }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <div className="flex items-center gap-1 mb-1">
+                      <Label>Fornecedor Padrão</Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>Nome do fornecedor principal para este item.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <Input 
+                      value={editInsumo.fornecedor_padrao} 
+                      onChange={e => setEditInsumo(p => ({ ...p, fornecedor_padrao: e.target.value }))}
+                    />
                   </div>
                 </div>
                 

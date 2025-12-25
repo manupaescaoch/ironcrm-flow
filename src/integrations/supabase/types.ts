@@ -178,11 +178,14 @@ export type Database = {
           categoria: string
           codigo_insumo: string
           created_at: string
+          custo_unitario: number
           estoque_seguranca_dias: number
+          fornecedor_padrao: string | null
           id: string
           lead_time_dias: number
           nome_insumo: string
           quantidade_minima: number
+          quantidade_minima_compra: number
           unidade_id: string | null
           unidade_medida: string
           updated_at: string
@@ -192,11 +195,14 @@ export type Database = {
           categoria: string
           codigo_insumo: string
           created_at?: string
+          custo_unitario?: number
           estoque_seguranca_dias?: number
+          fornecedor_padrao?: string | null
           id?: string
           lead_time_dias?: number
           nome_insumo: string
           quantidade_minima?: number
+          quantidade_minima_compra?: number
           unidade_id?: string | null
           unidade_medida: string
           updated_at?: string
@@ -206,11 +212,14 @@ export type Database = {
           categoria?: string
           codigo_insumo?: string
           created_at?: string
+          custo_unitario?: number
           estoque_seguranca_dias?: number
+          fornecedor_padrao?: string | null
           id?: string
           lead_time_dias?: number
           nome_insumo?: string
           quantidade_minima?: number
+          quantidade_minima_compra?: number
           unidade_id?: string | null
           unidade_medida?: string
           updated_at?: string
