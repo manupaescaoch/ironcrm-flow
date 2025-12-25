@@ -32,13 +32,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Lead, Interacao, StatusFunil, PlanoEscolhido, StatusAvaliacao } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Pencil, CheckCircle, XCircle, AlertCircle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Pencil, CheckCircle, XCircle, AlertCircle, Trash2, Clock } from 'lucide-react';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ConversionScoreCard } from '@/components/ConversionScoreCard';
 import { useConversionScore } from '@/hooks/useConversionScore';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { InteractionTimeline } from '@/components/lead/InteractionTimeline';
+import { MotivosPerdaModal } from '@/components/lead/MotivosPerdaModal';
 
 const statusOptions: { value: StatusFunil; label: string }[] = [
   { value: 'novo', label: 'Novo' },
@@ -153,7 +155,9 @@ export default function LeadDetail() {
   const [canEditCurrentInteracao, setCanEditCurrentInteracao] = useState(true);
   const [formData, setFormData] = useState<InteracaoForm>(initialFormState);
   const [deletingInteracao, setDeletingInteracao] = useState<string | null>(null);
-
+  const [showMotivosPerdaModal, setShowMotivosPerdaModal] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<StatusFunil | null>(null);
+  const [savingMotivo, setSavingMotivo] = useState(false);
   // Conversion score calculation
   const conversionScore = useConversionScore(lead, interacoes);
 
@@ -247,6 +251,42 @@ export default function LeadDetail() {
       toast({ title: 'Erro ao salvar', variant: 'destructive' });
     } else {
       toast({ title: 'Lead atualizado!' });
+    }
+  };
+
+  const handleConfirmPerda = async (motivo: string, observacao: string) => {
+    if (!lead || !pendingStatus) return;
+    setSavingMotivo(true);
+
+    const observacaoFinal = observacao.trim()
+      ? `${lead.observacoes || ''}\n\n[Motivo da Perda - ${format(new Date(), 'dd/MM/yyyy')}]: ${observacao}`.trim()
+      : lead.observacoes;
+
+    const { error } = await supabase
+      .from('leads')
+      .update({
+        status_funil: pendingStatus,
+        motivo_perda: motivo,
+        data_perda: new Date().toISOString(),
+        observacoes: observacaoFinal,
+      })
+      .eq('id', id);
+
+    setSavingMotivo(false);
+
+    if (error) {
+      toast({ title: 'Erro ao atualizar lead', variant: 'destructive' });
+    } else {
+      setLead({ 
+        ...lead, 
+        status_funil: pendingStatus, 
+        motivo_perda: motivo, 
+        data_perda: new Date().toISOString(),
+        observacoes: observacaoFinal 
+      });
+      toast({ title: 'Lead marcado como perdido' });
+      setShowMotivosPerdaModal(false);
+      setPendingStatus(null);
     }
   };
 
@@ -599,7 +639,15 @@ export default function LeadDetail() {
                   <Label>Status do Funil</Label>
                   <Select
                     value={lead.status_funil}
-                    onValueChange={(v) => setLead({ ...lead, status_funil: v as StatusFunil })}
+                    onValueChange={(v) => {
+                      const newStatus = v as StatusFunil;
+                      if (newStatus === 'perdido' && lead.status_funil !== 'perdido') {
+                        setPendingStatus(newStatus);
+                        setShowMotivosPerdaModal(true);
+                      } else {
+                        setLead({ ...lead, status_funil: newStatus });
+                      }
+                    }}
                     disabled={!canEditLead}
                   >
                     <SelectTrigger>
@@ -613,6 +661,17 @@ export default function LeadDetail() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {lead.motivo_perda && lead.status_funil === 'perdido' && (
+                    <div className="mt-2 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                      <p className="text-xs text-muted-foreground mb-1">Motivo da perda:</p>
+                      <p className="text-sm font-medium text-destructive">{lead.motivo_perda}</p>
+                      {lead.data_perda && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Perdido em: {format(new Date(lead.data_perda), 'dd/MM/yyyy', { locale: ptBR })}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Observações</Label>
@@ -754,93 +813,19 @@ export default function LeadDetail() {
               </CardContent>
             </Card>
 
-            {/* Detailed Interactions History */}
+            {/* Visual Interaction Timeline */}
             <Card>
               <CardHeader>
-                <CardTitle>Histórico Detalhado</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5" />
+                  Linha do Tempo
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {interacoes.map((int) => (
-                    <div
-                      key={int.id}
-                      className="p-4 bg-muted/30 rounded-lg space-y-3 cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => openEditInteracao(int)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold">{int.tipo}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">
-                            {format(new Date(int.data_interacao), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                          </span>
-                          <Button variant="ghost" size="icon" className="h-6 w-6">
-                            <Pencil className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </div>
-                      {int.descricao && (
-                        <p className="text-sm text-muted-foreground">{int.descricao}</p>
-                      )}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Atendido por: </span>
-                          <span className="font-medium">
-                            {int.atendido_por_tipo === 'comercial' ? 'Comercial (agendamento)' : 
-                             int.atendido_por_tipo === 'espontaneo_recepcao' ? 'Espontâneo Recepção' : 
-                             int.atendido_por?.toUpperCase() || '-'}
-                          </span>
-                        </div>
-                        {int.data_experimental && (
-                          <div>
-                            <span className="text-muted-foreground">Data Exp: </span>
-                            <span className="font-medium">{formatDateTime(int.data_experimental, int.hora_experimental)}</span>
-                          </div>
-                        )}
-                        {int.treinador_responsavel && (
-                          <div>
-                            <span className="text-muted-foreground">Treinador Resp.: </span>
-                            <span className="font-medium">{int.treinador_responsavel}</span>
-                          </div>
-                        )}
-                        {int.responsavel_fechamento && (
-                          <div>
-                            <span className="text-muted-foreground">Resp. Fechamento: </span>
-                            <span className="font-medium">{int.responsavel_fechamento}</span>
-                          </div>
-                        )}
-                        {int.data_fechamento && (
-                          <div>
-                            <span className="text-muted-foreground">Data Fech.: </span>
-                            <span className="font-medium">{formatDate(int.data_fechamento)}</span>
-                          </div>
-                        )}
-                        {/* Avaliação Física info */}
-                        {int.tipo === 'Avaliação Física' && int.data_avaliacao && (
-                          <div>
-                            <span className="text-muted-foreground">Avaliação: </span>
-                            <span className="font-medium">{formatDateTime(int.data_avaliacao, int.hora_avaliacao)}</span>
-                          </div>
-                        )}
-                        {int.tipo === 'Avaliação Física' && int.status_avaliacao && (
-                          <div>
-                            <span className="text-muted-foreground">Status: </span>
-                            <span className={`font-medium ${
-                              int.status_avaliacao === 'realizada' ? 'text-green-600' :
-                              int.status_avaliacao === 'agendada' ? 'text-blue-600' :
-                              int.status_avaliacao === 'faltou' ? 'text-red-600' :
-                              int.status_avaliacao === 'reagendada' ? 'text-amber-600' : ''
-                            }`}>
-                              {int.status_avaliacao === 'agendada' && '📅 Agendada'}
-                              {int.status_avaliacao === 'realizada' && '✅ Realizada'}
-                              {int.status_avaliacao === 'faltou' && '❌ Faltou'}
-                              {int.status_avaliacao === 'reagendada' && '🔄 Reagendada'}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <InteractionTimeline 
+                  interacoes={interacoes} 
+                  onInteractionClick={openEditInteracao} 
+                />
               </CardContent>
             </Card>
           </div>
@@ -1094,6 +1079,19 @@ export default function LeadDetail() {
             </div>
           </SheetContent>
         </Sheet>
+
+        {/* Modal de Motivo de Perda */}
+        <MotivosPerdaModal
+          open={showMotivosPerdaModal}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPendingStatus(null);
+            }
+            setShowMotivosPerdaModal(open);
+          }}
+          onConfirm={handleConfirmPerda}
+          loading={savingMotivo}
+        />
       </div>
     </Layout>
   );

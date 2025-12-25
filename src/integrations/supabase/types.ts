@@ -368,12 +368,14 @@ export type Database = {
           created_at: string
           created_by: string | null
           data_aula_experimental: string | null
+          data_perda: string | null
           email: string | null
           follow_up_enviado_em: string | null
           follow_up_responsavel: string | null
           follow_up_whatsapp_enviado: boolean | null
           hora_aula_experimental: string | null
           id: string
+          motivo_perda: string | null
           nome: string
           observacoes: string | null
           origem: string | null
@@ -391,12 +393,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_aula_experimental?: string | null
+          data_perda?: string | null
           email?: string | null
           follow_up_enviado_em?: string | null
           follow_up_responsavel?: string | null
           follow_up_whatsapp_enviado?: boolean | null
           hora_aula_experimental?: string | null
           id?: string
+          motivo_perda?: string | null
           nome: string
           observacoes?: string | null
           origem?: string | null
@@ -414,12 +418,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_aula_experimental?: string | null
+          data_perda?: string | null
           email?: string | null
           follow_up_enviado_em?: string | null
           follow_up_responsavel?: string | null
           follow_up_whatsapp_enviado?: boolean | null
           hora_aula_experimental?: string | null
           id?: string
+          motivo_perda?: string | null
           nome?: string
           observacoes?: string | null
           origem?: string | null
