@@ -139,14 +139,18 @@ export default function Dashboard() {
     const startDateStr = format(startDate, 'yyyy-MM-dd');
     const endDateStr = format(endDate, 'yyyy-MM-dd');
 
-    // Fetch experimental count for period
-    const { count: experimentaisCount } = await supabase
+    // Fetch experimental count for period - counting unique leads only
+    const { data: experimentaisData } = await supabase
       .from('interacoes')
-      .select('*', { count: 'exact', head: true })
+      .select('lead_id')
       .eq('agendou_experimental', true)
       .eq('unidade_id', unidadeAtual.id)
       .gte('data_experimental', startDateStr)
       .lte('data_experimental', endDateStr);
+
+    // Count unique leads with experimental scheduled
+    const leadsUnicosExperimentais = new Set(experimentaisData?.map(e => e.lead_id) || []);
+    const experimentaisCount = leadsUnicosExperimentais.size;
 
     // Fetch matriculas count for period - counting unique leads only
     const { data: matriculasData } = await supabase
@@ -173,15 +177,17 @@ export default function Dashboard() {
     const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
     const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
-    const { count } = await supabase
+    // Fetch unique leads with experimental scheduled this week
+    const { data: weeklyExperimentaisData } = await supabase
       .from('interacoes')
-      .select('*', { count: 'exact', head: true })
+      .select('lead_id')
       .eq('agendou_experimental', true)
       .eq('unidade_id', unidadeAtual.id)
       .gte('data_experimental', weekStart)
       .lte('data_experimental', weekEnd);
 
-    setExperimentaisSemanaCount(count || 0);
+    const leadsUnicosSemana = new Set(weeklyExperimentaisData?.map(e => e.lead_id) || []);
+    setExperimentaisSemanaCount(leadsUnicosSemana.size);
   }, [unidadeAtual]);
 
   const fetchEventos = useCallback(async () => {
