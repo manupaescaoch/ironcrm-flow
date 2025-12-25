@@ -19,6 +19,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
 import { Lead, StatusFunil, Interacao } from '@/types/database';
+import { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, User, Phone, MapPin, UserCheck, Calendar as CalendarIcon, Clock, Filter, X } from 'lucide-react';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
@@ -60,6 +61,50 @@ export default function Kanban() {
 
   useEffect(() => {
     fetchLeads();
+    
+    // Setup realtime subscription for leads changes
+    const channel = supabase
+      .channel('kanban-leads-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leads'
+        },
+        (payload) => {
+          console.log('Realtime update:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const newLead = payload.new as Tables<'leads'>;
+            // Only add if matches current unit filter and is active
+            if (newLead.ativo && (!unidadeAtual || newLead.unidade_id === unidadeAtual.id)) {
+              setLeads(prev => [{ ...newLead as unknown as Lead, proximaExperimental: undefined }, ...prev]);
+              toast({ title: 'Novo lead adicionado', description: newLead.nome });
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedLead = payload.new as Tables<'leads'>;
+            // If lead became inactive, remove from list
+            if (!updatedLead.ativo) {
+              setLeads(prev => prev.filter(lead => lead.id !== updatedLead.id));
+            } else {
+              setLeads(prev => prev.map(lead => 
+                lead.id === updatedLead.id 
+                  ? { ...lead, ...updatedLead as unknown as Lead }
+                  : lead
+              ));
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = (payload.old as { id: string }).id;
+            setLeads(prev => prev.filter(lead => lead.id !== deletedId));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [unidadeAtual]);
 
   const fetchLeads = async () => {
