@@ -660,6 +660,14 @@ export type Database = {
         Args: { lead_ids: string[] }
         Returns: number
       }
+      admin_standardize_origem: {
+        Args: { new_value: string; old_value: string }
+        Returns: number
+      }
+      admin_standardize_treinador: {
+        Args: { new_value: string; old_value: string }
+        Returns: number
+      }
       admin_update_cadastrador: {
         Args: { new_name: string; old_name: string }
         Returns: number
