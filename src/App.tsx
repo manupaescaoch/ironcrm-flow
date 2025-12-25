@@ -20,6 +20,7 @@ import Backups from "./pages/Backups";
 import EstoqueInterno from "./pages/EstoqueInterno";
 import RelatorioConsumo from "./pages/RelatorioConsumo";
 import RelatorioPrevisaoCompras from "./pages/RelatorioPrevisaoCompras";
+import VisaoFinanceiraEstoque from "./pages/VisaoFinanceiraEstoque";
 import Escala from "./pages/Escala";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -205,6 +206,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <RelatorioPrevisaoCompras />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/estoque/financeiro"
+      element={
+        <ProtectedRoute>
+          <VisaoFinanceiraEstoque />
         </ProtectedRoute>
       }
     />
