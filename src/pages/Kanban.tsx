@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -26,15 +25,16 @@ import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useUnidade } from '@/contexts/UnidadeContext';
 
-const columns: { status: StatusFunil; label: string; color: string }[] = [
-  { status: 'novo', label: 'Novo', color: 'bg-blue-500' },
-  { status: 'aula_agendada', label: 'Experimental Agendada', color: 'bg-amber-500' },
-  { status: 'aula_realizada', label: 'Experimental Realizada', color: 'bg-orange-500' },
-  { status: 'follow_up', label: 'Follow Up', color: 'bg-indigo-500' },
-  { status: 'negociacao', label: 'Negociação', color: 'bg-cyan-500' },
-  { status: 'convertido', label: 'Convertido', color: 'bg-green-500' },
-  { status: 'perdido', label: 'Perdido', color: 'bg-red-500' },
+const columns: { status: StatusFunil; label: string; color: string; bgLight: string }[] = [
+  { status: 'novo', label: 'Novo', color: 'bg-blue-500', bgLight: 'bg-blue-500/10' },
+  { status: 'aula_agendada', label: 'Experimental Agendada', color: 'bg-amber-500', bgLight: 'bg-amber-500/10' },
+  { status: 'aula_realizada', label: 'Experimental Realizada', color: 'bg-orange-500', bgLight: 'bg-orange-500/10' },
+  { status: 'follow_up', label: 'Follow Up', color: 'bg-indigo-500', bgLight: 'bg-indigo-500/10' },
+  { status: 'negociacao', label: 'Negociação', color: 'bg-cyan-500', bgLight: 'bg-cyan-500/10' },
+  { status: 'convertido', label: 'Convertido', color: 'bg-green-500', bgLight: 'bg-green-500/10' },
+  { status: 'perdido', label: 'Perdido', color: 'bg-red-500', bgLight: 'bg-red-500/10' },
 ];
 
 interface LeadWithExperimental extends Lead {
@@ -48,7 +48,9 @@ export default function Kanban() {
   const [leads, setLeads] = useState<LeadWithExperimental[]>([]);
   const [loading, setLoading] = useState(true);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<StatusFunil | null>(null);
   const { toast } = useToast();
+  const { unidadeAtual } = useUnidade();
 
   // Filters
   const [filterOrigem, setFilterOrigem] = useState<string>('all');
@@ -58,17 +60,23 @@ export default function Kanban() {
 
   useEffect(() => {
     fetchLeads();
-  }, []);
+  }, [unidadeAtual]);
 
   const fetchLeads = async () => {
     setLoading(true);
     
     // Fetch leads
-    const { data: leadsData, error: leadsError } = await supabase
+    let query = supabase
       .from('leads')
       .select('*')
       .eq('ativo', true)
       .order('created_at', { ascending: false });
+
+    if (unidadeAtual) {
+      query = query.eq('unidade_id', unidadeAtual.id);
+    }
+
+    const { data: leadsData, error: leadsError } = await query;
 
     if (leadsError) {
       toast({ title: 'Erro ao carregar leads', variant: 'destructive' });
@@ -149,13 +157,22 @@ export default function Kanban() {
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent, status: StatusFunil) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    if (dragOverColumn !== status) {
+      setDragOverColumn(status);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverColumn(null);
   };
 
   const handleDrop = async (e: React.DragEvent, newStatus: StatusFunil) => {
     e.preventDefault();
+    setDragOverColumn(null);
+    
     if (!draggingId) return;
 
     const lead = leads.find((l) => l.id === draggingId);
@@ -182,6 +199,11 @@ export default function Kanban() {
     }
 
     setDraggingId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDragOverColumn(null);
   };
 
   const getLeadsByStatus = (status: StatusFunil) =>
@@ -221,11 +243,12 @@ export default function Kanban() {
 
   return (
     <Layout>
-      <div className="p-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Funil de Vendas</h1>
+      <div className="p-4 md:p-6 lg:p-8 h-full flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl md:text-3xl font-bold">Funil de Vendas</h1>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>{filteredLeads.length} leads</span>
+            <span className="font-medium">{filteredLeads.length} leads</span>
             {hasActiveFilters && (
               <span className="text-primary">(filtrado)</span>
             )}
@@ -233,7 +256,7 @@ export default function Kanban() {
         </div>
 
         {/* Filters */}
-        <Card className="mb-6">
+        <Card className="mb-4 flex-shrink-0">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <Filter className="w-5 h-5" />
@@ -343,111 +366,141 @@ export default function Kanban() {
           </CardContent>
         </Card>
 
-        {/* Kanban Board - Vertical Layout */}
-        <div className="flex flex-col gap-6">
-          {columns.map((col) => {
-            const columnLeads = getLeadsByStatus(col.status);
-            return (
-              <Card
-                key={col.status}
-                className="w-full"
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, col.status)}
-              >
-                {/* Stage Header - Fixed */}
-                <CardHeader className="pb-3 border-b bg-card sticky top-0 z-10">
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-4 h-4 rounded-full ${col.color}`} />
-                      <span className="text-base font-semibold">{col.label}</span>
+        {/* Kanban Board - Horizontal Layout */}
+        <div className="flex-1 overflow-hidden">
+          <div 
+            className="flex gap-4 h-full overflow-x-auto pb-4 scrollbar-hide"
+            style={{ minHeight: 'calc(100vh - 380px)' }}
+          >
+            {columns.map((col) => {
+              const columnLeads = getLeadsByStatus(col.status);
+              const isDropTarget = dragOverColumn === col.status && draggingId;
+              
+              return (
+                <div
+                  key={col.status}
+                  className={cn(
+                    'flex-shrink-0 w-72 md:w-80 rounded-xl flex flex-col transition-all duration-200',
+                    col.bgLight,
+                    isDropTarget && 'ring-2 ring-primary ring-offset-2 scale-[1.02]'
+                  )}
+                  onDragOver={(e) => handleDragOver(e, col.status)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, col.status)}
+                >
+                  {/* Column Header */}
+                  <div className="p-3 border-b border-border/50 bg-background/80 backdrop-blur-sm rounded-t-xl sticky top-0 z-10">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={cn('w-3 h-3 rounded-full', col.color)} />
+                        <span className="text-sm font-semibold truncate">{col.label}</span>
+                      </div>
+                      <span className={cn(
+                        'px-2 py-0.5 rounded-full text-xs font-bold',
+                        col.color,
+                        'text-white'
+                      )}>
+                        {columnLeads.length}
+                      </span>
                     </div>
-                    <span className="bg-muted px-3 py-1 rounded-full text-sm font-bold">
-                      {columnLeads.length}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
+                  </div>
 
-                {/* Scrollable Card List */}
-                <CardContent className="p-4">
-                  <div className="max-h-[400px] overflow-y-auto pr-2">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {columnLeads.map((lead) => (
-                        <Link
-                          key={lead.id}
-                          to={`/lead/${lead.id}`}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, lead.id)}
-                          className={cn(
-                            'block p-4 bg-muted/50 hover:bg-muted rounded-lg cursor-grab active:cursor-grabbing transition-all border border-transparent hover:border-primary/20 shadow-sm',
-                            draggingId === lead.id && 'opacity-50 scale-95'
-                          )}
-                        >
-                          {/* Header with avatar and name */}
-                          <div className="flex items-start gap-3 mb-3">
-                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                              <User className="w-5 h-5 text-primary" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-semibold text-sm truncate">{lead.nome?.toUpperCase()}</p>
-                              {lead.telefone && (
-                                <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                  <Phone className="w-3 h-3" />
-                                  <WhatsAppLink phone={lead.telefone} className="text-xs" />
-                                </div>
-                              )}
-                            </div>
+                  {/* Column Content - Scrollable */}
+                  <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                    {columnLeads.map((lead) => (
+                      <Link
+                        key={lead.id}
+                        to={`/lead/${lead.id}`}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, lead.id)}
+                        onDragEnd={handleDragEnd}
+                        className={cn(
+                          'block p-3 bg-background rounded-lg cursor-grab active:cursor-grabbing transition-all',
+                          'border border-border/50 hover:border-primary/30 hover:shadow-md',
+                          draggingId === lead.id && 'opacity-50 scale-95 rotate-2'
+                        )}
+                      >
+                        {/* Header with avatar and name */}
+                        <div className="flex items-start gap-2 mb-2">
+                          <div className={cn(
+                            'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
+                            col.bgLight
+                          )}>
+                            <User className={cn('w-4 h-4', col.color.replace('bg-', 'text-'))} />
                           </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-sm truncate">{lead.nome?.toUpperCase()}</p>
+                            {lead.telefone && (
+                              <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                <Phone className="w-3 h-3" />
+                                <WhatsAppLink phone={lead.telefone} className="text-xs" />
+                              </div>
+                            )}
+                          </div>
+                        </div>
 
-                          {/* Details */}
-                          <div className="space-y-1.5 text-xs">
-                            {lead.origem && (
-                              <div className="flex items-center gap-2 text-muted-foreground">
-                                <MapPin className="w-3 h-3 flex-shrink-0" />
-                                <span className="truncate">{lead.origem}</span>
-                              </div>
-                            )}
-                            {lead.atendido_por && (
-                              <div className="flex items-center gap-2 text-muted-foreground">
-                                <UserCheck className="w-3 h-3 flex-shrink-0" />
-                                <span className="truncate">{lead.atendido_por?.toUpperCase()}</span>
-                              </div>
-                            )}
+                        {/* Details */}
+                        <div className="space-y-1 text-xs">
+                          {lead.origem && (
                             <div className="flex items-center gap-2 text-muted-foreground">
-                              <CalendarIcon className="w-3 h-3 flex-shrink-0" />
-                              <span>{formatDate(lead.created_at)}</span>
+                              <MapPin className="w-3 h-3 flex-shrink-0" />
+                              <span className="truncate">{lead.origem}</span>
                             </div>
-                            {lead.proximaExperimental?.data && (
-                              <div className="flex items-center gap-2 text-primary font-medium">
-                                <Clock className="w-3 h-3 flex-shrink-0" />
-                                <span>
-                                  Exp: {formatExperimental(lead.proximaExperimental.data, lead.proximaExperimental.hora)}
-                                </span>
-                              </div>
-                            )}
+                          )}
+                          {lead.atendido_por && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <UserCheck className="w-3 h-3 flex-shrink-0" />
+                              <span className="truncate">{lead.atendido_por?.toUpperCase()}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <CalendarIcon className="w-3 h-3 flex-shrink-0" />
+                            <span>{formatDate(lead.created_at)}</span>
                           </div>
-
-                          {/* Plan badge */}
-                          {lead.plano_escolhido && (
-                            <div className="mt-3">
-                              <span className="inline-block px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
-                                {lead.plano_escolhido}
+                          {lead.proximaExperimental?.data && (
+                            <div className="flex items-center gap-2 text-primary font-medium">
+                              <Clock className="w-3 h-3 flex-shrink-0" />
+                              <span>
+                                Exp: {formatExperimental(lead.proximaExperimental.data, lead.proximaExperimental.hora)}
                               </span>
                             </div>
                           )}
-                        </Link>
-                      ))}
-                    </div>
+                        </div>
+
+                        {/* Plan badge */}
+                        {lead.plano_escolhido && (
+                          <div className="mt-2">
+                            <span className={cn(
+                              'inline-block px-2 py-0.5 text-xs rounded-full',
+                              col.bgLight,
+                              col.color.replace('bg-', 'text-')
+                            )}>
+                              {lead.plano_escolhido}
+                            </span>
+                          </div>
+                        )}
+                      </Link>
+                    ))}
+                    
+                    {/* Empty state */}
                     {columnLeads.length === 0 && (
-                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                        <div className={`w-12 h-12 ${col.color} opacity-20 rounded-full mb-3`} />
-                        <p className="text-sm">Nenhum lead nesta etapa</p>
+                      <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                        <div className={cn('w-10 h-10 rounded-full opacity-30 mb-2', col.color)} />
+                        <p className="text-xs text-center">Nenhum lead<br />nesta etapa</p>
+                      </div>
+                    )}
+                    
+                    {/* Drop indicator when dragging */}
+                    {isDropTarget && (
+                      <div className="border-2 border-dashed border-primary/50 rounded-lg p-4 text-center text-sm text-primary">
+                        Solte aqui
                       </div>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </Layout>
