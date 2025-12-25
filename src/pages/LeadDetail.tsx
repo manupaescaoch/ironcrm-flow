@@ -36,6 +36,8 @@ import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Pencil, CheckCircl
 import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { ConversionScoreCard } from '@/components/ConversionScoreCard';
+import { useConversionScore } from '@/hooks/useConversionScore';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const statusOptions: { value: StatusFunil; label: string }[] = [
@@ -151,6 +153,9 @@ export default function LeadDetail() {
   const [canEditCurrentInteracao, setCanEditCurrentInteracao] = useState(true);
   const [formData, setFormData] = useState<InteracaoForm>(initialFormState);
   const [deletingInteracao, setDeletingInteracao] = useState<string | null>(null);
+
+  // Conversion score calculation
+  const conversionScore = useConversionScore(lead, interacoes);
 
   // Permission check: admin can edit any lead, others can only edit leads they created
   const canEditLead = lead ? canEditLeadAuth(lead.created_by) : false;
@@ -517,6 +522,10 @@ export default function LeadDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Lead Edit Form */}
           <div className="lg:col-span-1 space-y-6">
+            {/* Conversion Score Card - only show for active leads not yet converted/lost */}
+            {lead.status_funil !== 'convertido' && lead.status_funil !== 'perdido' && conversionScore && (
+              <ConversionScoreCard scoreData={conversionScore} />
+            )}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

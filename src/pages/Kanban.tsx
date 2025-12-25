@@ -26,6 +26,8 @@ import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { ConversionScoreBadge } from '@/components/ConversionScoreBadge';
+import { calcularConversionScore } from '@/hooks/useConversionScore';
 import { useUnidade } from '@/contexts/UnidadeContext';
 
 const columns: { status: StatusFunil; label: string; color: string; bgLight: string }[] = [
@@ -43,6 +45,7 @@ interface LeadWithExperimental extends Lead {
     data: string | null;
     hora: string | null;
   };
+  interacoes?: Interacao[];
 }
 
 export default function Kanban() {
@@ -131,17 +134,27 @@ export default function Kanban() {
 
     const leadsArray = (leadsData as unknown as Lead[]) || [];
 
-    // Fetch the most recent interaction with experimental date for each lead
+    // Fetch ALL interactions for leads (needed for score calculation)
+    const leadIds = leadsArray.map(l => l.id);
     const { data: interacoesData } = await supabase
       .from('interacoes')
-      .select('lead_id, data_experimental, hora_experimental')
-      .not('data_experimental', 'is', null)
+      .select('*')
+      .in('lead_id', leadIds)
       .order('data_interacao', { ascending: false });
 
-    // Create a map of lead_id to the most recent experimental data
+    // Create a map of lead_id to interactions array
+    const interacoesMap = new Map<string, Interacao[]>();
     const experimentalMap = new Map<string, { data: string | null; hora: string | null }>();
+    
     if (interacoesData) {
       (interacoesData as unknown as Interacao[]).forEach((int) => {
+        // Build interactions array per lead
+        if (!interacoesMap.has(int.lead_id)) {
+          interacoesMap.set(int.lead_id, []);
+        }
+        interacoesMap.get(int.lead_id)!.push(int);
+        
+        // Track experimental data (first found = most recent)
         if (!experimentalMap.has(int.lead_id) && int.data_experimental) {
           experimentalMap.set(int.lead_id, {
             data: int.data_experimental,
@@ -151,10 +164,11 @@ export default function Kanban() {
       });
     }
 
-    // Merge leads with experimental data
+    // Merge leads with experimental data and interactions
     const leadsWithExperimental: LeadWithExperimental[] = leadsArray.map((lead) => ({
       ...lead,
       proximaExperimental: experimentalMap.get(lead.id),
+      interacoes: interacoesMap.get(lead.id) || [],
     }));
 
     setLeads(leadsWithExperimental);
@@ -511,6 +525,15 @@ export default function Kanban() {
                             </div>
                           )}
                         </div>
+
+                        {/* Conversion Score */}
+                        {lead.status_funil !== 'convertido' && lead.status_funil !== 'perdido' && (
+                          <div className="mt-2 pt-2 border-t border-border/30">
+                            <ConversionScoreBadge 
+                              scoreData={calcularConversionScore(lead, lead.interacoes || [])} 
+                            />
+                          </div>
+                        )}
 
                         {/* Plan badge */}
                         {lead.plano_escolhido && (
