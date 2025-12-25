@@ -78,7 +78,7 @@ export default function Indicacoes() {
       if (!unidadeAtual) return [];
       const { data, error } = await supabase
         .from('interacoes')
-        .select('id, quem_indicou, fechou_matricula')
+        .select('id, lead_id, quem_indicou, fechou_matricula')
         .eq('unidade_id', unidadeAtual.id)
         .not('quem_indicou', 'is', null)
         .neq('quem_indicou', '');
@@ -135,27 +135,28 @@ export default function Indicacoes() {
     enabled: !!unidadeAtual,
   });
 
-  // Global metrics (not affected by filter)
+  // Global metrics (not affected by filter) - count unique leads
   const totalIndicacoesCRM = allIndicacoes.length;
-  const indicacoesConfirmadasCRM = allIndicacoes.filter(i => i.fechou_matricula).length;
+  const indicacoesConfirmadasCRM = new Set(allIndicacoes.filter(i => i.fechou_matricula).map(i => i.lead_id)).size;
 
-  // Period metrics (affected by filter)
+  // Period metrics (affected by filter) - count unique leads
   const totalIndicacoesPeriodo = indicacoes.length;
-  const indicacoesConfirmadasPeriodo = indicacoes.filter(i => i.fechou_matricula).length;
+  const indicacoesConfirmadasPeriodo = new Set(indicacoes.filter(i => i.fechou_matricula).map(i => i.lead_id)).size;
 
-  // Group by quem_indicou for summary
+  // Group by quem_indicou for summary - count unique leads
   const indicadoresSummary = useMemo(() => {
-    const summary: Record<string, { total: number; confirmadas: number }> = {};
+    const summary: Record<string, { totalSet: Set<string>; confirmadasSet: Set<string> }> = {};
     indicacoes.forEach(ind => {
       if (!summary[ind.quem_indicou]) {
-        summary[ind.quem_indicou] = { total: 0, confirmadas: 0 };
+        summary[ind.quem_indicou] = { totalSet: new Set(), confirmadasSet: new Set() };
       }
-      summary[ind.quem_indicou].total++;
+      summary[ind.quem_indicou].totalSet.add(ind.lead_id);
       if (ind.fechou_matricula) {
-        summary[ind.quem_indicou].confirmadas++;
+        summary[ind.quem_indicou].confirmadasSet.add(ind.lead_id);
       }
     });
     return Object.entries(summary)
+      .map(([name, data]) => [name, { total: data.totalSet.size, confirmadas: data.confirmadasSet.size }] as [string, { total: number; confirmadas: number }])
       .sort((a, b) => b[1].total - a[1].total)
       .slice(0, 5);
   }, [indicacoes]);

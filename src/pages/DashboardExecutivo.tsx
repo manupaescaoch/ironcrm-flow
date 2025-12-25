@@ -201,26 +201,28 @@ export default function DashboardExecutivo() {
 
   // ==================== ORIGEM DOS LEADS ====================
   const origemData = useMemo(() => {
-    const grouped = new Map<string, { leads: number; matriculas: number }>();
+    const grouped = new Map<string, { leads: number; matriculasSet: Set<string> }>();
     
     leads.forEach(lead => {
       const origem = padronizarOrigem(lead.origem);
-      const current = grouped.get(origem) || { leads: 0, matriculas: 0 };
+      const current = grouped.get(origem) || { leads: 0, matriculasSet: new Set() };
       grouped.set(origem, { ...current, leads: current.leads + 1 });
     });
 
+    // Count unique leads that enrolled per origin
     interacoes.filter(i => i.fechou_matricula === true).forEach(int => {
       const lead = leads.find(l => l.id === int.lead_id);
       const origem = padronizarOrigem(lead?.origem);
-      const current = grouped.get(origem) || { leads: 0, matriculas: 0 };
-      grouped.set(origem, { ...current, matriculas: current.matriculas + 1 });
+      const current = grouped.get(origem) || { leads: 0, matriculasSet: new Set() };
+      current.matriculasSet.add(int.lead_id);
+      grouped.set(origem, current);
     });
 
     return Array.from(grouped.entries()).map(([origem, data]) => ({
       origem,
       leads: data.leads,
-      matriculas: data.matriculas,
-      conversao: data.leads > 0 ? (data.matriculas / data.leads) * 100 : 0,
+      matriculas: data.matriculasSet.size,
+      conversao: data.leads > 0 ? (data.matriculasSet.size / data.leads) * 100 : 0,
     })).sort((a, b) => b.leads - a.leads);
   }, [leads, interacoes]);
 
