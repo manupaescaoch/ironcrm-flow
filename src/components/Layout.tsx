@@ -1,4 +1,4 @@
-import { ReactNode, useMemo } from 'react';
+import { ReactNode, useMemo, forwardRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnidade } from '@/contexts/UnidadeContext';
@@ -40,7 +40,7 @@ const allNavItems = [
   { href: '/admin-users', label: 'Usuários', icon: Settings, roles: ['admin'] },
 ];
 
-export function Layout({ children }: LayoutProps) {
+export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ children }, ref) {
   const { signOut, user, userRole } = useAuth();
   const { unidadeAtual, unidadesPermitidas, setUnidadeAtual, hasMultipleUnidades, loading: unidadeLoading } = useUnidade();
   const location = useLocation();
@@ -61,7 +61,7 @@ export function Layout({ children }: LayoutProps) {
   }, [userRole]);
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div ref={ref} className="min-h-screen bg-background flex">
       {/* Sidebar */}
       <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
         <div className="p-6 border-b border-sidebar-border">
@@ -181,4 +181,4 @@ export function Layout({ children }: LayoutProps) {
       </main>
     </div>
   );
-}
+});
