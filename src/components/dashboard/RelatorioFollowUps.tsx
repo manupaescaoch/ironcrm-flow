@@ -82,19 +82,29 @@ export function RelatorioFollowUps({ onTipoClick }: RelatorioFollowUpsProps) {
     followUps?.forEach((fu: any) => {
       const tipo = fu.tipo;
       if (!statsMap[tipo]) return;
+      
+      // Excluir leads convertidos ou perdidos da contagem de pendentes
+      const leadStatus = fu.leads?.status_funil;
+      const isLeadFinalizado = ['convertido', 'perdido'].includes(leadStatus);
 
       statsMap[tipo].total++;
       
       if (fu.status === 'concluido') {
         statsMap[tipo].concluidos++;
         // Check if lead converted
-        if (fu.leads?.status_funil === 'convertido') {
+        if (leadStatus === 'convertido') {
           statsMap[tipo].conversoes++;
         }
       } else if (fu.status === 'cancelado') {
         statsMap[tipo].cancelados++;
       } else {
-        statsMap[tipo].pendentes++;
+        // Só conta como pendente se o lead não estiver convertido/perdido
+        if (!isLeadFinalizado) {
+          statsMap[tipo].pendentes++;
+        } else {
+          // Lead convertido/perdido com follow-up pendente = considerar cancelado
+          statsMap[tipo].cancelados++;
+        }
       }
     });
 
