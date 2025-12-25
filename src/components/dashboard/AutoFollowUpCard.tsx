@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { MessageCircle, AlertTriangle, Clock, XCircle, CheckCircle, Info, Phone, Eye, CalendarDays, Zap } from 'lucide-react';
+import { MessageCircle, AlertTriangle, Clock, XCircle, CheckCircle, Info, Phone, Eye, CalendarDays, Zap, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -37,6 +37,8 @@ export interface FollowUpAutoItem {
 interface AutoFollowUpCardProps {
   items: FollowUpAutoItem[];
   onRefresh: () => void;
+  tipoFilter?: string | null;
+  onClearFilter?: () => void;
 }
 
 // Mensagens prontas por estágio
@@ -79,7 +81,7 @@ const TIPO_LABELS: Record<string, { label: string; color: string; bgColor: strin
   'D+30': { label: 'D+30', color: 'text-red-700', bgColor: 'bg-red-100' },
 };
 
-export function AutoFollowUpCard({ items, onRefresh }: AutoFollowUpCardProps) {
+export function AutoFollowUpCard({ items, onRefresh, tipoFilter, onClearFilter }: AutoFollowUpCardProps) {
   const navigate = useNavigate();
   const { userName } = useAuth();
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -87,6 +89,11 @@ export function AutoFollowUpCard({ items, onRefresh }: AutoFollowUpCardProps) {
   const [selectedItem, setSelectedItem] = useState<FollowUpAutoItem | null>(null);
   const [selectedReason, setSelectedReason] = useState('preco');
   const [loading, setLoading] = useState(false);
+
+  // Filter items by tipo if filter is set
+  const filteredItems = tipoFilter 
+    ? items.filter(item => item.tipo === tipoFilter)
+    : items;
 
   const getTimeInfo = (item: FollowUpAutoItem) => {
     try {
@@ -216,7 +223,7 @@ export function AutoFollowUpCard({ items, onRefresh }: AutoFollowUpCardProps) {
   };
 
   // Ordenar: D+1 primeiro, depois atrasados, depois por data prevista
-  const sortedItems = [...items].sort((a, b) => {
+  const sortedItems = [...filteredItems].sort((a, b) => {
     const aInfo = getTimeInfo(a);
     const bInfo = getTimeInfo(b);
     
@@ -231,8 +238,8 @@ export function AutoFollowUpCard({ items, onRefresh }: AutoFollowUpCardProps) {
     return new Date(a.data_prevista).getTime() - new Date(b.data_prevista).getTime();
   });
 
-  const lateCount = items.filter(i => getTimeInfo(i).isLate).length;
-  const d1Count = items.filter(i => i.tipo === 'D+1').length;
+  const lateCount = filteredItems.filter(i => getTimeInfo(i).isLate).length;
+  const d1Count = filteredItems.filter(i => i.tipo === 'D+1').length;
 
   return (
     <Card className="col-span-full">
@@ -242,6 +249,17 @@ export function AutoFollowUpCard({ items, onRefresh }: AutoFollowUpCardProps) {
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <CalendarDays className="w-5 h-5 text-indigo-500" />
               Follow-Ups Automáticos
+              {tipoFilter && (
+                <Badge className="ml-2 bg-primary text-primary-foreground">
+                  Filtro: {tipoFilter}
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onClearFilter?.(); }}
+                    className="ml-1 hover:bg-primary-foreground/20 rounded-full p-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              )}
             </CardTitle>
             <TooltipProvider>
               <Tooltip>
@@ -261,7 +279,7 @@ export function AutoFollowUpCard({ items, onRefresh }: AutoFollowUpCardProps) {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {d1Count > 0 && (
+          {d1Count > 0 && !tipoFilter && (
             <Badge variant="outline" className="border-emerald-500 text-emerald-600 bg-emerald-50 animate-pulse">
               <Zap className="w-3 h-3 mr-1" />
               {d1Count} D+1 prioritário{d1Count !== 1 ? 's' : ''}
@@ -276,12 +294,12 @@ export function AutoFollowUpCard({ items, onRefresh }: AutoFollowUpCardProps) {
             variant="outline" 
             className={cn(
               "text-sm font-medium",
-              items.length >= 4 ? "border-red-500 text-red-600 bg-red-50" :
-              items.length >= 1 ? "border-orange-500 text-orange-600 bg-orange-50" :
+              filteredItems.length >= 4 ? "border-red-500 text-red-600 bg-red-50" :
+              filteredItems.length >= 1 ? "border-orange-500 text-orange-600 bg-orange-50" :
               "border-green-500 text-green-600 bg-green-50"
             )}
           >
-            {items.length} pendente{items.length !== 1 ? 's' : ''}
+            {filteredItems.length} pendente{filteredItems.length !== 1 ? 's' : ''}
           </Badge>
         </div>
       </CardHeader>
@@ -289,7 +307,16 @@ export function AutoFollowUpCard({ items, onRefresh }: AutoFollowUpCardProps) {
         {sortedItems.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <CheckCircle className="w-12 h-12 mx-auto mb-4 opacity-50 text-green-500" />
-            <p>Nenhum follow-up automático pendente.</p>
+            <p>
+              {tipoFilter 
+                ? `Nenhum follow-up ${tipoFilter} pendente.` 
+                : 'Nenhum follow-up automático pendente.'}
+            </p>
+            {tipoFilter && onClearFilter && (
+              <Button variant="link" onClick={onClearFilter} className="mt-2">
+                Ver todos os follow-ups
+              </Button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
