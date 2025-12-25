@@ -195,7 +195,7 @@ export default function Comissoes() {
 
   // Group by cadastrador (who registered the lead) - gets 3%
   const comissoesCadastrador = useMemo(() => {
-    const grouped = new Map<string, { matriculas: number; comissao: number }>();
+    const grouped = new Map<string, { leadsSet: Set<string>; comissao: number }>();
 
     filteredInteracoes.forEach((int) => {
       const comissao = int.comissao_comercial || 0;
@@ -210,24 +210,24 @@ export default function Comissoes() {
       // Skip if excluded
       if (deveExcluirResponsavel(cadastrador)) return;
       
-      const current = grouped.get(cadastrador) || { matriculas: 0, comissao: 0 };
-      grouped.set(cadastrador, {
-        matriculas: current.matriculas + 1,
-        comissao: current.comissao + comissao,
-      });
+      const current = grouped.get(cadastrador) || { leadsSet: new Set(), comissao: 0 };
+      current.leadsSet.add(int.lead_id);
+      current.comissao += comissao;
+      grouped.set(cadastrador, current);
     });
 
     return Array.from(grouped.entries())
       .map(([responsavel, data]) => ({
         responsavel,
-        ...data,
+        matriculas: data.leadsSet.size,
+        comissao: data.comissao,
       }))
       .sort((a, b) => b.comissao - a.comissao);
   }, [filteredInteracoes]);
 
   // Group by fechador (responsavel_fechamento) - gets 2%
   const comissoesFechador = useMemo(() => {
-    const grouped = new Map<string, { matriculas: number; comissao: number }>();
+    const grouped = new Map<string, { leadsSet: Set<string>; comissao: number }>();
 
     filteredInteracoes.forEach((int) => {
       const comissao = int.comissao_recepcao || 0;
@@ -241,17 +241,17 @@ export default function Comissoes() {
       // Skip if excluded
       if (deveExcluirResponsavel(responsavel)) return;
       
-      const current = grouped.get(responsavel) || { matriculas: 0, comissao: 0 };
-      grouped.set(responsavel, {
-        matriculas: current.matriculas + 1,
-        comissao: current.comissao + comissao,
-      });
+      const current = grouped.get(responsavel) || { leadsSet: new Set(), comissao: 0 };
+      current.leadsSet.add(int.lead_id);
+      current.comissao += comissao;
+      grouped.set(responsavel, current);
     });
 
     return Array.from(grouped.entries())
       .map(([responsavel, data]) => ({
         responsavel,
-        ...data,
+        matriculas: data.leadsSet.size,
+        comissao: data.comissao,
       }))
       .sort((a, b) => b.comissao - a.comissao);
   }, [filteredInteracoes]);
