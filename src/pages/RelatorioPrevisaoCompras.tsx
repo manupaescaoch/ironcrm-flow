@@ -30,7 +30,7 @@ import autoTable from 'jspdf-autotable';
 
 type PeriodoFiltro = 7 | 14 | 30;
 
-type StatusEstoque = 'Normal' | 'Atenção' | 'Crítico' | 'Ruptura';
+type StatusEstoque = 'Normal' | 'Atenção' | 'Crítico' | 'Sem Estoque';
 
 type Insumo = {
   id: string;
@@ -80,8 +80,8 @@ function calcularStatusPreditivo(
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
 
-  if (quantidadeAtual === 0) return 'Ruptura';
-  if (dataRuptura && hoje > dataRuptura) return 'Ruptura';
+  if (quantidadeAtual === 0) return 'Sem Estoque';
+  if (dataRuptura && hoje > dataRuptura) return 'Sem Estoque';
   if (dataLimitePedido && hoje >= dataLimitePedido) return 'Crítico';
   if (quantidadeAtual <= pontoPedido) return 'Atenção';
   return 'Normal';
@@ -183,7 +183,7 @@ export default function RelatorioPrevisaoCompras() {
       
       // Urgência
       let urgencia: 'imediata' | 'alta' | 'media' | 'baixa' = 'baixa';
-      if (status_estoque === 'Ruptura') urgencia = 'imediata';
+      if (status_estoque === 'Sem Estoque') urgencia = 'imediata';
       else if (status_estoque === 'Crítico') urgencia = 'imediata';
       else if (dias_para_pedir !== null && dias_para_pedir <= 3) urgencia = 'alta';
       else if (dias_para_pedir !== null && dias_para_pedir <= 7) urgencia = 'media';
@@ -212,7 +212,7 @@ export default function RelatorioPrevisaoCompras() {
         // 1. Está em ruptura
         // 2. Está crítico
         // 3. Data limite de pedido está dentro do período
-        if (item.status_estoque === 'Ruptura' || item.status_estoque === 'Crítico') return true;
+        if (item.status_estoque === 'Sem Estoque' || item.status_estoque === 'Crítico') return true;
         if (item.dias_para_pedir !== null && item.dias_para_pedir <= periodoFiltro) return true;
         return false;
       })
@@ -259,8 +259,8 @@ export default function RelatorioPrevisaoCompras() {
 
   const getStatusBadge = (status: StatusEstoque) => {
     switch (status) {
-      case 'Ruptura':
-        return <Badge className="bg-black text-white">Ruptura</Badge>;
+      case 'Sem Estoque':
+        return <Badge className="bg-black text-white">Sem Estoque</Badge>;
       case 'Crítico':
         return <Badge className="bg-destructive text-destructive-foreground">Crítico</Badge>;
       case 'Atenção':
@@ -513,8 +513,8 @@ export default function RelatorioPrevisaoCompras() {
                           <TableCell className="text-center">{getStatusBadge(item.status_estoque)}</TableCell>
                           <TableCell className="text-center">
                             <span className={`font-bold ${
-                              item.status_estoque === 'Ruptura' ? 'text-black' :
-                              item.status_estoque === 'Crítico' ? 'text-destructive' : 
+                              item.status_estoque === 'Sem Estoque' ? 'text-black' :
+                              item.status_estoque === 'Crítico' ? 'text-destructive' :
                               item.status_estoque === 'Atenção' ? 'text-warning' : ''
                             }`}>
                               {item.quantidade_atual}
