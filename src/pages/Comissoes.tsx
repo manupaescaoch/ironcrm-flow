@@ -334,7 +334,7 @@ export default function Comissoes() {
 
   // Group by treinador responsável pelo fechamento with bonus calculation
   const bonusTreinadores = useMemo(() => {
-    const grouped = new Map<string, { aulas: number; matriculas: number; faturamento: number }>();
+    const grouped = new Map<string, { aulasSet: Set<string>; matriculasSet: Set<string>; faturamento: number }>();
 
     // Only consider interactions with a valid trainer assigned
     filteredInteracoes.forEach((int) => {
@@ -345,16 +345,16 @@ export default function Comissoes() {
       if (deveExcluirResponsavel(treinadorOriginal)) return;
       
       const treinador = padronizarTreinador(treinadorOriginal!);
-      const current = grouped.get(treinador) || { aulas: 0, matriculas: 0, faturamento: 0 };
+      const current = grouped.get(treinador) || { aulasSet: new Set(), matriculasSet: new Set(), faturamento: 0 };
       
-      // Count experimental classes given (compareceu = true)
+      // Track unique leads for experimental classes given (compareceu = true)
       if (int.compareceu) {
-        current.aulas += 1;
+        current.aulasSet.add(int.lead_id);
       }
       
-      // Count matriculas generated (fechou_matricula = true)
+      // Track unique leads for matriculas generated (fechou_matricula = true)
       if (int.fechou_matricula) {
-        current.matriculas += 1;
+        current.matriculasSet.add(int.lead_id);
         current.faturamento += (int.valor_plano || 0);
       }
 
@@ -363,7 +363,9 @@ export default function Comissoes() {
 
     return Array.from(grouped.entries())
       .map(([treinador, data]) => {
-        const { aulas, matriculas, faturamento } = data;
+        const aulas = data.aulasSet.size;
+        const matriculas = data.matriculasSet.size;
+        const faturamento = data.faturamento;
         const conversao = aulas > 0 ? (matriculas / aulas) * 100 : 0;
         
         // Bonus calculation (igual ao Dashboard Executivo)

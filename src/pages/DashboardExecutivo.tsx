@@ -111,9 +111,15 @@ export default function DashboardExecutivo() {
   // ==================== TOP CARDS ====================
   const topCards = useMemo(() => {
     const leadsDoMes = leads.length;
-    const agendamentos = interacoes.filter(i => i.agendou_experimental === true).length;
-    const comparecimentos = interacoes.filter(i => i.compareceu === true).length;
-    const matriculas = interacoes.filter(i => i.fechou_matricula === true).length;
+    
+    // Count unique leads for each metric
+    const agendamentosSet = new Set(interacoes.filter(i => i.agendou_experimental === true).map(i => i.lead_id));
+    const comparecimentosSet = new Set(interacoes.filter(i => i.compareceu === true).map(i => i.lead_id));
+    const matriculasSet = new Set(interacoes.filter(i => i.fechou_matricula === true).map(i => i.lead_id));
+    
+    const agendamentos = agendamentosSet.size;
+    const comparecimentos = comparecimentosSet.size;
+    const matriculas = matriculasSet.size;
     const taxaConversao = comparecimentos > 0 ? (matriculas / comparecimentos) * 100 : 0;
 
     return { leadsDoMes, agendamentos, comparecimentos, matriculas, taxaConversao };
@@ -122,10 +128,17 @@ export default function DashboardExecutivo() {
   // ==================== FUNIL EXECUTIVO ====================
   const funilExecutivo = useMemo(() => {
     const leadsTotal = leads.length;
-    const contatoFeito = interacoes.filter(i => i.atendido_por).length;
-    const agendamentos = interacoes.filter(i => i.agendou_experimental === true).length;
-    const comparecimentos = interacoes.filter(i => i.compareceu === true).length;
-    const matriculas = interacoes.filter(i => i.fechou_matricula === true).length;
+    
+    // Count unique leads for each funnel stage
+    const contatoFeitoSet = new Set(interacoes.filter(i => i.atendido_por).map(i => i.lead_id));
+    const agendamentosSet = new Set(interacoes.filter(i => i.agendou_experimental === true).map(i => i.lead_id));
+    const comparecimentosSet = new Set(interacoes.filter(i => i.compareceu === true).map(i => i.lead_id));
+    const matriculasSet = new Set(interacoes.filter(i => i.fechou_matricula === true).map(i => i.lead_id));
+    
+    const contatoFeito = contatoFeitoSet.size;
+    const agendamentos = agendamentosSet.size;
+    const comparecimentos = comparecimentosSet.size;
+    const matriculas = matriculasSet.size;
 
     return [
       { etapa: 'Leads', quantidade: leadsTotal, conversao: null },
@@ -318,29 +331,30 @@ export default function DashboardExecutivo() {
 
   // ==================== PERFORMANCE POR CADASTRADOR ====================
   const performanceCadastrador = useMemo(() => {
-    const grouped = new Map<string, { leads: number; agendamentos: number; matriculas: number }>();
+    const grouped = new Map<string, { leadsSet: Set<string>; agendamentosSet: Set<string>; matriculasSet: Set<string> }>();
 
     interacoes.forEach(int => {
       const cadastradorOriginal = int.cadastrado_por || '';
       if (!cadastradorOriginal || deveExcluirResponsavel(cadastradorOriginal)) return;
       
       const cadastrador = padronizarResponsavel(cadastradorOriginal);
-      const current = grouped.get(cadastrador) || { leads: 0, agendamentos: 0, matriculas: 0 };
+      const current = grouped.get(cadastrador) || { leadsSet: new Set(), agendamentosSet: new Set(), matriculasSet: new Set() };
       
-      // Count leads (any interaction counts as a lead contact)
-      grouped.set(cadastrador, { 
-        ...current, 
-        leads: current.leads + 1,
-        agendamentos: current.agendamentos + (int.agendou_experimental ? 1 : 0),
-        matriculas: current.matriculas + (int.fechou_matricula ? 1 : 0)
-      });
+      // Track unique leads per cadastrador
+      current.leadsSet.add(int.lead_id);
+      if (int.agendou_experimental) current.agendamentosSet.add(int.lead_id);
+      if (int.fechou_matricula) current.matriculasSet.add(int.lead_id);
+      
+      grouped.set(cadastrador, current);
     });
 
     return Array.from(grouped.entries())
       .map(([cadastrador, data]) => ({
         cadastrador,
-        ...data,
-        conversao: data.agendamentos > 0 ? (data.matriculas / data.agendamentos) * 100 : 0,
+        leads: data.leadsSet.size,
+        agendamentos: data.agendamentosSet.size,
+        matriculas: data.matriculasSet.size,
+        conversao: data.agendamentosSet.size > 0 ? (data.matriculasSet.size / data.agendamentosSet.size) * 100 : 0,
       }))
       .filter(r => r.leads > 0 || r.agendamentos > 0 || r.matriculas > 0)
       .sort((a, b) => b.matriculas - a.matriculas);
@@ -348,7 +362,7 @@ export default function DashboardExecutivo() {
 
   // ==================== PERFORMANCE POR FECHADOR ====================
   const performanceFechador = useMemo(() => {
-    const grouped = new Map<string, { atendimentos: number; comparecimentos: number; matriculas: number; valorTotal: number }>();
+    const grouped = new Map<string, { comparecimentosSet: Set<string>; matriculasSet: Set<string>; valorTotal: number }>();
 
     interacoes.forEach(int => {
       // Fechador é quem fechou a matrícula (responsavel_fechamento)
@@ -357,33 +371,32 @@ export default function DashboardExecutivo() {
         if (!fechadorOriginal || deveExcluirResponsavel(fechadorOriginal)) return;
         
         const fechador = padronizarResponsavel(fechadorOriginal);
-        const current = grouped.get(fechador) || { atendimentos: 0, comparecimentos: 0, matriculas: 0, valorTotal: 0 };
-        grouped.set(fechador, { 
-          ...current, 
-          matriculas: current.matriculas + 1,
-          valorTotal: current.valorTotal + (int.valor_plano || 0)
-        });
+        const current = grouped.get(fechador) || { comparecimentosSet: new Set(), matriculasSet: new Set(), valorTotal: 0 };
+        current.matriculasSet.add(int.lead_id);
+        current.valorTotal += (int.valor_plano || 0);
+        grouped.set(fechador, current);
       }
       
-      // Contabilizar atendimentos e comparecimentos
+      // Contabilizar comparecimentos
       if (int.compareceu) {
         const atendidoOriginal = int.atendido_por || '';
         if (!atendidoOriginal || deveExcluirResponsavel(atendidoOriginal)) return;
         
         const atendido = padronizarResponsavel(atendidoOriginal);
-        const current = grouped.get(atendido) || { atendimentos: 0, comparecimentos: 0, matriculas: 0, valorTotal: 0 };
-        grouped.set(atendido, { 
-          ...current, 
-          comparecimentos: current.comparecimentos + 1
-        });
+        const current = grouped.get(atendido) || { comparecimentosSet: new Set(), matriculasSet: new Set(), valorTotal: 0 };
+        current.comparecimentosSet.add(int.lead_id);
+        grouped.set(atendido, current);
       }
     });
 
     return Array.from(grouped.entries())
       .map(([fechador, data]) => ({
         fechador,
-        ...data,
-        conversao: data.comparecimentos > 0 ? (data.matriculas / data.comparecimentos) * 100 : 0,
+        atendimentos: 0,
+        comparecimentos: data.comparecimentosSet.size,
+        matriculas: data.matriculasSet.size,
+        valorTotal: data.valorTotal,
+        conversao: data.comparecimentosSet.size > 0 ? (data.matriculasSet.size / data.comparecimentosSet.size) * 100 : 0,
       }))
       .filter(r => r.comparecimentos > 0 || r.matriculas > 0)
       .sort((a, b) => b.matriculas - a.matriculas);
@@ -412,7 +425,7 @@ export default function DashboardExecutivo() {
 
   // ==================== PERFORMANCE TREINADORES ====================
   const performanceTreinadores = useMemo(() => {
-    const grouped = new Map<string, { aulas: number; matriculas: number }>();
+    const grouped = new Map<string, { aulasSet: Set<string>; matriculasSet: Set<string> }>();
 
     interacoes.forEach(int => {
       const treinadorOriginal = int.treinador_responsavel;
@@ -422,16 +435,16 @@ export default function DashboardExecutivo() {
       if (deveExcluirResponsavel(treinadorOriginal)) return;
       
       const treinador = padronizarTreinador(treinadorOriginal);
-      const current = grouped.get(treinador) || { aulas: 0, matriculas: 0 };
+      const current = grouped.get(treinador) || { aulasSet: new Set(), matriculasSet: new Set() };
       
-      // Count experimental classes given
+      // Track unique leads for experimental classes given
       if (int.compareceu) {
-        current.aulas += 1;
+        current.aulasSet.add(int.lead_id);
       }
       
-      // Count matriculas generated
+      // Track unique leads for matriculas generated
       if (int.fechou_matricula) {
-        current.matriculas += 1;
+        current.matriculasSet.add(int.lead_id);
       }
 
       grouped.set(treinador, current);
@@ -439,7 +452,8 @@ export default function DashboardExecutivo() {
 
     return Array.from(grouped.entries())
       .map(([treinador, data]) => {
-        const { aulas, matriculas } = data;
+        const aulas = data.aulasSet.size;
+        const matriculas = data.matriculasSet.size;
         const conversao = aulas > 0 ? (matriculas / aulas) * 100 : 0;
         
         // Bonus calculation
@@ -460,9 +474,11 @@ export default function DashboardExecutivo() {
   // ==================== RESUMO FINAL ====================
   const resumoFinal = useMemo(() => {
     const totalLeads = leads.length;
-    const totalAgendamentos = interacoes.filter(i => i.agendou_experimental === true).length;
-    const totalComparecimentos = interacoes.filter(i => i.compareceu === true).length;
-    const totalMatriculas = interacoes.filter(i => i.fechou_matricula === true).length;
+    
+    // Count unique leads for summary
+    const totalAgendamentos = new Set(interacoes.filter(i => i.agendou_experimental === true).map(i => i.lead_id)).size;
+    const totalComparecimentos = new Set(interacoes.filter(i => i.compareceu === true).map(i => i.lead_id)).size;
+    const totalMatriculas = new Set(interacoes.filter(i => i.fechou_matricula === true).map(i => i.lead_id)).size;
     const conversaoGeral = totalComparecimentos > 0 ? (totalMatriculas / totalComparecimentos) * 100 : 0;
     const mediaNoShow = agendaPresenca.mediaNoShow;
 
