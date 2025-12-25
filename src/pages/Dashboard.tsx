@@ -148,18 +148,21 @@ export default function Dashboard() {
       .gte('data_experimental', startDateStr)
       .lte('data_experimental', endDateStr);
 
-    // Fetch matriculas count for period
-    const { count: matriculasCount } = await supabase
+    // Fetch matriculas count for period - counting unique leads only
+    const { data: matriculasData } = await supabase
       .from('interacoes')
-      .select('*', { count: 'exact', head: true })
+      .select('lead_id')
       .eq('fechou_matricula', true)
       .eq('unidade_id', unidadeAtual.id)
       .gte('data_fechamento', startDateStr)
       .lte('data_fechamento', endDateStr);
 
+    // Count unique leads that enrolled
+    const leadsUnicosMatriculados = new Set(matriculasData?.map(m => m.lead_id) || []);
+
     setPeriodStats({
       experimentaisPeriodo: experimentaisCount || 0,
-      matriculasPeriodo: matriculasCount || 0,
+      matriculasPeriodo: leadsUnicosMatriculados.size,
     });
   }, [startDate, endDate, unidadeAtual]);
 
