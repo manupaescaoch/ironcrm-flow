@@ -178,7 +178,9 @@ export type Database = {
           categoria: string
           codigo_insumo: string
           created_at: string
+          estoque_seguranca_dias: number
           id: string
+          lead_time_dias: number
           nome_insumo: string
           quantidade_minima: number
           unidade_id: string | null
@@ -190,7 +192,9 @@ export type Database = {
           categoria: string
           codigo_insumo: string
           created_at?: string
+          estoque_seguranca_dias?: number
           id?: string
+          lead_time_dias?: number
           nome_insumo: string
           quantidade_minima?: number
           unidade_id?: string | null
@@ -202,7 +206,9 @@ export type Database = {
           categoria?: string
           codigo_insumo?: string
           created_at?: string
+          estoque_seguranca_dias?: number
           id?: string
+          lead_time_dias?: number
           nome_insumo?: string
           quantidade_minima?: number
           unidade_id?: string | null
