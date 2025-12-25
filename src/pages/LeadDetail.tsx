@@ -381,6 +381,15 @@ export default function LeadDetail() {
     if (leadError) {
       toast({ title: 'Erro ao atualizar status do lead', variant: 'destructive' });
     } else {
+      // Se fechou matrícula (convertido), cancelar todos os follow-ups pendentes
+      if (formData.fechou_matricula) {
+        await supabase
+          .from('follow_ups')
+          .update({ status: 'cancelado' })
+          .eq('lead_id', id)
+          .eq('status', 'pendente');
+      }
+      
       toast({ title: isEditing ? 'Interação atualizada!' : 'Interação adicionada!' });
       setFormData(initialFormState);
       setSheetOpen(false);
