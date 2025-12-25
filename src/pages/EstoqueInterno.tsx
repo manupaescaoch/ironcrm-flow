@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Package, AlertTriangle, AlertCircle, Clock, Plus, Minus, Settings, PackagePlus, Pencil, Search, X, Trash2, TrendingUp, Skull, Info, ShoppingCart } from 'lucide-react';
+import { Package, AlertTriangle, AlertCircle, Clock, Plus, Minus, Settings, PackagePlus, Pencil, Search, X, Trash2, TrendingUp, Skull, Info, ShoppingCart, DollarSign } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
@@ -545,6 +545,10 @@ export default function EstoqueInterno() {
               <p className="text-muted-foreground">{unidadeAtual?.nome || 'Selecione uma unidade'}</p>
             </div>
             <div className="flex gap-2">
+              <Button variant="outline" onClick={() => navigate('/estoque/financeiro')}>
+                <DollarSign className="w-4 h-4 mr-2" />
+                Visão Financeira
+              </Button>
               <Button variant="outline" onClick={() => navigate('/estoque/previsao-compras')}>
                 <ShoppingCart className="w-4 h-4 mr-2" />
                 Previsão de Compras
