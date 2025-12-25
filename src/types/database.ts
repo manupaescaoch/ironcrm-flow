@@ -38,6 +38,9 @@ export interface Lead {
   follow_up_whatsapp_enviado: boolean;
   follow_up_enviado_em: string | null;
   follow_up_responsavel: string | null;
+  // Motivo de perda fields
+  motivo_perda: string | null;
+  data_perda: string | null;
 }
 
 export type StatusAvaliacao = 'agendada' | 'realizada' | 'faltou' | 'reagendada';

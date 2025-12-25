@@ -341,6 +341,8 @@ export default function Dashboard() {
         follow_up_whatsapp_enviado: false,
         follow_up_enviado_em: null,
         follow_up_responsavel: null,
+        motivo_perda: null,
+        data_perda: null,
       };
       
       const interacao: Interacao = {
@@ -481,6 +483,8 @@ export default function Dashboard() {
         follow_up_whatsapp_enviado: interacaoData.leads.follow_up_whatsapp_enviado || false,
         follow_up_enviado_em: interacaoData.leads.follow_up_enviado_em,
         follow_up_responsavel: interacaoData.leads.follow_up_responsavel,
+        motivo_perda: interacaoData.leads.motivo_perda,
+        data_perda: interacaoData.leads.data_perda,
       };
 
       const interacao: Interacao = {
