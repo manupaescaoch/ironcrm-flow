@@ -16,10 +16,17 @@ import {
   Building2,
   Gift,
   Package,
-  CalendarDays
+  CalendarDays,
+  Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/logo.png';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface LayoutProps {
   children: ReactNode;
@@ -139,6 +146,7 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
             const Icon = item.icon;
             const isActive = location.pathname === item.href || 
               (item.href === '/relatorio-gerencial' && location.pathname === '/relatorio-gerencial-zn');
+            const isAdminOnly = item.roles.length === 1 && item.roles[0] === 'admin';
             return (
               <Link
                 key={item.href}
@@ -151,7 +159,19 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
                 )}
               >
                 <Icon className="w-5 h-5" />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {isAdminOnly && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Shield className="w-3.5 h-3.5 text-amber-500" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Restrito a administradores</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </Link>
             );
           })}
