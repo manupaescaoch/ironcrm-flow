@@ -33,19 +33,21 @@ interface LayoutProps {
   children: ReactNode;
 }
 
+const MASTER_ADMIN_EMAIL = 'emanuel.paes@gmail.com';
+
 const allNavItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'recepcao', 'comercial'] },
-  { href: '/dashboard-executivo', label: 'Executivo', icon: BarChart3, roles: ['admin'] },
-  { href: '/crm', label: 'CRM', icon: Users, roles: ['admin', 'recepcao', 'comercial'] },
-  { href: '/kanban', label: 'Funil', icon: Columns, roles: ['admin', 'recepcao', 'comercial'] },
-  { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin'] },
-  { href: '/indicacoes', label: 'Indicações', icon: Gift, roles: ['admin', 'recepcao', 'comercial'] },
-  { href: '/estoque', label: 'Estoque', icon: Package, roles: ['admin', 'recepcao', 'comercial'] },
-  { href: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'recepcao', 'comercial'] },
-  { href: '/relatorio', label: 'Relatório Vendas', icon: FileText, roles: ['admin'] },
-  { href: '/relatorio-gerencial', label: 'Gerencial', icon: Building2, roles: ['admin'] },
-  { href: '/backups', label: 'Backups', icon: Database, roles: ['admin'] },
-  { href: '/admin-users', label: 'Usuários', icon: Settings, roles: ['admin'] },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
+  { href: '/dashboard-executivo', label: 'Executivo', icon: BarChart3, roles: ['admin'], masterOnly: false },
+  { href: '/crm', label: 'CRM', icon: Users, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
+  { href: '/kanban', label: 'Funil', icon: Columns, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
+  { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin'], masterOnly: false },
+  { href: '/indicacoes', label: 'Indicações', icon: Gift, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
+  { href: '/estoque', label: 'Estoque', icon: Package, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
+  { href: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
+  { href: '/relatorio', label: 'Relatório Vendas', icon: FileText, roles: ['admin'], masterOnly: false },
+  { href: '/relatorio-gerencial', label: 'Gerencial', icon: Building2, roles: ['admin'], masterOnly: false },
+  { href: '/backups', label: 'Backups', icon: Database, roles: ['admin'], masterOnly: false },
+  { href: '/admin-users', label: 'Usuários', icon: Settings, roles: ['admin'], masterOnly: true },
 ];
 
 export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ children }, ref) {
@@ -59,14 +61,22 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
     navigate('/login');
   };
 
-  // Filter nav items based on user role
+  // Filter nav items based on user role and master admin status
   const navItems = useMemo(() => {
-    if (!userRole) {
-      // If no role, show all items (fallback for users without role set)
-      return allNavItems;
-    }
-    return allNavItems.filter(item => item.roles.includes(userRole));
-  }, [userRole]);
+    const isMasterAdmin = user?.email === MASTER_ADMIN_EMAIL;
+    
+    return allNavItems.filter(item => {
+      // If item is master only, check if user is master admin
+      if (item.masterOnly && !isMasterAdmin) {
+        return false;
+      }
+      // Check role permission
+      if (!userRole) {
+        return true; // fallback for users without role
+      }
+      return item.roles.includes(userRole);
+    });
+  }, [userRole, user?.email]);
 
   return (
     <div ref={ref} className="min-h-screen bg-background flex">
@@ -182,9 +192,13 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
           <div className="mb-3 px-4">
             <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
             {userRole && (
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <p className="text-xs text-muted-foreground/70 capitalize">{userRole}</p>
-                {userRole === 'admin' && (
+                {user?.email === MASTER_ADMIN_EMAIL ? (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-purple-500/10 text-purple-500 border-purple-500/30">
+                    Master
+                  </Badge>
+                ) : userRole === 'admin' && (
                   <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/10 text-amber-500 border-amber-500/30">
                     Admin
                   </Badge>
