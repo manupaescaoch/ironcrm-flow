@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, subMonths, startOfMonth, endOfMonth, differenceInMonths, eachMonthOfInterval, subDays, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useUnidade } from '@/contexts/UnidadeContext';
+import { EstoqueNavigation } from '@/components/estoque/EstoqueNavigation';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -418,21 +419,17 @@ export default function RelatorioConsumo() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/estoque')}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold flex items-center gap-2">
-                <TrendingUp className="h-8 w-8 text-primary" />
-                Relatório de Consumo e Tendências
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <TrendingUp className="h-6 w-6 text-primary" />
+                Relatório de Consumo
               </h1>
-              <p className="text-muted-foreground">{unidadeAtual?.nome || 'Selecione uma unidade'} • {periodoLabel}</p>
+              <p className="text-sm text-muted-foreground">{unidadeAtual?.nome || 'Selecione uma unidade'} • {periodoLabel}</p>
             </div>
-          </div>
-          
-          <div className="flex flex-wrap items-center gap-3">
+            
+            <div className="flex flex-wrap items-center gap-3">
             {/* Filtro de Período */}
             <Card className="p-4">
               <div className="flex flex-wrap items-center gap-3">
@@ -511,11 +508,13 @@ export default function RelatorioConsumo() {
             </Card>
             
             {/* Botão Exportar PDF */}
-            <Button onClick={exportarPDF} className="gap-2">
+            <Button onClick={exportarPDF} className="gap-2" size="sm">
               <FileDown className="h-4 w-4" />
               Exportar PDF
             </Button>
           </div>
+          </div>
+          <EstoqueNavigation currentPage="consumo" />
         </div>
 
         {/* KPIs principais */}

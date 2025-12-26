@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useUnidade } from '@/contexts/UnidadeContext';
+import { EstoqueNavigation } from '@/components/estoque/EstoqueNavigation';
 import { format, subMonths, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
@@ -319,22 +320,14 @@ export default function RelatorioGastosEstoque() {
     <Layout>
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => navigate('/estoque')}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-2xl font-bold text-foreground">Relatório de Gastos</h1>
-              <p className="text-muted-foreground">Análise de custos com estoque</p>
+              <p className="text-sm text-muted-foreground">Análise de custos com estoque</p>
             </div>
-          </div>
 
-          <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3">
             <Select value={periodoMeses} onValueChange={setPeriodoMeses}>
               <SelectTrigger className="w-44">
                 <Calendar className="h-4 w-4 mr-2" />
@@ -372,9 +365,10 @@ export default function RelatorioGastosEstoque() {
                 ))}
               </SelectContent>
             </Select>
+            </div>
           </div>
+          <EstoqueNavigation currentPage="gastos" />
         </div>
-
         {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>

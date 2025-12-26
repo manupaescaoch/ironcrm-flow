@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { format, subDays, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { HistoricoMovimentacoes } from '@/components/estoque/HistoricoMovimentacoes';
+import { EstoqueNavigation } from '@/components/estoque/EstoqueNavigation';
 import { useUnidade } from '@/contexts/UnidadeContext';
 
 const CATEGORIAS = ['Copa e Recepção', 'Suplementos (uso interno)', 'Limpeza', 'Descartáveis', 'Higiene Pessoal'] as const;
@@ -611,62 +612,7 @@ export default function EstoqueInterno() {
             </div>
             
             {/* Navegação compacta em tabs */}
-            <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg w-fit">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="bg-background shadow-sm text-foreground"
-                disabled
-              >
-                <Package className="w-4 h-4 mr-1.5" />
-                Insumos
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="text-muted-foreground hover:text-foreground"
-                onClick={() => navigate('/estoque/dashboard')}
-              >
-                <BarChart3 className="w-4 h-4 mr-1.5" />
-                Dashboard
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="text-muted-foreground hover:text-foreground"
-                onClick={() => navigate('/estoque/financeiro')}
-              >
-                <DollarSign className="w-4 h-4 mr-1.5" />
-                Financeiro
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="text-muted-foreground hover:text-foreground"
-                onClick={() => navigate('/estoque/gastos')}
-              >
-                <FileText className="w-4 h-4 mr-1.5" />
-                Gastos
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="text-muted-foreground hover:text-foreground"
-                onClick={() => navigate('/estoque/previsao-compras')}
-              >
-                <ShoppingCart className="w-4 h-4 mr-1.5" />
-                Compras
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="text-muted-foreground hover:text-foreground"
-                onClick={() => navigate('/estoque/relatorio-consumo')}
-              >
-                <TrendingUp className="w-4 h-4 mr-1.5" />
-                Consumo
-              </Button>
-            </div>
+            <EstoqueNavigation currentPage="insumos" />
           </div>
           
           {/* Modal Novo Insumo */}

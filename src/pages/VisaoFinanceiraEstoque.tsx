@@ -27,6 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format, subDays, addDays, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useUnidade } from '@/contexts/UnidadeContext';
+import { EstoqueNavigation } from '@/components/estoque/EstoqueNavigation';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -329,23 +330,21 @@ export default function VisaoFinanceiraEstoque() {
       <TooltipProvider>
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => navigate('/estoque')}>
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold flex items-center gap-2">
-                  <DollarSign className="h-8 w-8 text-success" />
+                <h1 className="text-2xl font-bold flex items-center gap-2">
+                  <DollarSign className="h-6 w-6 text-success" />
                   Visão Financeira
                 </h1>
-                <p className="text-muted-foreground">{unidadeAtual?.nome || 'Selecione uma unidade'}</p>
+                <p className="text-sm text-muted-foreground">{unidadeAtual?.nome || 'Selecione uma unidade'}</p>
               </div>
+              <Button onClick={exportarPDF} variant="outline" size="sm">
+                <FileDown className="h-4 w-4 mr-2" />
+                Exportar PDF
+              </Button>
             </div>
-            <Button onClick={exportarPDF} variant="outline">
-              <FileDown className="h-4 w-4 mr-2" />
-              Exportar PDF
-            </Button>
+            <EstoqueNavigation currentPage="financeiro" />
           </div>
 
           {/* KPIs Principais */}
