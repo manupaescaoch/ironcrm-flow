@@ -70,6 +70,31 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+const MASTER_ADMIN_EMAIL = 'emanuel.paes@gmail.com';
+
+function MasterAdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Only master admin can access
+  if (user.email !== MASTER_ADMIN_EMAIL) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
@@ -174,9 +199,9 @@ const AppRoutes = () => (
     <Route
       path="/admin-users"
       element={
-        <AdminRoute>
+        <MasterAdminRoute>
           <AdminUsers />
-        </AdminRoute>
+        </MasterAdminRoute>
       }
     />
     <Route
