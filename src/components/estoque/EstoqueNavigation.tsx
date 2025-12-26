@@ -6,7 +6,8 @@ import {
   DollarSign, 
   FileText, 
   ShoppingCart, 
-  TrendingUp 
+  TrendingUp,
+  Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -55,6 +56,7 @@ export function EstoqueNavigation({ currentPage }: EstoqueNavigationProps) {
             variant="ghost"
             size="sm"
             className={cn(
+              "relative",
               isActive 
                 ? "bg-background shadow-sm text-foreground" 
                 : "text-muted-foreground hover:text-foreground"
@@ -64,6 +66,9 @@ export function EstoqueNavigation({ currentPage }: EstoqueNavigationProps) {
           >
             <Icon className="w-4 h-4 mr-1.5" />
             {item.label}
+            {item.adminOnly && (
+              <Shield className="w-3 h-3 ml-1 text-amber-500" />
+            )}
           </Button>
         );
       })}
