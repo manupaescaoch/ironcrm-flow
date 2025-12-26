@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   LayoutDashboard, 
   Users, 
@@ -181,7 +182,14 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
           <div className="mb-3 px-4">
             <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
             {userRole && (
-              <p className="text-xs text-muted-foreground/70 capitalize">{userRole}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-xs text-muted-foreground/70 capitalize">{userRole}</p>
+                {userRole === 'admin' && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/10 text-amber-500 border-amber-500/30">
+                    Admin
+                  </Badge>
+                )}
+              </div>
             )}
           </div>
           <Button
