@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format, subDays, addDays, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useUnidade } from '@/contexts/UnidadeContext';
+import { EstoqueNavigation } from '@/components/estoque/EstoqueNavigation';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -337,39 +338,37 @@ export default function RelatorioPrevisaoCompras() {
       <TooltipProvider>
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => navigate('/estoque')}>
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold flex items-center gap-2">
-                  <ShoppingCart className="h-8 w-8 text-primary" />
+                <h1 className="text-2xl font-bold flex items-center gap-2">
+                  <ShoppingCart className="h-6 w-6 text-primary" />
                   Previsão de Compras
                 </h1>
-                <p className="text-muted-foreground">{unidadeAtual?.nome || 'Selecione uma unidade'}</p>
+                <p className="text-sm text-muted-foreground">{unidadeAtual?.nome || 'Selecione uma unidade'}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                {/* Filtro de período */}
+                <div className="flex gap-1 bg-muted rounded-lg p-1">
+                  {([7, 14, 30] as PeriodoFiltro[]).map(periodo => (
+                    <Button
+                      key={periodo}
+                      variant={periodoFiltro === periodo ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setPeriodoFiltro(periodo)}
+                      className={periodoFiltro === periodo ? '' : 'hover:bg-background'}
+                    >
+                      {periodo} dias
+                    </Button>
+                  ))}
+                </div>
+                <Button onClick={exportarPDF} variant="outline" size="sm">
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Exportar PDF
+                </Button>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              {/* Filtro de período */}
-              <div className="flex gap-1 bg-muted rounded-lg p-1">
-                {([7, 14, 30] as PeriodoFiltro[]).map(periodo => (
-                  <Button
-                    key={periodo}
-                    variant={periodoFiltro === periodo ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setPeriodoFiltro(periodo)}
-                    className={periodoFiltro === periodo ? '' : 'hover:bg-background'}
-                  >
-                    {periodo} dias
-                  </Button>
-                ))}
-              </div>
-              <Button onClick={exportarPDF} variant="outline">
-                <FileDown className="h-4 w-4 mr-2" />
-                Exportar PDF
-              </Button>
-            </div>
+            <EstoqueNavigation currentPage="compras" />
           </div>
 
           {/* KPIs */}
