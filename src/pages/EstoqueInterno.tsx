@@ -109,7 +109,7 @@ function calcularStatusPreditivo(
 
 export default function EstoqueInterno() {
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, userName, user } = useAuth();
   const queryClient = useQueryClient();
   const { unidadeAtual } = useUnidade();
   const navigate = useNavigate();
@@ -562,10 +562,12 @@ export default function EstoqueInterno() {
   const openMovimentacao = (insumo: Insumo, tipo: 'entrada' | 'retirada' | 'ajuste') => {
     setSelectedInsumo(insumo);
     setTipoMovimentacao(tipo);
+    // Preencher responsável com nome do usuário logado (uppercase)
+    const nomeResponsavel = userName ? userName.toUpperCase() : (user?.email?.split('@')[0]?.toUpperCase() || '');
     setMovimentacao({ 
       quantidade: 0, 
       setor: '', 
-      responsavel: '', 
+      responsavel: nomeResponsavel,
       observacao: '',
       valor_unitario: insumo.custo_unitario || 0,
       fornecedor: insumo.fornecedor_padrao || '',
@@ -1664,10 +1666,11 @@ export default function EstoqueInterno() {
                     <Label>Responsável *</Label>
                     <Input 
                       value={movimentacao.responsavel} 
-                      onChange={e => setMovimentacao(p => ({ ...p, responsavel: e.target.value }))}
-                      placeholder="Nome do responsável"
-                      className="mt-1"
+                      readOnly
+                      disabled
+                      className="mt-1 bg-muted cursor-not-allowed"
                     />
+                    <p className="text-xs text-muted-foreground mt-1">Preenchido automaticamente com o usuário logado</p>
                   </div>
                   
                   <div>
