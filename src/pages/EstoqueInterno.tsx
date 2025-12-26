@@ -598,37 +598,80 @@ export default function EstoqueInterno() {
     <Layout>
       <TooltipProvider>
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Estoque Interno - Insumos</h1>
-              <p className="text-muted-foreground">{unidadeAtual?.nome || 'Selecione uma unidade'}</p>
+          {/* Header com navegação otimizada */}
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold">Estoque Interno</h1>
+                <p className="text-sm text-muted-foreground">{unidadeAtual?.nome || 'Selecione uma unidade'}</p>
+              </div>
+              <Button size="sm" onClick={() => setNovoInsumoOpen(true)}>
+                <PackagePlus className="w-4 h-4 mr-2" />Novo Insumo
+              </Button>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => navigate('/estoque/dashboard')}>
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Dashboard Executivo
+            
+            {/* Navegação compacta em tabs */}
+            <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg w-fit">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="bg-background shadow-sm text-foreground"
+                disabled
+              >
+                <Package className="w-4 h-4 mr-1.5" />
+                Insumos
               </Button>
-              <Button variant="outline" onClick={() => navigate('/estoque/financeiro')}>
-                <DollarSign className="w-4 h-4 mr-2" />
-                Visão Financeira
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => navigate('/estoque/dashboard')}
+              >
+                <BarChart3 className="w-4 h-4 mr-1.5" />
+                Dashboard
               </Button>
-              <Button variant="outline" onClick={() => navigate('/estoque/gastos')}>
-                <FileText className="w-4 h-4 mr-2" />
-                Relatório de Gastos
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => navigate('/estoque/financeiro')}
+              >
+                <DollarSign className="w-4 h-4 mr-1.5" />
+                Financeiro
               </Button>
-              <Button variant="outline" onClick={() => navigate('/estoque/previsao-compras')}>
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                Previsão de Compras
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => navigate('/estoque/gastos')}
+              >
+                <FileText className="w-4 h-4 mr-1.5" />
+                Gastos
               </Button>
-              <Button variant="outline" onClick={() => navigate('/estoque/relatorio-consumo')}>
-                <TrendingUp className="w-4 h-4 mr-2" />
-                Relatório de Consumo
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => navigate('/estoque/previsao-compras')}
+              >
+                <ShoppingCart className="w-4 h-4 mr-1.5" />
+                Compras
               </Button>
-              <Dialog open={novoInsumoOpen} onOpenChange={setNovoInsumoOpen}>
-                <DialogTrigger asChild>
-                  <Button><PackagePlus className="w-4 h-4 mr-2" />Novo Insumo</Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => navigate('/estoque/relatorio-consumo')}
+              >
+                <TrendingUp className="w-4 h-4 mr-1.5" />
+                Consumo
+              </Button>
+            </div>
+          </div>
+          
+          {/* Modal Novo Insumo */}
+          <Dialog open={novoInsumoOpen} onOpenChange={setNovoInsumoOpen}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-xl">
                       <PackagePlus className="h-5 w-5 text-primary" />
@@ -841,10 +884,7 @@ export default function EstoqueInterno() {
                     </Button>
                   </div>
                 </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-
+          </Dialog>
           {/* KPIs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <Card className="border-l-4 border-l-primary bg-gradient-to-br from-primary/5 to-transparent">
