@@ -1383,7 +1383,7 @@ export default function EstoqueInterno() {
 
           {/* Modal Movimentação */}
           <Dialog open={movimentacaoOpen} onOpenChange={setMovimentacaoOpen}>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   {tipoMovimentacao === 'entrada' && <Plus className="h-5 w-5 text-success" />}
