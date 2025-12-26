@@ -590,6 +590,10 @@ export default function EstoqueInterno() {
                 <DollarSign className="w-4 h-4 mr-2" />
                 Visão Financeira
               </Button>
+              <Button variant="outline" onClick={() => navigate('/estoque/gastos')}>
+                <FileText className="w-4 h-4 mr-2" />
+                Relatório de Gastos
+              </Button>
               <Button variant="outline" onClick={() => navigate('/estoque/previsao-compras')}>
                 <ShoppingCart className="w-4 h-4 mr-2" />
                 Previsão de Compras

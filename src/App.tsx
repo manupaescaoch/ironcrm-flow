@@ -22,6 +22,7 @@ import RelatorioConsumo from "./pages/RelatorioConsumo";
 import RelatorioPrevisaoCompras from "./pages/RelatorioPrevisaoCompras";
 import VisaoFinanceiraEstoque from "./pages/VisaoFinanceiraEstoque";
 import DashboardExecutivoEstoque from "./pages/DashboardExecutivoEstoque";
+import RelatorioGastosEstoque from "./pages/RelatorioGastosEstoque";
 import Escala from "./pages/Escala";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -223,6 +224,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <DashboardExecutivoEstoque />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/estoque/gastos"
+      element={
+        <ProtectedRoute>
+          <RelatorioGastosEstoque />
         </ProtectedRoute>
       }
     />
