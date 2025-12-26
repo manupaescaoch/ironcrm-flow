@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Package, AlertTriangle, AlertCircle, Clock, Plus, Minus, Settings, PackagePlus, Pencil, Search, X, Trash2, TrendingUp, Skull, Info, ShoppingCart, DollarSign, BarChart3 } from 'lucide-react';
+import { Package, AlertTriangle, AlertCircle, Clock, Plus, Minus, Settings, PackagePlus, Pencil, Search, X, Trash2, TrendingUp, TrendingDown, Skull, Info, ShoppingCart, DollarSign, BarChart3, FileText, Calendar } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,6 +59,10 @@ type Movimentacao = {
   responsavel: string;
   observacao: string | null;
   created_at: string;
+  valor_unitario: number | null;
+  valor_total: number | null;
+  fornecedor: string | null;
+  nota_fiscal: string | null;
 };
 
 type InsumoComEstoque = Insumo & {
@@ -154,6 +158,9 @@ export default function EstoqueInterno() {
     setor: '',
     responsavel: '',
     observacao: '',
+    valor_unitario: 0,
+    fornecedor: '',
+    nota_fiscal: '',
   });
 
   // Fetch insumos
@@ -423,7 +430,18 @@ export default function EstoqueInterno() {
   });
 
   const registrarMovimentacaoMutation = useMutation({
-    mutationFn: async (data: { insumo_id: string; tipo: string; quantidade: number; setor: string | null; responsavel: string; observacao: string | null }) => {
+    mutationFn: async (data: { 
+      insumo_id: string; 
+      tipo: string; 
+      quantidade: number; 
+      setor: string | null; 
+      responsavel: string; 
+      observacao: string | null;
+      valor_unitario: number | null;
+      valor_total: number | null;
+      fornecedor: string | null;
+      nota_fiscal: string | null;
+    }) => {
       if (!unidadeAtual) throw new Error('Nenhuma unidade selecionada');
       const { error } = await supabase.from('movimentacoes_estoque').insert({
         ...data,
@@ -435,7 +453,7 @@ export default function EstoqueInterno() {
       queryClient.invalidateQueries({ queryKey: ['estoque_interno', unidadeAtual?.id] });
       queryClient.invalidateQueries({ queryKey: ['movimentacoes_estoque', unidadeAtual?.id] });
       setMovimentacaoOpen(false);
-      setMovimentacao({ quantidade: 0, setor: '', responsavel: '', observacao: '' });
+      setMovimentacao({ quantidade: 0, setor: '', responsavel: '', observacao: '', valor_unitario: 0, fornecedor: '', nota_fiscal: '' });
       setSelectedInsumo(null);
       toast({ title: 'Movimentação registrada!' });
     },
@@ -500,6 +518,13 @@ export default function EstoqueInterno() {
       toast({ title: 'Selecione o setor para retirada', variant: 'destructive' });
       return;
     }
+    const valorUnitario = tipoMovimentacao === 'entrada' && movimentacao.valor_unitario > 0 
+      ? movimentacao.valor_unitario 
+      : null;
+    const valorTotal = tipoMovimentacao === 'entrada' && valorUnitario 
+      ? valorUnitario * movimentacao.quantidade 
+      : null;
+    
     registrarMovimentacaoMutation.mutate({
       insumo_id: selectedInsumo.id,
       tipo: tipoMovimentacao,
@@ -507,13 +532,25 @@ export default function EstoqueInterno() {
       setor: tipoMovimentacao === 'retirada' ? movimentacao.setor : null,
       responsavel: movimentacao.responsavel,
       observacao: movimentacao.observacao || null,
+      valor_unitario: valorUnitario,
+      valor_total: valorTotal,
+      fornecedor: tipoMovimentacao === 'entrada' && movimentacao.fornecedor ? movimentacao.fornecedor : null,
+      nota_fiscal: tipoMovimentacao === 'entrada' && movimentacao.nota_fiscal ? movimentacao.nota_fiscal : null,
     });
   };
 
   const openMovimentacao = (insumo: Insumo, tipo: 'entrada' | 'retirada' | 'ajuste') => {
     setSelectedInsumo(insumo);
     setTipoMovimentacao(tipo);
-    setMovimentacao({ quantidade: 0, setor: '', responsavel: '', observacao: '' });
+    setMovimentacao({ 
+      quantidade: 0, 
+      setor: '', 
+      responsavel: '', 
+      observacao: '',
+      valor_unitario: insumo.custo_unitario || 0,
+      fornecedor: insumo.fornecedor_padrao || '',
+      nota_fiscal: '',
+    });
     setMovimentacaoOpen(true);
   };
 
@@ -1355,7 +1392,30 @@ export default function EstoqueInterno() {
                   {tipoMovimentacao === 'entrada' ? 'Registrar Entrada' : tipoMovimentacao === 'retirada' ? 'Registrar Retirada' : 'Ajuste de Estoque'}
                 </DialogTitle>
               </DialogHeader>
-              {selectedInsumo && (
+              {selectedInsumo && (() => {
+                // Calcular histórico de preços para este insumo
+                const entradasInsumo = movimentacoes.filter(
+                  m => m.insumo_id === selectedInsumo.id && m.tipo === 'entrada' && m.valor_unitario
+                );
+                const ultimaEntrada = entradasInsumo[0];
+                const ultimoPreco = ultimaEntrada?.valor_unitario || null;
+                const ultimaData = ultimaEntrada?.created_at || null;
+                
+                // Calcular média mensal de valor unitário
+                const mediaValorUnitario = entradasInsumo.length > 0
+                  ? entradasInsumo.reduce((sum, e) => sum + (e.valor_unitario || 0), 0) / entradasInsumo.length
+                  : null;
+                
+                // Calcular gasto total no mês
+                const gastoMes = entradasInsumo.reduce((sum, e) => sum + (e.valor_total || 0), 0);
+                const qtdEntradasMes = entradasInsumo.reduce((sum, e) => sum + e.quantidade, 0);
+                
+                // Variação de preço em relação à média
+                const variacaoPreco = mediaValorUnitario && movimentacao.valor_unitario 
+                  ? ((movimentacao.valor_unitario - mediaValorUnitario) / mediaValorUnitario) * 100 
+                  : null;
+                
+                return (
                 <div className="space-y-4">
                   {/* Informações do Produto */}
                   <div className="p-3 bg-muted/50 rounded-lg space-y-2">
@@ -1365,36 +1425,132 @@ export default function EstoqueInterno() {
                     </div>
                   </div>
                   
-                  {/* Card Financeiro e Fornecedor */}
-                  <div className="rounded-lg border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-emerald-600/10 p-3 space-y-3">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-                      <DollarSign className="h-4 w-4" />
-                      Informações Financeiras
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="flex flex-col">
-                        <span className="text-xs text-muted-foreground">Custo Unitário</span>
-                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                          {selectedInsumo.custo_unitario > 0 
-                            ? selectedInsumo.custo_unitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-                            : 'Não informado'}
-                        </span>
+                  {/* Card Financeiro Expandido para Entradas */}
+                  {tipoMovimentacao === 'entrada' ? (
+                    <div className="rounded-lg border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-emerald-600/10 p-4 space-y-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                        <DollarSign className="h-4 w-4" />
+                        Informações Financeiras
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs text-muted-foreground">Qtd. Mín. Compra</span>
-                        <span className="font-medium">{selectedInsumo.quantidade_minima_compra} {selectedInsumo.unidade_medida}</span>
-                      </div>
-                    </div>
-                    {selectedInsumo.fornecedor_padrao && (
-                      <div className="pt-2 border-t border-emerald-500/20">
-                        <div className="flex items-center gap-2">
-                          <ShoppingCart className="h-3.5 w-3.5 text-blue-500" />
-                          <span className="text-xs text-muted-foreground">Fornecedor:</span>
-                          <span className="text-sm font-medium">{selectedInsumo.fornecedor_padrao}</span>
+                      
+                      {/* Histórico de Preços */}
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="flex flex-col p-2 rounded bg-background/50">
+                          <span className="text-xs text-muted-foreground">Custo Cadastrado</span>
+                          <span className="font-semibold">
+                            {selectedInsumo.custo_unitario > 0 
+                              ? selectedInsumo.custo_unitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                              : 'Não informado'}
+                          </span>
+                        </div>
+                        <div className="flex flex-col p-2 rounded bg-background/50">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            Último Preço Pago
+                          </span>
+                          <span className="font-semibold">
+                            {ultimoPreco 
+                              ? ultimoPreco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                              : 'Sem histórico'}
+                          </span>
+                          {ultimaData && (
+                            <span className="text-xs text-muted-foreground">
+                              em {format(new Date(ultimaData), 'dd/MM/yyyy', { locale: ptBR })}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-col p-2 rounded bg-background/50">
+                          <span className="text-xs text-muted-foreground">Média Mensal</span>
+                          <span className="font-semibold">
+                            {mediaValorUnitario 
+                              ? mediaValorUnitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                              : 'Sem dados'}
+                          </span>
+                        </div>
+                        <div className="flex flex-col p-2 rounded bg-background/50">
+                          <span className="text-xs text-muted-foreground">Gasto no Mês</span>
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            {gastoMes.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          </span>
+                          {qtdEntradasMes > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              ({qtdEntradasMes} {selectedInsumo.unidade_medida})
+                            </span>
+                          )}
                         </div>
                       </div>
-                    )}
-                  </div>
+                      
+                      {/* Campos de entrada financeira */}
+                      <div className="pt-3 border-t border-emerald-500/20 space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-xs">Valor Unitário Pago *</Label>
+                            <Input 
+                              type="number"
+                              step="0.01"
+                              min={0}
+                              value={movimentacao.valor_unitario || ''} 
+                              onChange={e => setMovimentacao(p => ({ ...p, valor_unitario: parseFloat(e.target.value) || 0 }))}
+                              placeholder="R$ 0,00"
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Fornecedor</Label>
+                            <Input 
+                              value={movimentacao.fornecedor} 
+                              onChange={e => setMovimentacao(p => ({ ...p, fornecedor: e.target.value }))}
+                              placeholder="Nome do fornecedor"
+                              className="mt-1"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-xs flex items-center gap-1">
+                            <FileText className="h-3 w-3" />
+                            Nota Fiscal / Referência
+                          </Label>
+                          <Input 
+                            value={movimentacao.nota_fiscal} 
+                            onChange={e => setMovimentacao(p => ({ ...p, nota_fiscal: e.target.value }))}
+                            placeholder="Número da NF (opcional)"
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Card Financeiro Simples para Retiradas/Ajustes */
+                    <div className="rounded-lg border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-emerald-600/10 p-3 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                        <DollarSign className="h-4 w-4" />
+                        Informações Financeiras
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="flex flex-col">
+                          <span className="text-xs text-muted-foreground">Custo Unitário</span>
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            {selectedInsumo.custo_unitario > 0 
+                              ? selectedInsumo.custo_unitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                              : 'Não informado'}
+                          </span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs text-muted-foreground">Qtd. Mín. Compra</span>
+                          <span className="font-medium">{selectedInsumo.quantidade_minima_compra} {selectedInsumo.unidade_medida}</span>
+                        </div>
+                      </div>
+                      {selectedInsumo.fornecedor_padrao && (
+                        <div className="pt-2 border-t border-emerald-500/20">
+                          <div className="flex items-center gap-2">
+                            <ShoppingCart className="h-3.5 w-3.5 text-blue-500" />
+                            <span className="text-xs text-muted-foreground">Fornecedor:</span>
+                            <span className="text-sm font-medium">{selectedInsumo.fornecedor_padrao}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
                   <div>
                     <Label>Quantidade *</Label>
@@ -1408,11 +1564,38 @@ export default function EstoqueInterno() {
                     />
                   </div>
                   
-                  {/* Valor Total Estimado */}
-                  {movimentacao.quantidade > 0 && selectedInsumo.custo_unitario > 0 && (
+                  {/* Valor Total e Indicador de Variação */}
+                  {tipoMovimentacao === 'entrada' && movimentacao.quantidade > 0 && movimentacao.valor_unitario > 0 && (
+                    <div className="rounded-md bg-emerald-500/10 border border-emerald-500/20 p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Valor total da compra:</span>
+                        <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                          {(movimentacao.quantidade * movimentacao.valor_unitario).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </span>
+                      </div>
+                      {variacaoPreco !== null && Math.abs(variacaoPreco) > 0.5 && (
+                        <div className={`flex items-center gap-1 text-xs ${variacaoPreco > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                          {variacaoPreco > 0 ? (
+                            <>
+                              <TrendingUp className="h-3 w-3" />
+                              <span>{Math.abs(variacaoPreco).toFixed(1)}% acima da média histórica</span>
+                            </>
+                          ) : (
+                            <>
+                              <TrendingDown className="h-3 w-3" />
+                              <span>{Math.abs(variacaoPreco).toFixed(1)}% abaixo da média histórica</span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Valor estimado para retiradas/ajustes */}
+                  {tipoMovimentacao !== 'entrada' && movimentacao.quantidade > 0 && selectedInsumo.custo_unitario > 0 && (
                     <div className="rounded-md bg-emerald-500/10 border border-emerald-500/20 p-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Valor total estimado:</span>
+                        <span className="text-sm text-muted-foreground">Valor estimado:</span>
                         <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                           {(movimentacao.quantidade * selectedInsumo.custo_unitario).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </span>
@@ -1460,7 +1643,8 @@ export default function EstoqueInterno() {
                     {registrarMovimentacaoMutation.isPending ? 'Registrando...' : 'Confirmar'}
                   </Button>
                 </div>
-              )}
+              );
+              })()}
             </DialogContent>
           </Dialog>
         </div>
