@@ -1298,7 +1298,7 @@ export default function EstoqueInterno() {
 
           {/* Modal Movimentação */}
           <Dialog open={movimentacaoOpen} onOpenChange={setMovimentacaoOpen}>
-            <DialogContent>
+            <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   {tipoMovimentacao === 'entrada' && <Plus className="h-5 w-5 text-success" />}
@@ -1309,9 +1309,43 @@ export default function EstoqueInterno() {
               </DialogHeader>
               {selectedInsumo && (
                 <div className="space-y-4">
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="font-semibold">{selectedInsumo.nome_insumo}</p>
-                    <p className="text-sm text-muted-foreground">{selectedInsumo.codigo_insumo}</p>
+                  {/* Informações do Produto */}
+                  <div className="p-3 bg-muted/50 rounded-lg space-y-2">
+                    <div>
+                      <p className="font-semibold text-lg">{selectedInsumo.nome_insumo}</p>
+                      <p className="text-sm text-muted-foreground">{selectedInsumo.codigo_insumo} • {selectedInsumo.categoria}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Card Financeiro e Fornecedor */}
+                  <div className="rounded-lg border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-emerald-600/10 p-3 space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                      <DollarSign className="h-4 w-4" />
+                      Informações Financeiras
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="flex flex-col">
+                        <span className="text-xs text-muted-foreground">Custo Unitário</span>
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                          {selectedInsumo.custo_unitario > 0 
+                            ? selectedInsumo.custo_unitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                            : 'Não informado'}
+                        </span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs text-muted-foreground">Qtd. Mín. Compra</span>
+                        <span className="font-medium">{selectedInsumo.quantidade_minima_compra} {selectedInsumo.unidade_medida}</span>
+                      </div>
+                    </div>
+                    {selectedInsumo.fornecedor_padrao && (
+                      <div className="pt-2 border-t border-emerald-500/20">
+                        <div className="flex items-center gap-2">
+                          <ShoppingCart className="h-3.5 w-3.5 text-blue-500" />
+                          <span className="text-xs text-muted-foreground">Fornecedor:</span>
+                          <span className="text-sm font-medium">{selectedInsumo.fornecedor_padrao}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   
                   <div>
@@ -1322,14 +1356,27 @@ export default function EstoqueInterno() {
                       value={movimentacao.quantidade || ''} 
                       onChange={e => setMovimentacao(p => ({ ...p, quantidade: parseInt(e.target.value) || 0 }))}
                       placeholder={`Quantidade em ${selectedInsumo.unidade_medida}`}
+                      className="mt-1"
                     />
                   </div>
+                  
+                  {/* Valor Total Estimado */}
+                  {movimentacao.quantidade > 0 && selectedInsumo.custo_unitario > 0 && (
+                    <div className="rounded-md bg-emerald-500/10 border border-emerald-500/20 p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Valor total estimado:</span>
+                        <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                          {(movimentacao.quantidade * selectedInsumo.custo_unitario).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                   
                   {tipoMovimentacao === 'retirada' && (
                     <div>
                       <Label>Setor *</Label>
                       <Select value={movimentacao.setor} onValueChange={v => setMovimentacao(p => ({ ...p, setor: v }))}>
-                        <SelectTrigger><SelectValue placeholder="Selecione o setor" /></SelectTrigger>
+                        <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o setor" /></SelectTrigger>
                         <SelectContent>
                           {SETORES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                         </SelectContent>
@@ -1343,6 +1390,7 @@ export default function EstoqueInterno() {
                       value={movimentacao.responsavel} 
                       onChange={e => setMovimentacao(p => ({ ...p, responsavel: e.target.value }))}
                       placeholder="Nome do responsável"
+                      className="mt-1"
                     />
                   </div>
                   
@@ -1352,6 +1400,7 @@ export default function EstoqueInterno() {
                       value={movimentacao.observacao} 
                       onChange={e => setMovimentacao(p => ({ ...p, observacao: e.target.value }))}
                       placeholder="Observações adicionais (opcional)"
+                      className="mt-1"
                     />
                   </div>
                   
