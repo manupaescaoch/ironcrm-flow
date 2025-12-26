@@ -525,6 +525,26 @@ export default function EstoqueInterno() {
       ? valorUnitario * movimentacao.quantidade 
       : null;
     
+    // Verificar variação de preço > 20% e alertar
+    if (tipoMovimentacao === 'entrada' && valorUnitario) {
+      const entradasInsumo = movimentacoes.filter(
+        m => m.insumo_id === selectedInsumo.id && m.tipo === 'entrada' && m.valor_unitario
+      );
+      if (entradasInsumo.length > 0) {
+        const mediaValorUnitario = entradasInsumo.reduce((sum, e) => sum + (e.valor_unitario || 0), 0) / entradasInsumo.length;
+        const variacaoPreco = ((valorUnitario - mediaValorUnitario) / mediaValorUnitario) * 100;
+        
+        if (variacaoPreco > 20) {
+          toast({
+            title: '⚠️ Alerta de Preço Elevado',
+            description: `O valor pago (${valorUnitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}) está ${variacaoPreco.toFixed(1)}% acima da média histórica (${mediaValorUnitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}) para ${selectedInsumo.nome_insumo}.`,
+            variant: 'destructive',
+            duration: 8000,
+          });
+        }
+      }
+    }
+    
     registrarMovimentacaoMutation.mutate({
       insumo_id: selectedInsumo.id,
       tipo: tipoMovimentacao,
@@ -1570,15 +1590,36 @@ export default function EstoqueInterno() {
                   
                   {/* Valor Total e Indicador de Variação */}
                   {tipoMovimentacao === 'entrada' && movimentacao.quantidade > 0 && movimentacao.valor_unitario > 0 && (
-                    <div className="rounded-md bg-emerald-500/10 border border-emerald-500/20 p-3 space-y-2">
+                    <div className={`rounded-md p-3 space-y-2 ${
+                      variacaoPreco !== null && variacaoPreco > 20 
+                        ? 'bg-destructive/10 border-2 border-destructive/50' 
+                        : 'bg-emerald-500/10 border border-emerald-500/20'
+                    }`}>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Valor total da compra:</span>
                         <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                           {(movimentacao.quantidade * movimentacao.valor_unitario).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </span>
                       </div>
-                      {variacaoPreco !== null && Math.abs(variacaoPreco) > 0.5 && (
-                        <div className={`flex items-center gap-1 text-xs ${variacaoPreco > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                      
+                      {/* Alerta destacado para variação > 20% */}
+                      {variacaoPreco !== null && variacaoPreco > 20 && (
+                        <div className="flex items-start gap-2 p-2 rounded bg-destructive/20 border border-destructive/30">
+                          <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                          <div>
+                            <p className="text-sm font-semibold text-destructive">Preço acima da média!</p>
+                            <p className="text-xs text-destructive/80">
+                              O valor unitário está <strong>{variacaoPreco.toFixed(1)}% acima</strong> da média histórica 
+                              ({mediaValorUnitario?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}). 
+                              Verifique antes de confirmar.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Indicador normal para outras variações */}
+                      {variacaoPreco !== null && Math.abs(variacaoPreco) > 0.5 && variacaoPreco <= 20 && (
+                        <div className={`flex items-center gap-1 text-xs ${variacaoPreco > 0 ? 'text-amber-500' : 'text-green-500'}`}>
                           {variacaoPreco > 0 ? (
                             <>
                               <TrendingUp className="h-3 w-3" />
