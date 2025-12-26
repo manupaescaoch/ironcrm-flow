@@ -565,71 +565,87 @@ export default function EstoqueInterno() {
                 <DialogTrigger asChild>
                   <Button><PackagePlus className="w-4 h-4 mr-2" />Novo Insumo</Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-lg">
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Cadastrar Novo Insumo</DialogTitle>
+                    <DialogTitle className="flex items-center gap-2 text-xl">
+                      <PackagePlus className="h-5 w-5 text-primary" />
+                      Cadastrar Novo Insumo
+                    </DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>Código *</Label>
-                        <Input 
-                          value={novoInsumo.codigo_insumo} 
-                          onChange={e => setNovoInsumo(p => ({ ...p, codigo_insumo: e.target.value.toUpperCase() }))}
-                          placeholder="Ex: LIM001"
-                        />
+                  <div className="space-y-5">
+                    {/* Seção: Identificação */}
+                    <div className="rounded-lg border bg-card p-4 space-y-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <Package className="h-4 w-4 text-primary" />
+                        Identificação do Produto
                       </div>
-                      <div>
-                        <Label>Nome *</Label>
-                        <Input 
-                          value={novoInsumo.nome_insumo} 
-                          onChange={e => setNovoInsumo(p => ({ ...p, nome_insumo: e.target.value.toUpperCase() }))}
-                          placeholder="Ex: DESINFETANTE"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>Categoria *</Label>
-                        <Select value={novoInsumo.categoria} onValueChange={v => setNovoInsumo(p => ({ ...p, categoria: v }))}>
-                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                          <SelectContent>
-                            {CATEGORIAS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Unidade *</Label>
-                        <Select value={novoInsumo.unidade_medida} onValueChange={v => setNovoInsumo(p => ({ ...p, unidade_medida: v }))}>
-                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                          <SelectContent>
-                            {UNIDADES.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div>
-                      <Label>Quantidade Mínima</Label>
-                      <Input 
-                        type="number" 
-                        value={novoInsumo.quantidade_minima} 
-                        onChange={e => setNovoInsumo(p => ({ ...p, quantidade_minima: parseInt(e.target.value) || 0 }))}
-                      />
-                    </div>
-                    
-                    {/* Novos campos preditivos */}
-                    <div className="border-t pt-4">
-                      <p className="text-sm font-medium text-muted-foreground mb-3">Configurações de Reposição</p>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <div className="flex items-center gap-1 mb-1">
-                            <Label>Lead Time (dias)</Label>
+                          <Label className="text-xs text-muted-foreground">Código *</Label>
+                          <Input 
+                            value={novoInsumo.codigo_insumo} 
+                            onChange={e => setNovoInsumo(p => ({ ...p, codigo_insumo: e.target.value.toUpperCase() }))}
+                            placeholder="Ex: LIM001"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Nome *</Label>
+                          <Input 
+                            value={novoInsumo.nome_insumo} 
+                            onChange={e => setNovoInsumo(p => ({ ...p, nome_insumo: e.target.value.toUpperCase() }))}
+                            placeholder="Ex: DESINFETANTE"
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Categoria *</Label>
+                          <Select value={novoInsumo.categoria} onValueChange={v => setNovoInsumo(p => ({ ...p, categoria: v }))}>
+                            <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                            <SelectContent>
+                              {CATEGORIAS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Unidade de Medida *</Label>
+                          <Select value={novoInsumo.unidade_medida} onValueChange={v => setNovoInsumo(p => ({ ...p, unidade_medida: v }))}>
+                            <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                            <SelectContent>
+                              {UNIDADES.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Quantidade Mínima em Estoque</Label>
+                        <Input 
+                          type="number" 
+                          value={novoInsumo.quantidade_minima} 
+                          onChange={e => setNovoInsumo(p => ({ ...p, quantidade_minima: parseInt(e.target.value) || 0 }))}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Seção: Configurações de Reposição */}
+                    <div className="rounded-lg border bg-card p-4 space-y-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <Clock className="h-4 w-4 text-amber-500" />
+                        Configurações de Reposição
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="flex items-center gap-1">
+                            <Label className="text-xs text-muted-foreground">Lead Time (dias)</Label>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                                <Info className="h-3 w-3 text-muted-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent className="max-w-xs">
-                                <p>Tempo em dias que o fornecedor leva para entregar após o pedido ser feito.</p>
+                                <p>Tempo em dias que o fornecedor leva para entregar após o pedido.</p>
                               </TooltipContent>
                             </Tooltip>
                           </div>
@@ -638,17 +654,18 @@ export default function EstoqueInterno() {
                             min={1}
                             value={novoInsumo.lead_time_dias} 
                             onChange={e => setNovoInsumo(p => ({ ...p, lead_time_dias: parseInt(e.target.value) || 3 }))}
+                            className="mt-1"
                           />
                         </div>
                         <div>
-                          <div className="flex items-center gap-1 mb-1">
-                            <Label>Estoque Segurança (dias)</Label>
+                          <div className="flex items-center gap-1">
+                            <Label className="text-xs text-muted-foreground">Estoque Segurança (dias)</Label>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                                <Info className="h-3 w-3 text-muted-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent className="max-w-xs">
-                                <p>Margem de segurança em dias para cobrir variações de demanda ou atrasos do fornecedor.</p>
+                                <p>Margem de segurança para cobrir variações de demanda ou atrasos.</p>
                               </TooltipContent>
                             </Tooltip>
                           </div>
@@ -657,45 +674,53 @@ export default function EstoqueInterno() {
                             min={0}
                             value={novoInsumo.estoque_seguranca_dias} 
                             onChange={e => setNovoInsumo(p => ({ ...p, estoque_seguranca_dias: parseInt(e.target.value) || 2 }))}
+                            className="mt-1"
                           />
                         </div>
                       </div>
                     </div>
                     
-                    {/* Campos financeiros */}
-                    <div className="border-t pt-4">
-                      <p className="text-sm font-medium text-muted-foreground mb-3">💰 Informações Financeiras</p>
+                    {/* Seção: Informações Financeiras - DESTAQUE */}
+                    <div className="rounded-lg border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-emerald-600/10 p-4 space-y-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                        <DollarSign className="h-4 w-4" />
+                        Informações Financeiras
+                      </div>
                       <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <div className="flex items-center gap-1 mb-1">
-                            <Label>Custo Unitário (R$)</Label>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1">
+                            <Label className="text-xs text-muted-foreground">Custo Unitário (R$)</Label>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                                <Info className="h-3 w-3 text-muted-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent className="max-w-xs">
-                                <p>Custo por unidade do item para cálculo de valor do estoque.</p>
+                                <p>Custo por unidade para cálculo do valor do estoque.</p>
                               </TooltipContent>
                             </Tooltip>
                           </div>
-                          <Input 
-                            type="number" 
-                            step="0.01"
-                            min={0}
-                            value={novoInsumo.custo_unitario} 
-                            onChange={e => setNovoInsumo(p => ({ ...p, custo_unitario: parseFloat(e.target.value) || 0 }))}
-                            placeholder="0,00"
-                          />
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span>
+                            <Input 
+                              type="number" 
+                              step="0.01"
+                              min={0}
+                              value={novoInsumo.custo_unitario} 
+                              onChange={e => setNovoInsumo(p => ({ ...p, custo_unitario: parseFloat(e.target.value) || 0 }))}
+                              placeholder="0,00"
+                              className="pl-10"
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <div className="flex items-center gap-1 mb-1">
-                            <Label>Qtd. Mínima Compra</Label>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1">
+                            <Label className="text-xs text-muted-foreground">Qtd. Mínima de Compra</Label>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                                <Info className="h-3 w-3 text-muted-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent className="max-w-xs">
-                                <p>Quantidade mínima de compra (lote, caixa) exigida pelo fornecedor.</p>
+                                <p>Quantidade mínima exigida pelo fornecedor (lote, caixa).</p>
                               </TooltipContent>
                             </Tooltip>
                           </div>
@@ -707,12 +732,32 @@ export default function EstoqueInterno() {
                           />
                         </div>
                       </div>
-                      <div className="mt-4">
-                        <div className="flex items-center gap-1 mb-1">
-                          <Label>Fornecedor Padrão</Label>
+                      
+                      {/* Valor estimado de reposição */}
+                      {novoInsumo.custo_unitario > 0 && novoInsumo.quantidade_minima_compra > 0 && (
+                        <div className="rounded-md bg-emerald-500/10 border border-emerald-500/20 p-3 mt-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Valor estimado por pedido:</span>
+                            <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                              {(novoInsumo.custo_unitario * novoInsumo.quantidade_minima_compra).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Seção: Fornecedor */}
+                    <div className="rounded-lg border bg-card p-4 space-y-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <ShoppingCart className="h-4 w-4 text-blue-500" />
+                        Fornecedor
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1">
+                          <Label className="text-xs text-muted-foreground">Fornecedor Padrão</Label>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                              <Info className="h-3 w-3 text-muted-foreground cursor-help" />
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs">
                               <p>Nome do fornecedor principal para este item.</p>
@@ -723,11 +768,12 @@ export default function EstoqueInterno() {
                           value={novoInsumo.fornecedor_padrao} 
                           onChange={e => setNovoInsumo(p => ({ ...p, fornecedor_padrao: e.target.value }))}
                           placeholder="Ex: Distribuidora ABC"
+                          className="mt-1"
                         />
                       </div>
                     </div>
                     
-                    <Button onClick={handleCriarInsumo} className="w-full" disabled={criarInsumoMutation.isPending}>
+                    <Button onClick={handleCriarInsumo} className="w-full h-11 text-base font-medium" disabled={criarInsumoMutation.isPending}>
                       {criarInsumoMutation.isPending ? 'Salvando...' : 'Cadastrar Insumo'}
                     </Button>
                   </div>
