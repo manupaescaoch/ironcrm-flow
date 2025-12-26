@@ -12,6 +12,12 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMemo } from 'react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 type EstoquePage = 'insumos' | 'dashboard' | 'financeiro' | 'gastos' | 'compras' | 'consumo';
 
@@ -67,7 +73,16 @@ export function EstoqueNavigation({ currentPage }: EstoqueNavigationProps) {
             <Icon className="w-4 h-4 mr-1.5" />
             {item.label}
             {item.adminOnly && (
-              <Shield className="w-3 h-3 ml-1 text-amber-500" />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Shield className="w-3 h-3 ml-1 text-amber-500" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Restrito a administradores</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
           </Button>
         );
