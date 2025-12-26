@@ -21,7 +21,8 @@ import {
   Receipt,
   Package,
   BarChart3,
-  Calendar
+  Calendar,
+  Gift
 } from 'lucide-react';
 import {
   ChartContainer,
@@ -91,7 +92,7 @@ export default function RelatorioGastosEstoque() {
     return startOfMonth(subMonths(new Date(), parseInt(periodoMeses)));
   }, [periodoMeses]);
 
-  // Fetch movimentações de entrada com valor
+  // Fetch movimentações de entrada (incluindo patrocínios com valor 0)
   const { data: movimentacoes = [], isLoading: loadingMovimentacoes } = useQuery({
     queryKey: ['movimentacoes-gastos', unidadeAtual?.id, dataInicio],
     queryFn: async () => {
@@ -102,12 +103,12 @@ export default function RelatorioGastosEstoque() {
         .select('*')
         .eq('unidade_id', unidadeAtual.id)
         .eq('tipo', 'entrada')
-        .not('valor_total', 'is', null)
         .gte('created_at', dataInicio.toISOString())
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Movimentacao[];
+      // Filtrar para incluir apenas entradas com valor_total definido (>= 0)
+      return (data as Movimentacao[]).filter(m => m.valor_total !== null);
     },
     enabled: !!unidadeAtual?.id,
   });
@@ -159,9 +160,13 @@ export default function RelatorioGastosEstoque() {
     });
   }, [movimentacoes, insumosMap, categoriaFiltro, fornecedorFiltro]);
 
-  // KPIs calculados
+  // KPIs calculados (excluindo patrocínios de cálculos financeiros)
   const kpis = useMemo(() => {
-    const totalGasto = movimentacoesFiltradas.reduce((acc, m) => acc + (m.valor_total || 0), 0);
+    // Filtrar apenas compras reais (valor > 0) para cálculos financeiros
+    const comprasReais = movimentacoesFiltradas.filter(m => (m.valor_total || 0) > 0);
+    const patrocinios = movimentacoesFiltradas.filter(m => m.valor_total === 0);
+    
+    const totalGasto = comprasReais.reduce((acc, m) => acc + (m.valor_total || 0), 0);
     const mesesPeriodo = parseInt(periodoMeses);
     const mediaMensal = totalGasto / mesesPeriodo;
 
@@ -169,14 +174,14 @@ export default function RelatorioGastosEstoque() {
     const metadeInicio = startOfMonth(subMonths(dataInicio, mesesPeriodo));
     const movPeriodoAnterior = movimentacoes.filter(m => {
       const data = parseISO(m.created_at);
-      return data >= metadeInicio && data < dataInicio;
+      return data >= metadeInicio && data < dataInicio && (m.valor_total || 0) > 0;
     });
     const totalAnterior = movPeriodoAnterior.reduce((acc, m) => acc + (m.valor_total || 0), 0);
     const variacao = totalAnterior > 0 ? ((totalGasto - totalAnterior) / totalAnterior) * 100 : 0;
 
-    // Top fornecedor
+    // Top fornecedor (excluindo patrocínios)
     const gastosPorFornecedor = new Map<string, number>();
-    movimentacoesFiltradas.forEach(m => {
+    comprasReais.forEach(m => {
       if (m.fornecedor) {
         gastosPorFornecedor.set(m.fornecedor, (gastosPorFornecedor.get(m.fornecedor) || 0) + (m.valor_total || 0));
       }
@@ -188,10 +193,10 @@ export default function RelatorioGastosEstoque() {
       }
     });
 
-    return { totalGasto, mediaMensal, variacao, topFornecedor };
+    return { totalGasto, mediaMensal, variacao, topFornecedor, totalPatrocinios: patrocinios.length };
   }, [movimentacoesFiltradas, periodoMeses, dataInicio, movimentacoes]);
 
-  // Dados para gráfico de evolução mensal
+  // Dados para gráfico de evolução mensal (excluindo patrocínios)
   const evolucaoMensal = useMemo(() => {
     const gastosPorMes = new Map<string, number>();
     
@@ -201,7 +206,8 @@ export default function RelatorioGastosEstoque() {
       gastosPorMes.set(mes, 0);
     }
     
-    movimentacoesFiltradas.forEach(m => {
+    // Apenas compras reais (excluindo patrocínios)
+    movimentacoesFiltradas.filter(m => (m.valor_total || 0) > 0).forEach(m => {
       const mes = format(parseISO(m.created_at), 'yyyy-MM');
       if (gastosPorMes.has(mes)) {
         gastosPorMes.set(mes, (gastosPorMes.get(mes) || 0) + (m.valor_total || 0));
@@ -254,18 +260,17 @@ export default function RelatorioGastosEstoque() {
       .slice(0, 8);
   }, [movimentacoesFiltradas]);
 
-  // Variação de preços por insumo
+  // Variação de preços por insumo (excluindo patrocínios)
   const variacaoPrecos = useMemo(() => {
     const precosPorInsumo = new Map<string, { valores: number[]; nome: string }>();
     
-    movimentacoesFiltradas.forEach(m => {
-      if (m.valor_unitario) {
-        const insumo = insumosMap.get(m.insumo_id);
-        if (insumo) {
-          const atual = precosPorInsumo.get(m.insumo_id) || { valores: [], nome: insumo.nome_insumo };
-          atual.valores.push(m.valor_unitario);
-          precosPorInsumo.set(m.insumo_id, atual);
-        }
+    // Apenas valores > 0 para cálculo de variação de preços
+    movimentacoesFiltradas.filter(m => (m.valor_unitario || 0) > 0).forEach(m => {
+      const insumo = insumosMap.get(m.insumo_id);
+      if (insumo) {
+        const atual = precosPorInsumo.get(m.insumo_id) || { valores: [], nome: insumo.nome_insumo };
+        atual.valores.push(m.valor_unitario!);
+        precosPorInsumo.set(m.insumo_id, atual);
       }
     });
 
@@ -292,7 +297,7 @@ export default function RelatorioGastosEstoque() {
     };
   }, [movimentacoesFiltradas, insumosMap]);
 
-  // Histórico de compras para tabela
+  // Histórico de compras para tabela (incluindo patrocínios com indicador visual)
   const historicoCompras = useMemo(() => {
     return movimentacoesFiltradas.slice(0, 50).map(m => {
       const insumo = insumosMap.get(m.insumo_id);
@@ -301,6 +306,7 @@ export default function RelatorioGastosEstoque() {
         nomeInsumo: insumo?.nome_insumo || 'Desconhecido',
         categoria: insumo?.categoria || 'N/A',
         unidade: insumo?.unidade_medida || 'un',
+        isPatrocinio: m.valor_total === 0,
       };
     });
   }, [movimentacoesFiltradas, insumosMap]);
@@ -370,7 +376,7 @@ export default function RelatorioGastosEstoque() {
           <EstoqueNavigation currentPage="gastos" />
         </div>
         {/* KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
@@ -432,6 +438,21 @@ export default function RelatorioGastosEstoque() {
                   <p className="text-sm text-muted-foreground">Top Fornecedor</p>
                   <p className="text-lg font-bold text-foreground truncate max-w-[150px]">{kpis.topFornecedor.nome}</p>
                   <p className="text-xs text-muted-foreground">{formatCurrency(kpis.topFornecedor.valor)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-purple-500/10 rounded-lg">
+                  <Gift className="h-6 w-6 text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Patrocínios</p>
+                  <p className="text-2xl font-bold text-purple-500">{kpis.totalPatrocinios}</p>
+                  <p className="text-xs text-muted-foreground">itens recebidos</p>
                 </div>
               </div>
             </CardContent>
@@ -649,11 +670,21 @@ export default function RelatorioGastosEstoque() {
                     </TableRow>
                   ) : (
                     historicoCompras.map((mov) => (
-                      <TableRow key={mov.id}>
+                      <TableRow key={mov.id} className={mov.isPatrocinio ? 'bg-purple-500/5' : ''}>
                         <TableCell className="whitespace-nowrap">
                           {format(parseISO(mov.created_at), 'dd/MM/yyyy', { locale: ptBR })}
                         </TableCell>
-                        <TableCell className="font-medium">{mov.nomeInsumo}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {mov.nomeInsumo}
+                            {mov.isPatrocinio && (
+                              <Badge className="bg-purple-500 text-white text-xs">
+                                <Gift className="h-3 w-3 mr-1" />
+                                Patrocínio
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline">{mov.categoria}</Badge>
                         </TableCell>
@@ -662,10 +693,14 @@ export default function RelatorioGastosEstoque() {
                           {mov.quantidade} {mov.unidade}
                         </TableCell>
                         <TableCell className="text-right">
-                          {mov.valor_unitario ? formatCurrency(mov.valor_unitario) : '-'}
+                          {mov.isPatrocinio ? (
+                            <span className="text-purple-500">R$ 0,00</span>
+                          ) : mov.valor_unitario ? formatCurrency(mov.valor_unitario) : '-'}
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {mov.valor_total ? formatCurrency(mov.valor_total) : '-'}
+                          {mov.isPatrocinio ? (
+                            <span className="text-purple-500">R$ 0,00</span>
+                          ) : mov.valor_total ? formatCurrency(mov.valor_total) : '-'}
                         </TableCell>
                         <TableCell>{mov.nota_fiscal || '-'}</TableCell>
                       </TableRow>

@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Package, AlertTriangle, AlertCircle, Clock, Plus, Minus, Settings, PackagePlus, Pencil, Search, X, Trash2, TrendingUp, TrendingDown, Skull, Info, ShoppingCart, DollarSign, BarChart3, FileText, Calendar } from 'lucide-react';
+import { Package, AlertTriangle, AlertCircle, Clock, Plus, Minus, Settings, PackagePlus, Pencil, Search, X, Trash2, TrendingUp, TrendingDown, Skull, Info, ShoppingCart, DollarSign, BarChart3, FileText, Calendar, Gift } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
@@ -162,6 +163,7 @@ export default function EstoqueInterno() {
     valor_unitario: 0,
     fornecedor: '',
     nota_fiscal: '',
+    is_patrocinio: false,
   });
 
   // Fetch insumos
@@ -454,7 +456,7 @@ export default function EstoqueInterno() {
       queryClient.invalidateQueries({ queryKey: ['estoque_interno', unidadeAtual?.id] });
       queryClient.invalidateQueries({ queryKey: ['movimentacoes_estoque', unidadeAtual?.id] });
       setMovimentacaoOpen(false);
-      setMovimentacao({ quantidade: 0, setor: '', responsavel: '', observacao: '', valor_unitario: 0, fornecedor: '', nota_fiscal: '' });
+      setMovimentacao({ quantidade: 0, setor: '', responsavel: '', observacao: '', valor_unitario: 0, fornecedor: '', nota_fiscal: '', is_patrocinio: false });
       setSelectedInsumo(null);
       toast({ title: 'Movimentação registrada!' });
     },
@@ -519,10 +521,11 @@ export default function EstoqueInterno() {
       toast({ title: 'Selecione o setor para retirada', variant: 'destructive' });
       return;
     }
-    const valorUnitario = tipoMovimentacao === 'entrada' && movimentacao.valor_unitario > 0 
+    // Aceitar valor 0 para patrocínios, ou valor > 0 para compras normais
+    const valorUnitario = tipoMovimentacao === 'entrada' && (movimentacao.valor_unitario >= 0 || movimentacao.is_patrocinio)
       ? movimentacao.valor_unitario 
       : null;
-    const valorTotal = tipoMovimentacao === 'entrada' && valorUnitario 
+    const valorTotal = tipoMovimentacao === 'entrada' && valorUnitario !== null
       ? valorUnitario * movimentacao.quantidade 
       : null;
     
@@ -573,6 +576,7 @@ export default function EstoqueInterno() {
       valor_unitario: insumo.custo_unitario || 0,
       fornecedor: insumo.fornecedor_padrao || '',
       nota_fiscal: '',
+      is_patrocinio: false,
     });
     setMovimentacaoOpen(true);
   };
@@ -1492,27 +1496,58 @@ export default function EstoqueInterno() {
                         </div>
                       </div>
                       
+                      {/* Checkbox de Patrocínio/Doação */}
+                      <div className="flex items-center space-x-3 p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                        <Checkbox
+                          id="is_patrocinio"
+                          checked={movimentacao.is_patrocinio}
+                          onCheckedChange={(checked) => {
+                            setMovimentacao(p => ({ 
+                              ...p, 
+                              is_patrocinio: !!checked,
+                              valor_unitario: checked ? 0 : (selectedInsumo?.custo_unitario || 0)
+                            }));
+                          }}
+                        />
+                        <div className="flex items-center gap-2">
+                          <Gift className="h-4 w-4 text-purple-500" />
+                          <label
+                            htmlFor="is_patrocinio"
+                            className="text-sm font-medium leading-none cursor-pointer"
+                          >
+                            Produto de patrocínio/doação (R$ 0,00)
+                          </label>
+                        </div>
+                      </div>
+
                       {/* Campos de entrada financeira */}
                       <div className="pt-3 border-t border-emerald-500/20 space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <Label className="text-xs">Valor Unitário Pago *</Label>
+                            <Label className="text-xs">Valor Unitário Pago {!movimentacao.is_patrocinio && '*'}</Label>
                             <Input 
                               type="number"
                               step="0.01"
                               min={0}
-                              value={movimentacao.valor_unitario || ''} 
+                              value={movimentacao.valor_unitario} 
                               onChange={e => setMovimentacao(p => ({ ...p, valor_unitario: parseFloat(e.target.value) || 0 }))}
                               placeholder="R$ 0,00"
                               className="mt-1"
+                              disabled={movimentacao.is_patrocinio}
                             />
+                            {movimentacao.is_patrocinio && (
+                              <p className="text-xs text-purple-500 mt-1 flex items-center gap-1">
+                                <Gift className="h-3 w-3" />
+                                Patrocínio/Doação
+                              </p>
+                            )}
                           </div>
                           <div>
-                            <Label className="text-xs">Fornecedor</Label>
+                            <Label className="text-xs">Fornecedor/Patrocinador</Label>
                             <Input 
                               value={movimentacao.fornecedor} 
                               onChange={e => setMovimentacao(p => ({ ...p, fornecedor: e.target.value }))}
-                              placeholder="Nome do fornecedor"
+                              placeholder={movimentacao.is_patrocinio ? "Nome do patrocinador" : "Nome do fornecedor"}
                               className="mt-1"
                             />
                           </div>
@@ -1520,12 +1555,12 @@ export default function EstoqueInterno() {
                         <div>
                           <Label className="text-xs flex items-center gap-1">
                             <FileText className="h-3 w-3" />
-                            Nota Fiscal / Referência
+                            {movimentacao.is_patrocinio ? 'Referência / Documento' : 'Nota Fiscal / Referência'}
                           </Label>
                           <Input 
                             value={movimentacao.nota_fiscal} 
                             onChange={e => setMovimentacao(p => ({ ...p, nota_fiscal: e.target.value }))}
-                            placeholder="Número da NF (opcional)"
+                            placeholder={movimentacao.is_patrocinio ? "Documento de doação (opcional)" : "Número da NF (opcional)"}
                             className="mt-1"
                           />
                         </div>
@@ -1577,51 +1612,71 @@ export default function EstoqueInterno() {
                   </div>
                   
                   {/* Valor Total e Indicador de Variação */}
-                  {tipoMovimentacao === 'entrada' && movimentacao.quantidade > 0 && movimentacao.valor_unitario > 0 && (
-                    <div className={`rounded-md p-3 space-y-2 ${
-                      variacaoPreco !== null && variacaoPreco > 20 
-                        ? 'bg-destructive/10 border-2 border-destructive/50' 
-                        : 'bg-emerald-500/10 border border-emerald-500/20'
-                    }`}>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Valor total da compra:</span>
-                        <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                          {(movimentacao.quantidade * movimentacao.valor_unitario).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                        </span>
-                      </div>
-                      
-                      {/* Alerta destacado para variação > 20% */}
-                      {variacaoPreco !== null && variacaoPreco > 20 && (
-                        <div className="flex items-start gap-2 p-2 rounded bg-destructive/20 border border-destructive/30">
-                          <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
-                          <div>
-                            <p className="text-sm font-semibold text-destructive">Preço acima da média!</p>
-                            <p className="text-xs text-destructive/80">
-                              O valor unitário está <strong>{variacaoPreco.toFixed(1)}% acima</strong> da média histórica 
-                              ({mediaValorUnitario?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}). 
-                              Verifique antes de confirmar.
-                            </p>
+                  {tipoMovimentacao === 'entrada' && movimentacao.quantidade > 0 && (
+                    <>
+                      {/* Indicador especial para patrocínio */}
+                      {movimentacao.is_patrocinio ? (
+                        <div className="rounded-md p-3 bg-purple-500/10 border border-purple-500/20">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Gift className="h-4 w-4 text-purple-500" />
+                              Patrocínio/Doação:
+                            </span>
+                            <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                              R$ 0,00
+                            </span>
                           </div>
+                          <p className="text-xs text-purple-500 mt-1">
+                            Este item não será contabilizado nos cálculos de gastos e médias de preço.
+                          </p>
                         </div>
-                      )}
-                      
-                      {/* Indicador normal para outras variações */}
-                      {variacaoPreco !== null && Math.abs(variacaoPreco) > 0.5 && variacaoPreco <= 20 && (
-                        <div className={`flex items-center gap-1 text-xs ${variacaoPreco > 0 ? 'text-amber-500' : 'text-green-500'}`}>
-                          {variacaoPreco > 0 ? (
-                            <>
-                              <TrendingUp className="h-3 w-3" />
-                              <span>{Math.abs(variacaoPreco).toFixed(1)}% acima da média histórica</span>
-                            </>
-                          ) : (
-                            <>
-                              <TrendingDown className="h-3 w-3" />
-                              <span>{Math.abs(variacaoPreco).toFixed(1)}% abaixo da média histórica</span>
-                            </>
+                      ) : movimentacao.valor_unitario > 0 && (
+                        <div className={`rounded-md p-3 space-y-2 ${
+                          variacaoPreco !== null && variacaoPreco > 20 
+                            ? 'bg-destructive/10 border-2 border-destructive/50' 
+                            : 'bg-emerald-500/10 border border-emerald-500/20'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Valor total da compra:</span>
+                            <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                              {(movimentacao.quantidade * movimentacao.valor_unitario).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            </span>
+                          </div>
+                          
+                          {/* Alerta destacado para variação > 20% */}
+                          {variacaoPreco !== null && variacaoPreco > 20 && (
+                            <div className="flex items-start gap-2 p-2 rounded bg-destructive/20 border border-destructive/30">
+                              <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                              <div>
+                                <p className="text-sm font-semibold text-destructive">Preço acima da média!</p>
+                                <p className="text-xs text-destructive/80">
+                                  O valor unitário está <strong>{variacaoPreco.toFixed(1)}% acima</strong> da média histórica 
+                                  ({mediaValorUnitario?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}). 
+                                  Verifique antes de confirmar.
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Indicador normal para outras variações */}
+                          {variacaoPreco !== null && Math.abs(variacaoPreco) > 0.5 && variacaoPreco <= 20 && (
+                            <div className={`flex items-center gap-1 text-xs ${variacaoPreco > 0 ? 'text-amber-500' : 'text-green-500'}`}>
+                              {variacaoPreco > 0 ? (
+                                <>
+                                  <TrendingUp className="h-3 w-3" />
+                                  <span>{Math.abs(variacaoPreco).toFixed(1)}% acima da média histórica</span>
+                                </>
+                              ) : (
+                                <>
+                                  <TrendingDown className="h-3 w-3" />
+                                  <span>{Math.abs(variacaoPreco).toFixed(1)}% abaixo da média histórica</span>
+                                </>
+                              )}
+                            </div>
                           )}
                         </div>
                       )}
-                    </div>
+                    </>
                   )}
                   
                   {/* Valor estimado para retiradas/ajustes */}

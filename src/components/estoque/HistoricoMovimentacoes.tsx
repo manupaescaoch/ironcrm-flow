@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { History, Search, X, ChevronDown, ChevronUp, Plus, Minus, Settings, ArrowUpDown, Filter, Calendar, TrendingUp, TrendingDown, RefreshCw, FileDown } from 'lucide-react';
+import { History, Search, X, ChevronDown, ChevronUp, Plus, Minus, Settings, ArrowUpDown, Filter, Calendar, TrendingUp, TrendingDown, RefreshCw, FileDown, Gift } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -32,6 +32,8 @@ type Movimentacao = {
   responsavel: string;
   observacao: string | null;
   created_at: string;
+  valor_unitario: number | null;
+  valor_total: number | null;
 };
 
 interface HistoricoMovimentacoesProps {
@@ -125,10 +127,17 @@ export function HistoricoMovimentacoes({ insumos }: HistoricoMovimentacoesProps)
     return insumo?.codigo_insumo || '';
   };
 
-  const getTipoBadge = (tipo: string) => {
+  const getTipoBadge = (tipo: string, valorTotal?: number | null) => {
+    const isPatrocinio = tipo === 'entrada' && valorTotal === 0;
+    
     switch (tipo) {
       case 'entrada':
-        return (
+        return isPatrocinio ? (
+          <Badge className="bg-purple-500 text-white gap-1">
+            <Gift className="h-3 w-3" />
+            Patrocínio
+          </Badge>
+        ) : (
           <Badge className="bg-success text-success-foreground gap-1">
             <Plus className="h-3 w-3" />
             Entrada
@@ -550,7 +559,7 @@ export function HistoricoMovimentacoes({ insumos }: HistoricoMovimentacoesProps)
                         <p className="text-xs text-muted-foreground font-mono">{getInsumoCodigo(mov.insumo_id)}</p>
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">{getTipoBadge(mov.tipo)}</TableCell>
+                    <TableCell className="text-center">{getTipoBadge(mov.tipo, mov.valor_total)}</TableCell>
                     <TableCell className="text-center">
                       <span className={`font-bold text-lg ${
                         mov.tipo === 'entrada' ? 'text-success' : 
