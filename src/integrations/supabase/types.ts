@@ -450,38 +450,50 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          fornecedor: string | null
           id: string
           insumo_id: string
+          nota_fiscal: string | null
           observacao: string | null
           quantidade: number
           responsavel: string
           setor: string | null
           tipo: string
           unidade_id: string
+          valor_total: number | null
+          valor_unitario: number | null
         }
         Insert: {
           created_at?: string
           created_by?: string | null
+          fornecedor?: string | null
           id?: string
           insumo_id: string
+          nota_fiscal?: string | null
           observacao?: string | null
           quantidade: number
           responsavel: string
           setor?: string | null
           tipo: string
           unidade_id?: string
+          valor_total?: number | null
+          valor_unitario?: number | null
         }
         Update: {
           created_at?: string
           created_by?: string | null
+          fornecedor?: string | null
           id?: string
           insumo_id?: string
+          nota_fiscal?: string | null
           observacao?: string | null
           quantidade?: number
           responsavel?: string
           setor?: string | null
           tipo?: string
           unidade_id?: string
+          valor_total?: number | null
+          valor_unitario?: number | null
         }
         Relationships: [
           {
