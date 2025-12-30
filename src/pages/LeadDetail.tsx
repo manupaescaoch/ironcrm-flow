@@ -32,6 +32,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Lead, Interacao, StatusFunil, PlanoEscolhido, StatusAvaliacao } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/utils/errorMessages';
 import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Pencil, CheckCircle, XCircle, AlertCircle, Trash2, Clock } from 'lucide-react';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format } from 'date-fns';
@@ -248,7 +249,7 @@ export default function LeadDetail() {
     setSaving(false);
 
     if (error) {
-      toast({ title: 'Erro ao salvar', variant: 'destructive' });
+      toast({ title: 'Erro ao salvar', description: getErrorMessage(error), variant: 'destructive' });
     } else {
       toast({ title: 'Lead atualizado!' });
     }
@@ -275,7 +276,7 @@ export default function LeadDetail() {
     setSavingMotivo(false);
 
     if (error) {
-      toast({ title: 'Erro ao atualizar lead', variant: 'destructive' });
+      toast({ title: 'Erro ao atualizar lead', description: getErrorMessage(error), variant: 'destructive' });
     } else {
       setLead({ 
         ...lead, 
@@ -412,7 +413,7 @@ export default function LeadDetail() {
     }
 
     if (interacaoError) {
-      toast({ title: 'Erro ao salvar interação', variant: 'destructive' });
+      toast({ title: 'Erro ao salvar interação', description: getErrorMessage(interacaoError), variant: 'destructive' });
       setSavingInteracao(false);
       return;
     }
@@ -424,7 +425,7 @@ export default function LeadDetail() {
       .eq('id', id);
 
     if (leadError) {
-      toast({ title: 'Erro ao atualizar status do lead', variant: 'destructive' });
+      toast({ title: 'Erro ao atualizar status do lead', description: getErrorMessage(leadError), variant: 'destructive' });
     } else {
       // Se fechou matrícula (convertido), cancelar todos os follow-ups pendentes
       if (formData.fechou_matricula) {
@@ -459,7 +460,7 @@ export default function LeadDetail() {
     setDeletingInteracao(null);
     
     if (error) {
-      toast({ title: 'Erro ao excluir interação', variant: 'destructive' });
+      toast({ title: 'Erro ao excluir interação', description: getErrorMessage(error), variant: 'destructive' });
     } else {
       toast({ title: 'Interação excluída!' });
       fetchInteracoes();

@@ -21,6 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Lead, StatusFunil, Interacao } from '@/types/database';
 import { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/utils/errorMessages';
 import { Loader2, User, Phone, MapPin, UserCheck, Calendar as CalendarIcon, Clock, Filter, X } from 'lucide-react';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format } from 'date-fns';
@@ -251,7 +252,7 @@ export default function Kanban() {
       .eq('id', draggingId);
 
     if (error) {
-      toast({ title: 'Erro ao atualizar status', variant: 'destructive' });
+      toast({ title: 'Erro ao atualizar status', description: getErrorMessage(error), variant: 'destructive' });
       fetchLeads();
     } else {
       toast({ title: 'Status atualizado!' });

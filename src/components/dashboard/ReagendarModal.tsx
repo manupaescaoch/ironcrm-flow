@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/utils/errorMessages';
 import { Loader2 } from 'lucide-react';
 import { EventoItem } from './EventosHoje';
 
@@ -55,7 +56,7 @@ export function ReagendarModal({ open, onOpenChange, item, onSuccess }: Reagenda
       .eq('id', item.interacao.id);
 
     if (interacaoError) {
-      toast({ title: 'Erro ao reagendar', variant: 'destructive' });
+      toast({ title: 'Erro ao reagendar', description: getErrorMessage(interacaoError), variant: 'destructive' });
       setLoading(false);
       return;
     }
