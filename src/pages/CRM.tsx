@@ -47,6 +47,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { Lead, StatusFunil, PlanoEscolhido } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/utils/errorMessages';
 import { Plus, Search, Eye, Trash2, Loader2, Pencil, Filter, Upload, FileSpreadsheet, Users, TrendingUp, UserCheck, UserX, CalendarIcon } from 'lucide-react';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
@@ -255,7 +256,7 @@ export default function CRM() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      toast({ title: 'Erro ao carregar leads', variant: 'destructive' });
+      toast({ title: 'Erro ao carregar leads', description: getErrorMessage(error), variant: 'destructive' });
     } else {
       setLeads((data as unknown as Lead[]) || []);
     }
@@ -423,7 +424,7 @@ export default function CRM() {
       .eq('id', leadToDelete);
 
     if (error) {
-      toast({ title: 'Erro ao excluir lead', variant: 'destructive' });
+      toast({ title: 'Erro ao excluir lead', description: getErrorMessage(error), variant: 'destructive' });
     } else {
       toast({ title: 'Lead excluído com sucesso!' });
       fetchLeads();

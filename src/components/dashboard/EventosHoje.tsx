@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Calendar, Clock, Save, RefreshCw, MessageCircle, Activity, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/utils/errorMessages';
 import { Lead, Interacao } from '@/types/database';
 import { normalizePhoneForWhatsApp } from '@/components/WhatsAppLink';
 import { format } from 'date-fns';
@@ -62,7 +63,7 @@ export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps)
         .eq('id', item.interacao.id);
 
       if (interacaoError) {
-        toast({ title: 'Erro ao atualizar presença', variant: 'destructive' });
+        toast({ title: 'Erro ao atualizar presença', description: getErrorMessage(interacaoError), variant: 'destructive' });
         setLoading(prev => ({ ...prev, [item.interacao.id]: false }));
         return;
       }
@@ -90,7 +91,7 @@ export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps)
         .eq('id', item.interacao.id);
 
       if (error) {
-        toast({ title: 'Erro ao atualizar status', variant: 'destructive' });
+        toast({ title: 'Erro ao atualizar status', description: getErrorMessage(error), variant: 'destructive' });
         setLoading(prev => ({ ...prev, [item.interacao.id]: false }));
         return;
       }
@@ -113,7 +114,7 @@ export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps)
       .eq('id', item.interacao.id);
 
     if (error) {
-      toast({ title: 'Erro ao salvar observação', variant: 'destructive' });
+      toast({ title: 'Erro ao salvar observação', description: getErrorMessage(error), variant: 'destructive' });
     } else {
       toast({ title: 'Observação salva!' });
     }

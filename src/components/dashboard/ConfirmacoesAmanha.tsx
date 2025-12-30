@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Clock, Save, RefreshCw, AlertTriangle, MessageCircle, Calendar, Activity } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/utils/errorMessages';
 import { Lead, Interacao } from '@/types/database';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -36,7 +37,7 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
       .eq('id', item.interacao.id);
 
     if (error) {
-      toast({ title: 'Erro ao atualizar confirmação', variant: 'destructive' });
+      toast({ title: 'Erro ao atualizar confirmação', description: getErrorMessage(error), variant: 'destructive' });
     } else {
       toast({ title: checked ? 'Confirmação registrada!' : 'Confirmação removida!' });
       onRefresh();
@@ -57,7 +58,7 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
       .eq('id', item.interacao.id);
 
     if (error) {
-      toast({ title: 'Erro ao salvar observação', variant: 'destructive' });
+      toast({ title: 'Erro ao salvar observação', description: getErrorMessage(error), variant: 'destructive' });
     } else {
       toast({ title: 'Observação salva!' });
     }
