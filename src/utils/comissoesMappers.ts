@@ -5,31 +5,22 @@ import { ptBR } from 'date-fns/locale';
  * Normaliza nome de cadastrador
  */
 export function normalizeCadastrador(nome: string | null | undefined): string {
-  if (!nome) return 'NÃO INFORMADO';
-  const normalizado = nome.trim().toUpperCase();
+  if (!nome) return 'NAO INFORMADO';
   
-  const mapeamento: Record<string, string> = {
-    'ANDREZA': 'ANDREZA TEODORO',
-    'THAIS': 'THAIS',
-    'THAÍS': 'THAIS',
-    'GABRIELA': 'GABRIELA LIMA',
-    'NATANAEL': 'NATANAEL DA SILVA',
-    'GABRIEL': 'GABRIEL',
-    'MANU PAES': 'ANDREZA TEODORO',
-    'MANU': 'ANDREZA TEODORO',
-  };
+  // Remove acentos e converte para maiúsculas
+  const normalizado = nome.trim().toUpperCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   
-  if (mapeamento[normalizado]) {
-    return mapeamento[normalizado];
-  }
+  // Mapeamento por prefixo (ordem importa - mais específico primeiro)
+  if (normalizado.startsWith('MANU')) return 'ANDREZA TEODORO';
+  if (normalizado.startsWith('ANDREZA')) return 'ANDREZA TEODORO';
+  if (normalizado.startsWith('THAIS')) return 'THAIS';
+  if (normalizado.startsWith('GABRIELA')) return 'GABRIELA LIMA';
+  if (normalizado.startsWith('NATANAEL')) return 'NATANAEL DA SILVA';
+  if (normalizado === 'GABRIEL') return 'GABRIEL';
   
-  for (const [key, value] of Object.entries(mapeamento)) {
-    if (normalizado.includes(key)) {
-      return value;
-    }
-  }
-  
-  return normalizado;
+  // Retorna normalizado (sem acentos, maiúsculas)
+  return normalizado || 'NAO INFORMADO';
 }
 
 /**
@@ -91,20 +82,33 @@ export function padronizarTreinadorComissoes(nome: string): string {
   const normalizado = nome.trim().toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   
+  // Treinadores conhecidos (ordem importa - mais específico primeiro)
   if (/^josadaque/.test(normalizado)) return 'JOSADAQUE JOSE DA SILVA';
-  if (/^lucia/.test(normalizado) || /^lúcia/.test(normalizado)) return 'LUCIA HELENA PINTO LOPES';
+  if (/^lucia/.test(normalizado)) return 'LUCIA HELENA PINTO LOPES';
   if (/^stela/.test(normalizado)) return 'STELA';
-  if (/^thais/.test(normalizado) || /^thaís/.test(normalizado)) return 'THAIS';
+  if (/^thais/.test(normalizado)) return 'THAIS';
   if (/^gabriela/.test(normalizado)) return 'GABRIELA LIMA';
   if (/^natanael/.test(normalizado)) return 'NATANAEL DA SILVA';
   if (/^andreza/.test(normalizado)) return 'ANDREZA TEODORO';
-  if (/^gabriel$/.test(normalizado)) return 'GABRIEL';
+  if (/^gabriel\s+araujo/.test(normalizado)) return 'GABRIEL ARAUJO';
+  if (normalizado === 'gabriel') return 'GABRIEL';
+  
+  // Novos treinadores
+  if (/^giovanna/.test(normalizado)) return 'GIOVANNA KELLY DA SILVA';
+  if (/^luan/.test(normalizado)) return 'LUAN MONTEIRO TEIXEIRA';
+  if (/^ana\s*beatriz/.test(normalizado)) return 'ANA BEATRIZ';
+  if (/^andre\s*moreira/.test(normalizado)) return 'ANDRE MOREIRA';
+  if (/^charles/.test(normalizado)) return 'CHARLES';
+  if (/^eduarda/.test(normalizado)) return 'EDUARDA';
+  if (/^r[iy]an/.test(normalizado)) return 'RYAN';
+  
   if (/^sistema/.test(normalizado)) return 'SISTEMA';
-  if (/^(nao informado|n[aã]o informado|desconhecido|vazio|null|undefined|-|n\/a)/.test(normalizado)) {
+  if (/^(nao informado|desconhecido|vazio|null|undefined|-|n\/a)/.test(normalizado)) {
     return 'NAO INFORMADO';
   }
   
-  return nome.trim().toUpperCase();
+  return nome.trim().toUpperCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
 /**
