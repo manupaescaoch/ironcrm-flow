@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { EventoItem } from '@/components/dashboard/EventosHoje';
@@ -21,6 +21,78 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
   const [autoFollowUpItems, setAutoFollowUpItems] = useState<FollowUpAutoItem[]>([]);
   const [loading, setLoading] = useState(false);
   const hasGeneratedRef = useRef(false);
+
+  // Internal fetch function for realtime updates
+  const fetchAutoFollowUpsInternal = async () => {
+    if (!unidadeAtual) return;
+    
+    const { data: followUpsData, error } = await supabase
+      .from('follow_ups')
+      .select(`
+        id, lead_id, tipo, data_referencia, data_prevista, status, concluido_por, concluido_em,
+        leads (id, nome, telefone, email, status_funil)
+      `)
+      .eq('unidade_id', unidadeAtual.id)
+      .eq('status', 'pendente')
+      .order('data_prevista', { ascending: true });
+
+    if (error) {
+      console.error('Erro ao buscar follow-ups automáticos (realtime):', error);
+      return;
+    }
+
+    const items: FollowUpAutoItem[] = [];
+    followUpsData?.forEach((item: any) => {
+      if (!item.leads) return;
+      if (['perdido', 'convertido'].includes(item.leads.status_funil)) return;
+      
+      items.push({
+        id: item.id,
+        lead_id: item.lead_id,
+        tipo: item.tipo,
+        data_referencia: item.data_referencia,
+        data_prevista: item.data_prevista,
+        status: item.status,
+        concluido_por: item.concluido_por,
+        concluido_em: item.concluido_em,
+        lead: {
+          id: item.leads.id,
+          nome: item.leads.nome,
+          telefone: item.leads.telefone,
+          email: item.leads.email,
+          status_funil: item.leads.status_funil,
+        },
+      });
+    });
+
+    setAutoFollowUpItems(items);
+  };
+
+  // Realtime subscription for follow_ups table
+  useEffect(() => {
+    if (!unidadeAtual) return;
+
+    const channel = supabase
+      .channel('follow_ups_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'follow_ups',
+          filter: `unidade_id=eq.${unidadeAtual.id}`,
+        },
+        (payload) => {
+          console.log('Follow-up realtime update:', payload.eventType);
+          fetchAutoFollowUpsInternal();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [unidadeAtual?.id]);
 
   const fetchFollowUp = useCallback(async () => {
     if (!unidadeAtual) return;
