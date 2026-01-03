@@ -18,6 +18,7 @@ interface FollowUpStats {
 
 interface RelatorioFollowUpsProps {
   onTipoClick?: (tipo: string) => void;
+  refreshKey?: number;
 }
 
 const TIPO_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -27,7 +28,7 @@ const TIPO_CONFIG: Record<string, { label: string; color: string; bgColor: strin
   'D+30': { label: 'D+30', color: 'text-red-700', bgColor: 'bg-red-100' },
 };
 
-export function RelatorioFollowUps({ onTipoClick }: RelatorioFollowUpsProps) {
+export function RelatorioFollowUps({ onTipoClick, refreshKey }: RelatorioFollowUpsProps) {
   const [stats, setStats] = useState<FollowUpStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [totals, setTotals] = useState({ total: 0, concluidos: 0, conversoes: 0, taxaGeral: 0 });
@@ -35,7 +36,7 @@ export function RelatorioFollowUps({ onTipoClick }: RelatorioFollowUpsProps) {
 
   useEffect(() => {
     fetchStats();
-  }, [unidadeAtual?.id]);
+  }, [unidadeAtual?.id, refreshKey]);
 
   const fetchStats = async () => {
     setLoading(true);

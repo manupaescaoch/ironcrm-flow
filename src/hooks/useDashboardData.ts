@@ -79,8 +79,11 @@ export function useDashboardData(
     await eventosHook.fetchEventos(start, end);
   }, [eventosHook.fetchEventos]);
 
-  // Initial fetch
+  // Initial fetch - generate follow-ups only once
   useEffect(() => {
+    if (unidadeAtual) {
+      followUpsHook.generateFollowUps();
+    }
     refetchAll(startDate, endDate);
   }, [unidadeAtual, startDate, endDate]);
 
