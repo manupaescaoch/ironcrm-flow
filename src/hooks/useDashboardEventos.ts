@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { EventoItem } from '@/components/dashboard/EventosHoje';
@@ -26,10 +26,12 @@ export function useDashboardEventos(): UseDashboardEventosReturn {
   const [experimentaisSemana, setExperimentaisSemana] = useState<EventoItem[]>([]);
   const [experimentaisDetalhados, setExperimentaisDetalhados] = useState<EventoItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const lastDateRangeRef = useRef<{ startDate: Date; endDate: Date } | null>(null);
 
   const fetchEventos = useCallback(async (startDate: Date, endDate: Date) => {
     if (!unidadeAtual) return;
     
+    lastDateRangeRef.current = { startDate, endDate };
     setLoading(true);
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
@@ -102,6 +104,57 @@ export function useDashboardEventos(): UseDashboardEventosReturn {
       setLoading(false);
     }
   }, [unidadeAtual]);
+
+  // Realtime subscription for interacoes and leads tables
+  useEffect(() => {
+    if (!unidadeAtual) return;
+
+    const handleRealtimeUpdate = () => {
+      if (lastDateRangeRef.current) {
+        console.log('Realtime update triggered - refetching eventos');
+        fetchEventos(lastDateRangeRef.current.startDate, lastDateRangeRef.current.endDate);
+      }
+    };
+
+    const interacoesChannel = supabase
+      .channel('interacoes_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'interacoes',
+          filter: `unidade_id=eq.${unidadeAtual.id}`,
+        },
+        (payload) => {
+          console.log('Interação realtime update:', payload.eventType);
+          handleRealtimeUpdate();
+        }
+      )
+      .subscribe();
+
+    const leadsChannel = supabase
+      .channel('leads_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leads',
+          filter: `unidade_id=eq.${unidadeAtual.id}`,
+        },
+        (payload) => {
+          console.log('Lead realtime update:', payload.eventType);
+          handleRealtimeUpdate();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(interacoesChannel);
+      supabase.removeChannel(leadsChannel);
+    };
+  }, [unidadeAtual?.id, fetchEventos]);
 
   return {
     eventosHoje,
