@@ -38,6 +38,7 @@ export default function Dashboard() {
   const [showMatriculasSection, setShowMatriculasSection] = useState(false);
   const [showFollowUpSection, setShowFollowUpSection] = useState(false);
   const [followUpTipoFilter, setFollowUpTipoFilter] = useState<string | null>(null);
+  const [followUpRefreshKey, setFollowUpRefreshKey] = useState(0);
   
   // Refs for scrolling
   const experimentaisSectionRef = useRef<HTMLDivElement>(null);
@@ -198,17 +199,23 @@ export default function Dashboard() {
         {showFollowUpSection && (
           <div ref={followUpSectionRef} className="mb-8 space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <RelatorioFollowUps onTipoClick={handleFollowUpTipoClick} />
+              <RelatorioFollowUps onTipoClick={handleFollowUpTipoClick} refreshKey={followUpRefreshKey} />
               
               <div className="space-y-6">
                 {followUpItems.length > 0 && !followUpTipoFilter && (
-                  <FollowUpCard items={followUpItems} onRefresh={() => refetchAll(startDate, endDate)} />
+                  <FollowUpCard items={followUpItems} onRefresh={() => {
+                    refetchAll(startDate, endDate);
+                    setFollowUpRefreshKey(k => k + 1);
+                  }} />
                 )}
                 
                 {autoFollowUpItems.length > 0 && (
                   <AutoFollowUpCard 
                     items={autoFollowUpItems} 
-                    onRefresh={() => refetchAll(startDate, endDate)} 
+                    onRefresh={() => {
+                      refetchAll(startDate, endDate);
+                      setFollowUpRefreshKey(k => k + 1);
+                    }} 
                     tipoFilter={followUpTipoFilter}
                     onClearFilter={() => setFollowUpTipoFilter(null)}
                   />

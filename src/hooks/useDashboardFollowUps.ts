@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { EventoItem } from '@/components/dashboard/EventosHoje';
@@ -11,6 +11,7 @@ interface UseDashboardFollowUpsReturn {
   loading: boolean;
   fetchFollowUp: () => Promise<void>;
   fetchAutoFollowUps: () => Promise<void>;
+  generateFollowUps: () => Promise<void>;
 }
 
 export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
@@ -19,6 +20,7 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
   const [followUpItems, setFollowUpItems] = useState<EventoItem[]>([]);
   const [autoFollowUpItems, setAutoFollowUpItems] = useState<FollowUpAutoItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const hasGeneratedRef = useRef(false);
 
   const fetchFollowUp = useCallback(async () => {
     if (!unidadeAtual) return;
@@ -77,10 +79,12 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
     }
   }, [unidadeAtual]);
 
-  const fetchAutoFollowUps = useCallback(async () => {
-    if (!unidadeAtual) return;
+  // Separate function to generate follow-ups (called only once on initial load)
+  const generateFollowUps = useCallback(async () => {
+    if (!unidadeAtual || hasGeneratedRef.current) return;
     
-    // Generate new follow-ups by calling edge function
+    hasGeneratedRef.current = true;
+    
     try {
       const { error } = await supabase.functions.invoke('generate-follow-ups', {
         body: { unidade_id: unidadeAtual.id }
@@ -92,6 +96,11 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
     } catch (err) {
       console.error('Erro ao chamar edge function:', err);
     }
+  }, [unidadeAtual]);
+
+  // Fetch only - does NOT call generate-follow-ups
+  const fetchAutoFollowUps = useCallback(async () => {
+    if (!unidadeAtual) return;
     
     // Fetch pending follow-ups
     const { data: followUpsData, error } = await supabase
@@ -142,5 +151,6 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
     loading,
     fetchFollowUp,
     fetchAutoFollowUps,
+    generateFollowUps,
   };
 }
