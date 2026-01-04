@@ -110,17 +110,29 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
         items.push({ lead, interacao, tipoEvento: 'experimental' });
       });
 
-      // Check if any of these leads have closed matricula in other interacoes
+      // Check if any of these leads have closed matricula in other interacoes OR are converted
       const leadIds = items.map(i => i.lead.id);
       if (leadIds.length > 0) {
+        // Check for closed matriculas
         const { data: matriculasData } = await supabase
           .from('interacoes')
           .select('lead_id')
           .in('lead_id', leadIds)
           .eq('fechou_matricula', true);
         
+        // Also check current lead status (may have been updated after fetch)
+        const { data: leadsData } = await supabase
+          .from('leads')
+          .select('id, status_funil')
+          .in('id', leadIds)
+          .in('status_funil', ['convertido', 'perdido']);
+        
         const closedLeadIds = new Set(matriculasData?.map((m: any) => m.lead_id) || []);
-        const filteredItems = items.filter(i => !closedLeadIds.has(i.lead.id));
+        const convertedLeadIds = new Set(leadsData?.map((l: any) => l.id) || []);
+        
+        const filteredItems = items.filter(i => 
+          !closedLeadIds.has(i.lead.id) && !convertedLeadIds.has(i.lead.id)
+        );
         setFollowUpItems(filteredItems);
         setLastSyncTime(new Date());
       } else {
