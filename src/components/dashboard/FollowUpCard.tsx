@@ -116,6 +116,30 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
     }
   };
 
+  const handleMarkAsDone = async (item: EventoItem) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({
+          follow_up_whatsapp_enviado: true,
+          follow_up_enviado_em: new Date().toISOString(),
+          follow_up_responsavel: userName || 'Sistema',
+        })
+        .eq('id', item.lead.id);
+
+      if (error) throw error;
+      
+      toast.success('Follow up marcado como realizado!');
+      onRefresh();
+    } catch (error) {
+      console.error('Erro ao marcar follow up:', error);
+      toast.error('Erro ao atualizar status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleNotInterested = (item: EventoItem) => {
     setSelectedItem(item);
     setSelectedReason('preco');
@@ -287,15 +311,27 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
                       <MessageCircle className="w-4 h-4 mr-2" />
                       📲 Enviar Follow Up
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full text-red-600 border-red-200 hover:bg-red-50"
-                      onClick={() => handleNotInterested(item)}
-                    >
-                      <XCircle className="w-4 h-4 mr-2" />
-                      🚫 Não interessado
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+                        onClick={() => handleMarkAsDone(item)}
+                        disabled={loading}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Realizado
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
+                        onClick={() => handleNotInterested(item)}
+                      >
+                        <XCircle className="w-4 h-4 mr-1" />
+                        Não interessado
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );
