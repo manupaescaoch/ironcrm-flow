@@ -156,7 +156,8 @@ export default function Dashboard() {
     }
   }, [refetchAll, startDate, endDate]);
 
-  const followUpPendingCount = followUpItems.filter(i => !i.lead.follow_up_whatsapp_enviado).length + autoFollowUpItems.length;
+  // followUpItems already filtered to only pending (not sent), autoFollowUpItems only status='pendente'
+  const followUpPendingCount = followUpItems.length + autoFollowUpItems.length;
 
   return (
     <Layout>
