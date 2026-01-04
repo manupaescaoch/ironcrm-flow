@@ -71,32 +71,6 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
     setLastSyncTime(new Date());
   }, [unidadeAtual]);
 
-  // Realtime subscription for follow_ups table
-  useEffect(() => {
-    if (!unidadeAtual) return;
-
-    const channel = supabase
-      .channel('follow_ups_realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'follow_ups',
-          filter: `unidade_id=eq.${unidadeAtual.id}`,
-        },
-        (payload) => {
-          console.log('Follow-up realtime update:', payload.eventType);
-          fetchAutoFollowUpsInternal();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [unidadeAtual?.id, fetchAutoFollowUpsInternal]);
-
   const fetchFollowUp = useCallback(async () => {
     if (!unidadeAtual) return;
     
@@ -128,6 +102,8 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
       followUpData?.forEach((interacaoData: any) => {
         if (!interacaoData.leads || interacaoData.leads.ativo === false) return;
         if (['convertido', 'perdido'].includes(interacaoData.leads.status_funil)) return;
+        // Skip leads that already had follow-up sent
+        if (interacaoData.leads.follow_up_whatsapp_enviado === true) return;
         
         const lead = mapToLead(interacaoData.leads);
         const interacao = mapToInteracao(interacaoData);
@@ -146,13 +122,68 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
         const closedLeadIds = new Set(matriculasData?.map((m: any) => m.lead_id) || []);
         const filteredItems = items.filter(i => !closedLeadIds.has(i.lead.id));
         setFollowUpItems(filteredItems);
+        setLastSyncTime(new Date());
       } else {
         setFollowUpItems(items);
+        setLastSyncTime(new Date());
       }
     } finally {
       setLoading(false);
     }
   }, [unidadeAtual]);
+
+  // Realtime subscription for follow_ups, leads, and interacoes tables
+  useEffect(() => {
+    if (!unidadeAtual) return;
+
+    const channel = supabase
+      .channel('follow_ups_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'follow_ups',
+          filter: `unidade_id=eq.${unidadeAtual.id}`,
+        },
+        (payload) => {
+          console.log('Follow-up realtime update:', payload.eventType);
+          fetchAutoFollowUpsInternal();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leads',
+          filter: `unidade_id=eq.${unidadeAtual.id}`,
+        },
+        (payload) => {
+          console.log('Leads realtime update (follow-ups):', payload.eventType);
+          fetchFollowUp();
+          fetchAutoFollowUpsInternal();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'interacoes',
+          filter: `unidade_id=eq.${unidadeAtual.id}`,
+        },
+        (payload) => {
+          console.log('Interacoes realtime update (follow-ups):', payload.eventType);
+          fetchFollowUp();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [unidadeAtual?.id, fetchAutoFollowUpsInternal, fetchFollowUp]);
 
   // Separate function to generate follow-ups (called only once on initial load)
   const generateFollowUps = useCallback(async () => {

@@ -163,9 +163,11 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
     }
   };
 
-  // Filter items: show all follow_up leads that haven't closed matricula
+  // Filter only pending items (not yet sent)
+  const pendingItems = items.filter(i => !i.lead.follow_up_whatsapp_enviado);
+  
   // Sort: late first, then by time since class (descending)
-  const sortedItems = [...items].sort((a, b) => {
+  const sortedItems = [...pendingItems].sort((a, b) => {
     const aLate = isLateFollowUp(a);
     const bLate = isLateFollowUp(b);
     
@@ -177,7 +179,7 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
     return bHours - aHours;
   });
 
-  const pendingCount = items.filter(i => !i.lead.follow_up_whatsapp_enviado).length;
+  const pendingCount = pendingItems.length;
 
   return (
     <Card className="col-span-full">
