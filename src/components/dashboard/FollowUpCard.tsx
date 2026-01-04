@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,17 +6,28 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUnidade } from '@/contexts/UnidadeContext';
 import { Lead, Interacao } from '@/types/database';
-import { MessageCircle, AlertTriangle, Clock, XCircle, CheckCircle, Info, Phone, Eye } from 'lucide-react';
+import { MessageCircle, AlertTriangle, Clock, XCircle, CheckCircle, Info, Phone, Eye, History, ChevronDown, ChevronUp, User, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatDistanceToNow, differenceInHours, parseISO } from 'date-fns';
+import { formatDistanceToNow, differenceInHours, parseISO, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { WhatsAppLink, normalizePhoneForWhatsApp } from '@/components/WhatsAppLink';
 import { useNavigate } from 'react-router-dom';
 import { EventoItem } from './EventosHoje';
+
+interface CompletedFollowUp {
+  id: string;
+  nome: string;
+  telefone: string | null;
+  follow_up_enviado_em: string | null;
+  follow_up_responsavel: string | null;
+  status_funil: string;
+}
 
 interface FollowUpCardProps {
   items: EventoItem[];
@@ -42,12 +53,45 @@ const NOT_INTERESTED_REASONS = [
 export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
   const navigate = useNavigate();
   const { userName, isAdmin, user } = useAuth();
+  const { unidadeAtual } = useUnidade();
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [confirmDoneModalOpen, setConfirmDoneModalOpen] = useState(false);
   const [notInterestedModalOpen, setNotInterestedModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<EventoItem | null>(null);
   const [selectedReason, setSelectedReason] = useState('preco');
   const [loading, setLoading] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [completedFollowUps, setCompletedFollowUps] = useState<CompletedFollowUp[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Fetch completed follow-ups when history is opened
+  useEffect(() => {
+    if (historyOpen && unidadeAtual) {
+      fetchCompletedFollowUps();
+    }
+  }, [historyOpen, unidadeAtual]);
+
+  const fetchCompletedFollowUps = async () => {
+    if (!unidadeAtual) return;
+    
+    setLoadingHistory(true);
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, nome, telefone, follow_up_enviado_em, follow_up_responsavel, status_funil')
+        .eq('unidade_id', unidadeAtual.id)
+        .eq('follow_up_whatsapp_enviado', true)
+        .order('follow_up_enviado_em', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setCompletedFollowUps(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar histórico:', error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   const getTimeSinceClass = (item: EventoItem) => {
     const dateStr = item.interacao.data_experimental;
@@ -348,6 +392,85 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
             })}
           </div>
         )}
+
+        {/* Histórico de Follow-ups Concluídos */}
+        <Collapsible open={historyOpen} onOpenChange={setHistoryOpen} className="mt-6">
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="w-full flex items-center justify-between p-3 hover:bg-muted/50">
+              <div className="flex items-center gap-2">
+                <History className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Histórico de Follow-ups Concluídos</span>
+              </div>
+              {historyOpen ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-2">
+            {loadingHistory ? (
+              <div className="text-center py-4 text-muted-foreground text-sm">
+                Carregando histórico...
+              </div>
+            ) : completedFollowUps.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground text-sm">
+                Nenhum follow-up concluído ainda.
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {completedFollowUps.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h5 className="font-medium text-sm truncate">{item.nome?.toUpperCase()}</h5>
+                        <Badge 
+                          variant="outline" 
+                          className={cn(
+                            "text-xs",
+                            item.status_funil === 'convertido' 
+                              ? "border-green-500 text-green-600 bg-green-50" 
+                              : item.status_funil === 'perdido'
+                              ? "border-red-500 text-red-600 bg-red-50"
+                              : "border-muted"
+                          )}
+                        >
+                          {item.status_funil === 'convertido' ? '✅ Convertido' : 
+                           item.status_funil === 'perdido' ? '❌ Perdido' : 
+                           item.status_funil}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          <span>
+                            {item.follow_up_enviado_em 
+                              ? format(parseISO(item.follow_up_enviado_em), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                              : '-'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <User className="w-3 h-3" />
+                          <span>{item.follow_up_responsavel || 'Não informado'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => navigate(`/lead/${item.id}`)}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
 
       {/* Confirm Follow Up Sent Modal */}
