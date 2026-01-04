@@ -9,6 +9,7 @@ interface UseDashboardFollowUpsReturn {
   followUpItems: EventoItem[];
   autoFollowUpItems: FollowUpAutoItem[];
   loading: boolean;
+  lastSyncTime: Date | null;
   fetchFollowUp: () => Promise<void>;
   fetchAutoFollowUps: () => Promise<void>;
   generateFollowUps: () => Promise<void>;
@@ -20,6 +21,7 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
   const [followUpItems, setFollowUpItems] = useState<EventoItem[]>([]);
   const [autoFollowUpItems, setAutoFollowUpItems] = useState<FollowUpAutoItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const hasGeneratedRef = useRef(false);
 
   // Internal fetch function for realtime updates
@@ -66,6 +68,7 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
     });
 
     setAutoFollowUpItems(items);
+    setLastSyncTime(new Date());
   }, [unidadeAtual]);
 
   // Realtime subscription for follow_ups table
@@ -221,6 +224,7 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
     followUpItems,
     autoFollowUpItems,
     loading,
+    lastSyncTime,
     fetchFollowUp,
     fetchAutoFollowUps,
     generateFollowUps,
