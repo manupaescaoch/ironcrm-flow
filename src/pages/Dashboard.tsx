@@ -21,6 +21,7 @@ import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardKPIGrid } from '@/components/dashboard/DashboardKPIGrid';
 import { ExperimentaisDetailSection } from '@/components/dashboard/ExperimentaisDetailSection';
 import { MatriculasDetailSection } from '@/components/dashboard/MatriculasDetailSection';
+import { SyncIndicator } from '@/components/dashboard/SyncIndicator';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { addDays } from 'date-fns';
 
@@ -62,6 +63,7 @@ export default function Dashboard() {
     experimentaisDetalhados,
     followUpItems,
     autoFollowUpItems,
+    lastSyncTime,
     matriculasDetalhadas,
     loading,
     refetchAll,
@@ -172,15 +174,18 @@ export default function Dashboard() {
           </div>
         )}
 
-        <DashboardHeader
-          unidadeNome={unidadeAtual?.nome}
-          startDate={startDate}
-          endDate={endDate}
-          periodType={periodType}
-          onStartDateChange={setStartDate}
-          onEndDateChange={setEndDate}
-          onPeriodTypeChange={setPeriodType}
-        />
+        <div className="flex items-center justify-between mb-2">
+          <DashboardHeader
+            unidadeNome={unidadeAtual?.nome}
+            startDate={startDate}
+            endDate={endDate}
+            periodType={periodType}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+            onPeriodTypeChange={setPeriodType}
+          />
+          <SyncIndicator lastSyncTime={lastSyncTime ?? undefined} className="ml-4" />
+        </div>
 
         <DashboardKPIGrid
           stats={stats}
