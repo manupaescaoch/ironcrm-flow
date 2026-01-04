@@ -43,6 +43,7 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
   const navigate = useNavigate();
   const { userName, isAdmin, user } = useAuth();
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [confirmDoneModalOpen, setConfirmDoneModalOpen] = useState(false);
   const [notInterestedModalOpen, setNotInterestedModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<EventoItem | null>(null);
   const [selectedReason, setSelectedReason] = useState('preco');
@@ -116,7 +117,14 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
     }
   };
 
-  const handleMarkAsDone = async (item: EventoItem) => {
+  const handleMarkAsDone = (item: EventoItem) => {
+    setSelectedItem(item);
+    setConfirmDoneModalOpen(true);
+  };
+
+  const handleConfirmDone = async () => {
+    if (!selectedItem) return;
+    
     setLoading(true);
     try {
       const { error } = await supabase
@@ -126,11 +134,13 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
           follow_up_enviado_em: new Date().toISOString(),
           follow_up_responsavel: userName || 'Sistema',
         })
-        .eq('id', item.lead.id);
+        .eq('id', selectedItem.lead.id);
 
       if (error) throw error;
       
       toast.success('Follow up marcado como realizado!');
+      setConfirmDoneModalOpen(false);
+      setSelectedItem(null);
       onRefresh();
     } catch (error) {
       console.error('Erro ao marcar follow up:', error);
@@ -356,6 +366,30 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
             <Button onClick={handleConfirmSent} disabled={loading}>
               <CheckCircle className="w-4 h-4 mr-2" />
               ✅ Marcar mensagem como enviada
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm Follow Up Done Modal */}
+      <Dialog open={confirmDoneModalOpen} onOpenChange={setConfirmDoneModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Follow Up Realizado</DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground">
+            Você já realizou o follow up com <strong>{selectedItem?.lead.nome}</strong>?
+          </p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Isso marcará o contato como concluído e removerá da lista de pendentes.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDoneModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmDone} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Confirmar Realizado
             </Button>
           </DialogFooter>
         </DialogContent>
