@@ -23,7 +23,7 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
   const hasGeneratedRef = useRef(false);
 
   // Internal fetch function for realtime updates
-  const fetchAutoFollowUpsInternal = async () => {
+  const fetchAutoFollowUpsInternal = useCallback(async () => {
     if (!unidadeAtual) return;
     
     const { data: followUpsData, error } = await supabase
@@ -66,7 +66,7 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
     });
 
     setAutoFollowUpItems(items);
-  };
+  }, [unidadeAtual]);
 
   // Realtime subscription for follow_ups table
   useEffect(() => {
@@ -92,7 +92,7 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [unidadeAtual?.id]);
+  }, [unidadeAtual?.id, fetchAutoFollowUpsInternal]);
 
   const fetchFollowUp = useCallback(async () => {
     if (!unidadeAtual) return;
