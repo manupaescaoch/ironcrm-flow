@@ -84,14 +84,16 @@ export function padronizarTreinadorComissoes(nome: string): string {
   
   // Treinadores conhecidos (ordem importa - mais específico primeiro)
   if (/^josadaque/.test(normalizado)) return 'JOSADAQUE JOSE DA SILVA';
-  if (/^lucia/.test(normalizado)) return 'LUCIA HELENA PINTO LOPES';
-  if (/^stela/.test(normalizado)) return 'STELA';
+  // Consolidar Lúcia Helena / Helena Leite
+  if (/^(lucia|helena)/.test(normalizado)) return 'LUCIA HELENA PINTO LOPES';
+  // Consolidar Estela / Stela
+  if (/^e?stela/.test(normalizado)) return 'STELA';
   if (/^thais/.test(normalizado)) return 'THAIS';
   if (/^gabriela/.test(normalizado)) return 'GABRIELA LIMA';
   if (/^natanael/.test(normalizado)) return 'NATANAEL DA SILVA';
   if (/^andreza/.test(normalizado)) return 'ANDREZA TEODORO';
-  if (/^gabriel\s+araujo/.test(normalizado)) return 'GABRIEL ARAUJO';
-  if (normalizado === 'gabriel') return 'GABRIEL';
+  // Consolidar Gabriel / Gabriel Araújo
+  if (/^gabriel/.test(normalizado)) return 'GABRIEL ARAUJO';
   
   // Novos treinadores
   if (/^giovanna/.test(normalizado)) return 'GIOVANNA KELLY DA SILVA';

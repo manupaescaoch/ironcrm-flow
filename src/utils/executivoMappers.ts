@@ -92,11 +92,25 @@ export function padronizarTreinador(nome: string | null | undefined): string {
   const normalizado = nome.trim().toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   
+  // Treinadores conhecidos
+  if (/^josadaque/.test(normalizado)) return 'JOSADAQUE JOSE DA SILVA';
+  // Consolidar Lúcia Helena / Helena Leite
+  if (/^(lucia|helena)/.test(normalizado)) return 'LUCIA HELENA PINTO LOPES';
+  // Consolidar Estela / Stela
+  if (/^e?stela/.test(normalizado)) return 'STELA';
   if (/^thais/.test(normalizado)) return 'THAIS';
   if (/^gabriela/.test(normalizado)) return 'GABRIELA LIMA';
   if (/^natanael/.test(normalizado)) return 'NATANAEL DA SILVA';
   if (/^andreza/.test(normalizado)) return 'ANDREZA TEODORO';
-  if (/^gabriel$/.test(normalizado) || normalizado === 'gabriel') return 'GABRIEL';
+  // Consolidar Gabriel / Gabriel Araújo
+  if (/^gabriel/.test(normalizado)) return 'GABRIEL ARAUJO';
+  if (/^giovanna/.test(normalizado)) return 'GIOVANNA KELLY DA SILVA';
+  if (/^luan/.test(normalizado)) return 'LUAN MONTEIRO TEIXEIRA';
+  if (/^ana\s*beatriz/.test(normalizado)) return 'ANA BEATRIZ';
+  if (/^andre\s*moreira/.test(normalizado)) return 'ANDRE MOREIRA';
+  if (/^charles/.test(normalizado)) return 'CHARLES';
+  if (/^eduarda/.test(normalizado)) return 'EDUARDA';
+  if (/^r[iy]an/.test(normalizado)) return 'RYAN';
   if (/^sistema/.test(normalizado)) return 'SISTEMA';
   if (/^(nao informado|n[aã]o informado|desconhecido|vazio|null|undefined|-|n\/a)/.test(normalizado)) {
     return 'NAO INFORMADO';
