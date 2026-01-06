@@ -5,14 +5,47 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Função de padronização de nomes (mesmas regras dos mappers)
+function padronizarNome(nome: string | null): string {
+  if (!nome) return '';
+  
+  const normalizado = nome.trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  
+  // Excluir MANU e valores inválidos
+  if (/^manu/.test(normalizado)) return '';
+  if (/^0+$/.test(normalizado) || normalizado === '') return '';
+  
+  // Treinadores conhecidos
+  if (/^josadaque/.test(normalizado)) return 'JOSADAQUE JOSE DA SILVA';
+  if (/^(lucia|helena\s*leite)/.test(normalizado)) return 'LUCIA HELENA PINTO LOPES';
+  if (/^(estela|stela)/.test(normalizado)) return 'STELA';
+  if (/^thais/.test(normalizado)) return 'THAIS';
+  if (/^(gabriela|gabi)/.test(normalizado)) return 'GABRIELA LIMA';
+  if (/^natan/.test(normalizado)) return 'NATANAEL DA SILVA';
+  if (/^andreza/.test(normalizado)) return 'ANDREZA TEODORO';
+  if (/^gabriel/.test(normalizado)) return 'GABRIEL ARAUJO';
+  if (/^giovan[na]/.test(normalizado)) return 'GIOVANNA KELLY DA SILVA';
+  if (/^luan/.test(normalizado)) return 'LUAN MONTEIRO TEIXEIRA';
+  if (/^(ana|bia)/.test(normalizado)) return 'ANA BEATRIZ';
+  if (/^andre/.test(normalizado)) return 'ANDRE MOREIRA';
+  if (/^charles/.test(normalizado)) return 'CHARLES';
+  if (/^eduarda/.test(normalizado)) return 'EDUARDA';
+  if (/^eduardo/.test(normalizado)) return 'EDUARDO';
+  if (/^davi/.test(normalizado)) return 'DAVI';
+  if (/^r[iy]an/.test(normalizado)) return 'RYAN';
+  if (/^sistema/.test(normalizado)) return 'SISTEMA';
+  
+  // Se não encontrou padrão, retorna em maiúsculas
+  return nome.trim().toUpperCase();
+}
+
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Create Supabase client with service role
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -24,7 +57,6 @@ Deno.serve(async (req) => {
       }
     )
 
-    // Get authorization header to verify user is admin
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(
@@ -43,7 +75,6 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Check if user is admin
     const { data: isAdmin } = await supabaseAdmin.rpc('has_role', {
       _user_id: user.id,
       _role: 'admin'
@@ -56,9 +87,9 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.log('Starting uppercase update for leads and interacoes...')
+    console.log('Starting name consolidation for leads and interacoes...')
 
-    // Fetch all leads with non-null cadastrado_por or atendido_por
+    // Fetch all leads
     const { data: leads, error: leadsError } = await supabaseAdmin
       .from('leads')
       .select('id, cadastrado_por, atendido_por')
@@ -70,13 +101,19 @@ Deno.serve(async (req) => {
 
     let leadsUpdated = 0
     for (const lead of leads || []) {
-      const updates: Record<string, string> = {}
+      const updates: Record<string, string | null> = {}
       
-      if (lead.cadastrado_por && lead.cadastrado_por !== lead.cadastrado_por.toUpperCase()) {
-        updates.cadastrado_por = lead.cadastrado_por.toUpperCase()
+      if (lead.cadastrado_por) {
+        const padronizado = padronizarNome(lead.cadastrado_por)
+        if (padronizado !== lead.cadastrado_por) {
+          updates.cadastrado_por = padronizado || null
+        }
       }
-      if (lead.atendido_por && lead.atendido_por !== lead.atendido_por.toUpperCase()) {
-        updates.atendido_por = lead.atendido_por.toUpperCase()
+      if (lead.atendido_por) {
+        const padronizado = padronizarNome(lead.atendido_por)
+        if (padronizado !== lead.atendido_por) {
+          updates.atendido_por = padronizado || null
+        }
       }
 
       if (Object.keys(updates).length > 0) {
@@ -95,10 +132,10 @@ Deno.serve(async (req) => {
 
     console.log(`Updated ${leadsUpdated} leads`)
 
-    // Fetch all interacoes with non-null cadastrado_por or atendido_por
+    // Fetch all interacoes
     const { data: interacoes, error: interacoesError } = await supabaseAdmin
       .from('interacoes')
-      .select('id, cadastrado_por, atendido_por')
+      .select('id, cadastrado_por, atendido_por, treinador_responsavel, treinador_experimental, responsavel_fechamento')
 
     if (interacoesError) {
       console.error('Error fetching interacoes:', interacoesError)
@@ -107,13 +144,18 @@ Deno.serve(async (req) => {
 
     let interacoesUpdated = 0
     for (const int of interacoes || []) {
-      const updates: Record<string, string> = {}
+      const updates: Record<string, string | null> = {}
       
-      if (int.cadastrado_por && int.cadastrado_por !== int.cadastrado_por.toUpperCase()) {
-        updates.cadastrado_por = int.cadastrado_por.toUpperCase()
-      }
-      if (int.atendido_por && int.atendido_por !== int.atendido_por.toUpperCase()) {
-        updates.atendido_por = int.atendido_por.toUpperCase()
+      const fields = ['cadastrado_por', 'atendido_por', 'treinador_responsavel', 'treinador_experimental', 'responsavel_fechamento']
+      
+      for (const field of fields) {
+        const valor = int[field as keyof typeof int] as string | null
+        if (valor) {
+          const padronizado = padronizarNome(valor)
+          if (padronizado !== valor) {
+            updates[field] = padronizado || null
+          }
+        }
       }
 
       if (Object.keys(updates).length > 0) {
@@ -137,7 +179,7 @@ Deno.serve(async (req) => {
         success: true,
         leadsUpdated,
         interacoesUpdated,
-        message: `Atualizados ${leadsUpdated} leads e ${interacoesUpdated} interações para caixa alta.`
+        message: `Padronizados ${leadsUpdated} leads e ${interacoesUpdated} interações.`
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
