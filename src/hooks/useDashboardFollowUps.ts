@@ -28,6 +28,10 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
   const fetchAutoFollowUpsInternal = useCallback(async () => {
     if (!unidadeAtual) return;
     
+    // Filter to show only today's and overdue follow-ups
+    const hoje = new Date();
+    hoje.setHours(23, 59, 59, 999);
+    
     const { data: followUpsData, error } = await supabase
       .from('follow_ups')
       .select(`
@@ -36,6 +40,7 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
       `)
       .eq('unidade_id', unidadeAtual.id)
       .eq('status', 'pendente')
+      .lte('data_prevista', hoje.toISOString())
       .order('data_prevista', { ascending: true });
 
     if (error) {
@@ -220,6 +225,10 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
   const fetchAutoFollowUps = useCallback(async () => {
     if (!unidadeAtual) return;
     
+    // Filter to show only today's and overdue follow-ups
+    const hoje = new Date();
+    hoje.setHours(23, 59, 59, 999);
+    
     // Fetch pending follow-ups
     const { data: followUpsData, error } = await supabase
       .from('follow_ups')
@@ -229,6 +238,7 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
       `)
       .eq('unidade_id', unidadeAtual.id)
       .eq('status', 'pendente')
+      .lte('data_prevista', hoje.toISOString())
       .order('data_prevista', { ascending: true });
 
     if (error) {
