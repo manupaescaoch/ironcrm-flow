@@ -26,12 +26,15 @@ Deno.serve(async (req) => {
       // No body or invalid JSON, proceed with all unidades
     }
 
-    console.log('Starting follow-up generation...', { unidadeId });
+    // Use today's date as reference for all leads (reset mode)
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    console.log('Starting follow-up generation with reset mode...', { unidadeId, dataReferencia: hoje.toISOString() });
 
     // Get all active leads that are not convertido or perdido
     let leadsQuery = supabase
       .from('leads')
-      .select('id, nome, status_funil, unidade_id, data_aula_experimental, created_at')
+      .select('id, nome, status_funil, unidade_id')
       .eq('ativo', true)
       .not('status_funil', 'in', '("convertido","perdido")');
 
@@ -51,35 +54,8 @@ Deno.serve(async (req) => {
     let generatedCount = 0;
 
     for (const lead of leads || []) {
-      // Check if lead has attended experimental class
-      const { data: interacoes } = await supabase
-        .from('interacoes')
-        .select('data_interacao, compareceu, data_experimental')
-        .eq('lead_id', lead.id)
-        .or('compareceu.eq.true,tipo.in.("contato","ligacao","whatsapp","email")')
-        .order('data_interacao', { ascending: false })
-        .limit(1);
-
-      let dataReferencia: Date | null = null;
-
-      // Check if there's an experimental class attended
-      const { data: experimentalData } = await supabase
-        .from('interacoes')
-        .select('data_experimental')
-        .eq('lead_id', lead.id)
-        .eq('compareceu', true)
-        .order('data_experimental', { ascending: false })
-        .limit(1);
-
-      if (experimentalData && experimentalData.length > 0 && experimentalData[0].data_experimental) {
-        dataReferencia = new Date(experimentalData[0].data_experimental);
-      } else if (interacoes && interacoes.length > 0) {
-        dataReferencia = new Date(interacoes[0].data_interacao);
-      } else {
-        dataReferencia = new Date(lead.created_at);
-      }
-
-      if (!dataReferencia) continue;
+      // Use today as the reference date for all leads
+      const dataReferencia = hoje;
 
       // Check existing follow-ups for this lead
       const { data: existingFollowUps } = await supabase
@@ -103,29 +79,23 @@ Deno.serve(async (req) => {
         const dataPrevista = new Date(dataReferencia);
         dataPrevista.setDate(dataPrevista.getDate() + dias);
 
-        // Only generate if the follow-up date is in the past or within next 30 days
-        const now = new Date();
-        const futureLimit = new Date();
-        futureLimit.setDate(futureLimit.getDate() + 30);
+        // Generate all follow-ups unconditionally (reset mode)
+        const { error: insertError } = await supabase
+          .from('follow_ups')
+          .insert({
+            lead_id: lead.id,
+            unidade_id: lead.unidade_id,
+            tipo,
+            data_referencia: dataReferencia.toISOString(),
+            data_prevista: dataPrevista.toISOString(),
+            status: 'pendente',
+          });
 
-        if (dataPrevista <= futureLimit) {
-          const { error: insertError } = await supabase
-            .from('follow_ups')
-            .insert({
-              lead_id: lead.id,
-              unidade_id: lead.unidade_id,
-              tipo,
-              data_referencia: dataReferencia.toISOString(),
-              data_prevista: dataPrevista.toISOString(),
-              status: 'pendente',
-            });
-
-          if (insertError) {
-            console.error(`Error inserting follow-up ${tipo} for lead ${lead.id}:`, insertError);
-          } else {
-            generatedCount++;
-            console.log(`Generated ${tipo} follow-up for lead ${lead.nome}`);
-          }
+        if (insertError) {
+          console.error(`Error inserting follow-up ${tipo} for lead ${lead.id}:`, insertError);
+        } else {
+          generatedCount++;
+          console.log(`Generated ${tipo} follow-up for lead ${lead.nome}`);
         }
       }
     }
