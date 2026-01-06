@@ -347,6 +347,11 @@ export default function LeadDetail() {
       return;
     }
 
+    // Validate hora_experimental when agendou_experimental or data_experimental is set
+    if ((formData.agendou_experimental || formData.data_experimental) && !formData.hora_experimental) {
+      toast({ title: 'Horário da aula experimental é obrigatório', variant: 'destructive' });
+      return;
+    }
 
     // Validate required fields when fechou_matricula = true
     if (formData.fechou_matricula) {
