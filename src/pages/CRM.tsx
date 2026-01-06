@@ -1172,8 +1172,8 @@ export default function CRM() {
                             : '-'}
                         </TableCell>
                         <TableCell>
-                          {lead.data_aula_experimental 
-                            ? format(new Date(lead.data_aula_experimental), 'HH:mm', { locale: ptBR })
+                          {lead.hora_aula_experimental 
+                            ? lead.hora_aula_experimental.slice(0, 5)
                             : '-'}
                         </TableCell>
                         <TableCell>{lead.cadastrado_por?.toUpperCase() || '-'}</TableCell>
