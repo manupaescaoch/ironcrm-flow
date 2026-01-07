@@ -43,7 +43,7 @@ const allNavItems = [
   { href: '/dashboard-executivo', label: 'Executivo', icon: BarChart3, roles: ['admin'], masterOnly: false },
   { href: '/crm', label: 'CRM', icon: Users, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
   { href: '/kanban', label: 'Funil', icon: Columns, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
-  { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin'], masterOnly: false },
+  { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
   { href: '/indicacoes', label: 'Indicações', icon: Gift, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
   { href: '/estoque', label: 'Estoque', icon: Package, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
   { href: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
