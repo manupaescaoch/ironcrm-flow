@@ -183,7 +183,9 @@ export default function RelatorioPrevisaoCompras() {
         media_diaria = totalRetirado / Math.max(diasComOperacao, 1);
       }
       
-      const dias_restantes = media_diaria > 0 ? Math.floor(quantidade_atual / media_diaria) : null;
+      const dias_restantes = quantidade_atual === 0 
+        ? 0 
+        : (media_diaria > 0 ? Math.floor(quantidade_atual / media_diaria) : null);
       
       // Cálculos preditivos
       const leadTime = insumo.lead_time_dias || 3;
