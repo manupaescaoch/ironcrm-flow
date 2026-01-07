@@ -83,6 +83,9 @@ type InsumoComEstoque = Insumo & {
   valor_estoque_atual: number;
   valor_ponto_pedido: number;
   valor_reposicao: number;
+  // Duração média por unidade (em dias)
+  duracao_media_por_unidade: number | null;
+  retiradas_count: number;
 };
 
 // Função para calcular status preditivo
@@ -226,7 +229,33 @@ export default function EstoqueInterno() {
     const totalRetirado = retiradas.reduce((sum, m) => sum + m.quantidade, 0);
     const diasComOperacao = new Set(retiradas.map(m => m.created_at.split('T')[0])).size || 1;
     
-    const media_diaria = totalRetirado / Math.max(diasComOperacao, 1);
+    // Cálculo da DURAÇÃO MÉDIA por unidade
+    // Fórmula: (Data última retirada - Data primeira retirada) / Total unidades consumidas
+    let duracao_media_por_unidade: number | null = null;
+    const retiradas_count = retiradas.length;
+    
+    if (retiradas.length >= 2 && totalRetirado > 0) {
+      // Ordenar retiradas por data (mais antiga primeiro)
+      const retiradasOrdenadas = [...retiradas].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+      const primeiraRetirada = new Date(retiradasOrdenadas[0].created_at);
+      const ultimaRetiradaData = new Date(retiradasOrdenadas[retiradasOrdenadas.length - 1].created_at);
+      const periodoEmDias = Math.max(1, Math.ceil((ultimaRetiradaData.getTime() - primeiraRetirada.getTime()) / (1000 * 60 * 60 * 24)));
+      
+      // Duração média = período total / unidades consumidas
+      duracao_media_por_unidade = Math.round((periodoEmDias / totalRetirado) * 10) / 10;
+    }
+    
+    // Usar duração média se disponível, senão calcular pelo método antigo
+    let media_diaria: number;
+    if (duracao_media_por_unidade && duracao_media_por_unidade > 0) {
+      // Inverso da duração média: se 1 unidade dura 5 dias, consumo = 0.2/dia
+      media_diaria = 1 / duracao_media_por_unidade;
+    } else {
+      media_diaria = totalRetirado / Math.max(diasComOperacao, 1);
+    }
+    
     const media_semanal = media_diaria * 7;
     const media_mensal = media_diaria * 30;
     const dias_restantes = media_diaria > 0 ? Math.floor(quantidade_atual / media_diaria) : null;
@@ -275,6 +304,8 @@ export default function EstoqueInterno() {
       valor_estoque_atual,
       valor_ponto_pedido,
       valor_reposicao,
+      duracao_media_por_unidade,
+      retiradas_count,
     };
   });
 
@@ -1007,7 +1038,18 @@ export default function EstoqueInterno() {
                           </TooltipContent>
                         </Tooltip>
                       </TableHead>
-                      <TableHead className="font-semibold text-center">Méd/Dia</TableHead>
+                      <TableHead className="font-semibold text-center">
+                        <Tooltip>
+                          <TooltipTrigger className="flex items-center gap-1 justify-center cursor-help">
+                            ⏱️ Duração/Un
+                            <Info className="h-3 w-3" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Tempo médio que 1 unidade dura, calculado com base no histórico real de retiradas.</p>
+                            <p className="text-xs text-muted-foreground mt-1">Requer mínimo de 2 retiradas para calcular.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableHead>
                       <TableHead className="font-semibold text-center bg-primary/10 text-primary">⏳ Dias Rest.</TableHead>
                       <TableHead className="font-semibold text-center">
                         <Tooltip>
@@ -1048,7 +1090,7 @@ export default function EstoqueInterno() {
                   <TableBody>
                     {insumosFiltradosOrdenados.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
+                        <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
                           <Package className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
                           {temFiltrosAtivos ? 'Nenhum insumo encontrado com os filtros aplicados' : 'Nenhum insumo cadastrado. Clique em "Novo Insumo" para começar.'}
                         </TableCell>
@@ -1092,7 +1134,31 @@ export default function EstoqueInterno() {
                               {item.ponto_pedido}
                             </span>
                           </TableCell>
-                          <TableCell className="text-center text-sm">{item.media_diaria}</TableCell>
+                          <TableCell className="text-center">
+                            {item.duracao_media_por_unidade !== null ? (
+                              <Tooltip>
+                                <TooltipTrigger className="cursor-help">
+                                  <span className="inline-flex items-center gap-1 text-sm font-medium text-primary">
+                                    ~{item.duracao_media_por_unidade}d
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>1 unidade dura em média <strong>{item.duracao_media_por_unidade} dias</strong></p>
+                                  <p className="text-xs text-muted-foreground">Baseado em {item.retiradas_count} retiradas</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <Tooltip>
+                                <TooltipTrigger className="cursor-help">
+                                  <span className="text-xs text-muted-foreground italic">Aguardando</span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Necessário mínimo de 2 retiradas para calcular</p>
+                                  <p className="text-xs text-muted-foreground">Atual: {item.retiradas_count} retirada(s)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </TableCell>
                           <TableCell className="text-center bg-primary/5">
                             {item.dias_restantes !== null ? (
                               <span className={`inline-flex items-center justify-center font-bold px-3 py-1.5 rounded-full text-sm ${
