@@ -15,8 +15,8 @@ import { PendenciasDia } from '@/components/dashboard/PendenciasDia';
 import { ExperimentaisSemana } from '@/components/dashboard/ExperimentaisSemana';
 import { ReagendarModal } from '@/components/dashboard/ReagendarModal';
 import { FollowUpCard } from '@/components/dashboard/FollowUpCard';
-import { AutoFollowUpCard } from '@/components/dashboard/AutoFollowUpCard';
-import { RelatorioFollowUps } from '@/components/dashboard/RelatorioFollowUps';
+import { CompactRelatorioFollowUps } from '@/components/dashboard/CompactRelatorioFollowUps';
+import { UnifiedFollowUpCard } from '@/components/dashboard/UnifiedFollowUpCard';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardKPIGrid } from '@/components/dashboard/DashboardKPIGrid';
 import { ExperimentaisDetailSection } from '@/components/dashboard/ExperimentaisDetailSection';
@@ -203,40 +203,33 @@ export default function Dashboard() {
 
         {/* Follow Up Section */}
         {showFollowUpSection && (
-          <div ref={followUpSectionRef} className="mb-8 space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <RelatorioFollowUps onTipoClick={handleFollowUpTipoClick} refreshKey={followUpRefreshKey} />
-              
-              <div className="space-y-6">
-                {followUpItems.length > 0 && !followUpTipoFilter && (
-                  <FollowUpCard items={followUpItems} onRefresh={() => {
-                    refetchAll(startDate, endDate);
-                    setFollowUpRefreshKey(k => k + 1);
-                  }} />
-                )}
-                
-                {autoFollowUpItems.length > 0 && (
-                  <AutoFollowUpCard 
-                    items={autoFollowUpItems} 
-                    onRefresh={() => {
-                      refetchAll(startDate, endDate);
-                      setFollowUpRefreshKey(k => k + 1);
-                    }} 
-                    tipoFilter={followUpTipoFilter}
-                    onClearFilter={() => setFollowUpTipoFilter(null)}
-                  />
-                )}
-                
-                {autoFollowUpItems.length === 0 && followUpItems.length === 0 && (
-                  <Card>
-                    <CardContent className="py-8 text-center text-muted-foreground">
-                      <MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50 text-green-500" />
-                      <p>Nenhum follow-up pendente no momento!</p>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            </div>
+          <div ref={followUpSectionRef} className="mb-8 space-y-4">
+            {/* Compact report on top */}
+            <CompactRelatorioFollowUps 
+              onTipoClick={handleFollowUpTipoClick} 
+              refreshKey={followUpRefreshKey}
+              activeTipo={followUpTipoFilter}
+            />
+            
+            {/* Unified follow-up card below */}
+            {autoFollowUpItems.length > 0 ? (
+              <UnifiedFollowUpCard 
+                items={autoFollowUpItems} 
+                onRefresh={() => {
+                  refetchAll(startDate, endDate);
+                  setFollowUpRefreshKey(k => k + 1);
+                }} 
+                tipoFilter={followUpTipoFilter}
+                onClearFilter={() => setFollowUpTipoFilter(null)}
+              />
+            ) : (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground">
+                  <MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50 text-green-500" />
+                  <p>Nenhum follow-up pendente no momento!</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
