@@ -164,8 +164,30 @@ export default function VisaoFinanceiraEstoque() {
       const totalRetirado = retiradas.reduce((sum, m) => sum + m.quantidade, 0);
       const diasComOperacao = new Set(retiradas.map(m => m.created_at.split('T')[0])).size || 1;
       
-      const media_diaria = totalRetirado / Math.max(diasComOperacao, 1);
-      const dias_restantes = media_diaria > 0 ? Math.floor(quantidade_atual / media_diaria) : null;
+      // Cálculo da DURAÇÃO MÉDIA por unidade
+      let duracao_media_por_unidade: number | null = null;
+      
+      if (retiradas.length >= 2 && totalRetirado > 0) {
+        const retiradasOrdenadas = [...retiradas].sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+        const primeiraRetirada = new Date(retiradasOrdenadas[0].created_at);
+        const ultimaRetiradaData = new Date(retiradasOrdenadas[retiradasOrdenadas.length - 1].created_at);
+        const periodoEmDias = Math.max(1, Math.ceil((ultimaRetiradaData.getTime() - primeiraRetirada.getTime()) / (1000 * 60 * 60 * 24)));
+        duracao_media_por_unidade = Math.round((periodoEmDias / totalRetirado) * 10) / 10;
+      }
+      
+      // Usar duração média se disponível
+      let media_diaria: number;
+      if (duracao_media_por_unidade && duracao_media_por_unidade > 0) {
+        media_diaria = 1 / duracao_media_por_unidade;
+      } else {
+        media_diaria = totalRetirado / Math.max(diasComOperacao, 1);
+      }
+      
+      const dias_restantes = quantidade_atual === 0 
+        ? 0 
+        : (media_diaria > 0 ? Math.floor(quantidade_atual / media_diaria) : null);
       
       const leadTime = insumo.lead_time_dias || 3;
       const estoqueSeguranca = insumo.estoque_seguranca_dias || 2;

@@ -112,11 +112,15 @@ const COLORS_STATUS = {
 function calcularStatusPreditivo(
   quantidadeAtual: number,
   pontoPedido: number,
-  diasRestantes: number | null
+  dataLimitePedido: Date | null,
+  dataRuptura: Date | null
 ): StatusEstoque {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
   if (quantidadeAtual === 0) return 'Sem Estoque';
-  if (diasRestantes !== null && diasRestantes <= 0) return 'Sem Estoque';
-  if (diasRestantes !== null && diasRestantes <= 3) return 'Crítico';
+  if (dataRuptura && hoje > dataRuptura) return 'Sem Estoque';
+  if (dataLimitePedido && hoje >= dataLimitePedido) return 'Crítico';
   if (quantidadeAtual <= pontoPedido) return 'Atenção';
   return 'Normal';
 }
@@ -206,15 +210,41 @@ export default function DashboardExecutivoEstoque() {
       const frequencia_retiradas = retiradas30d.length;
       const diasComOperacao = new Set(retiradas30d.map(m => m.created_at.split('T')[0])).size || 1;
       
-      const media_diaria = total_consumido_30d / Math.max(diasComOperacao, 1);
-      const dias_restantes = media_diaria > 0 ? Math.floor(quantidade_atual / media_diaria) : null;
+      // Cálculo da DURAÇÃO MÉDIA por unidade
+      let duracao_media_por_unidade: number | null = null;
+      
+      if (retiradas30d.length >= 2 && total_consumido_30d > 0) {
+        const retiradasOrdenadas = [...retiradas30d].sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+        const primeiraRetirada = new Date(retiradasOrdenadas[0].created_at);
+        const ultimaRetiradaData = new Date(retiradasOrdenadas[retiradasOrdenadas.length - 1].created_at);
+        const periodoEmDias = Math.max(1, Math.ceil((ultimaRetiradaData.getTime() - primeiraRetirada.getTime()) / (1000 * 60 * 60 * 24)));
+        duracao_media_por_unidade = Math.round((periodoEmDias / total_consumido_30d) * 10) / 10;
+      }
+      
+      // Usar duração média se disponível
+      let media_diaria: number;
+      if (duracao_media_por_unidade && duracao_media_por_unidade > 0) {
+        media_diaria = 1 / duracao_media_por_unidade;
+      } else {
+        media_diaria = total_consumido_30d / Math.max(diasComOperacao, 1);
+      }
+      
+      const dias_restantes = quantidade_atual === 0 
+        ? 0 
+        : (media_diaria > 0 ? Math.floor(quantidade_atual / media_diaria) : null);
       
       // Cálculos preditivos
       const leadTime = insumo.lead_time_dias || 3;
       const estoqueSeguranca = insumo.estoque_seguranca_dias || 2;
       const ponto_pedido = Math.ceil((leadTime + estoqueSeguranca) * media_diaria);
       
-      const status_estoque = calcularStatusPreditivo(quantidade_atual, ponto_pedido, dias_restantes);
+      // Datas preditivas
+      const data_ruptura = dias_restantes !== null ? addDays(hoje, dias_restantes) : null;
+      const data_limite_pedido = data_ruptura ? addDays(data_ruptura, -leadTime) : null;
+      
+      const status_estoque = calcularStatusPreditivo(quantidade_atual, ponto_pedido, data_limite_pedido, data_ruptura);
       
       const custo = insumo.custo_unitario || 0;
       const valor_estoque_atual = quantidade_atual * custo;
