@@ -4,6 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Calendar, Clock, Save, RefreshCw, MessageCircle, Activity, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -48,6 +58,7 @@ export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps)
   const [observations, setObservations] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [treinadores, setTreinadores] = useState<Record<string, string>>({});
+  const [followUpDialogItem, setFollowUpDialogItem] = useState<EventoItem | null>(null);
 
   const handleMarcarPresenca = async (item: EventoItem, checked: boolean) => {
     const treinadorSelecionado = treinadores[item.interacao.id] || item.interacao.treinador_experimental;
@@ -87,10 +98,10 @@ export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps)
           console.error('Erro ao atualizar status do lead:', leadError);
         }
         
-        // Abrir WhatsApp com mensagem de follow-up automaticamente
-        openFollowUpWhatsApp(item);
+        // Abrir modal de confirmação para enviar follow-up
+        setFollowUpDialogItem(item);
         
-        toast({ title: 'Presença marcada! Mensagem de follow-up aberta.' });
+        toast({ title: 'Presença marcada! Lead movido para Follow Up.' });
       } else {
         toast({ title: checked ? 'Presença marcada!' : 'Presença desmarcada!' });
       }
@@ -222,7 +233,33 @@ Aguardamos você! 💪`;
     return item.interacao.hora_experimental || '--:--';
   };
 
+  const handleConfirmFollowUp = () => {
+    if (followUpDialogItem) {
+      openFollowUpWhatsApp(followUpDialogItem);
+      setFollowUpDialogItem(null);
+    }
+  };
+
   return (
+    <>
+    <AlertDialog open={!!followUpDialogItem} onOpenChange={(open) => !open && setFollowUpDialogItem(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Enviar mensagem de follow-up?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Deseja abrir o WhatsApp com a mensagem de follow-up para {followUpDialogItem?.lead.nome.split(' ')[0]}?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Não enviar</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirmFollowUp}>
+            <MessageCircle className="w-4 h-4 mr-2" />
+            Abrir WhatsApp
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="flex items-center gap-2">
@@ -340,5 +377,6 @@ Aguardamos você! 💪`;
         )}
       </CardContent>
     </Card>
+    </>
   );
 }
