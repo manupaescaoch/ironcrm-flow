@@ -63,6 +63,7 @@ type Insumo = {
   estoque_seguranca_dias: number;
   custo_unitario: number;
   fornecedor_padrao: string | null;
+  quantidade_minima_compra: number;
   ativo: boolean;
 };
 
@@ -109,29 +110,7 @@ const COLORS_STATUS = {
   'Sem Estoque': 'hsl(0, 0%, 0%)'
 };
 
-function calcularStatusPreditivo(
-  quantidadeAtual: number,
-  pontoPedido: number,
-  dataLimitePedido: Date | null,
-  dataRuptura: Date | null
-): StatusEstoque {
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
-  if (quantidadeAtual === 0) return 'Sem Estoque';
-  if (dataRuptura && hoje > dataRuptura) return 'Sem Estoque';
-  if (dataLimitePedido && hoje >= dataLimitePedido) return 'Crítico';
-  if (quantidadeAtual <= pontoPedido) return 'Atenção';
-  return 'Normal';
-}
-
-const formatCurrency = (value: number) => {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-};
-
-const formatNumber = (value: number) => {
-  return value.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
-};
+import { calcularMetricasEstoque, formatCurrency, formatNumber } from '@/utils/estoqueCalculations';
 
 export default function DashboardExecutivoEstoque() {
   const { toast } = useToast();
@@ -208,60 +187,30 @@ export default function DashboardExecutivoEstoque() {
       
       const total_consumido_30d = retiradas30d.reduce((sum, m) => sum + m.quantidade, 0);
       const frequencia_retiradas = retiradas30d.length;
-      const diasComOperacao = new Set(retiradas30d.map(m => m.created_at.split('T')[0])).size || 1;
       
-      // Cálculo da DURAÇÃO MÉDIA por unidade
-      let duracao_media_por_unidade: number | null = null;
-      
-      if (retiradas30d.length >= 2 && total_consumido_30d > 0) {
-        const retiradasOrdenadas = [...retiradas30d].sort(
-          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
-        const primeiraRetirada = new Date(retiradasOrdenadas[0].created_at);
-        const ultimaRetiradaData = new Date(retiradasOrdenadas[retiradasOrdenadas.length - 1].created_at);
-        const periodoEmDias = Math.max(1, Math.ceil((ultimaRetiradaData.getTime() - primeiraRetirada.getTime()) / (1000 * 60 * 60 * 24)));
-        duracao_media_por_unidade = Math.round((periodoEmDias / total_consumido_30d) * 10) / 10;
-      }
-      
-      // Usar duração média se disponível
-      let media_diaria: number;
-      if (duracao_media_por_unidade && duracao_media_por_unidade > 0) {
-        media_diaria = 1 / duracao_media_por_unidade;
-      } else {
-        media_diaria = total_consumido_30d / Math.max(diasComOperacao, 1);
-      }
-      
-      const dias_restantes = quantidade_atual === 0 
-        ? 0 
-        : (media_diaria > 0 ? Math.floor(quantidade_atual / media_diaria) : null);
-      
-      // Cálculos preditivos
-      const leadTime = insumo.lead_time_dias || 3;
-      const estoqueSeguranca = insumo.estoque_seguranca_dias || 2;
-      const ponto_pedido = Math.ceil((leadTime + estoqueSeguranca) * media_diaria);
-      
-      // Datas preditivas
-      const data_ruptura = dias_restantes !== null ? addDays(hoje, dias_restantes) : null;
-      const data_limite_pedido = data_ruptura ? addDays(data_ruptura, -leadTime) : null;
-      
-      const status_estoque = calcularStatusPreditivo(quantidade_atual, ponto_pedido, data_limite_pedido, data_ruptura);
-      
-      const custo = insumo.custo_unitario || 0;
-      const valor_estoque_atual = quantidade_atual * custo;
+      // Usar função centralizada para calcular métricas
+      const metricas = calcularMetricasEstoque({
+        quantidade_atual,
+        retiradas: retiradas30d,
+        lead_time_dias: insumo.lead_time_dias || 3,
+        estoque_seguranca_dias: insumo.estoque_seguranca_dias || 2,
+        custo_unitario: insumo.custo_unitario || 0,
+        quantidade_minima_compra: insumo.quantidade_minima_compra || 1,
+      });
       
       // Giro anual (projeção baseada nos 30 dias)
       const consumo_anual_projetado = total_consumido_30d * 12;
-      const estoque_medio = quantidade_atual; // Simplificado
+      const estoque_medio = quantidade_atual;
       const giro_anual = estoque_medio > 0 ? consumo_anual_projetado / estoque_medio : 0;
       
       return {
         ...insumo,
         quantidade_atual,
-        status_estoque,
-        media_diaria: Math.round(media_diaria * 10) / 10,
-        dias_restantes,
-        ponto_pedido,
-        valor_estoque_atual,
+        status_estoque: metricas.status_estoque,
+        media_diaria: metricas.media_diaria,
+        dias_restantes: metricas.dias_restantes,
+        ponto_pedido: metricas.ponto_pedido,
+        valor_estoque_atual: metricas.valor_estoque_atual,
         classe_abc: 'C' as ClasseABC, // Será calculado depois
         giro_anual: Math.round(giro_anual * 10) / 10,
         total_consumido_30d,

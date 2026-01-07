@@ -75,25 +75,7 @@ type ItemFinanceiro = Insumo & {
   valor_reposicao: number;
 };
 
-function calcularStatusPreditivo(
-  quantidadeAtual: number,
-  pontoPedido: number,
-  dataLimitePedido: Date | null,
-  dataRuptura: Date | null
-): StatusEstoque {
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
-  if (quantidadeAtual === 0) return 'Sem Estoque';
-  if (dataRuptura && hoje > dataRuptura) return 'Sem Estoque';
-  if (dataLimitePedido && hoje >= dataLimitePedido) return 'Crítico';
-  if (quantidadeAtual <= pontoPedido) return 'Atenção';
-  return 'Normal';
-}
-
-const formatCurrency = (value: number) => {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-};
+import { calcularMetricasEstoque, formatCurrency } from '@/utils/estoqueCalculations';
 
 export default function VisaoFinanceiraEstoque() {
   const { toast } = useToast();
@@ -160,60 +142,31 @@ export default function VisaoFinanceiraEstoque() {
       const estoqueItem = estoque.find(e => e.insumo_id === insumo.id);
       const quantidade_atual = estoqueItem?.quantidade_atual || 0;
       
+      // Filtrar retiradas para este insumo
       const retiradas = movimentacoes.filter(m => m.insumo_id === insumo.id && m.tipo === 'retirada');
-      const totalRetirado = retiradas.reduce((sum, m) => sum + m.quantidade, 0);
-      const diasComOperacao = new Set(retiradas.map(m => m.created_at.split('T')[0])).size || 1;
       
-      // Cálculo da DURAÇÃO MÉDIA por unidade
-      let duracao_media_por_unidade: number | null = null;
-      
-      if (retiradas.length >= 2 && totalRetirado > 0) {
-        const retiradasOrdenadas = [...retiradas].sort(
-          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
-        const primeiraRetirada = new Date(retiradasOrdenadas[0].created_at);
-        const ultimaRetiradaData = new Date(retiradasOrdenadas[retiradasOrdenadas.length - 1].created_at);
-        const periodoEmDias = Math.max(1, Math.ceil((ultimaRetiradaData.getTime() - primeiraRetirada.getTime()) / (1000 * 60 * 60 * 24)));
-        duracao_media_por_unidade = Math.round((periodoEmDias / totalRetirado) * 10) / 10;
-      }
-      
-      // Usar duração média se disponível
-      let media_diaria: number;
-      if (duracao_media_por_unidade && duracao_media_por_unidade > 0) {
-        media_diaria = 1 / duracao_media_por_unidade;
-      } else {
-        media_diaria = totalRetirado / Math.max(diasComOperacao, 1);
-      }
-      
-      const dias_restantes = quantidade_atual === 0 
-        ? 0 
-        : (media_diaria > 0 ? Math.floor(quantidade_atual / media_diaria) : null);
-      
-      const leadTime = insumo.lead_time_dias || 3;
-      const estoqueSeguranca = insumo.estoque_seguranca_dias || 2;
-      const ponto_pedido = Math.ceil((leadTime + estoqueSeguranca) * media_diaria);
-      
-      const data_ruptura = dias_restantes !== null ? addDays(hoje, dias_restantes) : null;
-      const data_limite_pedido = data_ruptura ? addDays(data_ruptura, -leadTime) : null;
-      const dias_para_pedir = data_limite_pedido ? differenceInDays(data_limite_pedido, hoje) : null;
-      
-      const status_estoque = calcularStatusPreditivo(quantidade_atual, ponto_pedido, data_limite_pedido, data_ruptura);
-      
-      const custo = insumo.custo_unitario || 0;
-      const qtdMinimaCompra = insumo.quantidade_minima_compra || 1;
+      // Usar função centralizada para calcular métricas
+      const metricas = calcularMetricasEstoque({
+        quantidade_atual,
+        retiradas,
+        lead_time_dias: insumo.lead_time_dias || 3,
+        estoque_seguranca_dias: insumo.estoque_seguranca_dias || 2,
+        custo_unitario: insumo.custo_unitario || 0,
+        quantidade_minima_compra: insumo.quantidade_minima_compra || 1,
+      });
       
       return {
         ...insumo,
         quantidade_atual,
-        status_estoque,
-        media_diaria: Math.round(media_diaria * 10) / 10,
-        dias_restantes,
-        ponto_pedido,
-        data_limite_pedido,
-        dias_para_pedir,
-        valor_estoque_atual: quantidade_atual * custo,
-        valor_ponto_pedido: ponto_pedido * custo,
-        valor_reposicao: qtdMinimaCompra * custo,
+        status_estoque: metricas.status_estoque,
+        media_diaria: metricas.media_diaria,
+        dias_restantes: metricas.dias_restantes,
+        ponto_pedido: metricas.ponto_pedido,
+        data_limite_pedido: metricas.data_limite_pedido,
+        dias_para_pedir: metricas.dias_para_pedir,
+        valor_estoque_atual: metricas.valor_estoque_atual,
+        valor_ponto_pedido: metricas.valor_ponto_pedido,
+        valor_reposicao: metricas.valor_reposicao,
       };
     });
   }, [insumos, estoque, movimentacoes]);

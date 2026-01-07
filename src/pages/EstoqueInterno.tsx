@@ -90,28 +90,7 @@ type InsumoComEstoque = Insumo & {
 };
 
 // Função para calcular status preditivo
-function calcularStatusPreditivo(
-  quantidadeAtual: number,
-  pontoPedido: number,
-  dataLimitePedido: Date | null,
-  dataRuptura: Date | null
-): StatusEstoque {
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
-  // ☠️ Sem Estoque: estoque = 0 ou data atual > data de ruptura
-  if (quantidadeAtual === 0) return 'Sem Estoque';
-  if (dataRuptura && hoje > dataRuptura) return 'Sem Estoque';
-
-  // 🔴 Crítico: data atual >= data limite de pedido
-  if (dataLimitePedido && hoje >= dataLimitePedido) return 'Crítico';
-
-  // 🟡 Atenção: estoque atual <= ponto de pedido
-  if (quantidadeAtual <= pontoPedido) return 'Atenção';
-
-  // 🟢 Normal: estoque atual > ponto de pedido
-  return 'Normal';
-}
+import { calcularMetricasEstoque, type StatusEstoque as StatusEstoqueCalc } from '@/utils/estoqueCalculations';
 
 export default function EstoqueInterno() {
   const { toast } = useToast();
@@ -225,90 +204,40 @@ export default function EstoqueInterno() {
     const estoqueItem = estoque.find(e => e.insumo_id === insumo.id);
     const quantidade_atual = estoqueItem?.quantidade_atual || 0;
     
-    // Médias de consumo (apenas retiradas)
+    // Filtrar retiradas para este insumo
     const retiradas = movimentacoes.filter(m => m.insumo_id === insumo.id && m.tipo === 'retirada');
-    const totalRetirado = retiradas.reduce((sum, m) => sum + m.quantidade, 0);
-    const diasComOperacao = new Set(retiradas.map(m => m.created_at.split('T')[0])).size || 1;
     
-    // Cálculo da DURAÇÃO MÉDIA por unidade
-    // Fórmula: (Data última retirada - Data primeira retirada) / Total unidades consumidas
-    let duracao_media_por_unidade: number | null = null;
-    const retiradas_count = retiradas.length;
-    
-    if (retiradas.length >= 2 && totalRetirado > 0) {
-      // Ordenar retiradas por data (mais antiga primeiro)
-      const retiradasOrdenadas = [...retiradas].sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
-      const primeiraRetirada = new Date(retiradasOrdenadas[0].created_at);
-      const ultimaRetiradaData = new Date(retiradasOrdenadas[retiradasOrdenadas.length - 1].created_at);
-      const periodoEmDias = Math.max(1, Math.ceil((ultimaRetiradaData.getTime() - primeiraRetirada.getTime()) / (1000 * 60 * 60 * 24)));
-      
-      // Duração média = período total / unidades consumidas
-      duracao_media_por_unidade = Math.round((periodoEmDias / totalRetirado) * 10) / 10;
-    }
-    
-    // Usar duração média se disponível, senão calcular pelo método antigo
-    let media_diaria: number;
-    if (duracao_media_por_unidade && duracao_media_por_unidade > 0) {
-      // Inverso da duração média: se 1 unidade dura 5 dias, consumo = 0.2/dia
-      media_diaria = 1 / duracao_media_por_unidade;
-    } else {
-      media_diaria = totalRetirado / Math.max(diasComOperacao, 1);
-    }
-    
-    const media_semanal = media_diaria * 7;
-    const media_mensal = media_diaria * 30;
-    const dias_restantes = quantidade_atual === 0 
-      ? 0 
-      : (media_diaria > 0 ? Math.floor(quantidade_atual / media_diaria) : null);
-    
-    // Cálculos preditivos
-    const leadTime = insumo.lead_time_dias || 3;
-    const estoqueSeguranca = insumo.estoque_seguranca_dias || 2;
-    
-    // Ponto de Pedido = (Lead Time + Estoque de Segurança) × Consumo Médio Diário
-    const ponto_pedido = Math.ceil((leadTime + estoqueSeguranca) * media_diaria);
-    
-    // Data de Ruptura = Data Atual + Dias Restantes
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const data_ruptura = dias_restantes !== null ? addDays(hoje, dias_restantes) : null;
-    
-    // Data Limite de Pedido = Data de Ruptura – Lead Time
-    const data_limite_pedido = data_ruptura ? addDays(data_ruptura, -leadTime) : null;
-    
-    // Status preditivo
-    const status_estoque = calcularStatusPreditivo(quantidade_atual, ponto_pedido, data_limite_pedido, data_ruptura);
+    // Usar função centralizada para calcular métricas
+    const metricas = calcularMetricasEstoque({
+      quantidade_atual,
+      retiradas,
+      lead_time_dias: insumo.lead_time_dias || 3,
+      estoque_seguranca_dias: insumo.estoque_seguranca_dias || 2,
+      custo_unitario: insumo.custo_unitario || 0,
+      quantidade_minima_compra: insumo.quantidade_minima_compra || 1,
+    });
     
     // Última retirada
     const ultimaRetirada = retiradas[0];
     
-    // Cálculos financeiros
-    const custo = insumo.custo_unitario || 0;
-    const qtdMinimaCompra = insumo.quantidade_minima_compra || 1;
-    const valor_estoque_atual = quantidade_atual * custo;
-    const valor_ponto_pedido = ponto_pedido * custo;
-    const valor_reposicao = qtdMinimaCompra * custo;
-    
     return {
       ...insumo,
       quantidade_atual,
-      status_estoque,
-      media_diaria: Math.round(media_diaria * 10) / 10,
-      media_semanal: Math.round(media_semanal * 10) / 10,
-      media_mensal: Math.round(media_mensal * 10) / 10,
-      dias_restantes,
-      ponto_pedido,
-      data_ruptura,
-      data_limite_pedido,
+      status_estoque: metricas.status_estoque,
+      media_diaria: metricas.media_diaria,
+      media_semanal: metricas.media_semanal,
+      media_mensal: metricas.media_mensal,
+      dias_restantes: metricas.dias_restantes,
+      ponto_pedido: metricas.ponto_pedido,
+      data_ruptura: metricas.data_ruptura,
+      data_limite_pedido: metricas.data_limite_pedido,
       ultima_retirada: ultimaRetirada?.created_at || null,
       responsavel_ultima_retirada: ultimaRetirada?.responsavel || null,
-      valor_estoque_atual,
-      valor_ponto_pedido,
-      valor_reposicao,
-      duracao_media_por_unidade,
-      retiradas_count,
+      valor_estoque_atual: metricas.valor_estoque_atual,
+      valor_ponto_pedido: metricas.valor_ponto_pedido,
+      valor_reposicao: metricas.valor_reposicao,
+      duracao_media_por_unidade: metricas.duracao_media_por_unidade,
+      retiradas_count: metricas.retiradas_count,
     };
   });
 
