@@ -35,6 +35,14 @@ const TREINADORES = [
   'Rafael',
 ];
 
+const FOLLOW_UP_MESSAGE = `Oi, {{nome}}! Tudo bem?
+
+Queria saber como você se sentiu na IRON! Gostou do treino e do espaço?
+
+A gente se dedica muito a criar um ambiente acolhedor e exclusivo, com acompanhamento de perto pra você treinar com tranquilidade e ter resultados de verdade.
+
+Se você curtiu e quiser fazer parte do time, fico feliz em te ajudar com os próximos passos 😊`;
+
 export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps) {
   const { toast } = useToast();
   const [observations, setObservations] = useState<Record<string, string>>({});
@@ -78,7 +86,11 @@ export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps)
         if (leadError) {
           console.error('Erro ao atualizar status do lead:', leadError);
         }
-        toast({ title: 'Presença marcada! Lead movido para Follow Up.' });
+        
+        // Abrir WhatsApp com mensagem de follow-up automaticamente
+        openFollowUpWhatsApp(item);
+        
+        toast({ title: 'Presença marcada! Mensagem de follow-up aberta.' });
       } else {
         toast({ title: checked ? 'Presença marcada!' : 'Presença desmarcada!' });
       }
@@ -124,6 +136,14 @@ export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps)
 
   const getPrimeiroNome = (nomeCompleto: string): string => {
     return nomeCompleto.split(' ')[0];
+  };
+
+  const openFollowUpWhatsApp = (item: EventoItem) => {
+    const phone = normalizePhoneForWhatsApp(item.lead.telefone || '');
+    const primeiroNome = getPrimeiroNome(item.lead.nome);
+    const message = FOLLOW_UP_MESSAGE.replace('{{nome}}', primeiroNome);
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
   };
 
   const openWhatsApp = (item: EventoItem) => {
