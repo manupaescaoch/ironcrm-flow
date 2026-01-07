@@ -70,6 +70,8 @@ type ItemPrevisao = Insumo & {
   dias_para_pedir: number | null;
   quantidade_sugerida: number;
   urgencia: 'imediata' | 'alta' | 'media' | 'baixa';
+  duracao_media_por_unidade: number | null;
+  retiradas_count: number;
 };
 
 function calcularStatusPreditivo(
@@ -159,7 +161,28 @@ export default function RelatorioPrevisaoCompras() {
       const totalRetirado = retiradas.reduce((sum, m) => sum + m.quantidade, 0);
       const diasComOperacao = new Set(retiradas.map(m => m.created_at.split('T')[0])).size || 1;
       
-      const media_diaria = totalRetirado / Math.max(diasComOperacao, 1);
+      // Cálculo da DURAÇÃO MÉDIA por unidade
+      let duracao_media_por_unidade: number | null = null;
+      const retiradas_count = retiradas.length;
+      
+      if (retiradas.length >= 2 && totalRetirado > 0) {
+        const retiradasOrdenadas = [...retiradas].sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+        const primeiraRetirada = new Date(retiradasOrdenadas[0].created_at);
+        const ultimaRetiradaData = new Date(retiradasOrdenadas[retiradasOrdenadas.length - 1].created_at);
+        const periodoEmDias = Math.max(1, Math.ceil((ultimaRetiradaData.getTime() - primeiraRetirada.getTime()) / (1000 * 60 * 60 * 24)));
+        duracao_media_por_unidade = Math.round((periodoEmDias / totalRetirado) * 10) / 10;
+      }
+      
+      // Usar duração média se disponível
+      let media_diaria: number;
+      if (duracao_media_por_unidade && duracao_media_por_unidade > 0) {
+        media_diaria = 1 / duracao_media_por_unidade;
+      } else {
+        media_diaria = totalRetirado / Math.max(diasComOperacao, 1);
+      }
+      
       const dias_restantes = media_diaria > 0 ? Math.floor(quantidade_atual / media_diaria) : null;
       
       // Cálculos preditivos
@@ -201,6 +224,8 @@ export default function RelatorioPrevisaoCompras() {
         dias_para_pedir,
         quantidade_sugerida,
         urgencia,
+        duracao_media_por_unidade,
+        retiradas_count,
       };
     });
   }, [insumos, estoque, movimentacoes]);
