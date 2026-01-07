@@ -42,6 +42,9 @@ type Insumo = {
   quantidade_minima: number;
   lead_time_dias: number;
   estoque_seguranca_dias: number;
+  custo_unitario: number;
+  fornecedor_padrao: string | null;
+  quantidade_minima_compra: number;
   ativo: boolean;
 };
 
@@ -74,21 +77,7 @@ type ItemPrevisao = Insumo & {
   retiradas_count: number;
 };
 
-function calcularStatusPreditivo(
-  quantidadeAtual: number,
-  pontoPedido: number,
-  dataLimitePedido: Date | null,
-  dataRuptura: Date | null
-): StatusEstoque {
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
-  if (quantidadeAtual === 0) return 'Sem Estoque';
-  if (dataRuptura && hoje > dataRuptura) return 'Sem Estoque';
-  if (dataLimitePedido && hoje >= dataLimitePedido) return 'Crítico';
-  if (quantidadeAtual <= pontoPedido) return 'Atenção';
-  return 'Normal';
-}
+import { calcularMetricasEstoque } from '@/utils/estoqueCalculations';
 
 export default function RelatorioPrevisaoCompras() {
   const { toast } = useToast();
@@ -156,78 +145,44 @@ export default function RelatorioPrevisaoCompras() {
       const estoqueItem = estoque.find(e => e.insumo_id === insumo.id);
       const quantidade_atual = estoqueItem?.quantidade_atual || 0;
       
-      // Médias de consumo
+      // Filtrar retiradas para este insumo
       const retiradas = movimentacoes.filter(m => m.insumo_id === insumo.id && m.tipo === 'retirada');
-      const totalRetirado = retiradas.reduce((sum, m) => sum + m.quantidade, 0);
-      const diasComOperacao = new Set(retiradas.map(m => m.created_at.split('T')[0])).size || 1;
       
-      // Cálculo da DURAÇÃO MÉDIA por unidade
-      let duracao_media_por_unidade: number | null = null;
-      const retiradas_count = retiradas.length;
-      
-      if (retiradas.length >= 2 && totalRetirado > 0) {
-        const retiradasOrdenadas = [...retiradas].sort(
-          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
-        const primeiraRetirada = new Date(retiradasOrdenadas[0].created_at);
-        const ultimaRetiradaData = new Date(retiradasOrdenadas[retiradasOrdenadas.length - 1].created_at);
-        const periodoEmDias = Math.max(1, Math.ceil((ultimaRetiradaData.getTime() - primeiraRetirada.getTime()) / (1000 * 60 * 60 * 24)));
-        duracao_media_por_unidade = Math.round((periodoEmDias / totalRetirado) * 10) / 10;
-      }
-      
-      // Usar duração média se disponível
-      let media_diaria: number;
-      if (duracao_media_por_unidade && duracao_media_por_unidade > 0) {
-        media_diaria = 1 / duracao_media_por_unidade;
-      } else {
-        media_diaria = totalRetirado / Math.max(diasComOperacao, 1);
-      }
-      
-      const dias_restantes = quantidade_atual === 0 
-        ? 0 
-        : (media_diaria > 0 ? Math.floor(quantidade_atual / media_diaria) : null);
-      
-      // Cálculos preditivos
-      const leadTime = insumo.lead_time_dias || 3;
-      const estoqueSeguranca = insumo.estoque_seguranca_dias || 2;
-      const ponto_pedido = Math.ceil((leadTime + estoqueSeguranca) * media_diaria);
-      
-      const data_ruptura = dias_restantes !== null ? addDays(hoje, dias_restantes) : null;
-      const data_limite_pedido = data_ruptura ? addDays(data_ruptura, -leadTime) : null;
-      
-      // Dias para pedir
-      const dias_para_pedir = data_limite_pedido 
-        ? differenceInDays(data_limite_pedido, hoje)
-        : null;
-      
-      // Status
-      const status_estoque = calcularStatusPreditivo(quantidade_atual, ponto_pedido, data_limite_pedido, data_ruptura);
+      // Usar função centralizada para calcular métricas
+      const metricas = calcularMetricasEstoque({
+        quantidade_atual,
+        retiradas,
+        lead_time_dias: insumo.lead_time_dias || 3,
+        estoque_seguranca_dias: insumo.estoque_seguranca_dias || 2,
+        custo_unitario: insumo.custo_unitario || 0,
+        quantidade_minima_compra: insumo.quantidade_minima_compra || 1,
+      });
       
       // Quantidade sugerida para pedir (repor para 30 dias de consumo)
-      const consumo30dias = Math.ceil(media_diaria * 30);
-      const quantidade_sugerida = Math.max(0, consumo30dias - quantidade_atual + ponto_pedido);
+      const consumo30dias = Math.ceil(metricas.media_diaria * 30);
+      const quantidade_sugerida = Math.max(0, consumo30dias - quantidade_atual + metricas.ponto_pedido);
       
       // Urgência
       let urgencia: 'imediata' | 'alta' | 'media' | 'baixa' = 'baixa';
-      if (status_estoque === 'Sem Estoque') urgencia = 'imediata';
-      else if (status_estoque === 'Crítico') urgencia = 'imediata';
-      else if (dias_para_pedir !== null && dias_para_pedir <= 3) urgencia = 'alta';
-      else if (dias_para_pedir !== null && dias_para_pedir <= 7) urgencia = 'media';
+      if (metricas.status_estoque === 'Sem Estoque') urgencia = 'imediata';
+      else if (metricas.status_estoque === 'Crítico') urgencia = 'imediata';
+      else if (metricas.dias_para_pedir !== null && metricas.dias_para_pedir <= 3) urgencia = 'alta';
+      else if (metricas.dias_para_pedir !== null && metricas.dias_para_pedir <= 7) urgencia = 'media';
       
       return {
         ...insumo,
         quantidade_atual,
-        status_estoque,
-        media_diaria: Math.round(media_diaria * 10) / 10,
-        dias_restantes,
-        ponto_pedido,
-        data_ruptura,
-        data_limite_pedido,
-        dias_para_pedir,
+        status_estoque: metricas.status_estoque,
+        media_diaria: metricas.media_diaria,
+        dias_restantes: metricas.dias_restantes,
+        ponto_pedido: metricas.ponto_pedido,
+        data_ruptura: metricas.data_ruptura,
+        data_limite_pedido: metricas.data_limite_pedido,
+        dias_para_pedir: metricas.dias_para_pedir,
         quantidade_sugerida,
         urgencia,
-        duracao_media_por_unidade,
-        retiradas_count,
+        duracao_media_por_unidade: metricas.duracao_media_por_unidade,
+        retiradas_count: metricas.retiradas_count,
       };
     });
   }, [insumos, estoque, movimentacoes]);
