@@ -149,11 +149,11 @@ export const KPICard = memo(function KPICard({
             )}>
               <Icon className={cn('w-6 h-6', resolvedIconColor)} />
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">{title}</p>
-              <p className={cn('text-2xl font-bold', resolvedValueColor)}>{value}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-muted-foreground truncate">{title}</p>
+              <p className={cn('text-xl font-bold truncate', resolvedValueColor)}>{value}</p>
               {subtitle && (
-                <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>
               )}
             </div>
           </div>
@@ -178,11 +178,11 @@ export const KPICard = memo(function KPICard({
             <div className="w-12 h-12 bg-primary/30 rounded-lg flex items-center justify-center">
               <Icon className="w-6 h-6 text-primary" />
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">{title}</p>
-              <p className="text-2xl font-bold text-primary">{value}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-muted-foreground truncate">{title}</p>
+              <p className="text-xl font-bold text-primary truncate">{value}</p>
               {subtitle && (
-                <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>
               )}
             </div>
           </div>
