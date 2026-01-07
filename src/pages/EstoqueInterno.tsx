@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Package, AlertTriangle, AlertCircle, Clock, Plus, Minus, Settings, PackagePlus, Pencil, Search, X, Trash2, TrendingUp, TrendingDown, Skull, Info, ShoppingCart, DollarSign, BarChart3, FileText, Calendar, Gift } from 'lucide-react';
+import { Package, AlertTriangle, AlertCircle, Clock, Plus, Minus, Settings, PackagePlus, Pencil, Search, X, Trash2, TrendingUp, TrendingDown, Skull, Info, ShoppingCart, DollarSign, BarChart3, FileText, Calendar, Gift, RefreshCw } from 'lucide-react';
+import { SincronizacaoEstoque } from '@/components/estoque/SincronizacaoEstoque';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -641,9 +642,12 @@ export default function EstoqueInterno() {
                 <h1 className="text-2xl font-bold">Estoque Interno</h1>
                 <p className="text-sm text-muted-foreground">{unidadeAtual?.nome || 'Selecione uma unidade'}</p>
               </div>
-              <Button size="sm" onClick={() => setNovoInsumoOpen(true)}>
-                <PackagePlus className="w-4 h-4 mr-2" />Novo Insumo
-              </Button>
+              <div className="flex items-center gap-2">
+                <SincronizacaoEstoque />
+                <Button size="sm" onClick={() => setNovoInsumoOpen(true)}>
+                  <PackagePlus className="w-4 h-4 mr-2" />Novo Insumo
+                </Button>
+              </div>
             </div>
             
             {/* Navegação compacta em tabs */}
