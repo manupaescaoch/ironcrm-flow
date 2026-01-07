@@ -48,29 +48,49 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
       return;
     }
 
-    const items: FollowUpAutoItem[] = [];
-    followUpsData?.forEach((item: any) => {
-      if (!item.leads) return;
-      if (['perdido', 'convertido'].includes(item.leads.status_funil)) return;
-      
-      items.push({
-        id: item.id,
-        lead_id: item.lead_id,
-        tipo: item.tipo,
-        data_referencia: item.data_referencia,
-        data_prevista: item.data_prevista,
-        status: item.status,
-        concluido_por: item.concluido_por,
-        concluido_em: item.concluido_em,
-        lead: {
-          id: item.leads.id,
-          nome: item.leads.nome,
-          telefone: item.leads.telefone,
-          email: item.leads.email,
-          status_funil: item.leads.status_funil,
-        },
+    // Collect valid follow-ups and their lead_ids
+    const validFollowUps = followUpsData?.filter((item: any) => {
+      if (!item.leads) return false;
+      if (['perdido', 'convertido'].includes(item.leads.status_funil)) return false;
+      return true;
+    }) || [];
+
+    const leadIds = validFollowUps.map((item: any) => item.lead_id);
+
+    // Fetch last interaction for each lead
+    let ultimaInteracaoMap: Record<string, string> = {};
+    if (leadIds.length > 0) {
+      const { data: interacoesData } = await supabase
+        .from('interacoes')
+        .select('lead_id, data_interacao')
+        .in('lead_id', leadIds)
+        .order('data_interacao', { ascending: false });
+
+      interacoesData?.forEach((i: any) => {
+        if (!ultimaInteracaoMap[i.lead_id]) {
+          ultimaInteracaoMap[i.lead_id] = i.data_interacao;
+        }
       });
-    });
+    }
+
+    const items: FollowUpAutoItem[] = validFollowUps.map((item: any) => ({
+      id: item.id,
+      lead_id: item.lead_id,
+      tipo: item.tipo,
+      data_referencia: item.data_referencia,
+      data_prevista: item.data_prevista,
+      status: item.status,
+      concluido_por: item.concluido_por,
+      concluido_em: item.concluido_em,
+      lead: {
+        id: item.leads.id,
+        nome: item.leads.nome,
+        telefone: item.leads.telefone,
+        email: item.leads.email,
+        status_funil: item.leads.status_funil,
+      },
+      ultima_interacao: ultimaInteracaoMap[item.lead_id] || null,
+    }));
 
     setAutoFollowUpItems(items);
     setLastSyncTime(new Date());
@@ -246,29 +266,49 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
       return;
     }
 
-    const items: FollowUpAutoItem[] = [];
-    followUpsData?.forEach((item: any) => {
-      if (!item.leads) return;
-      if (['perdido', 'convertido'].includes(item.leads.status_funil)) return;
-      
-      items.push({
-        id: item.id,
-        lead_id: item.lead_id,
-        tipo: item.tipo,
-        data_referencia: item.data_referencia,
-        data_prevista: item.data_prevista,
-        status: item.status,
-        concluido_por: item.concluido_por,
-        concluido_em: item.concluido_em,
-        lead: {
-          id: item.leads.id,
-          nome: item.leads.nome,
-          telefone: item.leads.telefone,
-          email: item.leads.email,
-          status_funil: item.leads.status_funil,
-        },
+    // Collect valid follow-ups and their lead_ids
+    const validFollowUps = followUpsData?.filter((item: any) => {
+      if (!item.leads) return false;
+      if (['perdido', 'convertido'].includes(item.leads.status_funil)) return false;
+      return true;
+    }) || [];
+
+    const leadIds = validFollowUps.map((item: any) => item.lead_id);
+
+    // Fetch last interaction for each lead
+    let ultimaInteracaoMap: Record<string, string> = {};
+    if (leadIds.length > 0) {
+      const { data: interacoesData } = await supabase
+        .from('interacoes')
+        .select('lead_id, data_interacao')
+        .in('lead_id', leadIds)
+        .order('data_interacao', { ascending: false });
+
+      interacoesData?.forEach((i: any) => {
+        if (!ultimaInteracaoMap[i.lead_id]) {
+          ultimaInteracaoMap[i.lead_id] = i.data_interacao;
+        }
       });
-    });
+    }
+
+    const items: FollowUpAutoItem[] = validFollowUps.map((item: any) => ({
+      id: item.id,
+      lead_id: item.lead_id,
+      tipo: item.tipo,
+      data_referencia: item.data_referencia,
+      data_prevista: item.data_prevista,
+      status: item.status,
+      concluido_por: item.concluido_por,
+      concluido_em: item.concluido_em,
+      lead: {
+        id: item.leads.id,
+        nome: item.leads.nome,
+        telefone: item.leads.telefone,
+        email: item.leads.email,
+        status_funil: item.leads.status_funil,
+      },
+      ultima_interacao: ultimaInteracaoMap[item.lead_id] || null,
+    }));
 
     setAutoFollowUpItems(items);
   }, [unidadeAtual]);

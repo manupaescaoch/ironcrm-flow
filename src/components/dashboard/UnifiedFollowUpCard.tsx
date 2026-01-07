@@ -366,11 +366,19 @@ export function UnifiedFollowUpCard({ items, onRefresh, tipoFilter, onClearFilte
                       </Button>
                     </div>
                     
-                    {/* Row 2: Reference + WhatsApp */}
+                    {/* Row 2: Reference + Last Interaction + WhatsApp */}
                     <div className="flex items-center justify-between pl-12">
-                      <span className="text-xs text-muted-foreground">
-                        Ref: {format(parseISO(item.data_referencia), 'dd/MM/yyyy', { locale: ptBR })}
-                      </span>
+                      <div className="flex gap-3 text-xs text-muted-foreground">
+                        <span>
+                          Ref: {format(parseISO(item.data_referencia), 'dd/MM/yyyy', { locale: ptBR })}
+                        </span>
+                        {item.ultima_interacao && (
+                          <span className="flex items-center gap-1">
+                            <MessageCircle className="w-3 h-3" />
+                            Último contato: {format(parseISO(item.ultima_interacao), 'dd/MM/yyyy', { locale: ptBR })}
+                          </span>
+                        )}
+                      </div>
                       
                       <div className="flex gap-2">
                         <Button

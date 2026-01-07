@@ -32,6 +32,7 @@ export interface FollowUpAutoItem {
     email: string | null;
     status_funil: string;
   };
+  ultima_interacao: string | null;
 }
 
 interface AutoFollowUpCardProps {
