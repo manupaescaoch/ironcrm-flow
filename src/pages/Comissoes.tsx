@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, FileDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUnidade } from '@/contexts/UnidadeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useComissoesData } from '@/hooks/useComissoesData';
 import { ComissoesFilters } from '@/components/comissoes/ComissoesFilters';
 import { ComissoesKPIGrid } from '@/components/comissoes/ComissoesKPIGrid';
@@ -17,6 +18,7 @@ export default function Comissoes() {
   const [selectedPerson, setSelectedPerson] = useState<{ name: string; type: 'cadastrador' | 'fechador' } | null>(null);
   const { toast } = useToast();
   const { loading: unidadeLoading } = useUnidade();
+  const { isAdmin } = useAuth();
 
   const {
     loading,
@@ -59,10 +61,12 @@ export default function Comissoes() {
       <div className="p-8">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Comissões do Mês</h1>
-          <Button onClick={handleExportPDF} disabled={loading || filteredInteracoes.length === 0}>
-            <FileDown className="w-4 h-4 mr-2" />
-            Exportar PDF
-          </Button>
+          {isAdmin && (
+            <Button onClick={handleExportPDF} disabled={loading || filteredInteracoes.length === 0}>
+              <FileDown className="w-4 h-4 mr-2" />
+              Exportar PDF
+            </Button>
+          )}
         </div>
 
         <ComissoesFilters
