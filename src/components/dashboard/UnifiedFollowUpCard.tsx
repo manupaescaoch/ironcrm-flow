@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { MessageCircle, AlertTriangle, Clock, XCircle, CheckCircle, Phone, Eye, Zap, X, ChevronDown, ChevronUp, CalendarDays } from 'lucide-react';
+import { MessageCircle, AlertTriangle, XCircle, CheckCircle, Phone, Eye, Zap, X, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -68,7 +68,6 @@ export function UnifiedFollowUpCard({ items, onRefresh, tipoFilter, onClearFilte
   const [selectedItem, setSelectedItem] = useState<FollowUpAutoItem | null>(null);
   const [selectedReason, setSelectedReason] = useState('preco');
   const [loading, setLoading] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filteredItems = tipoFilter 
     ? items.filter(item => item.tipo === tipoFilter)
@@ -158,7 +157,6 @@ export function UnifiedFollowUpCard({ items, onRefresh, tipoFilter, onClearFilte
       toast.success(`Follow-up ${selectedItem.tipo} concluído!`);
       setConfirmModalOpen(false);
       setSelectedItem(null);
-      setExpandedId(null);
       onRefresh();
     } catch (error) {
       console.error('Erro ao marcar follow-up:', error);
@@ -206,7 +204,6 @@ export function UnifiedFollowUpCard({ items, onRefresh, tipoFilter, onClearFilte
       toast.success('Lead marcado como não interessado');
       setNotInterestedModalOpen(false);
       setSelectedItem(null);
-      setExpandedId(null);
       onRefresh();
     } catch (error) {
       console.error('Erro ao marcar lead:', error);
@@ -216,8 +213,38 @@ export function UnifiedFollowUpCard({ items, onRefresh, tipoFilter, onClearFilte
     }
   };
 
-  const toggleExpand = (id: string) => {
-    setExpandedId(expandedId === id ? null : id);
+  const handleMarkAsCompleted = async (item: FollowUpAutoItem) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('follow_ups')
+        .update({
+          status: 'concluido',
+          concluido_por: userName || 'Sistema',
+          concluido_em: new Date().toISOString(),
+        })
+        .eq('id', item.id);
+
+      if (error) throw error;
+      
+      await supabase
+        .from('interacoes')
+        .insert({
+          lead_id: item.lead_id,
+          tipo: 'Follow Up',
+          descricao: `Follow-up ${item.tipo} marcado como realizado`,
+          data_interacao: new Date().toISOString(),
+          atendido_por: userName || 'Sistema',
+        });
+      
+      toast.success(`Follow-up ${item.tipo} concluído!`);
+      onRefresh();
+    } catch (error) {
+      console.error('Erro ao marcar follow-up:', error);
+      toast.error('Erro ao atualizar status');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -279,28 +306,22 @@ export function UnifiedFollowUpCard({ items, onRefresh, tipoFilter, onClearFilte
                 const timeInfo = getTimeInfo(item);
                 const tipoInfo = TIPO_CONFIG[item.tipo];
                 const isD1 = item.tipo === 'D+1';
-                const isExpanded = expandedId === item.id;
                 
                 return (
                   <div
                     key={item.id}
                     className={cn(
-                      "transition-all",
+                      "p-3 transition-all",
                       isD1 && !timeInfo.isLate && "bg-emerald-50/50 dark:bg-emerald-950/20",
                       timeInfo.isLate && "bg-red-50/50 dark:bg-red-950/20"
                     )}
                   >
-                    {/* Compact row */}
-                    <div 
-                      className="flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-muted/40"
-                      onClick={() => toggleExpand(item.id)}
-                    >
-                      {/* Type badge */}
+                    {/* Row 1: Info + Actions */}
+                    <div className="flex items-center gap-2 mb-2">
                       <Badge className={cn(tipoInfo.bgColor, tipoInfo.color, "text-xs font-bold min-w-[38px] justify-center")}>
                         {tipoInfo.label}
                       </Badge>
                       
-                      {/* Late/D+1 indicator */}
                       {isD1 && !timeInfo.isLate && (
                         <Zap className="w-3.5 h-3.5 text-emerald-500" />
                       )}
@@ -308,74 +329,69 @@ export function UnifiedFollowUpCard({ items, onRefresh, tipoFilter, onClearFilte
                         <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
                       )}
                       
-                      {/* Name */}
                       <span className="font-medium text-sm flex-1 truncate">
                         {item.lead.nome?.toUpperCase()}
                       </span>
                       
-                      {/* Phone */}
                       <span className="text-xs text-muted-foreground hidden sm:flex items-center gap-1">
                         <Phone className="w-3 h-3" />
                         {item.lead.telefone || '-'}
                       </span>
                       
-                      {/* Time */}
                       <span className={cn("text-xs font-medium", timeInfo.color)}>
                         {timeInfo.text}
                       </span>
                       
-                      {/* Expand icon */}
-                      {isExpanded ? (
-                        <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                      )}
+                      {/* Inline action buttons */}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-green-600 hover:bg-green-100"
+                        onClick={() => handleMarkAsCompleted(item)}
+                        disabled={loading}
+                        title="Marcar como Realizado"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                      </Button>
+                      
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-red-600 hover:bg-red-100"
+                        onClick={() => handleNotInterested(item)}
+                        disabled={loading}
+                        title="Não Interessado"
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </Button>
                     </div>
                     
-                    {/* Expanded content */}
-                    {isExpanded && (
-                      <div className={cn(
-                        "px-4 pb-3 pt-1 border-l-4 ml-4 mr-4 mb-2 rounded-b bg-background",
-                        tipoInfo.borderColor
-                      )}>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
-                          <span className="flex items-center gap-1">
-                            <Phone className="w-3 h-3" />
-                            {item.lead.telefone || '-'}
-                          </span>
-                          <span>
-                            Ref: {format(parseISO(item.data_referencia), 'dd/MM/yyyy', { locale: ptBR })}
-                          </span>
-                        </div>
-                        
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            className="flex-1 bg-green-600 hover:bg-green-700 text-white h-8 text-xs"
-                            onClick={(e) => { e.stopPropagation(); handleSendWhatsApp(item); }}
-                          >
-                            <MessageCircle className="w-3.5 h-3.5 mr-1" />
-                            WhatsApp
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 text-xs"
-                            onClick={(e) => { e.stopPropagation(); navigate(`/lead/${item.lead_id}`); }}
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-red-600 border-red-200 hover:bg-red-50 h-8 text-xs"
-                            onClick={(e) => { e.stopPropagation(); handleNotInterested(item); }}
-                          >
-                            <XCircle className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
+                    {/* Row 2: Reference + WhatsApp */}
+                    <div className="flex items-center justify-between pl-12">
+                      <span className="text-xs text-muted-foreground">
+                        Ref: {format(parseISO(item.data_referencia), 'dd/MM/yyyy', { locale: ptBR })}
+                      </span>
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={() => navigate(`/lead/${item.lead_id}`)}
+                        >
+                          <Eye className="w-3.5 h-3.5 mr-1" />
+                          Ver
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 text-white h-7 text-xs"
+                          onClick={() => handleSendWhatsApp(item)}
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 mr-1" />
+                          WhatsApp
+                        </Button>
                       </div>
-                    )}
+                    </div>
                   </div>
                 );
               })}
