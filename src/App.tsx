@@ -167,9 +167,9 @@ const AppRoutes = () => (
     <Route
       path="/comissoes"
       element={
-        <AdminRoute>
+        <ProtectedRoute>
           <Comissoes />
-        </AdminRoute>
+        </ProtectedRoute>
       }
     />
     <Route
