@@ -117,6 +117,7 @@ export type Database = {
       }
       follow_ups: {
         Row: {
+          cancelado_motivo: string | null
           concluido_em: string | null
           concluido_por: string | null
           created_at: string
@@ -130,6 +131,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cancelado_motivo?: string | null
           concluido_em?: string | null
           concluido_por?: string | null
           created_at?: string
@@ -143,6 +145,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cancelado_motivo?: string | null
           concluido_em?: string | null
           concluido_por?: string | null
           created_at?: string
@@ -375,6 +378,7 @@ export type Database = {
           follow_up_whatsapp_enviado: boolean | null
           hora_aula_experimental: string | null
           id: string
+          is_matriculado: boolean
           motivo_perda: string | null
           nome: string
           observacoes: string | null
@@ -400,6 +404,7 @@ export type Database = {
           follow_up_whatsapp_enviado?: boolean | null
           hora_aula_experimental?: string | null
           id?: string
+          is_matriculado?: boolean
           motivo_perda?: string | null
           nome: string
           observacoes?: string | null
@@ -425,6 +430,7 @@ export type Database = {
           follow_up_whatsapp_enviado?: boolean | null
           hora_aula_experimental?: string | null
           id?: string
+          is_matriculado?: boolean
           motivo_perda?: string | null
           nome?: string
           observacoes?: string | null
