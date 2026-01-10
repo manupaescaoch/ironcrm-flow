@@ -36,7 +36,7 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
       .from('follow_ups')
       .select(`
         id, lead_id, tipo, data_referencia, data_prevista, status, concluido_por, concluido_em,
-        leads (id, nome, telefone, email, status_funil)
+        leads (id, nome, telefone, email, status_funil, is_matriculado)
       `)
       .eq('unidade_id', unidadeAtual.id)
       .eq('status', 'pendente')
@@ -48,9 +48,11 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
       return;
     }
 
-    // Collect valid follow-ups and their lead_ids
+    // Collect valid follow-ups with SECURITY FILTER: is_matriculado has maximum priority
     const validFollowUps = followUpsData?.filter((item: any) => {
       if (!item.leads) return false;
+      // REGRA DE SEGURANÇA: is_matriculado tem prioridade máxima
+      if (item.leads.is_matriculado === true) return false;
       if (['perdido', 'convertido'].includes(item.leads.status_funil)) return false;
       return true;
     }) || [];
@@ -116,7 +118,7 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
             data_aula_experimental, hora_aula_experimental, cadastrado_por, atendido_por,
             observacoes, created_by, user_id, ativo, created_at, updated_at,
             follow_up_whatsapp_enviado, follow_up_enviado_em, follow_up_responsavel,
-            motivo_perda, data_perda
+            motivo_perda, data_perda, is_matriculado
           )
         `)
         .eq('compareceu', true)
@@ -126,6 +128,8 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
       const items: EventoItem[] = [];
       followUpData?.forEach((interacaoData: any) => {
         if (!interacaoData.leads || interacaoData.leads.ativo === false) return;
+        // REGRA DE SEGURANÇA: is_matriculado tem prioridade máxima
+        if (interacaoData.leads.is_matriculado === true) return;
         if (['convertido', 'perdido'].includes(interacaoData.leads.status_funil)) return;
         // Skip leads that already had follow-up sent
         if (interacaoData.leads.follow_up_whatsapp_enviado === true) return;
@@ -254,7 +258,7 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
       .from('follow_ups')
       .select(`
         id, lead_id, tipo, data_referencia, data_prevista, status, concluido_por, concluido_em,
-        leads (id, nome, telefone, email, status_funil)
+        leads (id, nome, telefone, email, status_funil, is_matriculado)
       `)
       .eq('unidade_id', unidadeAtual.id)
       .eq('status', 'pendente')
@@ -266,9 +270,11 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
       return;
     }
 
-    // Collect valid follow-ups and their lead_ids
+    // Collect valid follow-ups with SECURITY FILTER: is_matriculado has maximum priority
     const validFollowUps = followUpsData?.filter((item: any) => {
       if (!item.leads) return false;
+      // REGRA DE SEGURANÇA: is_matriculado tem prioridade máxima
+      if (item.leads.is_matriculado === true) return false;
       if (['perdido', 'convertido'].includes(item.leads.status_funil)) return false;
       return true;
     }) || [];
