@@ -31,12 +31,14 @@ Deno.serve(async (req) => {
     hoje.setHours(0, 0, 0, 0);
     console.log('Starting follow-up generation with reset mode...', { unidadeId, dataReferencia: hoje.toISOString() });
 
-    // Get all active leads that are not convertido or perdido
+    // Get all active leads that are eligible for follow-ups
+    // Criteria: ativo = true, is_matriculado = false, status_funil != 'perdido'
     let leadsQuery = supabase
       .from('leads')
-      .select('id, nome, status_funil, unidade_id')
+      .select('id, nome, status_funil, unidade_id, is_matriculado')
       .eq('ativo', true)
-      .not('status_funil', 'in', '("convertido","perdido")');
+      .eq('is_matriculado', false)
+      .neq('status_funil', 'perdido');
 
     if (unidadeId) {
       leadsQuery = leadsQuery.eq('unidade_id', unidadeId);

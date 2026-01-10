@@ -41,6 +41,8 @@ export interface Lead {
   // Motivo de perda fields
   motivo_perda: string | null;
   data_perda: string | null;
+  // Matricula status (security field)
+  is_matriculado: boolean;
 }
 
 export type StatusAvaliacao = 'agendada' | 'realizada' | 'faltou' | 'reagendada';

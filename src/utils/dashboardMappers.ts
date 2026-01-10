@@ -30,6 +30,7 @@ export function mapToLead(data: any): Lead {
     follow_up_responsavel: data.follow_up_responsavel || null,
     motivo_perda: data.motivo_perda || null,
     data_perda: data.data_perda || null,
+    is_matriculado: data.is_matriculado || false,
   };
 }
 
