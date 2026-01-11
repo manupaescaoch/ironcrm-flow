@@ -159,6 +159,7 @@ export default function Dashboard() {
 
   // KPI shows only urgent items (overdue/today) for immediate action visibility
   const followUpPendingCount = followUpItems.length + urgentAutoFollowUpItems.length;
+  const followUpD1Count = urgentAutoFollowUpItems.filter(item => item.tipo === 'D+1').length;
 
   return (
     <Layout>
@@ -194,6 +195,7 @@ export default function Dashboard() {
           periodStats={periodStats}
           experimentaisSemanaCount={experimentaisSemanaCount}
           followUpPendingCount={followUpPendingCount}
+          followUpD1Count={followUpD1Count}
           showExperimentaisSection={showExperimentaisSection}
           showMatriculasSection={showMatriculasSection}
           showFollowUpSection={showFollowUpSection}
