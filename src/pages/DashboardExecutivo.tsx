@@ -36,6 +36,9 @@ export default function DashboardExecutivo() {
   const [dataFim, setDataFim] = useState<string>(
     format(endOfMonth(new Date()), 'yyyy-MM-dd')
   );
+  
+  // Marketing investment for CPL/CPA calculation
+  const [investimentoMarketing, setInvestimentoMarketing] = useState<number>(0);
 
   // Data fetching
   const { leads, interacoes, loading, fetchData } = useExecutivoData();
@@ -77,16 +80,30 @@ export default function DashboardExecutivo() {
     doc.text('Resumo Geral', 14, yPos);
     yPos += 8;
 
+    // Calculate CPL/CPA for PDF
+    const cpl = investimentoMarketing > 0 && topCards.leadsDoMes > 0 
+      ? investimentoMarketing / topCards.leadsDoMes 
+      : null;
+    const cpa = investimentoMarketing > 0 && topCards.matriculas > 0 
+      ? investimentoMarketing / topCards.matriculas 
+      : null;
+
     autoTable(doc, {
       startY: yPos,
-      head: [['Leads', 'Agendamentos', 'Comparecimentos', 'Matrículas', 'Taxa Conversão']],
-      body: [[
-        topCards.leadsDoMes,
-        topCards.agendamentos,
-        topCards.comparecimentos,
-        topCards.matriculas,
-        `${topCards.taxaConversao.toFixed(1)}%`
-      ]],
+      head: [['Métrica', 'Valor']],
+      body: [
+        ['Leads do Mês', topCards.leadsDoMes.toString()],
+        ['Agendamentos', topCards.agendamentos.toString()],
+        ['Comparecimentos', topCards.comparecimentos.toString()],
+        ['Matrículas', topCards.matriculas.toString()],
+        ['Faturamento', formatExecutivoCurrency(topCards.faturamentoTotal)],
+        ['Taxa Lead → Atendimento', `${topCards.taxaLeadAtendimento.toFixed(1)}%`],
+        ['Taxa Atendimento → Aluno', `${topCards.taxaConversao.toFixed(1)}%`],
+        ['CPL (Custo por Lead)', cpl ? formatExecutivoCurrency(cpl) : 'N/A'],
+        ['CPA (Custo por Aquisição)', cpa ? formatExecutivoCurrency(cpa) : 'N/A'],
+        ['Ticket Médio', formatExecutivoCurrency(topCards.ticketMedio)],
+        ['LTV (8 meses)', formatExecutivoCurrency(topCards.ltv)],
+      ],
       theme: 'striped',
       headStyles: { fillColor: [37, 99, 235] },
     });
@@ -254,7 +271,7 @@ export default function DashboardExecutivo() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl">
               <div className="space-y-2">
                 <Label>Data Início</Label>
                 <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
@@ -262,6 +279,15 @@ export default function DashboardExecutivo() {
               <div className="space-y-2">
                 <Label>Data Fim</Label>
                 <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Investimento Marketing (R$)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="Ex: 5000" 
+                  value={investimentoMarketing || ''} 
+                  onChange={(e) => setInvestimentoMarketing(Number(e.target.value) || 0)}
+                />
               </div>
             </div>
           </CardContent>
@@ -274,7 +300,7 @@ export default function DashboardExecutivo() {
         ) : (
           <>
             {/* 1. TOP CARDS */}
-            <ExecutivoKPIGrid topCards={topCards} />
+            <ExecutivoKPIGrid topCards={topCards} investimentoMarketing={investimentoMarketing} />
 
             {/* 2. FUNIL EXECUTIVO */}
             <FunilExecutivoCard funilData={funilExecutivo} />
