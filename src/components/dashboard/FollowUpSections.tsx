@@ -292,10 +292,12 @@ export function FollowUpSections({
             <p className="font-medium truncate">{item.lead?.nome || 'Lead não encontrado'}</p>
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               {item.lead?.telefone && (
-                <span className="flex items-center gap-1">
-                  <Phone className="w-3 h-3" />
-                  {item.lead.telefone}
-                </span>
+                <WhatsAppLink
+                  phone={item.lead.telefone}
+                  message={message}
+                  showIcon={true}
+                  className="text-green-600 hover:text-green-700"
+                />
               )}
               <Badge variant="outline" className={cn("text-xs", timeInfo.className)}>
                 {timeInfo.text}
