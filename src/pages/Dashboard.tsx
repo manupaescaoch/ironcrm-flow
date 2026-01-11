@@ -16,7 +16,7 @@ import { ExperimentaisSemana } from '@/components/dashboard/ExperimentaisSemana'
 import { ReagendarModal } from '@/components/dashboard/ReagendarModal';
 import { FollowUpCard } from '@/components/dashboard/FollowUpCard';
 import { CompactRelatorioFollowUps } from '@/components/dashboard/CompactRelatorioFollowUps';
-import { UnifiedFollowUpCard } from '@/components/dashboard/UnifiedFollowUpCard';
+import { FollowUpSections } from '@/components/dashboard/FollowUpSections';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardKPIGrid } from '@/components/dashboard/DashboardKPIGrid';
 import { ExperimentaisDetailSection } from '@/components/dashboard/ExperimentaisDetailSection';
@@ -24,7 +24,6 @@ import { MatriculasDetailSection } from '@/components/dashboard/MatriculasDetail
 import { SyncIndicator } from '@/components/dashboard/SyncIndicator';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { addDays } from 'date-fns';
-
 export default function Dashboard() {
   const { user, isAdmin } = useAuth();
   const { unidadeAtual, loading: unidadeLoading } = useUnidade();
@@ -63,6 +62,8 @@ export default function Dashboard() {
     experimentaisDetalhados,
     followUpItems,
     autoFollowUpItems,
+    urgentAutoFollowUpItems,
+    upcomingAutoFollowUpItems,
     lastSyncTime,
     matriculasDetalhadas,
     loading,
@@ -211,25 +212,17 @@ export default function Dashboard() {
               activeTipo={followUpTipoFilter}
             />
             
-            {/* Unified follow-up card below */}
-            {autoFollowUpItems.length > 0 ? (
-              <UnifiedFollowUpCard 
-                items={autoFollowUpItems} 
-                onRefresh={() => {
-                  refetchAll(startDate, endDate);
-                  setFollowUpRefreshKey(k => k + 1);
-                }} 
-                tipoFilter={followUpTipoFilter}
-                onClearFilter={() => setFollowUpTipoFilter(null)}
-              />
-            ) : (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  <MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50 text-green-500" />
-                  <p>Nenhum follow-up pendente no momento!</p>
-                </CardContent>
-              </Card>
-            )}
+            {/* Follow-up sections: Urgent and Upcoming */}
+            <FollowUpSections 
+              urgentItems={urgentAutoFollowUpItems}
+              upcomingItems={upcomingAutoFollowUpItems}
+              onRefresh={() => {
+                refetchAll(startDate, endDate);
+                setFollowUpRefreshKey(k => k + 1);
+              }} 
+              tipoFilter={followUpTipoFilter}
+              onClearFilter={() => setFollowUpTipoFilter(null)}
+            />
           </div>
         )}
 
@@ -259,7 +252,7 @@ export default function Dashboard() {
               <PendenciasDia
                 pendenciasHoje={pendenciasHoje}
                 pendenciasAmanha={pendenciasAmanha}
-                followUpsHoje={autoFollowUpItems.filter(item => {
+                followUpsHoje={urgentAutoFollowUpItems.filter(item => {
                   const dataPrevista = new Date(item.data_prevista);
                   const hoje = new Date();
                   return dataPrevista.toDateString() === hoje.toDateString();

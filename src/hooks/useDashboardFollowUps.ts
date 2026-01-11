@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { EventoItem } from '@/components/dashboard/EventosHoje';
@@ -8,6 +8,8 @@ import { mapToLead, mapToInteracao } from '@/utils/dashboardMappers';
 interface UseDashboardFollowUpsReturn {
   followUpItems: EventoItem[];
   autoFollowUpItems: FollowUpAutoItem[];
+  urgentAutoFollowUpItems: FollowUpAutoItem[];
+  upcomingAutoFollowUpItems: FollowUpAutoItem[];
   loading: boolean;
   lastSyncTime: Date | null;
   fetchFollowUp: () => Promise<void>;
@@ -24,13 +26,29 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const hasGeneratedRef = useRef(false);
 
-  // Internal fetch function for realtime updates
-  const fetchAutoFollowUpsInternal = useCallback(async () => {
-    if (!unidadeAtual) return;
-    
-    // Filter to show only today's and overdue follow-ups
+  // Separate follow-ups into urgent (today/overdue) and upcoming (future)
+  const { urgentAutoFollowUpItems, upcomingAutoFollowUpItems } = useMemo(() => {
     const hoje = new Date();
     hoje.setHours(23, 59, 59, 999);
+    
+    const urgent: FollowUpAutoItem[] = [];
+    const upcoming: FollowUpAutoItem[] = [];
+    
+    autoFollowUpItems.forEach(item => {
+      const dataPrevista = new Date(item.data_prevista);
+      if (dataPrevista <= hoje) {
+        urgent.push(item);
+      } else {
+        upcoming.push(item);
+      }
+    });
+    
+    return { urgentAutoFollowUpItems: urgent, upcomingAutoFollowUpItems: upcoming };
+  }, [autoFollowUpItems]);
+
+  // Internal fetch function for realtime updates - NOW FETCHES ALL PENDING (no date filter)
+  const fetchAutoFollowUpsInternal = useCallback(async () => {
+    if (!unidadeAtual) return;
     
     const { data: followUpsData, error } = await supabase
       .from('follow_ups')
@@ -40,7 +58,6 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
       `)
       .eq('unidade_id', unidadeAtual.id)
       .eq('status', 'pendente')
-      .lte('data_prevista', hoje.toISOString())
       .order('data_prevista', { ascending: true });
 
     if (error) {
@@ -245,15 +262,11 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
     }
   }, [unidadeAtual]);
 
-  // Fetch only - does NOT call generate-follow-ups
+  // Fetch only - does NOT call generate-follow-ups - NOW FETCHES ALL PENDING (no date filter)
   const fetchAutoFollowUps = useCallback(async () => {
     if (!unidadeAtual) return;
     
-    // Filter to show only today's and overdue follow-ups
-    const hoje = new Date();
-    hoje.setHours(23, 59, 59, 999);
-    
-    // Fetch pending follow-ups
+    // Fetch ALL pending follow-ups (no date filter)
     const { data: followUpsData, error } = await supabase
       .from('follow_ups')
       .select(`
@@ -262,7 +275,6 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
       `)
       .eq('unidade_id', unidadeAtual.id)
       .eq('status', 'pendente')
-      .lte('data_prevista', hoje.toISOString())
       .order('data_prevista', { ascending: true });
 
     if (error) {
@@ -322,6 +334,8 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
   return {
     followUpItems,
     autoFollowUpItems,
+    urgentAutoFollowUpItems,
+    upcomingAutoFollowUpItems,
     loading,
     lastSyncTime,
     fetchFollowUp,
