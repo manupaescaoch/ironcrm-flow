@@ -42,9 +42,33 @@ export function useExecutivoMetrics(leads: Lead[], interacoes: Interacao[]): Use
     const agendamentos = agendamentosSet.size;
     const comparecimentos = comparecimentosSet.size;
     const matriculas = matriculasSet.size;
+    
+    // Taxa Atendimento → Aluno (já existia)
     const taxaConversao = comparecimentos > 0 ? (matriculas / comparecimentos) * 100 : 0;
+    
+    // Taxa Lead → Atendimento (NOVO)
+    const taxaLeadAtendimento = leadsDoMes > 0 ? (comparecimentos / leadsDoMes) * 100 : 0;
+    
+    // Faturamento e Ticket Médio (NOVO)
+    const matriculasComValor = interacoes.filter(i => i.fechou_matricula === true && (i.valor_plano || 0) > 0);
+    const faturamentoTotal = matriculasComValor.reduce((sum, i) => sum + (i.valor_plano || 0), 0);
+    const ticketMedio = matriculas > 0 ? faturamentoTotal / matriculas : 0;
+    
+    // LTV - Lifetime Value (Ticket Médio x Meses de Retenção Média)
+    const MESES_RETENCAO_MEDIA = 8;
+    const ltv = ticketMedio * MESES_RETENCAO_MEDIA;
 
-    return { leadsDoMes, agendamentos, comparecimentos, matriculas, taxaConversao };
+    return { 
+      leadsDoMes, 
+      agendamentos, 
+      comparecimentos, 
+      matriculas, 
+      taxaConversao, 
+      taxaLeadAtendimento,
+      faturamentoTotal,
+      ticketMedio,
+      ltv
+    };
   }, [leads, interacoes]);
 
   // ==================== FUNIL EXECUTIVO ====================

@@ -7,6 +7,10 @@ export interface TopCards {
   comparecimentos: number;
   matriculas: number;
   taxaConversao: number;
+  taxaLeadAtendimento: number;
+  faturamentoTotal: number;
+  ticketMedio: number;
+  ltv: number;
 }
 
 export interface FunilItem {
