@@ -9,6 +9,7 @@ interface DashboardKPIGridProps {
   periodStats: PeriodStats;
   experimentaisSemanaCount: number;
   followUpPendingCount: number;
+  followUpD1Count: number;
   showExperimentaisSection: boolean;
   showMatriculasSection: boolean;
   showFollowUpSection: boolean;
@@ -22,6 +23,7 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   periodStats,
   experimentaisSemanaCount,
   followUpPendingCount,
+  followUpD1Count,
   showExperimentaisSection,
   showMatriculasSection,
   showFollowUpSection,
@@ -56,6 +58,7 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
 
       <FollowUpKPI
         pendingCount={followUpPendingCount}
+        d1Count={followUpD1Count}
         onClick={onFollowUpClick}
         isActive={showFollowUpSection}
       />
