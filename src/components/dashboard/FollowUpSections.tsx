@@ -389,20 +389,38 @@ export function FollowUpSections({
       </Card>
 
       {/* Upcoming Section */}
-      <Card className="border-blue-200 bg-blue-50/30 dark:bg-blue-950/10">
+      <Card className="border-slate-200 bg-gradient-to-br from-slate-50/50 to-background dark:from-slate-950/20 dark:to-background">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CalendarDays className="w-5 h-5 text-blue-500" />
+              <CalendarDays className="w-5 h-5 text-slate-500" />
               <span>Próximos Follow-ups</span>
             </div>
-            <Badge variant="secondary">{sortedUpcomingItems.length}</Badge>
+            <div className="flex items-center gap-2">
+              {/* Quick type counters */}
+              {['D+7', 'D+15', 'D+30'].map(tipo => {
+                const count = sortedUpcomingItems.filter(i => i.tipo === tipo).length;
+                if (count === 0) return null;
+                const config = TIPO_CONFIG[tipo];
+                return (
+                  <Badge 
+                    key={tipo} 
+                    variant="outline" 
+                    className={cn("text-xs cursor-pointer hover:opacity-80", config.bgColor, config.color)}
+                    onClick={() => onTipoClick(tipo)}
+                  >
+                    {tipo}: {count}
+                  </Badge>
+                );
+              })}
+              <Badge variant="secondary">{sortedUpcomingItems.length}</Badge>
+            </div>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           {sortedUpcomingItems.length > 0 ? (
-            <ScrollArea className="max-h-[300px]">
-              <div className="space-y-2 pr-4">
+            <ScrollArea className="h-[350px] pr-4">
+              <div className="space-y-2">
                 {sortedUpcomingItems.map(item => renderFollowUpItem(item, false))}
               </div>
             </ScrollArea>
