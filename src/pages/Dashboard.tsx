@@ -224,6 +224,7 @@ export default function Dashboard() {
               }} 
               tipoFilter={followUpTipoFilter}
               onClearFilter={() => setFollowUpTipoFilter(null)}
+              onTipoClick={handleFollowUpTipoClick}
             />
           </div>
         )}
