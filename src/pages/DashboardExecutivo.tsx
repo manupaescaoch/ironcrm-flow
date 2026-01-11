@@ -24,6 +24,7 @@ import { AgendaPresencaCard } from '@/components/executivo/AgendaPresencaCard';
 import { PerformanceCadastradorCard, PerformanceFechadorCard } from '@/components/executivo/PerformanceCards';
 import { TreinadorPerformanceCard } from '@/components/executivo/TreinadorPerformanceCard';
 import { ResumoFinalCard } from '@/components/executivo/ResumoFinalCard';
+import { EvolucaoCPLCPAChart } from '@/components/executivo/EvolucaoCPLCPAChart';
 
 // Utils
 import { formatExecutivoDate, formatExecutivoCurrency } from '@/utils/executivoMappers';
@@ -394,25 +395,28 @@ export default function DashboardExecutivo() {
             {/* 1. TOP CARDS */}
             <ExecutivoKPIGrid topCards={topCards} investimentoMarketing={investimentoMarketing} />
 
-            {/* 2. FUNIL EXECUTIVO */}
+            {/* 2. EVOLUÇÃO CPL/CPA */}
+            <EvolucaoCPLCPAChart />
+
+            {/* 3. FUNIL EXECUTIVO */}
             <FunilExecutivoCard funilData={funilExecutivo} />
 
-            {/* 3. ORIGEM DOS LEADS */}
+            {/* 4. ORIGEM DOS LEADS */}
             <OrigemLeadsCards origemData={origemData} />
 
-            {/* 4. AGENDA & PRESENÇA */}
+            {/* 5. AGENDA & PRESENÇA */}
             <AgendaPresencaCard agendaPresenca={agendaPresenca} />
 
-            {/* 5. PERFORMANCE POR CADASTRADOR */}
+            {/* 6. PERFORMANCE POR CADASTRADOR */}
             <PerformanceCadastradorCard data={performanceCadastrador} />
 
-            {/* 6. PERFORMANCE POR FECHADOR */}
+            {/* 7. PERFORMANCE POR FECHADOR */}
             <PerformanceFechadorCard data={performanceFechador} />
 
-            {/* 7. PERFORMANCE TREINADORES */}
+            {/* 8. PERFORMANCE TREINADORES */}
             <TreinadorPerformanceCard data={performanceTreinadores} />
 
-            {/* 8. RESUMO FINAL */}
+            {/* 9. RESUMO FINAL */}
             <ResumoFinalCard resumo={resumoFinal} />
           </>
         )}
