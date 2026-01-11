@@ -157,8 +157,8 @@ export default function Dashboard() {
     }
   }, [refetchAll, startDate, endDate]);
 
-  // followUpItems already filtered to only pending (not sent), autoFollowUpItems only status='pendente'
-  const followUpPendingCount = followUpItems.length + autoFollowUpItems.length;
+  // KPI shows only urgent items (overdue/today) for immediate action visibility
+  const followUpPendingCount = followUpItems.length + urgentAutoFollowUpItems.length;
 
   return (
     <Layout>
