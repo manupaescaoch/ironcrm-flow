@@ -22,6 +22,8 @@ interface UseDashboardDataReturn {
   // Follow-ups
   followUpItems: ReturnType<typeof useDashboardFollowUps>['followUpItems'];
   autoFollowUpItems: ReturnType<typeof useDashboardFollowUps>['autoFollowUpItems'];
+  urgentAutoFollowUpItems: ReturnType<typeof useDashboardFollowUps>['urgentAutoFollowUpItems'];
+  upcomingAutoFollowUpItems: ReturnType<typeof useDashboardFollowUps>['upcomingAutoFollowUpItems'];
   lastSyncTime: Date | null;
   
   // Matrículas
@@ -100,6 +102,8 @@ export function useDashboardData(
     experimentaisDetalhados: eventosHook.experimentaisDetalhados,
     followUpItems: followUpsHook.followUpItems,
     autoFollowUpItems: followUpsHook.autoFollowUpItems,
+    urgentAutoFollowUpItems: followUpsHook.urgentAutoFollowUpItems,
+    upcomingAutoFollowUpItems: followUpsHook.upcomingAutoFollowUpItems,
     lastSyncTime: followUpsHook.lastSyncTime,
     matriculasDetalhadas: matriculasHook.matriculasDetalhadas,
     loading: loading || unidadeLoading,
