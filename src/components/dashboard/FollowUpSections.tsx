@@ -34,6 +34,7 @@ interface FollowUpSectionsProps {
   onRefresh: () => void;
   tipoFilter: string | null;
   onClearFilter: () => void;
+  onTipoClick: (tipo: string) => void;
 }
 
 const TIPO_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -54,11 +55,36 @@ const NOT_INTERESTED_REASONS = [
   'Outro',
 ];
 
-const FOLLOW_UP_MESSAGES: Record<string, string> = {
-  'D+1': 'Olá! Tudo bem? Passando para saber como foi sua experiência na aula experimental! O que achou? 💪',
-  'D+7': 'Oi! Como você está? Faz uma semana desde sua visita e gostaríamos de saber se podemos ajudar com algo. Está pensando em começar? 🏋️',
-  'D+15': 'Olá! Já faz 15 dias desde sua aula experimental. Ainda está pensando em iniciar seus treinos? Temos condições especiais para você! 🎯',
-  'D+30': 'Oi! Faz um mês desde sua visita. Queremos te lembrar que as portas estão sempre abertas para você! Que tal remarcar uma visita? 🚀',
+const FOLLOW_UP_MESSAGES: Record<string, (nome: string) => string> = {
+  'D+1': (nome) => `Oi, ${nome}! Bom dia 😊
+
+Passando pra saber como você acordou hoje depois do treino de ontem 💪
+Sentiu o corpo?
+
+Quando a gente fala de acompanhamento de perto, é justamente pra evitar de ficar perdido no treino.
+
+Se fizer sentido pra você, posso te explicar com calma como funciona pra seguir treinando com a gente na IRON.`,
+  'D+7': (nome) => `Oi ${nome}! Tudo bem? 😊
+
+Já faz uma semana desde sua aula experimental na IRON! Como você está?
+
+Estava pensando em você e queria saber se surgiu alguma dúvida sobre os treinos ou nossos planos.
+
+Posso te ajudar com alguma informação? 💪`,
+  'D+15': (nome) => `Olá ${nome}! 👋
+
+Já faz 15 dias desde sua visita na IRON! Queria saber como você está.
+
+Temos algumas condições especiais esse mês que podem te interessar!
+
+Quer que eu te explique? 🎯`,
+  'D+30': (nome) => `Oi ${nome}! 😊
+
+Faz um mês desde que você conheceu a IRON! 
+
+As portas continuam abertas para você. Que tal remarcar uma visita para conhecer as novidades?
+
+Me avisa se tiver interesse! 🚀`,
 };
 
 export function FollowUpSections({ 
@@ -66,7 +92,8 @@ export function FollowUpSections({
   upcomingItems, 
   onRefresh, 
   tipoFilter, 
-  onClearFilter 
+  onClearFilter,
+  onTipoClick
 }: FollowUpSectionsProps) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -240,7 +267,9 @@ export function FollowUpSections({
   const renderFollowUpItem = (item: FollowUpAutoItem, isUrgent: boolean) => {
     const tipoConfig = TIPO_CONFIG[item.tipo] || TIPO_CONFIG['D+1'];
     const timeInfo = getTimeInfo(item.data_prevista);
-    const message = FOLLOW_UP_MESSAGES[item.tipo] || FOLLOW_UP_MESSAGES['D+1'];
+    const leadNome = item.lead?.nome?.split(' ')[0] || 'Lead';
+    const messageFunc = FOLLOW_UP_MESSAGES[item.tipo] || FOLLOW_UP_MESSAGES['D+1'];
+    const message = messageFunc(leadNome);
 
     return (
       <div 
@@ -251,7 +280,11 @@ export function FollowUpSections({
         )}
       >
         <div className="flex items-start gap-3 flex-1 min-w-0">
-          <Badge className={cn("shrink-0", tipoConfig.bgColor, tipoConfig.color)}>
+          <Badge 
+            className={cn("shrink-0 cursor-pointer hover:opacity-80 transition-opacity", tipoConfig.bgColor, tipoConfig.color)}
+            onClick={() => onTipoClick(item.tipo)}
+            title={`Filtrar por ${tipoConfig.label}`}
+          >
             {tipoConfig.label}
           </Badge>
           
