@@ -363,6 +363,42 @@ export type Database = {
           },
         ]
       }
+      investimentos_marketing: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_fim: string
+          data_inicio: string
+          id: string
+          observacoes: string | null
+          unidade_id: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_fim: string
+          data_inicio: string
+          id?: string
+          observacoes?: string | null
+          unidade_id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string
+          data_inicio?: string
+          id?: string
+          observacoes?: string | null
+          unidade_id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           atendido_por: string | null

@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, Filter, FileDown } from 'lucide-react';
+import { Loader2, Filter, FileDown, Save, Check } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useUnidade } from '@/contexts/UnidadeContext';
 
 // Hooks
 import { useExecutivoData } from '@/hooks/useExecutivoData';
@@ -28,6 +30,7 @@ import { formatExecutivoDate, formatExecutivoCurrency } from '@/utils/executivoM
 
 export default function DashboardExecutivo() {
   const { toast } = useToast();
+  const { unidadeAtual } = useUnidade();
   
   // Date filters
   const [dataInicio, setDataInicio] = useState<string>(
@@ -39,6 +42,9 @@ export default function DashboardExecutivo() {
   
   // Marketing investment for CPL/CPA calculation
   const [investimentoMarketing, setInvestimentoMarketing] = useState<number>(0);
+  const [investimentoSalvo, setInvestimentoSalvo] = useState<number>(0);
+  const [salvandoInvestimento, setSalvandoInvestimento] = useState(false);
+  const [investimentoId, setInvestimentoId] = useState<string | null>(null);
 
   // Data fetching
   const { leads, interacoes, loading, fetchData } = useExecutivoData();
@@ -55,9 +61,77 @@ export default function DashboardExecutivo() {
     resumoFinal,
   } = useExecutivoMetrics(leads, interacoes);
 
+  // Load saved investment for the selected period
+  const loadInvestimento = useCallback(async () => {
+    if (!unidadeAtual) return;
+    
+    const { data, error } = await supabase
+      .from('investimentos_marketing')
+      .select('id, valor')
+      .eq('unidade_id', unidadeAtual.id)
+      .eq('data_inicio', dataInicio)
+      .eq('data_fim', dataFim)
+      .maybeSingle();
+    
+    if (!error && data) {
+      setInvestimentoMarketing(Number(data.valor));
+      setInvestimentoSalvo(Number(data.valor));
+      setInvestimentoId(data.id);
+    } else {
+      setInvestimentoMarketing(0);
+      setInvestimentoSalvo(0);
+      setInvestimentoId(null);
+    }
+  }, [dataInicio, dataFim, unidadeAtual]);
+
+  // Save investment
+  const salvarInvestimento = async () => {
+    if (!unidadeAtual) return;
+    
+    setSalvandoInvestimento(true);
+    try {
+      if (investimentoId) {
+        // Update existing
+        const { error } = await supabase
+          .from('investimentos_marketing')
+          .update({ valor: investimentoMarketing })
+          .eq('id', investimentoId);
+        
+        if (error) throw error;
+      } else {
+        // Insert new
+        const { data, error } = await supabase
+          .from('investimentos_marketing')
+          .insert({
+            unidade_id: unidadeAtual.id,
+            data_inicio: dataInicio,
+            data_fim: dataFim,
+            valor: investimentoMarketing,
+          })
+          .select('id')
+          .single();
+        
+        if (error) throw error;
+        setInvestimentoId(data.id);
+      }
+      
+      setInvestimentoSalvo(investimentoMarketing);
+      toast({ title: 'Investimento salvo com sucesso!' });
+    } catch (error: any) {
+      toast({ 
+        title: 'Erro ao salvar investimento', 
+        description: error.message,
+        variant: 'destructive' 
+      });
+    } finally {
+      setSalvandoInvestimento(false);
+    }
+  };
+
   useEffect(() => {
     fetchData(dataInicio, dataFim);
-  }, [dataInicio, dataFim, fetchData]);
+    loadInvestimento();
+  }, [dataInicio, dataFim, fetchData, loadInvestimento]);
 
   const exportPDF = () => {
     const doc = new jsPDF();
@@ -282,12 +356,30 @@ export default function DashboardExecutivo() {
               </div>
               <div className="space-y-2">
                 <Label>Investimento Marketing (R$)</Label>
-                <Input 
-                  type="number" 
-                  placeholder="Ex: 5000" 
-                  value={investimentoMarketing || ''} 
-                  onChange={(e) => setInvestimentoMarketing(Number(e.target.value) || 0)}
-                />
+                <div className="flex gap-2">
+                  <Input 
+                    type="number" 
+                    placeholder="Ex: 5000" 
+                    value={investimentoMarketing || ''} 
+                    onChange={(e) => setInvestimentoMarketing(Number(e.target.value) || 0)}
+                    className="flex-1"
+                  />
+                  <Button 
+                    variant={investimentoMarketing !== investimentoSalvo ? "default" : "outline"}
+                    size="icon"
+                    onClick={salvarInvestimento}
+                    disabled={salvandoInvestimento || investimentoMarketing === investimentoSalvo}
+                    title={investimentoMarketing === investimentoSalvo ? "Salvo" : "Salvar investimento"}
+                  >
+                    {salvandoInvestimento ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : investimentoMarketing === investimentoSalvo ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
