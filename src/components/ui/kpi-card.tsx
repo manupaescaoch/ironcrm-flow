@@ -130,10 +130,10 @@ export const KPICard = memo(function KPICard({
         )}
         onClick={onClick}
       >
-        <CardContent className="pt-6">
+        <CardContent className="p-4">
           <div className="flex items-center gap-3">
             <div className={cn(
-              'w-12 h-12 rounded-lg flex items-center justify-center',
+              'w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0',
               resolvedIconColor.includes('blue') && 'bg-blue-500/20',
               resolvedIconColor.includes('purple') && 'bg-purple-500/20',
               resolvedIconColor.includes('green') && 'bg-green-500/20',
@@ -142,18 +142,23 @@ export const KPICard = memo(function KPICard({
               resolvedIconColor.includes('primary') && 'bg-primary/20',
               resolvedIconColor.includes('emerald') && 'bg-emerald-500/20',
               resolvedIconColor.includes('rose') && 'bg-rose-500/20',
+              resolvedIconColor.includes('orange') && 'bg-orange-500/20',
+              resolvedIconColor.includes('red') && 'bg-red-500/20',
+              resolvedIconColor.includes('teal') && 'bg-teal-500/20',
               !resolvedIconColor.includes('blue') && !resolvedIconColor.includes('purple') && 
               !resolvedIconColor.includes('green') && !resolvedIconColor.includes('amber') && 
               !resolvedIconColor.includes('cyan') && !resolvedIconColor.includes('primary') &&
-              !resolvedIconColor.includes('emerald') && !resolvedIconColor.includes('rose') && 'bg-muted'
+              !resolvedIconColor.includes('emerald') && !resolvedIconColor.includes('rose') &&
+              !resolvedIconColor.includes('orange') && !resolvedIconColor.includes('red') &&
+              !resolvedIconColor.includes('teal') && 'bg-muted'
             )}>
-              <Icon className={cn('w-6 h-6', resolvedIconColor)} />
+              <Icon className={cn('w-5 h-5', resolvedIconColor)} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-muted-foreground truncate">{title}</p>
-              <p className={cn('text-xl font-bold truncate', resolvedValueColor)}>{value}</p>
+              <p className="text-xs font-medium text-muted-foreground leading-tight">{title}</p>
+              <p className={cn('text-lg font-bold leading-tight mt-0.5', resolvedValueColor)}>{value}</p>
               {subtitle && (
-                <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>
               )}
             </div>
           </div>
