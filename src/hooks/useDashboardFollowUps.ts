@@ -46,7 +46,7 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
     return { urgentAutoFollowUpItems: urgent, upcomingAutoFollowUpItems: upcoming };
   }, [autoFollowUpItems]);
 
-  // Internal fetch function for realtime updates - NOW FETCHES ALL PENDING (no date filter)
+  // Internal fetch function for realtime updates - ONLY SHOWS LEADS WHO ATTENDED EXPERIMENTAL
   const fetchAutoFollowUpsInternal = useCallback(async () => {
     if (!unidadeAtual) return;
     
@@ -65,24 +65,43 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
       return;
     }
 
-    // Collect valid follow-ups with SECURITY FILTER: is_matriculado has maximum priority
+    // Get lead IDs first
+    const leadIds = followUpsData?.map((item: any) => item.lead_id).filter(Boolean) || [];
+    
+    // REGRA CORRIGIDA: Verificar quais leads realmente compareceram à experimental
+    let leadsWithAttendance = new Set<string>();
+    if (leadIds.length > 0) {
+      const { data: attendanceData } = await supabase
+        .from('interacoes')
+        .select('lead_id')
+        .in('lead_id', leadIds)
+        .eq('compareceu', true);
+      
+      attendanceData?.forEach((item: any) => {
+        leadsWithAttendance.add(item.lead_id);
+      });
+    }
+
+    // Collect valid follow-ups with SECURITY FILTER
     const validFollowUps = followUpsData?.filter((item: any) => {
       if (!item.leads) return false;
       // REGRA DE SEGURANÇA: is_matriculado tem prioridade máxima
       if (item.leads.is_matriculado === true) return false;
       if (['perdido', 'convertido'].includes(item.leads.status_funil)) return false;
+      // REGRA CORRIGIDA: Só mostra se o lead compareceu à experimental
+      if (!leadsWithAttendance.has(item.lead_id)) return false;
       return true;
     }) || [];
 
-    const leadIds = validFollowUps.map((item: any) => item.lead_id);
+    const validLeadIds = validFollowUps.map((item: any) => item.lead_id);
 
     // Fetch last interaction for each lead
     let ultimaInteracaoMap: Record<string, string> = {};
-    if (leadIds.length > 0) {
+    if (validLeadIds.length > 0) {
       const { data: interacoesData } = await supabase
         .from('interacoes')
         .select('lead_id, data_interacao')
-        .in('lead_id', leadIds)
+        .in('lead_id', validLeadIds)
         .order('data_interacao', { ascending: false });
 
       interacoesData?.forEach((i: any) => {
@@ -262,7 +281,7 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
     }
   }, [unidadeAtual]);
 
-  // Fetch only - does NOT call generate-follow-ups - NOW FETCHES ALL PENDING (no date filter)
+  // Fetch only - does NOT call generate-follow-ups - ONLY SHOWS LEADS WHO ATTENDED EXPERIMENTAL
   const fetchAutoFollowUps = useCallback(async () => {
     if (!unidadeAtual) return;
     
@@ -282,24 +301,43 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
       return;
     }
 
-    // Collect valid follow-ups with SECURITY FILTER: is_matriculado has maximum priority
+    // Get lead IDs first
+    const leadIds = followUpsData?.map((item: any) => item.lead_id).filter(Boolean) || [];
+    
+    // REGRA CORRIGIDA: Verificar quais leads realmente compareceram à experimental
+    let leadsWithAttendance = new Set<string>();
+    if (leadIds.length > 0) {
+      const { data: attendanceData } = await supabase
+        .from('interacoes')
+        .select('lead_id')
+        .in('lead_id', leadIds)
+        .eq('compareceu', true);
+      
+      attendanceData?.forEach((item: any) => {
+        leadsWithAttendance.add(item.lead_id);
+      });
+    }
+
+    // Collect valid follow-ups with SECURITY FILTER
     const validFollowUps = followUpsData?.filter((item: any) => {
       if (!item.leads) return false;
       // REGRA DE SEGURANÇA: is_matriculado tem prioridade máxima
       if (item.leads.is_matriculado === true) return false;
       if (['perdido', 'convertido'].includes(item.leads.status_funil)) return false;
+      // REGRA CORRIGIDA: Só mostra se o lead compareceu à experimental
+      if (!leadsWithAttendance.has(item.lead_id)) return false;
       return true;
     }) || [];
 
-    const leadIds = validFollowUps.map((item: any) => item.lead_id);
+    const validLeadIds = validFollowUps.map((item: any) => item.lead_id);
 
     // Fetch last interaction for each lead
     let ultimaInteracaoMap: Record<string, string> = {};
-    if (leadIds.length > 0) {
+    if (validLeadIds.length > 0) {
       const { data: interacoesData } = await supabase
         .from('interacoes')
         .select('lead_id, data_interacao')
-        .in('lead_id', leadIds)
+        .in('lead_id', validLeadIds)
         .order('data_interacao', { ascending: false });
 
       interacoesData?.forEach((i: any) => {
