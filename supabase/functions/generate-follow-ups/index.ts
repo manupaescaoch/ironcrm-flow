@@ -26,46 +26,85 @@ Deno.serve(async (req) => {
       // No body or invalid JSON, proceed with all unidades
     }
 
-    // Use today's date as reference for all leads (reset mode)
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    console.log('Starting follow-up generation with reset mode...', { unidadeId, dataReferencia: hoje.toISOString() });
+    console.log('Starting follow-up generation (attendance-based)...', { unidadeId });
 
-    // Get all active leads that are eligible for follow-ups
-    // Criteria: ativo = true, is_matriculado = false, status_funil != 'perdido'
-    let leadsQuery = supabase
-      .from('leads')
-      .select('id, nome, status_funil, unidade_id, is_matriculado')
-      .eq('ativo', true)
-      .eq('is_matriculado', false)
-      .neq('status_funil', 'perdido');
+    // REGRA CORRIGIDA: Buscar apenas leads que COMPARECERAM à experimental
+    // E ainda não são matriculados nem perdidos
+    let interacoesQuery = supabase
+      .from('interacoes')
+      .select(`
+        lead_id,
+        data_experimental,
+        unidade_id,
+        leads!inner (
+          id,
+          nome,
+          status_funil,
+          is_matriculado,
+          ativo
+        )
+      `)
+      .eq('compareceu', true)
+      .not('data_experimental', 'is', null);
 
     if (unidadeId) {
-      leadsQuery = leadsQuery.eq('unidade_id', unidadeId);
+      interacoesQuery = interacoesQuery.eq('unidade_id', unidadeId);
     }
 
-    const { data: leads, error: leadsError } = await leadsQuery;
+    const { data: interacoes, error: interacoesError } = await interacoesQuery;
 
-    if (leadsError) {
-      console.error('Error fetching leads:', leadsError);
-      throw leadsError;
+    if (interacoesError) {
+      console.error('Error fetching interacoes:', interacoesError);
+      throw interacoesError;
     }
 
-    console.log(`Found ${leads?.length || 0} eligible leads`);
+    console.log(`Found ${interacoes?.length || 0} interactions with attendance`);
+
+    // Filter to eligible leads only
+    const eligibleInteracoes = interacoes?.filter((i: any) => {
+      const lead = i.leads;
+      if (!lead) return false;
+      if (lead.ativo === false) return false;
+      if (lead.is_matriculado === true) return false;
+      if (lead.status_funil === 'perdido' || lead.status_funil === 'convertido') return false;
+      return true;
+    }) || [];
+
+    console.log(`Filtered to ${eligibleInteracoes.length} eligible leads`);
+
+    // Group by lead_id to get the earliest experimental date per lead
+    const leadExperimentalMap = new Map<string, { data_experimental: string; unidade_id: string; nome: string }>();
+    
+    for (const interacao of eligibleInteracoes) {
+      const leadId = interacao.lead_id;
+      const existing = leadExperimentalMap.get(leadId);
+      const leadData = interacao.leads as any;
+      
+      // Use the earliest experimental date for follow-up reference
+      if (!existing || new Date(interacao.data_experimental) < new Date(existing.data_experimental)) {
+        leadExperimentalMap.set(leadId, {
+          data_experimental: interacao.data_experimental,
+          unidade_id: interacao.unidade_id,
+          nome: leadData?.nome || 'Unknown'
+        });
+      }
+    }
+
+    console.log(`Processing ${leadExperimentalMap.size} unique leads`);
 
     let generatedCount = 0;
 
-    for (const lead of leads || []) {
-      // Use today as the reference date for all leads
-      const dataReferencia = hoje;
-
+    for (const [leadId, info] of leadExperimentalMap) {
       // Check existing follow-ups for this lead
       const { data: existingFollowUps } = await supabase
         .from('follow_ups')
         .select('tipo, status')
-        .eq('lead_id', lead.id);
+        .eq('lead_id', leadId);
 
-      const existingTypes = new Set(existingFollowUps?.map(f => f.tipo) || []);
+      const existingTypes = new Set(existingFollowUps?.map((f: any) => f.tipo) || []);
+
+      // Use the experimental date as reference (not today!)
+      const dataReferencia = new Date(info.data_experimental);
 
       // Generate follow-ups for each type if not exists
       const followUpTypes: { tipo: string; dias: number }[] = [
@@ -81,12 +120,11 @@ Deno.serve(async (req) => {
         const dataPrevista = new Date(dataReferencia);
         dataPrevista.setDate(dataPrevista.getDate() + dias);
 
-        // Generate all follow-ups unconditionally (reset mode)
         const { error: insertError } = await supabase
           .from('follow_ups')
           .insert({
-            lead_id: lead.id,
-            unidade_id: lead.unidade_id,
+            lead_id: leadId,
+            unidade_id: info.unidade_id,
             tipo,
             data_referencia: dataReferencia.toISOString(),
             data_prevista: dataPrevista.toISOString(),
@@ -94,10 +132,10 @@ Deno.serve(async (req) => {
           });
 
         if (insertError) {
-          console.error(`Error inserting follow-up ${tipo} for lead ${lead.id}:`, insertError);
+          console.error(`Error inserting follow-up ${tipo} for lead ${leadId}:`, insertError);
         } else {
           generatedCount++;
-          console.log(`Generated ${tipo} follow-up for lead ${lead.nome}`);
+          console.log(`Generated ${tipo} follow-up for lead ${info.nome}`);
         }
       }
     }
@@ -108,7 +146,8 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: `Generated ${generatedCount} new follow-ups`,
-        generatedCount 
+        generatedCount,
+        leadsProcessed: leadExperimentalMap.size
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
