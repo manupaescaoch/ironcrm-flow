@@ -24,6 +24,7 @@ import VisaoFinanceiraEstoque from "./pages/VisaoFinanceiraEstoque";
 import DashboardExecutivoEstoque from "./pages/DashboardExecutivoEstoque";
 import RelatorioGastosEstoque from "./pages/RelatorioGastosEstoque";
 import Escala from "./pages/Escala";
+import ControleVencimentos from "./pages/ControleVencimentos";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -265,6 +266,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <Escala />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/vencimentos"
+      element={
+        <ProtectedRoute>
+          <ControleVencimentos />
         </ProtectedRoute>
       }
     />
