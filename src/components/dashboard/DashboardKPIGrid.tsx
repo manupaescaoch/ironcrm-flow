@@ -1,8 +1,10 @@
 import React, { memo } from 'react';
-import { Users, UserPlus, CalendarCheck, Calendar, Award } from 'lucide-react';
+import { Users, UserPlus, CalendarCheck, Calendar, Award, AlertTriangle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { KPICard } from '@/components/ui/kpi-card';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
 import { Stats, PeriodStats } from '@/components/dashboard/constants';
+import { useVencimentosData, VencimentosSummary } from '@/hooks/useVencimentosData';
 
 interface DashboardKPIGridProps {
   stats: Stats;
@@ -18,6 +20,51 @@ interface DashboardKPIGridProps {
   onFollowUpClick: () => void;
 }
 
+const VencimentosKPI = memo(function VencimentosKPI({ summary }: { summary: VencimentosSummary }) {
+  const navigate = useNavigate();
+  const urgentCount = summary.vencidos + summary.urgentes;
+  const attentionCount = summary.atencao;
+  
+  const handleClick = () => {
+    navigate('/vencimentos');
+  };
+
+  // Determine color based on urgency
+  const getColor = () => {
+    if (summary.vencidos > 0) return 'red';
+    if (summary.urgentes > 0) return 'orange';
+    if (summary.atencao > 0) return 'yellow';
+    return 'green';
+  };
+
+  const color = getColor();
+  const colorClasses = {
+    red: { icon: 'text-red-500', value: 'text-red-600' },
+    orange: { icon: 'text-orange-500', value: 'text-orange-600' },
+    yellow: { icon: 'text-yellow-500', value: 'text-yellow-600' },
+    green: { icon: 'text-green-500', value: 'text-green-600' },
+  };
+
+  const subtitle = urgentCount > 0 
+    ? `${summary.vencidos} vencidos, ${summary.urgentes} em 7 dias`
+    : attentionCount > 0 
+    ? `${attentionCount} em 15 dias`
+    : 'Todos em dia';
+
+  return (
+    <KPICard
+      title="Planos Vencendo"
+      value={urgentCount + attentionCount}
+      icon={AlertTriangle}
+      iconColor={colorClasses[color].icon}
+      valueColor={colorClasses[color].value}
+      subtitle={subtitle}
+      onClick={handleClick}
+      showClickHint
+    />
+  );
+});
+
 export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   stats,
   periodStats,
@@ -31,8 +78,10 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   onMatriculasClick,
   onFollowUpClick,
 }: DashboardKPIGridProps) {
+  const { summary } = useVencimentosData();
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4 mb-8">
       <KPICard
         title="Total de Leads"
         value={stats.total}
@@ -86,6 +135,8 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
         activeColor="amber"
         showClickHint
       />
+
+      <VencimentosKPI summary={summary} />
     </div>
   );
 });
