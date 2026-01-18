@@ -13,7 +13,7 @@ import { ptBR } from 'date-fns/locale';
 
 export default function ControleVencimentos() {
   const [filters, setFilters] = useState<FiltersType>({ status: 'todos', plano: 'todos' });
-  const { vencimentos, summary, planosDisponiveis, isLoading } = useVencimentosData(filters);
+  const { vencimentos, summary, planosDisponiveis, isLoading, refetch } = useVencimentosData(filters);
 
   const handleExportExcel = () => {
     const exportData = vencimentos.map((item) => ({
@@ -109,7 +109,7 @@ export default function ControleVencimentos() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <VencimentosTable vencimentos={vencimentos} isLoading={isLoading} />
+            <VencimentosTable vencimentos={vencimentos} isLoading={isLoading} onRefresh={refetch} />
           </CardContent>
         </Card>
       </div>
