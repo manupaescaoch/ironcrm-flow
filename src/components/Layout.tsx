@@ -20,6 +20,7 @@ import {
   Gift,
   Package,
   CalendarDays,
+  CalendarClock,
   Shield,
   Menu
 } from 'lucide-react';
@@ -45,6 +46,7 @@ const allNavItems = [
   { href: '/kanban', label: 'Funil', icon: Columns, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
   { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
   { href: '/indicacoes', label: 'Indicações', icon: Gift, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
+  { href: '/vencimentos', label: 'Vencimentos', icon: CalendarClock, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
   { href: '/estoque', label: 'Estoque', icon: Package, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
   { href: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
   { href: '/relatorio', label: 'Relatório Vendas', icon: FileText, roles: ['admin'], masterOnly: false },
