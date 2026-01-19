@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
-import { ExternalLink, RefreshCw } from 'lucide-react';
+import { ExternalLink, Pencil, RefreshCw } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -16,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { VencimentoBadge } from './VencimentoBadge';
 import { RenovacaoModal } from './RenovacaoModal';
+import { EditarVencimentoModal } from './EditarVencimentoModal';
 import { VencimentoItem } from '@/hooks/useVencimentosData';
 
 interface VencimentosTableProps {
@@ -26,6 +27,7 @@ interface VencimentosTableProps {
 
 export function VencimentosTable({ vencimentos, isLoading, onRefresh }: VencimentosTableProps) {
   const [renovacaoModalOpen, setRenovacaoModalOpen] = useState(false);
+  const [editarModalOpen, setEditarModalOpen] = useState(false);
   const [selectedVencimento, setSelectedVencimento] = useState<VencimentoItem | null>(null);
 
   const handleRenovar = (item: VencimentoItem) => {
@@ -33,7 +35,12 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
     setRenovacaoModalOpen(true);
   };
 
-  const handleRenovacaoSuccess = () => {
+  const handleEditar = (item: VencimentoItem) => {
+    setSelectedVencimento(item);
+    setEditarModalOpen(true);
+  };
+
+  const handleSuccess = () => {
     onRefresh?.();
   };
 
@@ -96,6 +103,22 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
                           <Button
                             variant="ghost"
                             size="icon"
+                            onClick={() => handleEditar(item)}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Editar datas</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleRenovar(item)}
                             className="text-primary hover:text-primary hover:bg-primary/10"
                           >
@@ -138,7 +161,14 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
         open={renovacaoModalOpen}
         onOpenChange={setRenovacaoModalOpen}
         vencimento={selectedVencimento}
-        onSuccess={handleRenovacaoSuccess}
+        onSuccess={handleSuccess}
+      />
+
+      <EditarVencimentoModal
+        open={editarModalOpen}
+        onOpenChange={setEditarModalOpen}
+        vencimento={selectedVencimento}
+        onSuccess={handleSuccess}
       />
     </>
   );
