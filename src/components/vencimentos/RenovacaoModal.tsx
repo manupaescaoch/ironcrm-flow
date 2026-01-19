@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { format } from 'date-fns';
+import { format, addMonths, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import {
@@ -41,6 +41,23 @@ const PLANOS = [
   'Executivo Anual',
 ];
 
+// Calcular data de vencimento baseado no plano
+const calcularDataVencimento = (plano: string, dataFechamento: Date): Date => {
+  const planoNormalizado = plano.toLowerCase().trim();
+  
+  if (planoNormalizado.includes('mensal')) {
+    return addMonths(dataFechamento, 1);
+  }
+  if (planoNormalizado.includes('trimestral')) {
+    return addMonths(dataFechamento, 3);
+  }
+  if (planoNormalizado.includes('semestral')) {
+    return addMonths(dataFechamento, 6);
+  }
+  // Anual é o default
+  return addMonths(dataFechamento, 12);
+};
+
 export function RenovacaoModal({ open, onOpenChange, vencimento, onSuccess }: RenovacaoModalProps) {
   const [loading, setLoading] = useState(false);
   const [plano, setPlano] = useState('');
@@ -59,6 +76,10 @@ export function RenovacaoModal({ open, onOpenChange, vencimento, onSuccess }: Re
     setLoading(true);
 
     try {
+      // Calcular data de vencimento
+      const dataFechamentoDate = parseISO(dataFechamento);
+      const dataVencimento = calcularDataVencimento(plano, dataFechamentoDate);
+      
       // Create new interaction for renewal
       const { error } = await supabase.from('interacoes').insert({
         lead_id: vencimento.leadId,
@@ -67,6 +88,7 @@ export function RenovacaoModal({ open, onOpenChange, vencimento, onSuccess }: Re
         data_interacao: new Date().toISOString(),
         fechou_matricula: true,
         data_fechamento: dataFechamento,
+        data_vencimento: format(dataVencimento, 'yyyy-MM-dd'),
         plano_escolhido: plano,
         valor_plano: valorPlano ? parseFloat(valorPlano) : null,
         descricao: observacao || `Renovação do plano ${vencimento.planoEscolhido} para ${plano}`,

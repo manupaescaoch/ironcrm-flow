@@ -37,11 +37,23 @@ const normalizePlano = (plano: string): string => {
   return 'Anual'; // Default
 };
 
-// Parse date from Brazilian format (DD/MM/YYYY HH:MM:SS) to ISO format
+// Parse date from Brazilian format (DD/MM/YYYY HH:MM:SS or DD/MM/YYYY) to ISO format
 const parseDate = (dateStr: string): string => {
   const [datePart] = dateStr.split(' ');
   const [day, month, year] = datePart.split('/');
   return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+};
+
+// Parse vencimento date from DD/MM/YYYY format
+const parseVencimentoDate = (dateStr: string): string | null => {
+  if (!dateStr) return null;
+  try {
+    const [day, month, year] = dateStr.trim().split('/');
+    if (!day || !month || !year) return null;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  } catch {
+    return null;
+  }
 };
 
 interface StudentData {
@@ -105,6 +117,7 @@ Deno.serve(async (req) => {
 
         const planoNormalizado = normalizePlano(student.contrato);
         const dataFechamento = parseDate(student.data_cadastro);
+        const dataVencimento = parseVencimentoDate(student.vencimento);
 
         // Insert lead
         const { data: newLead, error: leadError } = await supabase
@@ -136,6 +149,7 @@ Deno.serve(async (req) => {
             fechou_matricula: true,
             plano_escolhido: planoNormalizado,
             data_fechamento: dataFechamento,
+            data_vencimento: dataVencimento,
             data_interacao: dataFechamento,
             responsavel_fechamento: 'SISTEMA',
             cadastrado_por: 'SISTEMA',
