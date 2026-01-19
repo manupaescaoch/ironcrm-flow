@@ -79,6 +79,7 @@ export function useVencimentosData(filters: VencimentosFilters = { status: 'todo
           lead_id,
           plano_escolhido,
           data_fechamento,
+          data_vencimento,
           unidade_id,
           leads!inner (
             id,
@@ -112,7 +113,11 @@ export function useVencimentosData(filters: VencimentosFilters = { status: 'todo
         if (!lead || !lead.ativo || !lead.is_matriculado) return null;
 
         const dataFechamento = parseISO(item.data_fechamento!);
-        const dataVencimento = calcularVencimento(item.plano_escolhido!, dataFechamento);
+        
+        // Usar data_vencimento se disponível, senão calcular baseado no plano
+        const dataVencimento = item.data_vencimento 
+          ? parseISO(item.data_vencimento)
+          : calcularVencimento(item.plano_escolhido!, dataFechamento);
 
         if (!dataVencimento) return null;
 
