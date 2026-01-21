@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Package, AlertTriangle, AlertCircle, Clock, Plus, Minus, Settings, PackagePlus, Pencil, Search, X, Trash2, TrendingUp, TrendingDown, Skull, Info, ShoppingCart, DollarSign, BarChart3, FileText, Calendar, Gift, RefreshCw } from 'lucide-react';
+import { Package, AlertTriangle, AlertCircle, Clock, Plus, Minus, Settings, PackagePlus, Pencil, Search, X, Trash2, TrendingUp, TrendingDown, Skull, Info, ShoppingCart, DollarSign, BarChart3, FileText, Calendar, Gift, RefreshCw, Loader2 } from 'lucide-react';
 import { SincronizacaoEstoque } from '@/components/estoque/SincronizacaoEstoque';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -96,7 +96,7 @@ export default function EstoqueInterno() {
   const { toast } = useToast();
   const { isAdmin, userName, user } = useAuth();
   const queryClient = useQueryClient();
-  const { unidadeAtual } = useUnidade();
+  const { unidadeAtual, loading: unidadeLoading } = useUnidade();
   const navigate = useNavigate();
   
   const [novoInsumoOpen, setNovoInsumoOpen] = useState(false);
@@ -562,6 +562,18 @@ export default function EstoqueInterno() {
     return format(date, 'dd/MM/yyyy', { locale: ptBR });
   };
 
+  // Loading state enquanto contexto de unidade carrega
+  if (unidadeLoading) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-64 gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Carregando dados da unidade...</p>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <TooltipProvider>
@@ -1025,9 +1037,35 @@ export default function EstoqueInterno() {
                   <TableBody>
                     {insumosFiltradosOrdenados.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
-                          <Package className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
-                          {temFiltrosAtivos ? 'Nenhum insumo encontrado com os filtros aplicados' : 'Nenhum insumo cadastrado. Clique em "Novo Insumo" para começar.'}
+                        <TableCell colSpan={11} className="text-center py-16">
+                          <div className="flex flex-col items-center gap-4">
+                            <div className="rounded-full bg-muted p-6">
+                              <Package className="h-12 w-12 text-muted-foreground/50" />
+                            </div>
+                            {temFiltrosAtivos ? (
+                              <>
+                                <h3 className="text-lg font-medium">Nenhum insumo encontrado</h3>
+                                <p className="text-muted-foreground max-w-md">
+                                  Tente ajustar os filtros para encontrar o que procura.
+                                </p>
+                                <Button variant="outline" onClick={limparFiltros}>
+                                  <X className="w-4 h-4 mr-2" />
+                                  Limpar Filtros
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <h3 className="text-lg font-medium">Nenhum insumo cadastrado</h3>
+                                <p className="text-muted-foreground max-w-md">
+                                  Esta unidade ainda não possui itens de estoque. Comece cadastrando seu primeiro insumo.
+                                </p>
+                                <Button onClick={() => setNovoInsumoOpen(true)}>
+                                  <PackagePlus className="w-4 h-4 mr-2" />
+                                  Cadastrar Primeiro Insumo
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ) : (
