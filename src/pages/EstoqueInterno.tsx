@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Package, AlertTriangle, AlertCircle, Clock, Plus, Minus, Settings, PackagePlus, Pencil, Search, X, Trash2, TrendingUp, TrendingDown, Skull, Info, ShoppingCart, DollarSign, BarChart3, FileText, Calendar, Gift, RefreshCw, Loader2 } from 'lucide-react';
+import { Package, AlertTriangle, AlertCircle, Clock, Plus, Minus, Settings, PackagePlus, Pencil, Search, X, Trash2, TrendingUp, TrendingDown, Skull, Info, ShoppingCart, DollarSign, BarChart3, FileText, Calendar, Gift, RefreshCw, Loader2, Copy } from 'lucide-react';
 import { SincronizacaoEstoque } from '@/components/estoque/SincronizacaoEstoque';
+import { ReplicarInsumosModal } from '@/components/estoque/ReplicarInsumosModal';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -109,6 +110,7 @@ export default function EstoqueInterno() {
   const [busca, setBusca] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('Todas');
   const [filtroStatus, setFiltroStatus] = useState('Todos');
+  const [replicarModalOpen, setReplicarModalOpen] = useState(false);
   
   // Form states
   const [novoInsumo, setNovoInsumo] = useState({
@@ -562,6 +564,9 @@ export default function EstoqueInterno() {
     return format(date, 'dd/MM/yyyy', { locale: ptBR });
   };
 
+  const ZONA_SUL_ID = 'f3d048da-31d7-48df-b1f1-7e2a809c9a9a';
+  const isZonaSul = unidadeAtual?.id === ZONA_SUL_ID;
+
   // Loading state enquanto contexto de unidade carrega
   if (unidadeLoading) {
     return (
@@ -587,6 +592,11 @@ export default function EstoqueInterno() {
               </div>
               <div className="flex items-center gap-2">
                 <SincronizacaoEstoque />
+                {isZonaSul && insumos.length === 0 && (
+                  <Button variant="outline" size="sm" onClick={() => setReplicarModalOpen(true)}>
+                    <Copy className="w-4 h-4 mr-2" />Importar da ZN
+                  </Button>
+                )}
                 <Button size="sm" onClick={() => setNovoInsumoOpen(true)}>
                   <PackagePlus className="w-4 h-4 mr-2" />Novo Insumo
                 </Button>
@@ -1775,6 +1785,9 @@ export default function EstoqueInterno() {
               })()}
             </DialogContent>
           </Dialog>
+
+          {/* Modal Replicar Insumos */}
+          <ReplicarInsumosModal open={replicarModalOpen} onOpenChange={setReplicarModalOpen} />
         </div>
       </TooltipProvider>
     </Layout>
