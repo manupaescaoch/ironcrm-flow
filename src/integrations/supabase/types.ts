@@ -557,6 +557,53 @@ export type Database = {
           },
         ]
       }
+      pagamentos_mensais: {
+        Row: {
+          confirmado_por: string | null
+          created_at: string
+          data_confirmacao: string
+          data_vencimento: string
+          id: string
+          interacao_id: string
+          lead_id: string
+          observacao: string | null
+          unidade_id: string
+          valor: number | null
+        }
+        Insert: {
+          confirmado_por?: string | null
+          created_at?: string
+          data_confirmacao?: string
+          data_vencimento: string
+          id?: string
+          interacao_id: string
+          lead_id: string
+          observacao?: string | null
+          unidade_id: string
+          valor?: number | null
+        }
+        Update: {
+          confirmado_por?: string | null
+          created_at?: string
+          data_confirmacao?: string
+          data_vencimento?: string
+          id?: string
+          interacao_id?: string
+          lead_id?: string
+          observacao?: string | null
+          unidade_id?: string
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_mensais_interacao_id_fkey"
+            columns: ["interacao_id"]
+            isOneToOne: false
+            referencedRelation: "interacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       relatorio_gerencial_zn: {
         Row: {
           adimplentes: number

@@ -7,8 +7,10 @@ interface VencimentosFiltersProps {
   planosDisponiveis: string[];
 }
 
-const statusOptions: { value: VencimentoStatus | 'todos'; label: string }[] = [
+const statusOptions: { value: VencimentoStatus | 'todos' | 'hoje'; label: string }[] = [
   { value: 'todos', label: 'Todos' },
+  { value: 'hoje', label: '📅 Vencendo Hoje' },
+  { value: 'inadimplente', label: '🚨 Inadimplentes' },
   { value: 'vencido', label: '🔴 Vencidos' },
   { value: 'urgente', label: '🟠 Urgente (7 dias)' },
   { value: 'atencao', label: '🟡 Atenção (15 dias)' },

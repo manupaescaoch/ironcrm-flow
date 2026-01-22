@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
-import { addMonths, differenceInDays, parseISO, isValid } from 'date-fns';
+import { addMonths, differenceInDays, parseISO, isValid, isToday } from 'date-fns';
 
-export type VencimentoStatus = 'vencido' | 'urgente' | 'atencao' | 'proximo' | 'ok';
+export type VencimentoStatus = 'vencido' | 'urgente' | 'atencao' | 'proximo' | 'ok' | 'inadimplente';
 
 export interface VencimentoItem {
   id: string;
@@ -18,10 +18,11 @@ export interface VencimentoItem {
   diasRestantes: number;
   status: VencimentoStatus;
   unidadeId: string;
+  pagamentoConfirmado: boolean;
 }
 
 export interface VencimentosFilters {
-  status: VencimentoStatus | 'todos';
+  status: VencimentoStatus | 'todos' | 'hoje';
   plano: string | 'todos';
 }
 
@@ -32,6 +33,8 @@ export interface VencimentosSummary {
   proximos: number;
   ok: number;
   total: number;
+  vencendoHoje: number;
+  inadimplentes: number;
 }
 
 const calcularVencimento = (plano: string, dataFechamento: Date): Date | null => {
@@ -65,6 +68,28 @@ const getVencimentoStatus = (diasRestantes: number): VencimentoStatus => {
 
 export function useVencimentosData(filters: VencimentosFilters = { status: 'todos', plano: 'todos' }) {
   const { unidadeAtual } = useUnidade();
+
+  // Buscar pagamentos confirmados
+  const { data: pagamentosData } = useQuery({
+    queryKey: ['pagamentos-mensais', unidadeAtual?.id],
+    queryFn: async () => {
+      if (!unidadeAtual?.id) return [];
+      const { data, error } = await supabase
+        .from('pagamentos_mensais')
+        .select('interacao_id, data_vencimento')
+        .eq('unidade_id', unidadeAtual.id);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!unidadeAtual?.id,
+  });
+
+  // Set de pagamentos confirmados para verificação rápida
+  const pagamentosConfirmadosSet = useMemo(() => {
+    return new Set(
+      (pagamentosData || []).map((p) => `${p.interacao_id}_${p.data_vencimento}`)
+    );
+  }, [pagamentosData]);
 
   const { data: rawData, isLoading, error, refetch } = useQuery({
     queryKey: ['vencimentos', unidadeAtual?.id],
@@ -122,7 +147,16 @@ export function useVencimentosData(filters: VencimentosFilters = { status: 'todo
         if (!dataVencimento) return null;
 
         const diasRestantes = differenceInDays(dataVencimento, hoje);
-        const status = getVencimentoStatus(diasRestantes);
+        
+        // Verificar se pagamento foi confirmado para este ciclo
+        const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
+        const pagamentoConfirmado = pagamentosConfirmadosSet.has(`${item.id}_${dataVencimentoStr}`);
+        
+        // Determinar status: se vencido e não pago = inadimplente
+        let status = getVencimentoStatus(diasRestantes);
+        if (status === 'vencido' && !pagamentoConfirmado) {
+          status = 'inadimplente';
+        }
 
         return {
           id: item.id,
@@ -136,14 +170,23 @@ export function useVencimentosData(filters: VencimentosFilters = { status: 'todo
           diasRestantes,
           status,
           unidadeId: item.unidade_id,
+          pagamentoConfirmado,
         };
       })
       .filter((item): item is VencimentoItem => item !== null)
       .sort((a, b) => a.diasRestantes - b.diasRestantes);
-  }, [rawData]);
+  }, [rawData, pagamentosConfirmadosSet]);
 
   const filteredVencimentos = useMemo(() => {
     return vencimentos.filter((item) => {
+      // Filtro especial para "hoje"
+      if (filters.status === 'hoje') {
+        return isToday(item.dataVencimento);
+      }
+      // Filtro para inadimplentes (inclui vencidos sem pagamento)
+      if (filters.status === 'inadimplente') {
+        return item.status === 'inadimplente';
+      }
       if (filters.status !== 'todos' && item.status !== filters.status) {
         return false;
       }
@@ -155,13 +198,27 @@ export function useVencimentosData(filters: VencimentosFilters = { status: 'todo
   }, [vencimentos, filters]);
 
   const summary = useMemo<VencimentosSummary>(() => {
+    const hoje = new Date();
     return vencimentos.reduce(
       (acc, item) => {
         acc.total++;
-        acc[item.status === 'proximo' ? 'proximos' : item.status === 'atencao' ? 'atencao' : item.status === 'urgente' ? 'urgentes' : item.status === 'vencido' ? 'vencidos' : 'ok']++;
+        // Contar vencendo hoje
+        if (isToday(item.dataVencimento)) {
+          acc.vencendoHoje++;
+        }
+        // Contar inadimplentes
+        if (item.status === 'inadimplente') {
+          acc.inadimplentes++;
+        }
+        // Contagem por status
+        if (item.status === 'proximo') acc.proximos++;
+        else if (item.status === 'atencao') acc.atencao++;
+        else if (item.status === 'urgente') acc.urgentes++;
+        else if (item.status === 'vencido' || item.status === 'inadimplente') acc.vencidos++;
+        else acc.ok++;
         return acc;
       },
-      { vencidos: 0, urgentes: 0, atencao: 0, proximos: 0, ok: 0, total: 0 }
+      { vencidos: 0, urgentes: 0, atencao: 0, proximos: 0, ok: 0, total: 0, vencendoHoje: 0, inadimplentes: 0 }
     );
   }, [vencimentos]);
 

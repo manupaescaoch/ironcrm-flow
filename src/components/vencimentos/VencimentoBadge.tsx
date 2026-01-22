@@ -9,6 +9,10 @@ interface VencimentoBadgeProps {
 }
 
 const statusConfig: Record<VencimentoStatus, { label: string; className: string }> = {
+  inadimplente: {
+    label: 'Inadimplente',
+    className: 'bg-destructive text-destructive-foreground border-destructive',
+  },
   vencido: {
     label: 'Vencido',
     className: 'bg-destructive/10 text-destructive border-destructive/30',
@@ -34,7 +38,9 @@ const statusConfig: Record<VencimentoStatus, { label: string; className: string 
 export function VencimentoBadge({ status, diasRestantes, className }: VencimentoBadgeProps) {
   const config = statusConfig[status];
   
-  const displayLabel = status === 'vencido' 
+  const displayLabel = status === 'inadimplente'
+    ? `${Math.abs(diasRestantes)} dias em atraso`
+    : status === 'vencido' 
     ? `Vencido há ${Math.abs(diasRestantes)} dias`
     : status === 'ok'
     ? `${diasRestantes} dias`
