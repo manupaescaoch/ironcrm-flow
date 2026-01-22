@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
-import { ExternalLink, Pencil, RefreshCw } from 'lucide-react';
+import { ExternalLink, Pencil, RefreshCw, CheckCircle2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -17,7 +17,9 @@ import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { VencimentoBadge } from './VencimentoBadge';
 import { RenovacaoModal } from './RenovacaoModal';
 import { EditarVencimentoModal } from './EditarVencimentoModal';
+import { ConfirmarPagamentoModal } from './ConfirmarPagamentoModal';
 import { VencimentoItem } from '@/hooks/useVencimentosData';
+import { cn } from '@/lib/utils';
 
 interface VencimentosTableProps {
   vencimentos: VencimentoItem[];
@@ -28,6 +30,7 @@ interface VencimentosTableProps {
 export function VencimentosTable({ vencimentos, isLoading, onRefresh }: VencimentosTableProps) {
   const [renovacaoModalOpen, setRenovacaoModalOpen] = useState(false);
   const [editarModalOpen, setEditarModalOpen] = useState(false);
+  const [confirmarPagamentoModalOpen, setConfirmarPagamentoModalOpen] = useState(false);
   const [selectedVencimento, setSelectedVencimento] = useState<VencimentoItem | null>(null);
 
   const handleRenovar = (item: VencimentoItem) => {
@@ -38,6 +41,11 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
   const handleEditar = (item: VencimentoItem) => {
     setSelectedVencimento(item);
     setEditarModalOpen(true);
+  };
+
+  const handleConfirmarPagamento = (item: VencimentoItem) => {
+    setSelectedVencimento(item);
+    setConfirmarPagamentoModalOpen(true);
   };
 
   const handleSuccess = () => {
@@ -97,6 +105,42 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
+                    {/* Botão Confirmar Pagamento - destaque se não pago */}
+                    {!item.pagamentoConfirmado && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleConfirmarPagamento(item)}
+                              className={cn(
+                                'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10',
+                                item.status === 'inadimplente' && 'animate-pulse'
+                              )}
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Confirmar Pagamento</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+
+                    {/* Badge de pagamento confirmado */}
+                    {item.pagamentoConfirmado && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center text-emerald-600">
+                              <CheckCircle2 className="h-4 w-4" />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Pagamento Confirmado</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -167,6 +211,13 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
       <EditarVencimentoModal
         open={editarModalOpen}
         onOpenChange={setEditarModalOpen}
+        vencimento={selectedVencimento}
+        onSuccess={handleSuccess}
+      />
+
+      <ConfirmarPagamentoModal
+        open={confirmarPagamentoModalOpen}
+        onOpenChange={setConfirmarPagamentoModalOpen}
         vencimento={selectedVencimento}
         onSuccess={handleSuccess}
       />

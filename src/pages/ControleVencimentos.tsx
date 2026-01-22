@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarClock, AlertTriangle, Clock, CheckCircle2, Download } from 'lucide-react';
+import { CalendarClock, AlertTriangle, Clock, CheckCircle2, Download, Calendar, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useVencimentosData, VencimentosFilters as FiltersType } from '@/hooks/useVencimentosData';
 import { VencimentosTable } from '@/components/vencimentos/VencimentosTable';
@@ -25,6 +25,7 @@ export default function ControleVencimentos() {
       'Data Vencimento': format(item.dataVencimento, 'dd/MM/yyyy', { locale: ptBR }),
       'Dias Restantes': item.diasRestantes,
       Status: item.status,
+      'Pagamento Confirmado': item.pagamentoConfirmado ? 'Sim' : 'Não',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -33,12 +34,34 @@ export default function ControleVencimentos() {
     XLSX.writeFile(workbook, `vencimentos_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
 
+  const handleKPIClick = (status: FiltersType['status']) => {
+    setFilters({ ...filters, status });
+  };
+
   const kpiCards = [
-    { label: 'Vencidos', value: summary.vencidos, icon: AlertTriangle, color: 'text-destructive', bgColor: 'bg-destructive/10' },
-    { label: 'Urgente (7d)', value: summary.urgentes, icon: Clock, color: 'text-orange-500', bgColor: 'bg-orange-500/10' },
-    { label: 'Atenção (15d)', value: summary.atencao, icon: Clock, color: 'text-yellow-600', bgColor: 'bg-yellow-500/10' },
-    { label: 'Próximo (30d)', value: summary.proximos, icon: Clock, color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
-    { label: 'OK (+30d)', value: summary.ok, icon: CheckCircle2, color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' },
+    { 
+      label: 'Vencendo Hoje', 
+      value: summary.vencendoHoje, 
+      icon: Calendar, 
+      color: 'text-amber-600', 
+      bgColor: 'bg-amber-500/10',
+      status: 'hoje' as const,
+      highlight: summary.vencendoHoje > 0,
+    },
+    { 
+      label: 'Inadimplentes', 
+      value: summary.inadimplentes, 
+      icon: UserX, 
+      color: 'text-rose-600', 
+      bgColor: 'bg-rose-500/10',
+      status: 'inadimplente' as const,
+      highlight: summary.inadimplentes > 0,
+    },
+    { label: 'Vencidos', value: summary.vencidos, icon: AlertTriangle, color: 'text-destructive', bgColor: 'bg-destructive/10', status: 'vencido' as const },
+    { label: 'Urgente (7d)', value: summary.urgentes, icon: Clock, color: 'text-orange-500', bgColor: 'bg-orange-500/10', status: 'urgente' as const },
+    { label: 'Atenção (15d)', value: summary.atencao, icon: Clock, color: 'text-yellow-600', bgColor: 'bg-yellow-500/10', status: 'atencao' as const },
+    { label: 'Próximo (30d)', value: summary.proximos, icon: Clock, color: 'text-blue-500', bgColor: 'bg-blue-500/10', status: 'proximo' as const },
+    { label: 'OK (+30d)', value: summary.ok, icon: CheckCircle2, color: 'text-emerald-500', bgColor: 'bg-emerald-500/10', status: 'ok' as const },
   ];
 
   return (
@@ -63,19 +86,28 @@ export default function ControleVencimentos() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
           {kpiCards.map((card) => {
             const Icon = card.icon;
+            const isActive = filters.status === card.status;
             return (
-              <Card key={card.label} className={cn('cursor-pointer hover:shadow-md transition-shadow')}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className={cn('p-2 rounded-lg', card.bgColor)}>
-                      <Icon className={cn('h-5 w-5', card.color)} />
+              <Card 
+                key={card.label} 
+                onClick={() => handleKPIClick(card.status)}
+                className={cn(
+                  'cursor-pointer hover:shadow-md transition-all',
+                  isActive && 'ring-2 ring-primary',
+                  card.highlight && 'border-2 border-amber-500 animate-pulse'
+                )}
+              >
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-2">
+                    <div className={cn('p-1.5 rounded-lg', card.bgColor)}>
+                      <Icon className={cn('h-4 w-4', card.color)} />
                     </div>
                     <div>
-                      <p className={cn('text-2xl font-bold', card.color)}>{card.value}</p>
-                      <p className="text-xs text-muted-foreground">{card.label}</p>
+                      <p className={cn('text-xl font-bold', card.color)}>{card.value}</p>
+                      <p className="text-[10px] text-muted-foreground leading-tight">{card.label}</p>
                     </div>
                   </div>
                 </CardContent>
