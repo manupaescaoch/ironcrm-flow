@@ -279,6 +279,7 @@ export default function RelatorioPrevisaoCompras() {
       item.nome_insumo,
       item.categoria,
       `${item.quantidade_atual} ${item.unidade_medida}`,
+      (item.quantidade_minima ?? 0).toString(),
       item.ponto_pedido.toString(),
       item.dias_para_pedir !== null ? `${item.dias_para_pedir} dias` : '—',
       formatDate(item.data_limite_pedido),
@@ -287,7 +288,7 @@ export default function RelatorioPrevisaoCompras() {
     ]);
     
     autoTable(doc, {
-      head: [['Insumo', 'Categoria', 'Estoque', 'Pto. Pedido', 'Dias p/ Pedir', 'Data Limite', 'Qtd. Sugerida', 'Urgência']],
+      head: [['Insumo', 'Categoria', 'Estoque', 'Mínimo', 'Pto. Pedido', 'Dias p/ Pedir', 'Data Limite', 'Qtd. Sugerida', 'Urgência']],
       body: tableData,
       startY: 80,
       styles: { fontSize: 8 },
@@ -295,7 +296,7 @@ export default function RelatorioPrevisaoCompras() {
       alternateRowStyles: { fillColor: [245, 245, 245] },
       didParseCell: (data) => {
         // Colorir células de urgência
-        if (data.column.index === 7 && data.section === 'body') {
+        if (data.column.index === 8 && data.section === 'body') {
           const urgencia = data.cell.raw as string;
           if (urgencia === 'Imediata') {
             data.cell.styles.fillColor = [0, 0, 0];
@@ -430,6 +431,7 @@ export default function RelatorioPrevisaoCompras() {
                       <TableHead className="font-semibold text-center">Urgência</TableHead>
                       <TableHead className="font-semibold text-center">Status</TableHead>
                       <TableHead className="font-semibold text-center">Estoque Atual</TableHead>
+                      <TableHead className="font-semibold text-center">Mínimo</TableHead>
                       <TableHead className="font-semibold text-center">Pto. Pedido</TableHead>
                       <TableHead className="font-semibold text-center">Consumo/Dia</TableHead>
                       <TableHead className="font-semibold text-center bg-primary/10 text-primary">
@@ -461,7 +463,7 @@ export default function RelatorioPrevisaoCompras() {
                   <TableBody>
                     {itensFiltrados.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
+                        <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
                           <Package className="h-12 w-12 mx-auto mb-3 text-success" />
                           <p className="text-lg font-medium text-success">Estoque sob controle!</p>
                           <p className="text-sm">Nenhum item precisa ser pedido nos próximos {periodoFiltro} dias.</p>
@@ -502,6 +504,7 @@ export default function RelatorioPrevisaoCompras() {
                             </span>
                             <span className="text-xs text-muted-foreground ml-1">{item.unidade_medida}</span>
                           </TableCell>
+                          <TableCell className="text-center text-muted-foreground">{item.quantidade_minima ?? 0}</TableCell>
                           <TableCell className="text-center text-muted-foreground">{item.ponto_pedido}</TableCell>
                           <TableCell className="text-center text-sm">{item.media_diaria}</TableCell>
                           <TableCell className="text-center bg-primary/5">

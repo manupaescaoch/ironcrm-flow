@@ -284,12 +284,14 @@ export default function VisaoFinanceiraEstoque() {
       item.nome_insumo,
       item.fornecedor_padrao || 'N/D',
       item.status_estoque,
+      (item.quantidade_minima ?? 0).toString(),
+      item.ponto_pedido.toString(),
       formatCurrency(item.valor_estoque_atual),
       formatCurrency(item.valor_reposicao),
     ]);
     
     autoTable(doc, {
-      head: [['Insumo', 'Fornecedor', 'Status', 'Valor Estoque', 'Valor Reposição']],
+      head: [['Insumo', 'Fornecedor', 'Status', 'Mínimo', 'Pto. Pedido', 'Valor Estoque', 'Valor Reposição']],
       body: tableData,
       startY: 102,
       styles: { fontSize: 8 },
@@ -436,6 +438,8 @@ export default function VisaoFinanceiraEstoque() {
                           <TableHead>Insumo</TableHead>
                           <TableHead className="text-center">Status</TableHead>
                           <TableHead>Fornecedor</TableHead>
+                          <TableHead className="text-right">Mínimo</TableHead>
+                          <TableHead className="text-right">Pto. Pedido</TableHead>
                           <TableHead className="text-right">Valor Estoque</TableHead>
                           <TableHead className="text-right">Valor Pto. Pedido</TableHead>
                           <TableHead className="text-right bg-success/10">Valor Reposição</TableHead>
@@ -444,7 +448,7 @@ export default function VisaoFinanceiraEstoque() {
                       <TableBody>
                         {itensAtencao.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                            <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                               <Package className="h-12 w-12 mx-auto mb-3 text-success" />
                               <p className="font-medium text-success">Tudo sob controle!</p>
                               <p className="text-sm">Nenhum item precisa de atenção no momento.</p>
@@ -467,6 +471,8 @@ export default function VisaoFinanceiraEstoque() {
                               <TableCell>
                                 <span className="text-sm">{item.fornecedor_padrao || 'Não definido'}</span>
                               </TableCell>
+                              <TableCell className="text-right text-muted-foreground">{item.quantidade_minima ?? 0}</TableCell>
+                              <TableCell className="text-right text-muted-foreground">{item.ponto_pedido}</TableCell>
                               <TableCell className="text-right font-medium">{formatCurrency(item.valor_estoque_atual)}</TableCell>
                               <TableCell className="text-right text-muted-foreground">{formatCurrency(item.valor_ponto_pedido)}</TableCell>
                               <TableCell className="text-right bg-success/5 font-bold text-success">{formatCurrency(item.valor_reposicao)}</TableCell>
@@ -475,7 +481,7 @@ export default function VisaoFinanceiraEstoque() {
                         )}
                         {itensAtencao.length > 0 && (
                           <TableRow className="bg-muted/50 font-bold">
-                            <TableCell colSpan={5} className="text-right">Total Reposição:</TableCell>
+                            <TableCell colSpan={7} className="text-right">Total Reposição:</TableCell>
                             <TableCell className="text-right text-success text-lg">{formatCurrency(kpis.valorReposicaoNecessaria)}</TableCell>
                           </TableRow>
                         )}
@@ -515,6 +521,8 @@ export default function VisaoFinanceiraEstoque() {
                           <TableRow className="bg-muted/10">
                             <TableHead>Insumo</TableHead>
                             <TableHead className="text-center">Status</TableHead>
+                            <TableHead className="text-right">Mínimo</TableHead>
+                            <TableHead className="text-right">Pto. Pedido</TableHead>
                             <TableHead className="text-right">Qtd. Mín. Compra</TableHead>
                             <TableHead className="text-right">Custo Unit.</TableHead>
                             <TableHead className="text-right bg-success/10">Valor Reposição</TableHead>
@@ -525,6 +533,8 @@ export default function VisaoFinanceiraEstoque() {
                             <TableRow key={item.id}>
                               <TableCell className="font-medium">{item.nome_insumo}</TableCell>
                               <TableCell className="text-center">{getStatusBadge(item.status_estoque)}</TableCell>
+                              <TableCell className="text-right text-muted-foreground">{item.quantidade_minima ?? 0}</TableCell>
+                              <TableCell className="text-right text-muted-foreground">{item.ponto_pedido}</TableCell>
                               <TableCell className="text-right">{item.quantidade_minima_compra} {item.unidade_medida}</TableCell>
                               <TableCell className="text-right">{formatCurrency(item.custo_unitario)}</TableCell>
                               <TableCell className="text-right font-bold text-success">{formatCurrency(item.valor_reposicao)}</TableCell>
@@ -568,6 +578,8 @@ export default function VisaoFinanceiraEstoque() {
                             <TableHead>Insumo</TableHead>
                             <TableHead className="text-center">Status</TableHead>
                             <TableHead>Fornecedor</TableHead>
+                            <TableHead className="text-right">Mínimo</TableHead>
+                            <TableHead className="text-right">Pto. Pedido</TableHead>
                             <TableHead className="text-right bg-success/10">Valor Reposição</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -577,6 +589,8 @@ export default function VisaoFinanceiraEstoque() {
                               <TableCell className="font-medium">{item.nome_insumo}</TableCell>
                               <TableCell className="text-center">{getStatusBadge(item.status_estoque)}</TableCell>
                               <TableCell>{item.fornecedor_padrao || 'Não definido'}</TableCell>
+                              <TableCell className="text-right text-muted-foreground">{item.quantidade_minima ?? 0}</TableCell>
+                              <TableCell className="text-right text-muted-foreground">{item.ponto_pedido}</TableCell>
                               <TableCell className="text-right font-bold text-success">{formatCurrency(item.valor_reposicao)}</TableCell>
                             </TableRow>
                           ))}
