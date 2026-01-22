@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Users, UserPlus, CalendarCheck, Calendar, Award, AlertTriangle } from 'lucide-react';
+import { Users, UserPlus, CalendarCheck, Calendar, Award, AlertTriangle, UserCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { KPICard } from '@/components/ui/kpi-card';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
@@ -19,6 +19,30 @@ interface DashboardKPIGridProps {
   onMatriculasClick: () => void;
   onFollowUpClick: () => void;
 }
+
+const AlunosAtivosKPI = memo(function AlunosAtivosKPI({ summary }: { summary: VencimentosSummary }) {
+  const navigate = useNavigate();
+  
+  // Alunos ativos = total - vencidos (todos que ainda têm plano válido ou próximo de vencer)
+  const alunosAtivos = summary.total - summary.vencidos;
+  const emDia = summary.ok;
+  const precisamAtencao = summary.urgentes + summary.atencao + summary.proximos;
+  
+  const handleClick = () => navigate('/vencimentos');
+
+  return (
+    <KPICard
+      title="Alunos Ativos"
+      value={alunosAtivos}
+      icon={UserCheck}
+      iconColor="text-green-500"
+      valueColor="text-green-600"
+      subtitle={`${emDia} em dia, ${precisamAtencao} em atenção`}
+      onClick={handleClick}
+      showClickHint
+    />
+  );
+});
 
 const VencimentosKPI = memo(function VencimentosKPI({ summary }: { summary: VencimentosSummary }) {
   const navigate = useNavigate();
@@ -81,7 +105,7 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   const { summary } = useVencimentosData();
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4 mb-8">
       <KPICard
         title="Total de Leads"
         value={stats.total}
@@ -135,6 +159,8 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
         activeColor="amber"
         showClickHint
       />
+
+      <AlunosAtivosKPI summary={summary} />
 
       <VencimentosKPI summary={summary} />
     </div>
