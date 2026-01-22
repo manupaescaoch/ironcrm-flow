@@ -25,6 +25,7 @@ import { ptBR } from 'date-fns/locale';
 import { HistoricoMovimentacoes } from '@/components/estoque/HistoricoMovimentacoes';
 import { EstoqueNavigation } from '@/components/estoque/EstoqueNavigation';
 import { useUnidade } from '@/contexts/UnidadeContext';
+import { AjustarMinimosModal, type AjustarMinimosItem } from '@/components/estoque/AjustarMinimosModal';
 
 const CATEGORIAS = ['Copa e Recepção', 'Suplementos (uso interno)', 'Limpeza', 'Descartáveis', 'Higiene Pessoal'] as const;
 const UNIDADES = ['un', 'pacote', 'litro', 'kg', 'caixa'] as const;
@@ -111,6 +112,7 @@ export default function EstoqueInterno() {
   const [filtroCategoria, setFiltroCategoria] = useState('Todas');
   const [filtroStatus, setFiltroStatus] = useState('Todos');
   const [replicarModalOpen, setReplicarModalOpen] = useState(false);
+  const [ajustarMinimosOpen, setAjustarMinimosOpen] = useState(false);
   
   // Form states
   const [novoInsumo, setNovoInsumo] = useState({
@@ -293,6 +295,12 @@ export default function EstoqueInterno() {
   
   // Controle para evitar notificações repetidas
   const notificadosRef = useRef<Map<string, StatusEstoque>>(new Map());
+  const notificadosMinimoRef = useRef<Map<string, boolean>>(new Map());
+
+  const isAbaixoMinimo = (insumo: InsumoComEstoque) => {
+    const minimo = insumo.quantidade_minima ?? 0;
+    return minimo > 0 && insumo.quantidade_atual <= minimo;
+  };
   
   // Alertas automáticos inteligentes
   useEffect(() => {
@@ -336,6 +344,22 @@ export default function EstoqueInterno() {
       // Se voltou ao normal, limpa o registro
       if (statusAtual === 'Normal') {
         notificadosRef.current.delete(insumo.id);
+      }
+
+      // Alerta separado: abaixo do mínimo configurado
+      const abaixoMinimo = isAbaixoMinimo(insumo);
+      const abaixoMinimoAnterior = notificadosMinimoRef.current.get(insumo.id);
+      if (abaixoMinimo && abaixoMinimoAnterior !== true) {
+        toast({
+          title: '📉 Abaixo do estoque mínimo',
+          description: `${insumo.nome_insumo}: Atual ${insumo.quantidade_atual} ${insumo.unidade_medida} / Mínimo ${insumo.quantidade_minima} ${insumo.unidade_medida}.`,
+          duration: 6000,
+        });
+        notificadosMinimoRef.current.set(insumo.id, true);
+      }
+
+      if (!abaixoMinimo) {
+        notificadosMinimoRef.current.delete(insumo.id);
       }
     });
   }, [insumosComEstoque, toast]);
@@ -441,6 +465,63 @@ export default function EstoqueInterno() {
     },
     onError: (error: Error) => {
       toast({ title: 'Erro ao excluir insumo', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const aplicarMinimoSugeridoMutation = useMutation({
+    mutationFn: async (payload: { insumo_id: string; quantidade_minima: number }) => {
+      const { error } = await supabase
+        .from('insumos')
+        .update({ quantidade_minima: payload.quantidade_minima })
+        .eq('id', payload.insumo_id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['insumos', unidadeAtual?.id] });
+      toast({ title: 'Estoque mínimo atualizado!' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao atualizar estoque mínimo', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const aplicarMinimoLoteMutation = useMutation({
+    mutationFn: async (opts: { onlyIfEmptyOrDifferent: boolean }) => {
+      const itens: AjustarMinimosItem[] = insumosFiltradosOrdenados.map((i) => ({
+        id: i.id,
+        nome_insumo: i.nome_insumo,
+        quantidade_minima: i.quantidade_minima ?? 0,
+        ponto_pedido: i.ponto_pedido ?? 0,
+      }));
+
+      const alvo = opts.onlyIfEmptyOrDifferent
+        ? itens.filter((i) => (i.quantidade_minima ?? 0) !== (i.ponto_pedido ?? 0))
+        : itens;
+
+      // Aplica em lotes pequenos para evitar bursts de request
+      const chunkSize = 10;
+      for (let idx = 0; idx < alvo.length; idx += chunkSize) {
+        const chunk = alvo.slice(idx, idx + chunkSize);
+        await Promise.all(
+          chunk.map(async (item) => {
+            const { error } = await supabase
+              .from('insumos')
+              .update({ quantidade_minima: item.ponto_pedido })
+              .eq('id', item.id);
+            if (error) throw error;
+          })
+        );
+      }
+
+      return { updated: alvo.length };
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['insumos', unidadeAtual?.id] });
+      setAjustarMinimosOpen(false);
+      toast({ title: 'Mínimos ajustados!', description: `${res.updated} item(ns) atualizado(s).` });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao ajustar mínimos', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -597,6 +678,15 @@ export default function EstoqueInterno() {
                     <Copy className="w-4 h-4 mr-2" />Importar da ZN
                   </Button>
                 )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAjustarMinimosOpen(true)}
+                  className="gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Ajustar mínimos
+                </Button>
                 <Button size="sm" onClick={() => setNovoInsumoOpen(true)}>
                   <PackagePlus className="w-4 h-4 mr-2" />Novo Insumo
                 </Button>
@@ -987,6 +1077,17 @@ export default function EstoqueInterno() {
                       <TableHead className="font-semibold text-center">
                         <Tooltip>
                           <TooltipTrigger className="flex items-center gap-1 justify-center cursor-help">
+                            Mínimo
+                            <Info className="h-3 w-3" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Estoque mínimo configurado (pode ser ajustado automaticamente pelo ponto de pedido)</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableHead>
+                      <TableHead className="font-semibold text-center">
+                        <Tooltip>
+                          <TooltipTrigger className="flex items-center gap-1 justify-center cursor-help">
                             Pto. Pedido
                             <Info className="h-3 w-3" />
                           </TooltipTrigger>
@@ -1047,7 +1148,7 @@ export default function EstoqueInterno() {
                   <TableBody>
                     {insumosFiltradosOrdenados.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={11} className="text-center py-16">
+                        <TableCell colSpan={12} className="text-center py-16">
                           <div className="flex flex-col items-center gap-4">
                             <div className="rounded-full bg-muted p-6">
                               <Package className="h-12 w-12 text-muted-foreground/50" />
@@ -1111,6 +1212,37 @@ export default function EstoqueInterno() {
                               {item.quantidade_atual}
                             </span>
                             <span className="text-xs text-muted-foreground ml-1">{item.unidade_medida}</span>
+
+                            {isAbaixoMinimo(item) && (
+                              <div className="mt-1">
+                                <Badge variant="outline" className="text-warning border-warning/40">
+                                  Abaixo do mínimo
+                                </Badge>
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="text-sm font-medium text-muted-foreground">
+                                {item.quantidade_minima ?? 0}
+                              </span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                onClick={() =>
+                                  aplicarMinimoSugeridoMutation.mutate({
+                                    insumo_id: item.id,
+                                    quantidade_minima: item.ponto_pedido,
+                                  })
+                                }
+                                disabled={aplicarMinimoSugeridoMutation.isPending}
+                                title="Aplicar mínimo sugerido (Ponto de Pedido)"
+                              >
+                                Usar {item.ponto_pedido}
+                              </Button>
+                            </div>
                           </TableCell>
                           <TableCell className="text-center">
                             <span className={`font-medium ${item.quantidade_atual <= item.ponto_pedido ? 'text-warning' : 'text-muted-foreground'}`}>
@@ -1293,6 +1425,27 @@ export default function EstoqueInterno() {
                       onChange={e => setEditInsumo(p => ({ ...p, quantidade_minima: parseInt(e.target.value) || 0 }))}
                       className="mt-1"
                     />
+                    {(() => {
+                      const current = insumosComEstoque.find((i) => i.id === editInsumo.id);
+                      if (!current) return null;
+                      return (
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <p className="text-xs text-muted-foreground">
+                            Sugerido (Pto. Pedido): <strong className="text-foreground">{current.ponto_pedido}</strong>
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-2"
+                            onClick={() => setEditInsumo((p) => ({ ...p, quantidade_minima: current.ponto_pedido }))}
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                            Aplicar sugerido
+                          </Button>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
                 
@@ -1790,6 +1943,19 @@ export default function EstoqueInterno() {
           <ReplicarInsumosModal open={replicarModalOpen} onOpenChange={setReplicarModalOpen} />
         </div>
       </TooltipProvider>
+
+      <AjustarMinimosModal
+        open={ajustarMinimosOpen}
+        onOpenChange={setAjustarMinimosOpen}
+        itens={insumosFiltradosOrdenados.map((i) => ({
+          id: i.id,
+          nome_insumo: i.nome_insumo,
+          quantidade_minima: i.quantidade_minima ?? 0,
+          ponto_pedido: i.ponto_pedido ?? 0,
+        }))}
+        isApplying={aplicarMinimoLoteMutation.isPending}
+        onApply={(opts) => aplicarMinimoLoteMutation.mutate(opts)}
+      />
     </Layout>
   );
 }
