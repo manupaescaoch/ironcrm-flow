@@ -79,6 +79,7 @@ export function ImportarTextoModal({
   const currentYear = new Date().getFullYear();
   const [mes, setMes] = useState<number>(new Date().getMonth() + 1);
   const [ano, setAno] = useState<number>(currentYear);
+  const [unidadePadrao, setUnidadePadrao] = useState<string>("");
   const [textoInput, setTextoInput] = useState("");
   const [registrosParsed, setRegistrosParsed] = useState<RegistroParsed[]>([]);
   const [sobrescrever, setSobrescrever] = useState(false);
@@ -122,6 +123,9 @@ export function ImportarTextoModal({
     let currentUnidade: Unidade | null = null;
     let lineIndex = 0;
 
+    // Check if there's a default unit selected
+    const defaultUnidade = unidades.find(u => u.id === unidadePadrao);
+
     for (const line of lines) {
       lineIndex++;
       
@@ -139,23 +143,32 @@ export function ImportarTextoModal({
       );
       if (isHeader) continue;
 
+      // Skip month names
+      const monthPatterns = ["JANEIRO", "FEVEREIRO", "MARÇO", "MARCO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"];
+      const isMonth = monthPatterns.some((pattern) => 
+        line.toUpperCase().replace(/[^A-Z]/g, '').includes(pattern)
+      );
+      if (isMonth) continue;
+
       // Try to parse data line
       // Split by tabs or multiple spaces
       const parts = line.split(/\t+|\s{2,}/).map((p) => p.trim()).filter(Boolean);
       
-      // Check if first part looks like a weekend date (e.g., "07 e 08", "28 e 01")
-      const datePattern = /^\d{1,2}\s*e\s*\d{1,2}$/i;
+      // Check if first part looks like a weekend date (e.g., "07 e 08", "28 e 01", "07 E 08")
+      const datePattern = /^\d{1,2}\s*[eE]\s*\d{1,2}$/i;
       if (parts.length >= 2 && datePattern.test(parts[0])) {
-        // If no unit detected yet, try to infer from context or skip
-        if (!currentUnidade) {
-          // Try to find unit in the remaining text or use first available
+        // Use current unit if detected, otherwise use default
+        const unidadeToUse = currentUnidade || defaultUnidade;
+        
+        if (!unidadeToUse) {
+          // Skip if no unit detected and no default set
           continue;
         }
 
         const registro: RegistroParsed = {
-          id: `${currentUnidade.id}-${parts[0]}-${lineIndex}`,
-          unidade_id: currentUnidade.id,
-          unidade_nome: currentUnidade.nome,
+          id: `${unidadeToUse.id}-${parts[0]}-${lineIndex}`,
+          unidade_id: unidadeToUse.id,
+          unidade_nome: unidadeToUse.nome,
           final_de_semana: parts[0].toUpperCase(),
           treinador: (parts[1] || "").toUpperCase(),
           recepcao: (parts[2] || "").toUpperCase(),
@@ -169,7 +182,17 @@ export function ImportarTextoModal({
     }
 
     if (registros.length === 0) {
-      toast.error("Não foi possível detectar registros válidos no texto. Verifique o formato.");
+      // Check if the issue is missing unit
+      const hasDataLines = lines.some(line => {
+        const parts = line.split(/\t+|\s{2,}/).map((p) => p.trim()).filter(Boolean);
+        return parts.length >= 2 && /^\d{1,2}\s*[eE]\s*\d{1,2}$/i.test(parts[0]);
+      });
+      
+      if (hasDataLines && !defaultUnidade) {
+        toast.error("Selecione uma unidade padrão ou inclua 'ZONA SUL' / 'ZONA NORTE' no texto");
+      } else {
+        toast.error("Não foi possível detectar registros válidos no texto. Verifique o formato.");
+      }
       return;
     }
 
@@ -265,6 +288,7 @@ export function ImportarTextoModal({
 
   const handleClose = () => {
     setTextoInput("");
+    setUnidadePadrao("");
     setRegistrosParsed([]);
     setStep("input");
     setSobrescrever(false);
@@ -287,7 +311,7 @@ export function ImportarTextoModal({
 
         {step === "input" ? (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Mês</Label>
                 <Select
@@ -325,24 +349,44 @@ export function ImportarTextoModal({
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-2">
+                <Label>Unidade Padrão</Label>
+                <Select
+                  value={unidadePadrao}
+                  onValueChange={setUnidadePadrao}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {unidades.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Usada se não houver "ZONA SUL/NORTE" no texto
+                </p>
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label>Cole o texto da escala abaixo</Label>
               <Textarea
-                placeholder={`Exemplo:
-ZONA SUL
-DATA        TREINADOR    RECEPCAO     SERVICOS GERAIS
-07 e 08     TARDE        GABRIEL      WASHINGTON
-14 e 15     NOITE        DANÚBIA      PAULO
-
+                placeholder={`Exemplo 1 (com unidade):
 ZONA NORTE
-DATA        TREINADOR    RECEPCAO     SERVICOS GERAIS    SEGURANÇA
-07 e 08     MANHÃ        GABI         MURILO             JOSIAS
-14 e 15     TARDE        NATAN        PATRÍCIA           FELLIPE`}
+07 E 08     MANHÃ        GABI         MURILO             JOSIAS
+14 E 15     TARDE        NATAN        PATRÍCIA           FELLIPE
+
+Exemplo 2 (sem unidade - selecione a unidade padrão acima):
+07 E 08     MANHÃ        GABI         MURILO             JOSIAS
+14 E 15     TARDE        NATAN        PATRÍCIA           FELLIPE`}
                 value={textoInput}
                 onChange={(e) => setTextoInput(e.target.value)}
-                className="min-h-[300px] font-mono text-sm"
+                className="min-h-[250px] font-mono text-sm"
               />
             </div>
 
@@ -350,8 +394,8 @@ DATA        TREINADOR    RECEPCAO     SERVICOS GERAIS    SEGURANÇA
               <strong>Dicas:</strong>
               <ul className="list-disc list-inside mt-1 space-y-1">
                 <li>Copie a tabela diretamente do Excel ou planilha</li>
-                <li>Inclua o nome da unidade (ZONA SUL, ZONA NORTE) antes das linhas</li>
-                <li>A primeira coluna deve ter o formato "DD e DD" (ex: "07 e 08")</li>
+                <li>Se não tiver "ZONA SUL/NORTE" no texto, selecione a <strong>Unidade Padrão</strong></li>
+                <li>A primeira coluna deve ter o formato "DD e DD" (ex: "07 E 08")</li>
                 <li>Colunas separadas por TAB ou múltiplos espaços</li>
               </ul>
             </div>
