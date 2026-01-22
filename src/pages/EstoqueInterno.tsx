@@ -98,7 +98,7 @@ export default function EstoqueInterno() {
   const { toast } = useToast();
   const { isAdmin, userName, user } = useAuth();
   const queryClient = useQueryClient();
-  const { unidadeAtual, loading: unidadeLoading } = useUnidade();
+  const { unidadeAtual, unidadesPermitidas, hasMultipleUnidades, loading: unidadeLoading } = useUnidade();
   const navigate = useNavigate();
   
   const [novoInsumoOpen, setNovoInsumoOpen] = useState(false);
@@ -486,39 +486,129 @@ export default function EstoqueInterno() {
   });
 
   const aplicarMinimoLoteMutation = useMutation({
-    mutationFn: async (opts: { onlyIfEmptyOrDifferent: boolean }) => {
-      const itens: AjustarMinimosItem[] = insumosFiltradosOrdenados.map((i) => ({
-        id: i.id,
-        nome_insumo: i.nome_insumo,
-        quantidade_minima: i.quantidade_minima ?? 0,
-        ponto_pedido: i.ponto_pedido ?? 0,
-      }));
+    mutationFn: async (opts: { onlyIfEmptyOrDifferent: boolean; applyAllUnidades: boolean }) => {
+      const aplicarEmUnidade = async (unidadeId: string) => {
+        const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
 
-      const alvo = opts.onlyIfEmptyOrDifferent
-        ? itens.filter((i) => (i.quantidade_minima ?? 0) !== (i.ponto_pedido ?? 0))
-        : itens;
-
-      // Aplica em lotes pequenos para evitar bursts de request
-      const chunkSize = 10;
-      for (let idx = 0; idx < alvo.length; idx += chunkSize) {
-        const chunk = alvo.slice(idx, idx + chunkSize);
-        await Promise.all(
-          chunk.map(async (item) => {
-            const { error } = await supabase
+        const [{ data: insumosU, error: errI }, { data: estoqueU, error: errE }, { data: movU, error: errM }] =
+          await Promise.all([
+            supabase
               .from('insumos')
-              .update({ quantidade_minima: item.ponto_pedido })
-              .eq('id', item.id);
-            if (error) throw error;
-          })
-        );
-      }
+              .select('*')
+              .eq('ativo', true)
+              .eq('unidade_id', unidadeId)
+              .order('nome_insumo'),
+            supabase.from('estoque_interno').select('*').eq('unidade_id', unidadeId),
+            supabase
+              .from('movimentacoes_estoque')
+              .select('*')
+              .eq('unidade_id', unidadeId)
+              .gte('created_at', thirtyDaysAgo)
+              .order('created_at', { ascending: false }),
+          ]);
 
-      return { updated: alvo.length };
+        if (errI) throw errI;
+        if (errE) throw errE;
+        if (errM) throw errM;
+
+        const insumosCalc = (insumosU as Insumo[]).map((insumo) => {
+          const estoqueItem = (estoqueU as EstoqueInterno[]).find((e) => e.insumo_id === insumo.id);
+          const quantidade_atual = estoqueItem?.quantidade_atual || 0;
+          const retiradas = (movU as Movimentacao[]).filter(
+            (m) => m.insumo_id === insumo.id && m.tipo === 'retirada'
+          );
+
+          const metricas = calcularMetricasEstoque({
+            quantidade_atual,
+            retiradas,
+            lead_time_dias: insumo.lead_time_dias || 3,
+            estoque_seguranca_dias: insumo.estoque_seguranca_dias || 2,
+            custo_unitario: insumo.custo_unitario || 0,
+            quantidade_minima_compra: insumo.quantidade_minima_compra || 1,
+          });
+
+          return {
+            id: insumo.id,
+            nome_insumo: insumo.nome_insumo,
+            codigo_insumo: insumo.codigo_insumo,
+            categoria: insumo.categoria,
+            unidade_medida: insumo.unidade_medida,
+            quantidade_minima: insumo.quantidade_minima ?? 0,
+            ponto_pedido: metricas.ponto_pedido ?? 0,
+            status_estoque: metricas.status_estoque,
+          };
+        });
+
+        // Reaplica os mesmos filtros atuais nesta unidade
+        let filtrados = insumosCalc;
+        if (busca.trim()) {
+          const termoBusca = busca.toLowerCase().trim();
+          filtrados = filtrados.filter(
+            (item) =>
+              item.nome_insumo.toLowerCase().includes(termoBusca) ||
+              item.codigo_insumo.toLowerCase().includes(termoBusca) ||
+              item.categoria.toLowerCase().includes(termoBusca) ||
+              item.unidade_medida.toLowerCase().includes(termoBusca)
+          );
+        }
+        if (filtroCategoria !== 'Todas') {
+          filtrados = filtrados.filter((item) => item.categoria === filtroCategoria);
+        }
+        if (filtroStatus !== 'Todos') {
+          filtrados = filtrados.filter((item) => item.status_estoque === filtroStatus);
+        }
+
+        const itens: AjustarMinimosItem[] = filtrados.map((i) => ({
+          id: i.id,
+          nome_insumo: i.nome_insumo,
+          quantidade_minima: i.quantidade_minima ?? 0,
+          ponto_pedido: i.ponto_pedido ?? 0,
+        }));
+
+        const alvo = opts.onlyIfEmptyOrDifferent
+          ? itens.filter((i) => (i.quantidade_minima ?? 0) !== (i.ponto_pedido ?? 0))
+          : itens;
+
+        // Aplica em lotes pequenos para evitar bursts de request
+        const chunkSize = 10;
+        for (let idx = 0; idx < alvo.length; idx += chunkSize) {
+          const chunk = alvo.slice(idx, idx + chunkSize);
+          await Promise.all(
+            chunk.map(async (item) => {
+              const { error } = await supabase
+                .from('insumos')
+                .update({ quantidade_minima: item.ponto_pedido })
+                .eq('id', item.id);
+              if (error) throw error;
+            })
+          );
+        }
+
+        return alvo.length;
+      };
+
+      const unidadeIds = opts.applyAllUnidades
+        ? (unidadesPermitidas || []).map((u) => u.id)
+        : unidadeAtual
+          ? [unidadeAtual.id]
+          : [];
+
+      if (unidadeIds.length === 0) throw new Error('Nenhuma unidade selecionada');
+
+      const updatedCounts = await Promise.all(unidadeIds.map((id) => aplicarEmUnidade(id)));
+      const updated = updatedCounts.reduce((acc, v) => acc + v, 0);
+      return { updated, unidades: unidadeIds.length };
     },
     onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ['insumos', unidadeAtual?.id] });
+      // Invalida as unidades impactadas (e a atual)
+      (unidadesPermitidas || []).forEach((u) => {
+        queryClient.invalidateQueries({ queryKey: ['insumos', u.id] });
+      });
       setAjustarMinimosOpen(false);
-      toast({ title: 'Mínimos ajustados!', description: `${res.updated} item(ns) atualizado(s).` });
+      toast({
+        title: 'Mínimos ajustados!',
+        description: `${res.updated} item(ns) atualizado(s) em ${res.unidades} unidade(s).`,
+      });
     },
     onError: (error: Error) => {
       toast({ title: 'Erro ao ajustar mínimos', description: error.message, variant: 'destructive' });
@@ -1953,6 +2043,8 @@ export default function EstoqueInterno() {
           quantidade_minima: i.quantidade_minima ?? 0,
           ponto_pedido: i.ponto_pedido ?? 0,
         }))}
+        canApplyAllUnidades={hasMultipleUnidades}
+        unidadesCount={unidadesPermitidas?.length ?? 0}
         isApplying={aplicarMinimoLoteMutation.isPending}
         onApply={(opts) => aplicarMinimoLoteMutation.mutate(opts)}
       />
