@@ -41,10 +41,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Edit, Trash2, Copy, Clock, Calendar, FileDown } from 'lucide-react';
+import { Plus, Edit, Trash2, Copy, Clock, Calendar, FileDown, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { ImportarTextoModal } from '@/components/escala/ImportarTextoModal';
 
 interface Escala {
   id: string;
@@ -102,6 +103,7 @@ const EscalaPage = () => {
   // Modal states
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [importarTextoOpen, setImportarTextoOpen] = useState(false);
   const [editingEscala, setEditingEscala] = useState<Escala | null>(null);
   const [deletingEscala, setDeletingEscala] = useState<Escala | null>(null);
   
@@ -400,10 +402,16 @@ const EscalaPage = () => {
               Exportar PDF
             </Button>
             {isAdmin && (
-              <Button onClick={() => handleOpenDialog()}>
-                <Plus className="w-4 h-4 mr-2" />
-                Nova Escala
-              </Button>
+              <>
+                <Button variant="outline" onClick={() => setImportarTextoOpen(true)}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Importar Texto
+                </Button>
+                <Button onClick={() => handleOpenDialog()}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nova Escala
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -757,6 +765,14 @@ const EscalaPage = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Importar Texto Modal */}
+        <ImportarTextoModal
+          open={importarTextoOpen}
+          onOpenChange={setImportarTextoOpen}
+          unidades={unidades.map(u => ({ ...u, slug: u.nome.toLowerCase().replace(/\s+/g, '-') }))}
+          onSuccess={fetchEscalas}
+        />
       </div>
     </Layout>
   );
