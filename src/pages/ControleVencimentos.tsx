@@ -5,6 +5,7 @@ import { CalendarClock, AlertTriangle, Clock, CheckCircle2, Download, Calendar, 
 import { Button } from '@/components/ui/button';
 import { useVencimentosData, VencimentosFilters as FiltersType } from '@/hooks/useVencimentosData';
 import { VencimentosTable } from '@/components/vencimentos/VencimentosTable';
+import { HistoricoPagamentos } from '@/components/vencimentos/HistoricoPagamentos';
 import { VencimentosFilters } from '@/components/vencimentos/VencimentosFilters';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
@@ -144,6 +145,9 @@ export default function ControleVencimentos() {
             <VencimentosTable vencimentos={vencimentos} isLoading={isLoading} onRefresh={refetch} />
           </CardContent>
         </Card>
+
+        {/* Histórico de Pagamentos */}
+        <HistoricoPagamentos />
       </div>
     </Layout>
   );
