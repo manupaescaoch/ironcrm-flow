@@ -73,12 +73,13 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
       <div className="rounded-md border">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-muted/50">
               <TableHead>Aluno</TableHead>
               <TableHead>Plano</TableHead>
               <TableHead>Fechamento</TableHead>
               <TableHead>Vencimento</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Pagamento</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -103,44 +104,39 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
                 <TableCell>
                   <VencimentoBadge status={item.status} diasRestantes={item.diasRestantes} />
                 </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    {/* Botão Confirmar Pagamento - destaque se não pago */}
-                    {!item.pagamentoConfirmado && (
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    {/* Status de pagamento */}
+                    {item.pagamentoConfirmado ? (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleConfirmarPagamento(item)}
-                              className={cn(
-                                'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10',
-                                item.status === 'inadimplente' && 'animate-pulse'
-                              )}
-                            >
-                              <CheckCircle2 className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Confirmar Pagamento</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-
-                    {/* Badge de pagamento confirmado */}
-                    {item.pagamentoConfirmado && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="inline-flex items-center text-emerald-600">
-                              <CheckCircle2 className="h-4 w-4" />
+                            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-medium">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Pago
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>Pagamento Confirmado</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleConfirmarPagamento(item)}
+                        className={cn(
+                          'gap-1.5 h-7 px-2.5 text-xs font-medium border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700 hover:border-emerald-500',
+                          item.status === 'inadimplente' && 'animate-pulse border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive hover:border-destructive'
+                        )}
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        {item.status === 'inadimplente' ? 'Confirmar' : 'Confirmar'}
+                      </Button>
                     )}
-
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center justify-end gap-0.5">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -148,7 +144,7 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
                             variant="ghost"
                             size="icon"
                             onClick={() => handleEditar(item)}
-                            className="text-muted-foreground hover:text-foreground"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -164,7 +160,7 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
                             variant="ghost"
                             size="icon"
                             onClick={() => handleRenovar(item)}
-                            className="text-primary hover:text-primary hover:bg-primary/10"
+                            className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
                           >
                             <RefreshCw className="h-4 w-4" />
                           </Button>
@@ -184,7 +180,7 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" asChild>
+                          <Button variant="ghost" size="icon" asChild className="h-8 w-8">
                             <Link to={`/lead/${item.leadId}`}>
                               <ExternalLink className="h-4 w-4" />
                             </Link>
