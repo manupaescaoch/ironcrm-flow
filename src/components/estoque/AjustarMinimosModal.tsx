@@ -23,18 +23,23 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   itens: AjustarMinimosItem[];
+  canApplyAllUnidades?: boolean;
+  unidadesCount?: number;
   isApplying?: boolean;
-  onApply: (opts: { onlyIfEmptyOrDifferent: boolean }) => void;
+  onApply: (opts: { onlyIfEmptyOrDifferent: boolean; applyAllUnidades: boolean }) => void;
 };
 
 export function AjustarMinimosModal({
   open,
   onOpenChange,
   itens,
+  canApplyAllUnidades,
+  unidadesCount,
   isApplying,
   onApply,
 }: Props) {
   const [onlyIfEmptyOrDifferent, setOnlyIfEmptyOrDifferent] = useState(true);
+  const [applyAllUnidades, setApplyAllUnidades] = useState(false);
 
   const preview = useMemo(() => {
     const total = itens.length;
@@ -67,6 +72,11 @@ export function AjustarMinimosModal({
             <div className="text-sm text-muted-foreground mt-1">
               Itens que serão ajustados: <strong className="text-foreground">{preview.candidatos}</strong>
             </div>
+            {canApplyAllUnidades && (unidadesCount ?? 0) > 1 ? (
+              <div className="text-xs text-muted-foreground mt-2">
+                Opcional: você pode aplicar também nas outras unidades (repete o processo por unidade).
+              </div>
+            ) : null}
             <div className="text-xs text-muted-foreground mt-2">
               Observação: itens com ponto de pedido = 0 não trazem ganho (sem histórico suficiente).
             </div>
@@ -88,12 +98,30 @@ export function AjustarMinimosModal({
             </div>
           </div>
 
+          {canApplyAllUnidades && (unidadesCount ?? 0) > 1 ? (
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="applyAllUnidades"
+                checked={applyAllUnidades}
+                onCheckedChange={(v) => setApplyAllUnidades(Boolean(v))}
+              />
+              <div className="grid gap-1">
+                <Label htmlFor="applyAllUnidades" className="text-sm">
+                  Aplicar nas {unidadesCount} unidades
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Vai buscar os itens de cada unidade e ajustar o mínimo conforme o consumo daquela unidade.
+                </p>
+              </div>
+            </div>
+          ) : null}
+
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
             <Button
-              onClick={() => onApply({ onlyIfEmptyOrDifferent })}
+              onClick={() => onApply({ onlyIfEmptyOrDifferent, applyAllUnidades })}
               disabled={isApplying || preview.candidatos === 0}
               className="gap-2"
             >
