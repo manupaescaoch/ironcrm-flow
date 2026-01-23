@@ -750,6 +750,19 @@ export default function EstoqueInterno() {
     );
   }
 
+  // Verificar se usuário não tem acesso a nenhuma unidade
+  if (!unidadeLoading && unidadesPermitidas.length === 0) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-64 gap-4">
+          <AlertCircle className="w-8 h-8 text-destructive" />
+          <p className="text-muted-foreground">Você não tem acesso a nenhuma unidade.</p>
+          <p className="text-sm text-muted-foreground">Entre em contato com o administrador.</p>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <TooltipProvider>

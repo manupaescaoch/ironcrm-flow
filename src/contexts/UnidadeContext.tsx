@@ -24,14 +24,15 @@ const UnidadeContext = createContext<UnidadeContextType | undefined>(undefined);
 const STORAGE_KEY = 'iron-crm-unidade-atual';
 
 export function UnidadeProvider({ children }: { children: ReactNode }) {
-  const { user, isAdmin, loading: authLoading } = useAuth();
+  const { user, isAdmin, loading: authLoading, userRole } = useAuth();
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [unidadesPermitidas, setUnidadesPermitidas] = useState<Unidade[]>([]);
   const [unidadeAtual, setUnidadeAtualState] = useState<Unidade | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchUnidades = useCallback(async () => {
-    if (!user) {
+    // Aguarda user e userRole estarem definidos
+    if (!user || userRole === undefined) {
       setLoading(false);
       return;
     }
@@ -107,13 +108,14 @@ export function UnidadeProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [user, isAdmin]);
+  }, [user, isAdmin, userRole]);
 
   useEffect(() => {
-    if (!authLoading) {
+    // Só executa após auth terminar E userRole estar definido
+    if (!authLoading && userRole !== undefined) {
       fetchUnidades();
     }
-  }, [authLoading, fetchUnidades]);
+  }, [authLoading, userRole, fetchUnidades]);
 
   const setUnidadeAtual = useCallback((unidade: Unidade) => {
     setUnidadeAtualState(unidade);
