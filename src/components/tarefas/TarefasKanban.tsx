@@ -50,7 +50,7 @@ export function TarefasKanban({
   };
 
   return (
-    <div className="flex gap-4 h-[calc(100vh-300px)] overflow-x-auto pb-4">
+    <div className="flex gap-3 h-[calc(100vh-340px)] min-h-[400px] overflow-x-auto pb-2">
       {STATUS_CONFIG.map((statusConfig) => {
         const columnTasks = getTasksByStatus(statusConfig.value);
         const isDropTarget = dragOverColumn === statusConfig.value;
@@ -59,8 +59,8 @@ export function TarefasKanban({
           <div
             key={statusConfig.value}
             className={cn(
-              'flex-shrink-0 w-[300px] flex flex-col rounded-lg border bg-muted/30',
-              isDropTarget && 'ring-2 ring-primary ring-offset-2'
+              'flex-shrink-0 w-[280px] flex flex-col rounded-lg border bg-muted/20',
+              isDropTarget && 'ring-2 ring-primary ring-offset-1'
             )}
             onDragOver={(e) => handleDragOver(e, statusConfig.value)}
             onDragLeave={handleDragLeave}
@@ -69,18 +69,18 @@ export function TarefasKanban({
             {/* Column Header */}
             <div
               className={cn(
-                'px-4 py-3 border-b rounded-t-lg',
+                'px-3 py-2 border-b rounded-t-lg',
                 statusConfig.headerColor
               )}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <div
-                    className={cn('w-3 h-3 rounded-full', statusConfig.color)}
+                    className={cn('w-2.5 h-2.5 rounded-full', statusConfig.color)}
                   />
                   <h3 className="font-semibold text-sm">{statusConfig.label}</h3>
                 </div>
-                <span className="text-xs text-muted-foreground bg-background/80 px-2 py-0.5 rounded-full">
+                <span className="text-xs text-muted-foreground bg-background/80 px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
                   {columnTasks.length}
                 </span>
               </div>
@@ -92,8 +92,8 @@ export function TarefasKanban({
                 {columnTasks.length === 0 ? (
                   <div
                     className={cn(
-                      'flex items-center justify-center h-24 rounded-lg border-2 border-dashed',
-                      'text-sm text-muted-foreground',
+                      'flex items-center justify-center h-20 rounded-lg border-2 border-dashed',
+                      'text-xs text-muted-foreground',
                       isDropTarget
                         ? 'border-primary bg-primary/5'
                         : 'border-muted-foreground/20'
