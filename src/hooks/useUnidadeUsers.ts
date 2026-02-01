@@ -76,7 +76,7 @@ export function useUnidadeUsers() {
         .filter((u: any) => userIds.has(u.id))
         .map((u: any) => ({
           id: u.id,
-          name: u.name || u.email?.split('@')[0] || 'Usuário',
+          name: (u.name || u.email?.split('@')[0] || 'Usuário').toUpperCase(),
           email: u.email || '',
         }));
 
