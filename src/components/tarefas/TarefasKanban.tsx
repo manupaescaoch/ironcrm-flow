@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Task, STATUS_CONFIG } from '@/hooks/useTarefasData';
 import { TarefaCard } from './TarefaCard';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { sortTasksByPriorityAndDeadline } from './TarefasFilters';
 
 interface TarefasKanbanProps {
   tasks: Task[];
@@ -18,7 +19,10 @@ export function TarefasKanban({
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
 
   const getTasksByStatus = useCallback(
-    (status: string) => tasks.filter((task) => task.status === status),
+    (status: string) => {
+      const filtered = tasks.filter((task) => task.status === status && !task.arquivada);
+      return sortTasksByPriorityAndDeadline(filtered);
+    },
     [tasks]
   );
 
@@ -46,7 +50,7 @@ export function TarefasKanban({
   };
 
   return (
-    <div className="flex gap-4 h-[calc(100vh-220px)] overflow-x-auto pb-4">
+    <div className="flex gap-4 h-[calc(100vh-300px)] overflow-x-auto pb-4">
       {STATUS_CONFIG.map((statusConfig) => {
         const columnTasks = getTasksByStatus(statusConfig.value);
         const isDropTarget = dragOverColumn === statusConfig.value;

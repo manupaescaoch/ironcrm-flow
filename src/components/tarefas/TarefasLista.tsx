@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Pencil, Trash2, ArrowUpDown } from 'lucide-react';
+import { Pencil, Trash2, ArrowUpDown, Archive, ArchiveRestore, AlertTriangle } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -33,11 +33,14 @@ import {
 import { cn } from '@/lib/utils';
 import { Task, SETORES, PRIORIDADES, STATUS_CONFIG } from '@/hooks/useTarefasData';
 import { useAuth } from '@/contexts/AuthContext';
+import { isPast, isToday } from 'date-fns';
 
 interface TarefasListaProps {
   tasks: Task[];
   onTaskClick: (task: Task) => void;
   onDeleteTask: (taskId: string) => Promise<void>;
+  showArchived?: boolean;
+  onUnarchiveTask?: (taskId: string) => Promise<void>;
 }
 
 type SortField = 'titulo' | 'responsavel' | 'setor' | 'prioridade' | 'prazo' | 'status';
@@ -47,6 +50,8 @@ export function TarefasLista({
   tasks,
   onTaskClick,
   onDeleteTask,
+  showArchived = false,
+  onUnarchiveTask,
 }: TarefasListaProps) {
   const { isAdmin } = useAuth();
   const [filterResponsavel, setFilterResponsavel] = useState('all');
@@ -121,6 +126,12 @@ export function TarefasLista({
 
   const getStatusConfig = (status: string) =>
     STATUS_CONFIG.find((s) => s.value === status);
+
+  const isOverdue = (task: Task) => {
+    if (!task.prazo || task.status === 'concluida') return false;
+    const prazoDate = new Date(task.prazo);
+    return isPast(prazoDate) && !isToday(prazoDate);
+  };
 
   return (
     <div className="space-y-4">
@@ -259,11 +270,27 @@ export function TarefasLista({
               sortedTasks.map((task) => {
                 const prioridadeConfig = getPrioridadeConfig(task.prioridade);
                 const statusConfig = getStatusConfig(task.status);
+                const taskIsOverdue = isOverdue(task);
 
                 return (
-                  <TableRow key={task.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium max-w-[250px] truncate">
-                      {task.titulo}
+                  <TableRow 
+                    key={task.id} 
+                    className={cn(
+                      'hover:bg-muted/50',
+                      task.arquivada && 'opacity-60',
+                      taskIsOverdue && 'bg-red-500/5'
+                    )}
+                  >
+                    <TableCell className="font-medium max-w-[250px]">
+                      <div className="flex items-center gap-2">
+                        {taskIsOverdue && (
+                          <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                        )}
+                        {task.arquivada && (
+                          <Archive className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        )}
+                        <span className="truncate">{task.titulo}</span>
+                      </div>
                     </TableCell>
                     <TableCell>{task.responsavel}</TableCell>
                     <TableCell>
@@ -280,11 +307,13 @@ export function TarefasLista({
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {task.prazo
-                        ? format(new Date(task.prazo), 'dd/MM/yyyy', {
-                            locale: ptBR,
-                          })
-                        : '-'}
+                      <span className={cn(taskIsOverdue && 'text-red-500 font-medium')}>
+                        {task.prazo
+                          ? format(new Date(task.prazo), 'dd/MM/yyyy', {
+                              locale: ptBR,
+                            })
+                          : '-'}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -308,37 +337,50 @@ export function TarefasLista({
                           <Pencil className="w-4 h-4" />
                         </Button>
                         {isAdmin && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
+                          <>
+                            {task.arquivada && onUnarchiveTask ? (
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                onClick={() => onUnarchiveTask(task.id)}
+                                title="Restaurar tarefa"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <ArchiveRestore className="w-4 h-4" />
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Excluir tarefa?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Esta ação não pode ser desfeita. A tarefa será
-                                  permanentemente excluída.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => onDeleteTask(task.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Excluir
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                            ) : (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-amber-600"
+                                    title="Arquivar tarefa"
+                                  >
+                                    <Archive className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Arquivar tarefa?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      A tarefa será arquivada e não aparecerá mais na lista principal. Você pode restaurá-la depois.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => onDeleteTask(task.id)}
+                                    >
+                                      Arquivar
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </>
                         )}
                       </div>
                     </TableCell>
