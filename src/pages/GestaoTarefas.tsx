@@ -20,6 +20,14 @@ export default function GestaoTarefas() {
   const { unidadeAtual, loading: unidadeLoading } = useUnidade();
   const { tasks, loading, createTask, updateTask, deleteTask, updateTaskStatus } =
     useTarefasData();
+  
+  // Real delete function (permanent deletion)
+  const handlePermanentDelete = useCallback(
+    async (taskId: string) => {
+      await deleteTask(taskId);
+    },
+    [deleteTask]
+  );
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -204,7 +212,8 @@ export default function GestaoTarefas() {
                 <TarefasLista
                   tasks={filteredTasks}
                   onTaskClick={handleTaskClick}
-                  onDeleteTask={handleDeleteTask}
+                  onArchiveTask={handleArchiveTask}
+                  onDeleteTask={handlePermanentDelete}
                   showArchived={showArchived}
                   onUnarchiveTask={handleUnarchiveTask}
                 />
