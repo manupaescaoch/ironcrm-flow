@@ -51,17 +51,17 @@ export function TarefasFilters({
   };
 
   return (
-    <div className="flex flex-wrap gap-3 items-center">
+    <div className="flex flex-wrap gap-2 items-center">
       {/* Search */}
-      <div className="relative flex-1 min-w-[200px] max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      <div className="relative flex-1 min-w-[180px] max-w-xs">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
         <Input
           placeholder="Buscar tarefa..."
           value={filters.search}
           onChange={(e) =>
             onFiltersChange({ ...filters, search: e.target.value })
           }
-          className="pl-9"
+          className="pl-8 h-9 text-sm"
         />
       </div>
 
@@ -72,7 +72,7 @@ export function TarefasFilters({
           onFiltersChange({ ...filters, responsavel: value === 'all' ? '' : value })
         }
       >
-        <SelectTrigger className="w-[160px]">
+        <SelectTrigger className="w-[130px] h-9 text-sm">
           <SelectValue placeholder="Responsável" />
         </SelectTrigger>
         <SelectContent>
@@ -92,7 +92,7 @@ export function TarefasFilters({
           onFiltersChange({ ...filters, prioridade: value === 'all' ? '' : value })
         }
       >
-        <SelectTrigger className="w-[140px]">
+        <SelectTrigger className="w-[110px] h-9 text-sm">
           <SelectValue placeholder="Prioridade" />
         </SelectTrigger>
         <SelectContent>
@@ -112,7 +112,7 @@ export function TarefasFilters({
           onFiltersChange({ ...filters, setor: value === 'all' ? '' : value })
         }
       >
-        <SelectTrigger className="w-[160px]">
+        <SelectTrigger className="w-[130px] h-9 text-sm">
           <SelectValue placeholder="Setor" />
         </SelectTrigger>
         <SelectContent>
@@ -131,10 +131,9 @@ export function TarefasFilters({
           variant="ghost"
           size="sm"
           onClick={handleClearFilters}
-          className="gap-1 text-muted-foreground"
+          className="gap-1 text-muted-foreground h-9 px-2"
         >
-          <X className="w-4 h-4" />
-          Limpar
+          <X className="w-3.5 h-3.5" />
         </Button>
       )}
     </div>

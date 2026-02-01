@@ -121,18 +121,18 @@ export default function GestaoTarefas() {
 
   return (
     <Layout>
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-4">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">Gestão de Tarefas</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold">Gestão de Tarefas</h1>
             <Badge variant="outline" className="text-xs">
               {unidadeAtual.nome}
             </Badge>
           </div>
           <div className="flex items-center gap-2">
             <TarefasExport tasks={filteredTasks} unidadeNome={unidadeAtual.nome} />
-            <Button onClick={handleNewTask} className="gap-2">
+            <Button onClick={handleNewTask} size="sm" className="gap-1.5">
               <Plus className="w-4 h-4" />
               Nova Tarefa
             </Button>
@@ -146,16 +146,9 @@ export default function GestaoTarefas() {
           </div>
         ) : (
           <>
-            {/* KPIs */}
-            <TarefasKPIGrid tasks={tasks} />
-
-            {/* Filters */}
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <TarefasFilters
-                tasks={tasks}
-                filters={filters}
-                onFiltersChange={setFilters}
-              />
+            {/* KPIs + Archive Toggle Row */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+              <TarefasKPIGrid tasks={tasks} />
               
               {/* Show archived toggle */}
               <div className="flex items-center gap-2">
@@ -164,31 +157,38 @@ export default function GestaoTarefas() {
                   checked={showArchived}
                   onCheckedChange={setShowArchived}
                 />
-                <Label htmlFor="show-archived" className="text-sm text-muted-foreground cursor-pointer flex items-center gap-1">
-                  {showArchived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
-                  {showArchived ? 'Mostrando arquivadas' : 'Mostrar arquivadas'}
+                <Label htmlFor="show-archived" className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1">
+                  <Archive className="w-3.5 h-3.5" />
+                  Arquivadas
                 </Label>
               </div>
             </div>
 
+            {/* Filters */}
+            <TarefasFilters
+              tasks={tasks}
+              filters={filters}
+              onFiltersChange={setFilters}
+            />
+
             {/* Tabs with Views */}
-            <Tabs defaultValue="kanban" className="space-y-4">
-              <TabsList>
-                <TabsTrigger value="kanban" className="gap-2">
-                  <Kanban className="w-4 h-4" />
+            <Tabs defaultValue="kanban" className="space-y-3">
+              <TabsList className="h-9">
+                <TabsTrigger value="kanban" className="gap-1.5 text-xs px-3">
+                  <Kanban className="w-3.5 h-3.5" />
                   Kanban
                 </TabsTrigger>
-                <TabsTrigger value="calendario" className="gap-2">
-                  <Calendar className="w-4 h-4" />
+                <TabsTrigger value="calendario" className="gap-1.5 text-xs px-3">
+                  <Calendar className="w-3.5 h-3.5" />
                   Calendário
                 </TabsTrigger>
-                <TabsTrigger value="lista" className="gap-2">
-                  <List className="w-4 h-4" />
+                <TabsTrigger value="lista" className="gap-1.5 text-xs px-3">
+                  <List className="w-3.5 h-3.5" />
                   Lista
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="kanban">
+              <TabsContent value="kanban" className="mt-0">
                 <TarefasKanban
                   tasks={filteredTasks}
                   onTaskClick={handleTaskClick}
@@ -196,11 +196,11 @@ export default function GestaoTarefas() {
                 />
               </TabsContent>
 
-              <TabsContent value="calendario">
+              <TabsContent value="calendario" className="mt-0">
                 <TarefasCalendario tasks={filteredTasks} onTaskClick={handleTaskClick} />
               </TabsContent>
 
-              <TabsContent value="lista">
+              <TabsContent value="lista" className="mt-0">
                 <TarefasLista
                   tasks={filteredTasks}
                   onTaskClick={handleTaskClick}
