@@ -48,7 +48,6 @@ const allNavItems = [
   { href: '/estoque', label: 'Estoque', icon: Package, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
   { href: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'recepcao', 'comercial'], masterOnly: false },
   { href: '/relatorio', label: 'Relatório Vendas', icon: FileText, roles: ['admin'], masterOnly: false },
-  { href: '/relatorio-gerencial', label: 'Gerencial', icon: Building2, roles: ['admin'], masterOnly: false },
   { href: '/backups', label: 'Backups', icon: Database, roles: ['admin'], masterOnly: false },
   { href: '/admin-users', label: 'Usuários', icon: Settings, roles: ['admin'], masterOnly: true },
 ];
@@ -162,13 +161,12 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location.pathname === item.href || 
-            (item.href === '/relatorio-gerencial' && location.pathname === '/relatorio-gerencial-zn');
+          const isActive = location.pathname === item.href;
           const isAdminOnly = item.roles.length === 1 && item.roles[0] === 'admin';
           return (
             <Link
               key={item.href}
-              to={item.href === '/relatorio-gerencial' ? '/relatorio-gerencial-zn' : item.href}
+              to={item.href}
               onClick={() => isMobile && setSidebarOpen(false)}
               className={cn(
                 'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
