@@ -22,7 +22,8 @@ import {
   CalendarClock,
   Shield,
   Menu,
-  CheckSquare
+  CheckSquare,
+  Phone
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/logo.png';
@@ -33,6 +34,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { UserPhoneDialog } from '@/components/profile/UserPhoneDialog';
 
 interface LayoutProps {
   children: ReactNode;
@@ -62,6 +64,7 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [phoneDialogOpen, setPhoneDialogOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -220,6 +223,15 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
         </div>
         <Button
           variant="ghost"
+          size="sm"
+          className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent/50 mb-1"
+          onClick={() => setPhoneDialogOpen(true)}
+        >
+          <Phone className="w-4 h-4" />
+          Meu Telefone
+        </Button>
+        <Button
+          variant="ghost"
           className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent/50"
           onClick={handleSignOut}
         >
@@ -273,6 +285,9 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
       <main className={cn("flex-1 overflow-auto", isMobile && "pt-16")}>
         {children}
       </main>
+
+      {/* Phone Dialog */}
+      <UserPhoneDialog open={phoneDialogOpen} onOpenChange={setPhoneDialogOpen} />
     </div>
   );
 });

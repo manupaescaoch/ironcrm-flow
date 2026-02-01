@@ -59,7 +59,8 @@ export default function GestaoTarefas() {
     setIsSaving(true);
     try {
       if (selectedTask) {
-        await updateTask(selectedTask.id, data);
+        // Passar responsável anterior para detectar mudança
+        await updateTask(selectedTask.id, data, selectedTask.responsavel);
       } else {
         await createTask(data);
       }

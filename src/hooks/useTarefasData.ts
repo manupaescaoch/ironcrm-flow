@@ -87,8 +87,38 @@ export function useTarefasData() {
     }
   }, [unidadeAtual, toast]);
 
+  const sendWhatsAppNotification = useCallback(async (
+    taskId: string, 
+    taskTitle: string, 
+    responsavelName: string, 
+    tipo: 'nova_tarefa' | 'tarefa_atualizada',
+    creatorName?: string
+  ) => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.access_token) return;
+
+      await supabase.functions.invoke('send-task-whatsapp', {
+        body: {
+          task_id: taskId,
+          task_title: taskTitle,
+          responsavel_name: responsavelName,
+          tipo,
+          creator_name: creatorName,
+        },
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
+      });
+    } catch (err) {
+      // Silently fail - notification is best effort
+      console.log('WhatsApp notification skipped:', err);
+    }
+  }, []);
+
   const createTask = useCallback(async (task: TaskInsert) => {
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const creatorName = sessionData.session?.user?.user_metadata?.name || 'Sistema';
+
       const { data, error } = await supabase
         .from('tasks')
         .insert(task)
@@ -102,6 +132,11 @@ export function useTarefasData() {
         description: 'A tarefa foi criada com sucesso.',
       });
 
+      // Enviar WhatsApp automaticamente
+      if (data) {
+        sendWhatsAppNotification(data.id, data.titulo, task.responsavel, 'nova_tarefa', creatorName);
+      }
+
       return data as Task;
     } catch (err: any) {
       console.error('Erro ao criar tarefa:', err);
@@ -112,9 +147,9 @@ export function useTarefasData() {
       });
       throw err;
     }
-  }, [toast]);
+  }, [toast, sendWhatsAppNotification]);
 
-  const updateTask = useCallback(async (id: string, updates: TaskUpdate) => {
+  const updateTask = useCallback(async (id: string, updates: TaskUpdate, previousResponsavel?: string) => {
     try {
       const { data, error } = await supabase
         .from('tasks')
@@ -124,6 +159,11 @@ export function useTarefasData() {
         .single();
 
       if (error) throw error;
+
+      // Se o responsável mudou, enviar WhatsApp para o novo responsável
+      if (updates.responsavel && previousResponsavel && updates.responsavel !== previousResponsavel) {
+        sendWhatsAppNotification(id, data.titulo, updates.responsavel, 'tarefa_atualizada');
+      }
 
       return data as Task;
     } catch (err: any) {
@@ -135,7 +175,7 @@ export function useTarefasData() {
       });
       throw err;
     }
-  }, [toast]);
+  }, [toast, sendWhatsAppNotification]);
 
   const deleteTask = useCallback(async (id: string) => {
     try {
