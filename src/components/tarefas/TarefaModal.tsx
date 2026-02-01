@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Task, TaskInsert, SETORES, PRIORIDADES } from '@/hooks/useTarefasData';
 import { useUnidade } from '@/contexts/UnidadeContext';
+import { useUnidadeUsers } from '@/hooks/useUnidadeUsers';
 
 const formSchema = z.object({
   titulo: z.string().min(1, 'Título é obrigatório'),
@@ -59,6 +60,7 @@ export function TarefaModal({
   isLoading,
 }: TarefaModalProps) {
   const { unidadeAtual } = useUnidade();
+  const { users, loading: usersLoading } = useUnidadeUsers();
   const isEditing = !!task;
 
   const form = useForm<FormData>({
@@ -113,6 +115,8 @@ export function TarefaModal({
     onOpenChange(false);
   };
 
+  const selectedResponsavel = form.watch('responsavel');
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
@@ -150,13 +154,40 @@ export function TarefaModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="responsavel">Responsável *</Label>
-              <Input
-                id="responsavel"
-                placeholder="Nome do responsável"
-                {...form.register('responsavel')}
-                className={cn(form.formState.errors.responsavel && 'border-destructive')}
-              />
+              <Label>Responsável *</Label>
+              {usersLoading ? (
+                <div className="flex items-center gap-2 h-10 px-3 border rounded-md text-muted-foreground text-sm">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Carregando...
+                </div>
+              ) : users.length > 0 ? (
+                <Select
+                  value={selectedResponsavel}
+                  onValueChange={(value) => form.setValue('responsavel', value)}
+                >
+                  <SelectTrigger className={cn(form.formState.errors.responsavel && 'border-destructive')}>
+                    <SelectValue placeholder="Selecione o responsável" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.name}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  placeholder="Nome do responsável"
+                  {...form.register('responsavel')}
+                  className={cn(form.formState.errors.responsavel && 'border-destructive')}
+                />
+              )}
+              {form.formState.errors.responsavel && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.responsavel.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
