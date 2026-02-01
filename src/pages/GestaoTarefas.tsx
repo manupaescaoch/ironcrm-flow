@@ -228,6 +228,7 @@ export default function GestaoTarefas() {
           onOpenChange={setModalOpen}
           task={selectedTask}
           onSave={handleSaveTask}
+          onDelete={handlePermanentDelete}
           isLoading={isSaving}
         />
       </div>

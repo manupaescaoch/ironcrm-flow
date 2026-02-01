@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon, Clock, Loader2, MessageSquare, CheckSquare, History } from 'lucide-react';
+import { CalendarIcon, Clock, Loader2, MessageSquare, CheckSquare, History, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -26,10 +26,22 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { Task, TaskInsert, PRIORIDADES } from '@/hooks/useTarefasData';
+import { Task, TaskInsert, PRIORIDADES, STATUS_CONFIG } from '@/hooks/useTarefasData';
+import { useAuth } from '@/contexts/AuthContext';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useUnidadeUsers } from '@/hooks/useUnidadeUsers';
 import { TaskComments } from './TaskComments';
@@ -52,6 +64,7 @@ interface TarefaModalProps {
   onOpenChange: (open: boolean) => void;
   task?: Task | null;
   onSave: (data: TaskInsert) => Promise<void>;
+  onDelete?: (taskId: string) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -60,12 +73,15 @@ export function TarefaModal({
   onOpenChange,
   task,
   onSave,
+  onDelete,
   isLoading,
 }: TarefaModalProps) {
   const { unidadeAtual } = useUnidade();
   const { users, loading: usersLoading } = useUnidadeUsers();
+  const { isAdmin } = useAuth();
   const isEditing = !!task;
   const [activeTab, setActiveTab] = useState('detalhes');
+  const [selectedStatus, setSelectedStatus] = useState<Task['status']>('a_fazer');
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -89,6 +105,7 @@ export function TarefaModal({
         prazo: task.prazo ? new Date(task.prazo) : null,
         hora_prazo: task.hora_prazo || null,
       });
+      setSelectedStatus(task.status);
     } else {
       form.reset({
         titulo: '',
@@ -98,6 +115,7 @@ export function TarefaModal({
         prazo: null,
         hora_prazo: null,
       });
+      setSelectedStatus('a_fazer');
       setActiveTab('detalhes');
     }
   }, [task, form, open]);
@@ -111,7 +129,7 @@ export function TarefaModal({
       responsavel: data.responsavel,
       setor: '', // Campo opcional, deixar vazio
       prioridade: data.prioridade,
-      status: task?.status || 'a_fazer',
+      status: selectedStatus,
       prazo: data.prazo ? format(data.prazo, 'yyyy-MM-dd') : null,
       hora_prazo: data.hora_prazo || null,
       unidade_id: unidadeAtual.id,
@@ -119,6 +137,13 @@ export function TarefaModal({
 
     await onSave(taskData);
     onOpenChange(false);
+  };
+
+  const handleDelete = async () => {
+    if (task && onDelete) {
+      await onDelete(task.id);
+      onOpenChange(false);
+    }
   };
 
   const selectedResponsavel = form.watch('responsavel');
@@ -244,6 +269,31 @@ export function TarefaModal({
                 </Select>
               </div>
 
+              {/* Status - only visible when editing */}
+              {isEditing && (
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select
+                    value={selectedStatus}
+                    onValueChange={(value: Task['status']) => setSelectedStatus(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_CONFIG.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          <span className="flex items-center gap-2">
+                            <span className={cn('w-2 h-2 rounded-full', s.color)} />
+                            {s.label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Prazo</Label>
@@ -287,18 +337,55 @@ export function TarefaModal({
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                  disabled={isLoading}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? 'Salvando...' : 'Salvar'}
-                </Button>
+              <div className="flex justify-between pt-4">
+                {/* Delete button - only for admins when editing */}
+                {isEditing && isAdmin && onDelete ? (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Excluir
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir tarefa permanentemente?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação não pode ser desfeita. A tarefa será excluída permanentemente do sistema.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={handleDelete}
+                        >
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                ) : (
+                  <div />
+                )}
+                
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                    disabled={isLoading}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? 'Salvando...' : 'Salvar'}
+                  </Button>
+                </div>
               </div>
             </form>
           </TabsContent>
