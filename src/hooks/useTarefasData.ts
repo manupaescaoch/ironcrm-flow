@@ -16,10 +16,14 @@ export interface Task {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  concluida_em: string | null;
+  arquivada: boolean;
+  recorrencia: string | null;
+  recorrencia_fim: string | null;
 }
 
-export type TaskInsert = Omit<Task, 'id' | 'created_at' | 'updated_at' | 'created_by'>;
-export type TaskUpdate = Partial<TaskInsert>;
+export type TaskInsert = Omit<Task, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'concluida_em' | 'arquivada' | 'recorrencia' | 'recorrencia_fim'>;
+export type TaskUpdate = Partial<TaskInsert> & { arquivada?: boolean };
 
 export const SETORES = [
   'Financeiro',

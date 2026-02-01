@@ -1,15 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon, Loader2 } from 'lucide-react';
+import { CalendarIcon, Loader2, MessageSquare, CheckSquare, History } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,10 +27,14 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { Task, TaskInsert, SETORES, PRIORIDADES } from '@/hooks/useTarefasData';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useUnidadeUsers } from '@/hooks/useUnidadeUsers';
+import { TaskComments } from './TaskComments';
+import { TaskSubtasks } from './TaskSubtasks';
+import { TaskHistory } from './TaskHistory';
 
 const formSchema = z.object({
   titulo: z.string().min(1, 'Título é obrigatório'),
@@ -62,6 +65,7 @@ export function TarefaModal({
   const { unidadeAtual } = useUnidade();
   const { users, loading: usersLoading } = useUnidadeUsers();
   const isEditing = !!task;
+  const [activeTab, setActiveTab] = useState('detalhes');
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -94,6 +98,7 @@ export function TarefaModal({
         prioridade: 'media',
         prazo: null,
       });
+      setActiveTab('detalhes');
     }
   }, [task, form, open]);
 
@@ -119,172 +124,204 @@ export function TarefaModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Tarefa' : 'Nova Tarefa'}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="titulo">Título *</Label>
-            <Input
-              id="titulo"
-              placeholder="Digite o título da tarefa"
-              {...form.register('titulo')}
-              className={cn(form.formState.errors.titulo && 'border-destructive')}
-            />
-            {form.formState.errors.titulo && (
-              <p className="text-xs text-destructive">
-                {form.formState.errors.titulo.message}
-              </p>
-            )}
-          </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+            <TabsTrigger value="checklist" disabled={!isEditing} className="gap-1">
+              <CheckSquare className="w-3 h-3" />
+              Checklist
+            </TabsTrigger>
+            <TabsTrigger value="comentarios" disabled={!isEditing} className="gap-1">
+              <MessageSquare className="w-3 h-3" />
+              Comentários
+            </TabsTrigger>
+            <TabsTrigger value="historico" disabled={!isEditing} className="gap-1">
+              <History className="w-3 h-3" />
+              Histórico
+            </TabsTrigger>
+          </TabsList>
 
-          <div className="space-y-2">
-            <Label htmlFor="descricao">Descrição</Label>
-            <Textarea
-              id="descricao"
-              placeholder="Descreva a tarefa em detalhes"
-              rows={3}
-              {...form.register('descricao')}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Responsável *</Label>
-              {usersLoading ? (
-                <div className="flex items-center gap-2 h-10 px-3 border rounded-md text-muted-foreground text-sm">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Carregando...
-                </div>
-              ) : users.length > 0 ? (
-                <Select
-                  value={selectedResponsavel}
-                  onValueChange={(value) => form.setValue('responsavel', value)}
-                >
-                  <SelectTrigger className={cn(form.formState.errors.responsavel && 'border-destructive')}>
-                    <SelectValue placeholder="Selecione o responsável" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map((user) => (
-                      <SelectItem key={user.id} value={user.name}>
-                        {user.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
+          <TabsContent value="detalhes" className="flex-1 overflow-y-auto mt-4">
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="titulo">Título *</Label>
                 <Input
-                  placeholder="Nome do responsável"
-                  {...form.register('responsavel')}
-                  className={cn(form.formState.errors.responsavel && 'border-destructive')}
+                  id="titulo"
+                  placeholder="Digite o título da tarefa"
+                  {...form.register('titulo')}
+                  className={cn(form.formState.errors.titulo && 'border-destructive')}
                 />
-              )}
-              {form.formState.errors.responsavel && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.responsavel.message}
-                </p>
-              )}
-            </div>
+                {form.formState.errors.titulo && (
+                  <p className="text-xs text-destructive">
+                    {form.formState.errors.titulo.message}
+                  </p>
+                )}
+              </div>
 
-            <div className="space-y-2">
-              <Label>Setor *</Label>
-              <Select
-                value={form.watch('setor')}
-                onValueChange={(value) => form.setValue('setor', value)}
-              >
-                <SelectTrigger className={cn(form.formState.errors.setor && 'border-destructive')}>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SETORES.map((setor) => (
-                    <SelectItem key={setor} value={setor}>
-                      {setor}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="descricao">Descrição</Label>
+                <Textarea
+                  id="descricao"
+                  placeholder="Descreva a tarefa em detalhes"
+                  rows={3}
+                  {...form.register('descricao')}
+                />
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Prioridade *</Label>
-              <Select
-                value={form.watch('prioridade')}
-                onValueChange={(value: 'alta' | 'media' | 'baixa') =>
-                  form.setValue('prioridade', value)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRIORIDADES.map((p) => (
-                    <SelectItem key={p.value} value={p.value}>
-                      <span className="flex items-center gap-2">
-                        <span
-                          className={cn(
-                            'w-2 h-2 rounded-full',
-                            p.value === 'alta' && 'bg-red-500',
-                            p.value === 'media' && 'bg-yellow-500',
-                            p.value === 'baixa' && 'bg-green-500'
-                          )}
-                        />
-                        {p.label}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Responsável *</Label>
+                  {usersLoading ? (
+                    <div className="flex items-center gap-2 h-10 px-3 border rounded-md text-muted-foreground text-sm">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Carregando...
+                    </div>
+                  ) : users.length > 0 ? (
+                    <Select
+                      value={selectedResponsavel}
+                      onValueChange={(value) => form.setValue('responsavel', value)}
+                    >
+                      <SelectTrigger className={cn(form.formState.errors.responsavel && 'border-destructive')}>
+                        <SelectValue placeholder="Selecione o responsável" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {users.map((user) => (
+                          <SelectItem key={user.id} value={user.name}>
+                            {user.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      placeholder="Nome do responsável"
+                      {...form.register('responsavel')}
+                      className={cn(form.formState.errors.responsavel && 'border-destructive')}
+                    />
+                  )}
+                  {form.formState.errors.responsavel && (
+                    <p className="text-xs text-destructive">
+                      {form.formState.errors.responsavel.message}
+                    </p>
+                  )}
+                </div>
 
-            <div className="space-y-2">
-              <Label>Prazo</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      'w-full justify-start text-left font-normal',
-                      !form.watch('prazo') && 'text-muted-foreground'
-                    )}
+                <div className="space-y-2">
+                  <Label>Setor *</Label>
+                  <Select
+                    value={form.watch('setor')}
+                    onValueChange={(value) => form.setValue('setor', value)}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {form.watch('prazo')
-                      ? format(form.watch('prazo')!, 'dd/MM/yyyy')
-                      : 'Selecionar data'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={form.watch('prazo') || undefined}
-                    onSelect={(date) => form.setValue('prazo', date || null)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
+                    <SelectTrigger className={cn(form.formState.errors.setor && 'border-destructive')}>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SETORES.map((setor) => (
+                        <SelectItem key={setor} value={setor}>
+                          {setor}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-          <DialogFooter className="gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Salvando...' : 'Salvar'}
-            </Button>
-          </DialogFooter>
-        </form>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Prioridade *</Label>
+                  <Select
+                    value={form.watch('prioridade')}
+                    onValueChange={(value: 'alta' | 'media' | 'baixa') =>
+                      form.setValue('prioridade', value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRIORIDADES.map((p) => (
+                        <SelectItem key={p.value} value={p.value}>
+                          <span className="flex items-center gap-2">
+                            <span
+                              className={cn(
+                                'w-2 h-2 rounded-full',
+                                p.value === 'alta' && 'bg-red-500',
+                                p.value === 'media' && 'bg-yellow-500',
+                                p.value === 'baixa' && 'bg-green-500'
+                              )}
+                            />
+                            {p.label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Prazo</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          'w-full justify-start text-left font-normal',
+                          !form.watch('prazo') && 'text-muted-foreground'
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {form.watch('prazo')
+                          ? format(form.watch('prazo')!, 'dd/MM/yyyy')
+                          : 'Selecionar data'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={form.watch('prazo') || undefined}
+                        onSelect={(date) => form.setValue('prazo', date || null)}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isLoading}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? 'Salvando...' : 'Salvar'}
+                </Button>
+              </div>
+            </form>
+          </TabsContent>
+
+          <TabsContent value="checklist" className="flex-1 overflow-hidden mt-4">
+            {task && <TaskSubtasks taskId={task.id} />}
+          </TabsContent>
+
+          <TabsContent value="comentarios" className="flex-1 overflow-hidden mt-4">
+            {task && <TaskComments taskId={task.id} />}
+          </TabsContent>
+
+          <TabsContent value="historico" className="flex-1 overflow-hidden mt-4">
+            {task && <TaskHistory taskId={task.id} />}
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

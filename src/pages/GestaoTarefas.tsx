@@ -1,8 +1,10 @@
-import { useState, useCallback } from 'react';
-import { Plus, Kanban, Calendar, List, Loader2 } from 'lucide-react';
+import { useState, useCallback, useMemo } from 'react';
+import { Plus, Kanban, Calendar, List, Loader2, Archive, ArchiveRestore } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useTarefasData, Task, TaskInsert } from '@/hooks/useTarefasData';
@@ -10,6 +12,9 @@ import { TarefasKanban } from '@/components/tarefas/TarefasKanban';
 import { TarefasLista } from '@/components/tarefas/TarefasLista';
 import { TarefasCalendario } from '@/components/tarefas/TarefasCalendario';
 import { TarefaModal } from '@/components/tarefas/TarefaModal';
+import { TarefasKPIGrid } from '@/components/tarefas/TarefasKPIGrid';
+import { TarefasFilters, TarefasFiltersState, filterTasks } from '@/components/tarefas/TarefasFilters';
+import { TarefasExport } from '@/components/tarefas/TarefasExport';
 
 export default function GestaoTarefas() {
   const { unidadeAtual, loading: unidadeLoading } = useUnidade();
@@ -19,6 +24,26 @@ export default function GestaoTarefas() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const [filters, setFilters] = useState<TarefasFiltersState>({
+    search: '',
+    responsavel: '',
+    prioridade: '',
+    setor: '',
+  });
+
+  // Filter tasks
+  const filteredTasks = useMemo(() => {
+    let result = tasks;
+    
+    // Filter by archived status
+    if (!showArchived) {
+      result = result.filter((t) => !t.arquivada);
+    }
+    
+    // Apply other filters
+    return filterTasks(result, filters);
+  }, [tasks, filters, showArchived]);
 
   const handleNewTask = () => {
     setSelectedTask(null);
@@ -50,11 +75,26 @@ export default function GestaoTarefas() {
     [updateTaskStatus]
   );
 
+  const handleArchiveTask = useCallback(
+    async (taskId: string) => {
+      await updateTask(taskId, { arquivada: true });
+    },
+    [updateTask]
+  );
+
+  const handleUnarchiveTask = useCallback(
+    async (taskId: string) => {
+      await updateTask(taskId, { arquivada: false });
+    },
+    [updateTask]
+  );
+
   const handleDeleteTask = useCallback(
     async (taskId: string) => {
-      await deleteTask(taskId);
+      // Instead of deleting, archive the task
+      await handleArchiveTask(taskId);
     },
-    [deleteTask]
+    [handleArchiveTask]
   );
 
   if (unidadeLoading) {
@@ -90,10 +130,13 @@ export default function GestaoTarefas() {
               {unidadeAtual.nome}
             </Badge>
           </div>
-          <Button onClick={handleNewTask} className="gap-2">
-            <Plus className="w-4 h-4" />
-            Nova Tarefa
-          </Button>
+          <div className="flex items-center gap-2">
+            <TarefasExport tasks={filteredTasks} unidadeNome={unidadeAtual.nome} />
+            <Button onClick={handleNewTask} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Nova Tarefa
+            </Button>
+          </div>
         </div>
 
         {/* Loading State */}
@@ -102,43 +145,72 @@ export default function GestaoTarefas() {
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          /* Tabs with Views */
-          <Tabs defaultValue="kanban" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="kanban" className="gap-2">
-                <Kanban className="w-4 h-4" />
-                Kanban
-              </TabsTrigger>
-              <TabsTrigger value="calendario" className="gap-2">
-                <Calendar className="w-4 h-4" />
-                Calendário
-              </TabsTrigger>
-              <TabsTrigger value="lista" className="gap-2">
-                <List className="w-4 h-4" />
-                Lista
-              </TabsTrigger>
-            </TabsList>
+          <>
+            {/* KPIs */}
+            <TarefasKPIGrid tasks={tasks} />
 
-            <TabsContent value="kanban">
-              <TarefasKanban
+            {/* Filters */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <TarefasFilters
                 tasks={tasks}
-                onTaskClick={handleTaskClick}
-                onStatusChange={handleStatusChange}
+                filters={filters}
+                onFiltersChange={setFilters}
               />
-            </TabsContent>
+              
+              {/* Show archived toggle */}
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="show-archived"
+                  checked={showArchived}
+                  onCheckedChange={setShowArchived}
+                />
+                <Label htmlFor="show-archived" className="text-sm text-muted-foreground cursor-pointer flex items-center gap-1">
+                  {showArchived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+                  {showArchived ? 'Mostrando arquivadas' : 'Mostrar arquivadas'}
+                </Label>
+              </div>
+            </div>
 
-            <TabsContent value="calendario">
-              <TarefasCalendario tasks={tasks} onTaskClick={handleTaskClick} />
-            </TabsContent>
+            {/* Tabs with Views */}
+            <Tabs defaultValue="kanban" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="kanban" className="gap-2">
+                  <Kanban className="w-4 h-4" />
+                  Kanban
+                </TabsTrigger>
+                <TabsTrigger value="calendario" className="gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Calendário
+                </TabsTrigger>
+                <TabsTrigger value="lista" className="gap-2">
+                  <List className="w-4 h-4" />
+                  Lista
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="lista">
-              <TarefasLista
-                tasks={tasks}
-                onTaskClick={handleTaskClick}
-                onDeleteTask={handleDeleteTask}
-              />
-            </TabsContent>
-          </Tabs>
+              <TabsContent value="kanban">
+                <TarefasKanban
+                  tasks={filteredTasks}
+                  onTaskClick={handleTaskClick}
+                  onStatusChange={handleStatusChange}
+                />
+              </TabsContent>
+
+              <TabsContent value="calendario">
+                <TarefasCalendario tasks={filteredTasks} onTaskClick={handleTaskClick} />
+              </TabsContent>
+
+              <TabsContent value="lista">
+                <TarefasLista
+                  tasks={filteredTasks}
+                  onTaskClick={handleTaskClick}
+                  onDeleteTask={handleDeleteTask}
+                  showArchived={showArchived}
+                  onUnarchiveTask={handleUnarchiveTask}
+                />
+              </TabsContent>
+            </Tabs>
+          </>
         )}
 
         {/* Task Modal */}

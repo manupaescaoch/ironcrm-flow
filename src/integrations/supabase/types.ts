@@ -678,14 +678,129 @@ export type Database = {
           },
         ]
       }
+      task_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          task_id: string
+          user_id: string | null
+          user_name: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          task_id: string
+          user_id?: string | null
+          user_name: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          task_id?: string
+          user_id?: string | null
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_history: {
+        Row: {
+          campo: string
+          created_at: string
+          id: string
+          task_id: string
+          user_id: string | null
+          user_name: string
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          campo: string
+          created_at?: string
+          id?: string
+          task_id: string
+          user_id?: string | null
+          user_name: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          campo?: string
+          created_at?: string
+          id?: string
+          task_id?: string
+          user_id?: string | null
+          user_name?: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_history_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_subtasks: {
+        Row: {
+          concluido: boolean
+          created_at: string
+          id: string
+          ordem: number
+          task_id: string
+          titulo: string
+        }
+        Insert: {
+          concluido?: boolean
+          created_at?: string
+          id?: string
+          ordem?: number
+          task_id: string
+          titulo: string
+        }
+        Update: {
+          concluido?: boolean
+          created_at?: string
+          id?: string
+          ordem?: number
+          task_id?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_subtasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
+          arquivada: boolean
+          concluida_em: string | null
           created_at: string
           created_by: string | null
           descricao: string | null
           id: string
           prazo: string | null
           prioridade: string
+          recorrencia: string | null
+          recorrencia_fim: string | null
           responsavel: string
           setor: string
           status: string
@@ -694,12 +809,16 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          arquivada?: boolean
+          concluida_em?: string | null
           created_at?: string
           created_by?: string | null
           descricao?: string | null
           id?: string
           prazo?: string | null
           prioridade?: string
+          recorrencia?: string | null
+          recorrencia_fim?: string | null
           responsavel: string
           setor: string
           status?: string
@@ -708,12 +827,16 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          arquivada?: boolean
+          concluida_em?: string | null
           created_at?: string
           created_by?: string | null
           descricao?: string | null
           id?: string
           prazo?: string | null
           prioridade?: string
+          recorrencia?: string | null
+          recorrencia_fim?: string | null
           responsavel?: string
           setor?: string
           status?: string
