@@ -1,316 +1,162 @@
 
+# Plano: Ajuste de Media Manual e Estoque Minimo por Fornecedor
 
-# Plano de Melhorias Completas - Gestão de Tarefas
+## Contexto Atual
 
-## Visao Geral
+O sistema de estoque atualmente:
+1. Calcula a media diaria automaticamente baseada nas retiradas dos ultimos 30 dias
+2. Cada insumo tem um `lead_time_dias` fixo (tempo de entrega do fornecedor)
+3. O `fornecedor_padrao` e apenas um campo de texto, sem tabela dedicada
+4. O Ponto de Pedido e calculado como: `(Lead Time + Estoque Seguranca) x Media Diaria`
+5. Nao existe possibilidade de definir media manual quando nao ha historico suficiente
 
-Este plano implementa todas as melhorias sugeridas para o modulo de Gestao de Tarefas, organizadas em fases para facilitar o desenvolvimento e testes.
+## Problemas Identificados
+
+1. **Insumos novos ou sem retiradas** nao tem media calculada (aparece "Aguardando")
+2. **Lead time por fornecedor** esta no insumo, mas o mesmo fornecedor pode ter insumos com lead times diferentes
+3. **Nao existe media manual** para produtos sazonais ou com consumo irregular
+4. **Falta cadastro centralizado de fornecedores** com seus respectivos lead times
 
 ---
 
-## Fase 1: Banco de Dados (Novas Tabelas)
+## Solucao Proposta
 
-### 1.1 Tabela `task_comments` (Comentarios/Historico)
-Armazena comentarios e atualizacoes de cada tarefa.
+### Fase 1: Tabela de Fornecedores
 
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
+Criar tabela `fornecedores` para centralizar informacoes:
+
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
 | id | uuid | Chave primaria |
-| task_id | uuid | FK para tasks |
-| user_id | uuid | Quem comentou |
-| user_name | text | Nome do usuario |
-| content | text | Conteudo do comentario |
-| created_at | timestamp | Data de criacao |
+| unidade_id | uuid | FK para unidades |
+| nome | text | Nome do fornecedor |
+| lead_time_dias | integer | Tempo de entrega padrao |
+| telefone | text | Contato |
+| email | text | Email |
+| observacoes | text | Notas |
+| ativo | boolean | Status |
 
-### 1.2 Tabela `task_subtasks` (Checklist)
-Armazena subtarefas/itens de checklist.
+### Fase 2: Campo de Media Manual no Insumo
 
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | uuid | Chave primaria |
-| task_id | uuid | FK para tasks |
-| titulo | text | Titulo do item |
-| concluido | boolean | Status de conclusao |
-| ordem | integer | Ordem de exibicao |
-| created_at | timestamp | Data de criacao |
+Adicionar campos na tabela `insumos`:
 
-### 1.3 Tabela `task_history` (Auditoria)
-Registra todas as alteracoes feitas nas tarefas.
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
+| media_diaria_manual | numeric | Media definida manualmente |
+| usar_media_manual | boolean | Se deve usar a media manual em vez da calculada |
+| fornecedor_id | uuid | FK para tabela fornecedores (opcional, mantem compatibilidade) |
 
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | uuid | Chave primaria |
-| task_id | uuid | FK para tasks |
-| user_id | uuid | Quem alterou |
-| user_name | text | Nome do usuario |
-| campo | text | Campo alterado |
-| valor_anterior | text | Valor antes |
-| valor_novo | text | Valor depois |
-| created_at | timestamp | Data da alteracao |
+### Fase 3: Alteracoes na Logica de Calculo
 
-### 1.4 Alteracoes na Tabela `tasks`
-Adicionar novos campos:
+Modificar `estoqueCalculations.ts` para:
+1. Aceitar parametro `media_diaria_manual`
+2. Usar media manual quando `usar_media_manual = true`
+3. Continuar usando calculo automatico caso contrario
 
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| concluida_em | timestamp | Data de conclusao |
-| arquivada | boolean | Se foi arquivada |
-| recorrencia | text | Tipo de recorrencia (diaria, semanal, mensal, null) |
-| recorrencia_fim | date | Data fim da recorrencia |
+### Fase 4: Interface do Usuario
 
-### 1.5 Politicas RLS
-- Todas as tabelas terao RLS baseado em `unidade_id` herdado da tarefa pai
-- Realtime habilitado para `task_comments` e `task_subtasks`
+**4.1 Modal de Gestao de Fornecedores**
+- Novo botao "Fornecedores" no header do estoque
+- CRUD completo de fornecedores
+- Exibicao do lead time de cada fornecedor
 
----
+**4.2 Formulario de Edicao do Insumo (Atualizado)**
+- Select para escolher fornecedor (puxa lead time automaticamente)
+- Campo "Media Diaria Manual" com checkbox "Usar media manual"
+- Preview do calculo com a media escolhida
 
-## Fase 2: KPIs e Dashboard
-
-### 2.1 Componente `TarefasKPIGrid`
-Grid de metricas no topo da pagina com 4 KPIs:
-
-```text
-+------------------+------------------+------------------+------------------+
-|   Total Tarefas  | Tarefas Atrasadas|   Em Andamento   |    Concluidas    |
-|       25         |        3         |        8         |       14         |
-|                  |   (destaque red) |                  |  (este mes)      |
-+------------------+------------------+------------------+------------------+
-```
-
-### 2.2 Logica de Calculo
-- **Total**: Todas as tarefas ativas (nao arquivadas)
-- **Atrasadas**: `prazo < hoje` E `status != concluida`
-- **Em Andamento**: `status = em_andamento`
-- **Concluidas (mes)**: `concluida_em` no mes atual
-
----
-
-## Fase 3: Busca e Filtros no Kanban
-
-### 3.1 Barra de Busca
-Campo de texto que filtra tarefas por:
-- Titulo (parcial, case-insensitive)
-- Descricao (parcial)
-- Responsavel
-
-### 3.2 Filtros no Kanban
-Adicionar dropdowns acima das colunas:
-- Filtro por **Responsavel**
-- Filtro por **Prioridade**
-- Filtro por **Setor**
-
-### 3.3 Ordenacao dentro das Colunas
-Ordenar cards por:
-1. Prioridade (Alta > Media > Baixa)
-2. Prazo (mais proximo primeiro)
-
----
-
-## Fase 4: Comentarios nas Tarefas
-
-### 4.1 Secao no Modal
-Adicionar aba ou secao no `TarefaModal`:
-- Lista de comentarios existentes (mais recente primeiro)
-- Campo para novo comentario
-- Nome do usuario e data em cada comentario
-
-### 4.2 Hook `useTaskComments`
-- `fetchComments(taskId)`
-- `addComment(taskId, content)`
-- Realtime subscription para novos comentarios
-
----
-
-## Fase 5: Subtarefas/Checklist
-
-### 5.1 Componente `TaskSubtasks`
-Lista de itens com checkbox no modal:
-- Adicionar novo item
-- Marcar como concluido
-- Excluir item
-- Reordenar (arrastar)
-
-### 5.2 Indicador no Card
-Mostrar progresso no `TarefaCard`:
-```text
-[ ] 3/5 itens concluidos
-```
-
----
-
-## Fase 6: Melhorias Visuais
-
-### 6.1 Badge de Atrasada no Card
-Se `prazo < hoje` e `status != concluida`:
-- Badge vermelha "ATRASADA"
-- Borda vermelha no card
-
-### 6.2 Avatar/Iniciais do Responsavel
-Mostrar iniciais do responsavel em um circulo colorido.
-
-### 6.3 Metadados no Card
-- Quem criou: "Criado por JOAO"
-- Data de conclusao (quando aplicavel)
-
----
-
-## Fase 7: Historico de Alteracoes
-
-### 7.1 Trigger de Auditoria
-Trigger no banco que registra alteracoes em:
-- status, prioridade, responsavel, prazo, titulo
-
-### 7.2 Visualizacao no Modal
-Aba "Historico" mostrando timeline de alteracoes:
-```text
-15/01 14:30 - MARIA alterou status: A Fazer -> Em Andamento
-14/01 09:00 - JOAO alterou prazo: 20/01 -> 25/01
-```
-
----
-
-## Fase 8: Exportacao
-
-### 8.1 Botao Exportar
-Adicionar botao no header da pagina com opcoes:
-- Exportar PDF
-- Exportar Excel
-
-### 8.2 Conteudo do Relatorio
-- Lista de tarefas com todos os campos
-- Filtros aplicados
-- Data de geracao
-
----
-
-## Fase 9: Arquivamento
-
-### 9.1 Acao de Arquivar
-Em vez de excluir, opção de arquivar:
-- Define `arquivada = true`
-- Remove da visualizacao padrao
-
-### 9.2 Filtro de Arquivadas
-Toggle para mostrar/ocultar tarefas arquivadas.
-
----
-
-## Fase 10: Multiplos Responsaveis (Opcional)
-
-### 10.1 Alteracao no Banco
-Alterar `responsavel` de text para array ou criar tabela de relacao.
-
-### 10.2 UI Multi-Select
-Permitir selecionar multiplos usuarios no modal.
-
----
-
-## Arquivos a Criar/Modificar
-
-### Novos Arquivos
-| Arquivo | Descricao |
-|---------|-----------|
-| `src/hooks/useTaskComments.ts` | Hook para comentarios |
-| `src/hooks/useTaskSubtasks.ts` | Hook para subtarefas |
-| `src/components/tarefas/TarefasKPIGrid.tsx` | Grid de KPIs |
-| `src/components/tarefas/TaskComments.tsx` | Componente de comentarios |
-| `src/components/tarefas/TaskSubtasks.tsx` | Componente de checklist |
-| `src/components/tarefas/TaskHistory.tsx` | Timeline de historico |
-| `src/components/tarefas/TarefasFilters.tsx` | Filtros do Kanban |
-| `src/components/tarefas/TarefasExport.tsx` | Exportacao PDF/Excel |
-
-### Arquivos a Modificar
-| Arquivo | Alteracoes |
-|---------|------------|
-| `src/hooks/useTarefasData.ts` | Adicionar campos, funcao arquivar |
-| `src/components/tarefas/TarefaCard.tsx` | Badge atrasada, iniciais, progresso checklist |
-| `src/components/tarefas/TarefaModal.tsx` | Tabs (Detalhes, Comentarios, Checklist, Historico) |
-| `src/components/tarefas/TarefasKanban.tsx` | Filtros e ordenacao |
-| `src/pages/GestaoTarefas.tsx` | KPIs, busca, exportacao, toggle arquivadas |
+**4.3 AjustarMinimosModal Aprimorado**
+- Opcao para considerar media manual quando disponivel
+- Preview mostrando qual fonte de media sera usada
 
 ---
 
 ## Detalhes Tecnicos
 
 ### Migracao SQL
+
 ```sql
--- Comentarios
-CREATE TABLE task_comments (
+-- Tabela de fornecedores
+CREATE TABLE fornecedores (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  task_id uuid REFERENCES tasks(id) ON DELETE CASCADE,
-  user_id uuid,
-  user_name text NOT NULL,
-  content text NOT NULL,
-  created_at timestamptz DEFAULT now()
+  unidade_id uuid REFERENCES unidades(id),
+  nome text NOT NULL,
+  lead_time_dias integer NOT NULL DEFAULT 3,
+  telefone text,
+  email text,
+  observacoes text,
+  ativo boolean NOT NULL DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
 );
 
--- Subtarefas
-CREATE TABLE task_subtasks (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  task_id uuid REFERENCES tasks(id) ON DELETE CASCADE,
-  titulo text NOT NULL,
-  concluido boolean DEFAULT false,
-  ordem integer DEFAULT 0,
-  created_at timestamptz DEFAULT now()
-);
+-- Novos campos em insumos
+ALTER TABLE insumos ADD COLUMN media_diaria_manual numeric;
+ALTER TABLE insumos ADD COLUMN usar_media_manual boolean DEFAULT false;
+ALTER TABLE insumos ADD COLUMN fornecedor_id uuid REFERENCES fornecedores(id);
 
--- Historico
-CREATE TABLE task_history (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  task_id uuid REFERENCES tasks(id) ON DELETE CASCADE,
-  user_id uuid,
-  user_name text NOT NULL,
-  campo text NOT NULL,
-  valor_anterior text,
-  valor_novo text,
-  created_at timestamptz DEFAULT now()
-);
+-- RLS
+ALTER TABLE fornecedores ENABLE ROW LEVEL SECURITY;
 
--- Novos campos em tasks
-ALTER TABLE tasks ADD COLUMN concluida_em timestamptz;
-ALTER TABLE tasks ADD COLUMN arquivada boolean DEFAULT false;
-ALTER TABLE tasks ADD COLUMN recorrencia text;
-ALTER TABLE tasks ADD COLUMN recorrencia_fim date;
-
--- RLS e Realtime
-ALTER TABLE task_comments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE task_subtasks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE task_history ENABLE ROW LEVEL SECURITY;
-ALTER PUBLICATION supabase_realtime ADD TABLE task_comments;
-ALTER PUBLICATION supabase_realtime ADD TABLE task_subtasks;
+-- Indices
+CREATE INDEX idx_fornecedores_unidade ON fornecedores(unidade_id);
+CREATE INDEX idx_insumos_fornecedor ON insumos(fornecedor_id);
 ```
 
-### Trigger de Auditoria
-```sql
-CREATE OR REPLACE FUNCTION log_task_changes()
-RETURNS trigger AS $$
-BEGIN
-  IF OLD.status IS DISTINCT FROM NEW.status THEN
-    INSERT INTO task_history (task_id, user_id, user_name, campo, valor_anterior, valor_novo)
-    VALUES (NEW.id, auth.uid(), 'SISTEMA', 'status', OLD.status, NEW.status);
-  END IF;
-  -- Repetir para outros campos...
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+### Calculo Atualizado
 
-CREATE TRIGGER task_audit_trigger
-AFTER UPDATE ON tasks
-FOR EACH ROW EXECUTE FUNCTION log_task_changes();
+```typescript
+// Em estoqueCalculations.ts
+export interface CalculoEstoqueParams {
+  // ... campos existentes
+  media_diaria_manual?: number | null;
+  usar_media_manual?: boolean;
+}
+
+export function calcularMetricasEstoque(params: CalculoEstoqueParams) {
+  // Se usar media manual e ela estiver definida
+  if (params.usar_media_manual && params.media_diaria_manual && params.media_diaria_manual > 0) {
+    media_diaria_raw = params.media_diaria_manual;
+  } else {
+    // Calculo automatico existente
+    media_diaria_raw = calcularMediaDiaria(...);
+  }
+  // ... resto do calculo
+}
 ```
 
 ---
 
-## Ordem de Implementacao
+## Arquivos a Criar
 
-1. **Banco de Dados** - Criar tabelas e politicas
-2. **KPIs** - Adicionar metricas no topo
-3. **Filtros Kanban** - Busca e filtros
-4. **Comentarios** - Sistema de comentarios
-5. **Subtarefas** - Checklist
-6. **Melhorias Visuais** - Badges, avatares
-7. **Historico** - Auditoria
-8. **Exportacao** - PDF/Excel
-9. **Arquivamento** - Substituir exclusao
-10. **Recorrencia** - Tarefas automaticas (futuro)
+| Arquivo | Descricao |
+|---------|-----------|
+| `src/components/estoque/FornecedoresModal.tsx` | CRUD de fornecedores |
+| `src/hooks/useFornecedores.ts` | Hook para gerenciar fornecedores |
 
+## Arquivos a Modificar
+
+| Arquivo | Alteracao |
+|---------|-----------|
+| `src/utils/estoqueCalculations.ts` | Suporte a media manual |
+| `src/pages/EstoqueInterno.tsx` | Botao fornecedores, select fornecedor, campos media manual |
+| `src/components/estoque/AjustarMinimosModal.tsx` | Preview com fonte da media |
+| `src/integrations/supabase/types.ts` | Novos tipos (auto-gerado) |
+
+---
+
+## Fluxo de Uso
+
+1. **Cadastrar Fornecedores**: Admin vai em "Fornecedores" e cadastra DAVISA (lead 1-2 dias), NANITAS (lead 4 dias), SOLDIERS (lead 12 dias)
+2. **Associar ao Insumo**: Ao editar insumo, seleciona o fornecedor - lead time e preenchido automaticamente
+3. **Definir Media Manual**: Para produtos sem historico, marca "Usar media manual" e define o consumo estimado (ex: 0.5/dia)
+4. **Ajustar Minimos**: O modal mostra claramente qual fonte de media esta sendo usada (automatica ou manual)
+
+---
+
+## Beneficios
+
+- Gerenciamento centralizado de fornecedores e seus prazos de entrega
+- Media manual para produtos novos ou com consumo irregular
+- Lead time consistente por fornecedor em todos os insumos
+- Melhor previsibilidade para ambas as unidades (Zona Norte e Zona Sul)
