@@ -142,12 +142,6 @@ export function TarefaCard({ task, onClick, isDragging, compact = false }: Taref
           >
             {prioridadeConfig?.label}
           </Badge>
-          <Badge
-            variant="outline"
-            className="text-[10px] px-1.5 py-0 h-5 bg-muted/50"
-          >
-            {task.setor}
-          </Badge>
         </div>
 
         {/* Responsável with avatar */}
@@ -185,6 +179,7 @@ export function TarefaCard({ task, onClick, isDragging, compact = false }: Taref
             <Calendar className="w-3 h-3" />
             <span>
               {format(new Date(task.prazo), "dd 'de' MMM", { locale: ptBR })}
+              {task.hora_prazo && ` às ${task.hora_prazo.slice(0, 5)}`}
             </span>
           </div>
         )}

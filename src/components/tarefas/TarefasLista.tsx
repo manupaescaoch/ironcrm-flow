@@ -31,7 +31,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import { Task, SETORES, PRIORIDADES, STATUS_CONFIG } from '@/hooks/useTarefasData';
+import { Task, PRIORIDADES, STATUS_CONFIG } from '@/hooks/useTarefasData';
 import { useAuth } from '@/contexts/AuthContext';
 import { isPast, isToday } from 'date-fns';
 
@@ -43,7 +43,7 @@ interface TarefasListaProps {
   onUnarchiveTask?: (taskId: string) => Promise<void>;
 }
 
-type SortField = 'titulo' | 'responsavel' | 'setor' | 'prioridade' | 'prazo' | 'status';
+type SortField = 'titulo' | 'responsavel' | 'prioridade' | 'prazo' | 'status';
 type SortOrder = 'asc' | 'desc';
 
 export function TarefasLista({
@@ -56,7 +56,6 @@ export function TarefasLista({
   const { isAdmin } = useAuth();
   const [filterResponsavel, setFilterResponsavel] = useState('all');
   const [filterPrioridade, setFilterPrioridade] = useState('all');
-  const [filterSetor, setFilterSetor] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortField, setSortField] = useState<SortField>('prazo');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
@@ -72,11 +71,10 @@ export function TarefasLista({
         return false;
       if (filterPrioridade !== 'all' && task.prioridade !== filterPrioridade)
         return false;
-      if (filterSetor !== 'all' && task.setor !== filterSetor) return false;
       if (filterStatus !== 'all' && task.status !== filterStatus) return false;
       return true;
     });
-  }, [tasks, filterResponsavel, filterPrioridade, filterSetor, filterStatus]);
+  }, [tasks, filterResponsavel, filterPrioridade, filterStatus]);
 
   const sortedTasks = useMemo(() => {
     return [...filteredTasks].sort((a, b) => {
@@ -88,9 +86,6 @@ export function TarefasLista({
           break;
         case 'responsavel':
           comparison = a.responsavel.localeCompare(b.responsavel);
-          break;
-        case 'setor':
-          comparison = a.setor.localeCompare(b.setor);
           break;
         case 'prioridade':
           const prioridadeOrder = { alta: 0, media: 1, baixa: 2 };
@@ -151,19 +146,6 @@ export function TarefasLista({
           </SelectContent>
         </Select>
 
-        <Select value={filterSetor} onValueChange={setFilterSetor}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Setor" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos setores</SelectItem>
-            {SETORES.map((setor) => (
-              <SelectItem key={setor} value={setor}>
-                {setor}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
 
         <Select value={filterPrioridade} onValueChange={setFilterPrioridade}>
           <SelectTrigger className="w-[160px]">
@@ -219,15 +201,6 @@ export function TarefasLista({
               </TableHead>
               <TableHead
                 className="cursor-pointer hover:bg-muted/50"
-                onClick={() => handleSort('setor')}
-              >
-                <div className="flex items-center gap-2">
-                  Setor
-                  <ArrowUpDown className="w-4 h-4" />
-                </div>
-              </TableHead>
-              <TableHead
-                className="cursor-pointer hover:bg-muted/50"
                 onClick={() => handleSort('prioridade')}
               >
                 <div className="flex items-center gap-2">
@@ -260,7 +233,7 @@ export function TarefasLista({
             {sortedTasks.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={6}
                   className="h-24 text-center text-muted-foreground"
                 >
                   Nenhuma tarefa encontrada
@@ -293,11 +266,6 @@ export function TarefasLista({
                       </div>
                     </TableCell>
                     <TableCell>{task.responsavel}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {task.setor}
-                      </Badge>
-                    </TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"

@@ -29,7 +29,6 @@ export default function GestaoTarefas() {
     search: '',
     responsavel: '',
     prioridade: '',
-    setor: '',
   });
 
   // Filter tasks

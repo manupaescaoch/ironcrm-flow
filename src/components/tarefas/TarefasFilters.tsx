@@ -9,13 +9,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Task, SETORES, PRIORIDADES } from '@/hooks/useTarefasData';
+import { Task, PRIORIDADES } from '@/hooks/useTarefasData';
 
 export interface TarefasFiltersState {
   search: string;
   responsavel: string;
   prioridade: string;
-  setor: string;
 }
 
 interface TarefasFiltersProps {
@@ -38,15 +37,13 @@ export function TarefasFilters({
   const hasActiveFilters =
     filters.search ||
     filters.responsavel ||
-    filters.prioridade ||
-    filters.setor;
+    filters.prioridade;
 
   const handleClearFilters = () => {
     onFiltersChange({
       search: '',
       responsavel: '',
       prioridade: '',
-      setor: '',
     });
   };
 
@@ -105,26 +102,6 @@ export function TarefasFilters({
         </SelectContent>
       </Select>
 
-      {/* Setor */}
-      <Select
-        value={filters.setor}
-        onValueChange={(value) =>
-          onFiltersChange({ ...filters, setor: value === 'all' ? '' : value })
-        }
-      >
-        <SelectTrigger className="w-[130px] h-9 text-sm">
-          <SelectValue placeholder="Setor" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos</SelectItem>
-          {SETORES.map((setor) => (
-            <SelectItem key={setor} value={setor}>
-              {setor}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
       {/* Clear Filters */}
       {hasActiveFilters && (
         <Button
@@ -163,11 +140,6 @@ export function filterTasks(
 
     // Prioridade filter
     if (filters.prioridade && task.prioridade !== filters.prioridade) {
-      return false;
-    }
-
-    // Setor filter
-    if (filters.setor && task.setor !== filters.setor) {
       return false;
     }
 
