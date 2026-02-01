@@ -32,6 +32,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface LayoutProps {
   children: ReactNode;
@@ -87,12 +88,15 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
   const SidebarContent = () => (
     <>
       <div className="p-6 border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <img src={logo} alt="Logo" className="w-10 h-10 rounded-lg" />
-          <div>
-            <h1 className="font-bold text-sidebar-foreground">IRON CLUB</h1>
-            <p className="text-xs text-muted-foreground">CRM</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="Logo" className="w-10 h-10 rounded-lg" />
+            <div>
+              <h1 className="font-bold text-sidebar-foreground">IRON CLUB</h1>
+              <p className="text-xs text-muted-foreground">CRM</p>
+            </div>
           </div>
+          <NotificationBell className="text-sidebar-foreground hover:bg-sidebar-accent/50" />
         </div>
       </div>
 
@@ -247,11 +251,14 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
             <img src={logo} alt="Logo" className="w-8 h-8 rounded-lg" />
             <span className="font-bold text-sidebar-foreground">IRON CLUB</span>
           </div>
-          {unidadeAtual && (
-            <Badge variant="outline" className="ml-auto text-xs">
-              {unidadeAtual.nome}
-            </Badge>
-          )}
+          <div className="ml-auto flex items-center gap-2">
+            {unidadeAtual && (
+              <Badge variant="outline" className="text-xs">
+                {unidadeAtual.nome}
+              </Badge>
+            )}
+            <NotificationBell className="text-sidebar-foreground" />
+          </div>
         </div>
       )}
 
