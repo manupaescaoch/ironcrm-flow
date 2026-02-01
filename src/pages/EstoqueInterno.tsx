@@ -26,6 +26,10 @@ import { HistoricoMovimentacoes } from '@/components/estoque/HistoricoMovimentac
 import { EstoqueNavigation } from '@/components/estoque/EstoqueNavigation';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { AjustarMinimosModal, type AjustarMinimosItem } from '@/components/estoque/AjustarMinimosModal';
+import { FornecedoresModal } from '@/components/estoque/FornecedoresModal';
+import { useFornecedores } from '@/hooks/useFornecedores';
+import { Switch } from '@/components/ui/switch';
+import { Truck } from 'lucide-react';
 
 const CATEGORIAS = ['Copa e Recepção', 'Suplementos (uso interno)', 'Limpeza', 'Descartáveis', 'Higiene Pessoal'] as const;
 const UNIDADES = ['un', 'pacote', 'litro', 'kg', 'caixa'] as const;
@@ -47,6 +51,10 @@ type Insumo = {
   fornecedor_padrao: string | null;
   quantidade_minima_compra: number;
   ativo: boolean;
+  // Novos campos para média manual e fornecedor
+  media_diaria_manual: number | null;
+  usar_media_manual: boolean;
+  fornecedor_id: string | null;
 };
 
 type EstoqueInterno = {
@@ -113,6 +121,10 @@ export default function EstoqueInterno() {
   const [filtroStatus, setFiltroStatus] = useState('Todos');
   const [replicarModalOpen, setReplicarModalOpen] = useState(false);
   const [ajustarMinimosOpen, setAjustarMinimosOpen] = useState(false);
+  const [fornecedoresModalOpen, setFornecedoresModalOpen] = useState(false);
+  
+  // Hook de fornecedores
+  const { fornecedores } = useFornecedores(unidadeAtual?.id);
   
   // Form states
   const [novoInsumo, setNovoInsumo] = useState({
@@ -140,6 +152,10 @@ export default function EstoqueInterno() {
     custo_unitario: 0,
     fornecedor_padrao: '',
     quantidade_minima_compra: 1,
+    // Novos campos
+    media_diaria_manual: 0,
+    usar_media_manual: false,
+    fornecedor_id: '' as string | null,
   });
   
   const [movimentacao, setMovimentacao] = useState({
@@ -219,6 +235,9 @@ export default function EstoqueInterno() {
       estoque_seguranca_dias: insumo.estoque_seguranca_dias || 2,
       custo_unitario: insumo.custo_unitario || 0,
       quantidade_minima_compra: insumo.quantidade_minima_compra || 1,
+      // Parâmetros de média manual
+      media_diaria_manual: insumo.media_diaria_manual,
+      usar_media_manual: insumo.usar_media_manual,
     });
     
     // Última retirada
@@ -408,6 +427,10 @@ export default function EstoqueInterno() {
         custo_unitario: data.custo_unitario,
         fornecedor_padrao: data.fornecedor_padrao || null,
         quantidade_minima_compra: data.quantidade_minima_compra,
+        // Novos campos
+        media_diaria_manual: data.usar_media_manual && data.media_diaria_manual > 0 ? data.media_diaria_manual : null,
+        usar_media_manual: data.usar_media_manual,
+        fornecedor_id: data.fornecedor_id || null,
       }).eq('id', data.id);
       if (error) throw error;
     },
@@ -525,6 +548,9 @@ export default function EstoqueInterno() {
             estoque_seguranca_dias: insumo.estoque_seguranca_dias || 2,
             custo_unitario: insumo.custo_unitario || 0,
             quantidade_minima_compra: insumo.quantidade_minima_compra || 1,
+            // Parâmetros de média manual
+            media_diaria_manual: insumo.media_diaria_manual,
+            usar_media_manual: insumo.usar_media_manual,
           });
 
           return {
@@ -644,6 +670,10 @@ export default function EstoqueInterno() {
       custo_unitario: insumo.custo_unitario || 0,
       fornecedor_padrao: insumo.fornecedor_padrao || '',
       quantidade_minima_compra: insumo.quantidade_minima_compra || 1,
+      // Novos campos
+      media_diaria_manual: insumo.media_diaria_manual || 0,
+      usar_media_manual: insumo.usar_media_manual || false,
+      fornecedor_id: insumo.fornecedor_id || null,
     });
     setEditarInsumoOpen(true);
   };
@@ -781,6 +811,15 @@ export default function EstoqueInterno() {
                     <Copy className="w-4 h-4 mr-2" />Importar da ZN
                   </Button>
                 )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFornecedoresModalOpen(true)}
+                  className="gap-2"
+                >
+                  <Truck className="w-4 h-4" />
+                  Fornecedores
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -1674,25 +1713,117 @@ export default function EstoqueInterno() {
                     <ShoppingCart className="h-4 w-4 text-blue-500" />
                     Fornecedor
                   </div>
-                  <div>
-                    <div className="flex items-center gap-1">
-                      <Label className="text-xs text-muted-foreground">Fornecedor Padrão</Label>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p>Nome do fornecedor principal para este item.</p>
-                        </TooltipContent>
-                      </Tooltip>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <Label className="text-xs text-muted-foreground">Fornecedor Cadastrado</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Selecione um fornecedor cadastrado para herdar o lead time automaticamente.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Select 
+                        value={editInsumo.fornecedor_id || 'none'} 
+                        onValueChange={v => {
+                          const fornecedor = fornecedores.find(f => f.id === v);
+                          setEditInsumo(p => ({ 
+                            ...p, 
+                            fornecedor_id: v === 'none' ? null : v,
+                            lead_time_dias: fornecedor ? fornecedor.lead_time_dias : p.lead_time_dias,
+                            fornecedor_padrao: fornecedor ? fornecedor.nome : p.fornecedor_padrao,
+                          }));
+                        }}
+                      >
+                        <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— Nenhum —</SelectItem>
+                          {fornecedores.map(f => (
+                            <SelectItem key={f.id} value={f.id}>
+                              {f.nome} ({f.lead_time_dias}d)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <Input 
-                      value={editInsumo.fornecedor_padrao} 
-                      onChange={e => setEditInsumo(p => ({ ...p, fornecedor_padrao: e.target.value }))}
-                      placeholder="Ex: Distribuidora ABC"
-                      className="mt-1"
-                    />
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <Label className="text-xs text-muted-foreground">Fornecedor (texto livre)</Label>
+                      </div>
+                      <Input 
+                        value={editInsumo.fornecedor_padrao} 
+                        onChange={e => setEditInsumo(p => ({ ...p, fornecedor_padrao: e.target.value }))}
+                        placeholder="Ex: Distribuidora ABC"
+                        className="mt-1"
+                      />
+                    </div>
                   </div>
+                </div>
+
+                {/* Seção: Média Manual (NOVA) */}
+                <div className="rounded-lg border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10 p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                      <BarChart3 className="h-4 w-4" />
+                      Média de Consumo Manual
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="usar-media-manual" className="text-xs text-muted-foreground">
+                        Usar média manual
+                      </Label>
+                      <Switch
+                        id="usar-media-manual"
+                        checked={editInsumo.usar_media_manual}
+                        onCheckedChange={(checked) => setEditInsumo(p => ({ ...p, usar_media_manual: checked }))}
+                      />
+                    </div>
+                  </div>
+                  
+                  {editInsumo.usar_media_manual && (
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <Label className="text-xs text-muted-foreground">Consumo médio diário (unidades/dia)</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Defina manualmente a média de consumo diário para produtos novos ou com consumo irregular.</p>
+                            <p className="text-xs mt-1">Ex: 0.5 = meia unidade por dia</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input 
+                        type="number" 
+                        step="0.1"
+                        min={0}
+                        value={editInsumo.media_diaria_manual} 
+                        onChange={e => setEditInsumo(p => ({ ...p, media_diaria_manual: parseFloat(e.target.value) || 0 }))}
+                        placeholder="Ex: 0.5"
+                        className="mt-1"
+                      />
+                      {editInsumo.media_diaria_manual > 0 && (
+                        <div className="mt-2 p-2 bg-primary/10 rounded text-xs text-muted-foreground">
+                          <p>
+                            <strong>Ponto de Pedido estimado:</strong>{' '}
+                            {Math.ceil((editInsumo.lead_time_dias + editInsumo.estoque_seguranca_dias) * editInsumo.media_diaria_manual)} unidades
+                          </p>
+                          <p className="mt-1">
+                            Fórmula: ({editInsumo.lead_time_dias} dias lead + {editInsumo.estoque_seguranca_dias} dias segurança) × {editInsumo.media_diaria_manual}/dia
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {!editInsumo.usar_media_manual && (
+                    <p className="text-xs text-muted-foreground">
+                      O sistema calculará a média automaticamente com base nas retiradas dos últimos 30 dias.
+                    </p>
+                  )}
                 </div>
                 
                 <Button onClick={handleEditarInsumo} className="w-full h-11 text-base font-medium" disabled={editarInsumoMutation.isPending}>
@@ -2055,11 +2186,19 @@ export default function EstoqueInterno() {
           nome_insumo: i.nome_insumo,
           quantidade_minima: i.quantidade_minima ?? 0,
           ponto_pedido: i.ponto_pedido ?? 0,
+          usar_media_manual: (i as any).usar_media_manual,
+          media_diaria_manual: (i as any).media_diaria_manual,
         }))}
         canApplyAllUnidades={hasMultipleUnidades}
         unidadesCount={unidadesPermitidas?.length ?? 0}
         isApplying={aplicarMinimoLoteMutation.isPending}
         onApply={(opts) => aplicarMinimoLoteMutation.mutate(opts)}
+      />
+
+      <FornecedoresModal
+        open={fornecedoresModalOpen}
+        onOpenChange={setFornecedoresModalOpen}
+        unidadeId={unidadeAtual?.id}
       />
     </Layout>
   );

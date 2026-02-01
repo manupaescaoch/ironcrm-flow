@@ -175,6 +175,53 @@ export type Database = {
           },
         ]
       }
+      fornecedores: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          email: string | null
+          id: string
+          lead_time_dias: number
+          nome: string
+          observacoes: string | null
+          telefone: string | null
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          lead_time_dias?: number
+          nome: string
+          observacoes?: string | null
+          telefone?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          lead_time_dias?: number
+          nome?: string
+          observacoes?: string | null
+          telefone?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedores_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       insumos: {
         Row: {
           ativo: boolean
@@ -183,15 +230,18 @@ export type Database = {
           created_at: string
           custo_unitario: number
           estoque_seguranca_dias: number
+          fornecedor_id: string | null
           fornecedor_padrao: string | null
           id: string
           lead_time_dias: number
+          media_diaria_manual: number | null
           nome_insumo: string
           quantidade_minima: number
           quantidade_minima_compra: number
           unidade_id: string | null
           unidade_medida: string
           updated_at: string
+          usar_media_manual: boolean
         }
         Insert: {
           ativo?: boolean
@@ -200,15 +250,18 @@ export type Database = {
           created_at?: string
           custo_unitario?: number
           estoque_seguranca_dias?: number
+          fornecedor_id?: string | null
           fornecedor_padrao?: string | null
           id?: string
           lead_time_dias?: number
+          media_diaria_manual?: number | null
           nome_insumo: string
           quantidade_minima?: number
           quantidade_minima_compra?: number
           unidade_id?: string | null
           unidade_medida: string
           updated_at?: string
+          usar_media_manual?: boolean
         }
         Update: {
           ativo?: boolean
@@ -217,17 +270,27 @@ export type Database = {
           created_at?: string
           custo_unitario?: number
           estoque_seguranca_dias?: number
+          fornecedor_id?: string | null
           fornecedor_padrao?: string | null
           id?: string
           lead_time_dias?: number
+          media_diaria_manual?: number | null
           nome_insumo?: string
           quantidade_minima?: number
           quantidade_minima_compra?: number
           unidade_id?: string | null
           unidade_medida?: string
           updated_at?: string
+          usar_media_manual?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "insumos_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "insumos_unidade_id_fkey"
             columns: ["unidade_id"]
