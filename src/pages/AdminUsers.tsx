@@ -62,6 +62,7 @@ interface UserData {
   created_at: string;
   last_sign_in_at: string | null;
   unidade_ids: string[];
+  telefone: string | null;
 }
 
 type FetchError = {
@@ -92,6 +93,7 @@ export default function AdminUsers() {
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState<string>('comercial');
   const [newUserUnidades, setNewUserUnidades] = useState<string[]>([]);
+  const [newUserPhone, setNewUserPhone] = useState('');
   
   // Edit name state
   const [editNameDialogOpen, setEditNameDialogOpen] = useState(false);
@@ -104,6 +106,12 @@ export default function AdminUsers() {
   const [editingUnidadesUser, setEditingUnidadesUser] = useState<UserData | null>(null);
   const [editUnidadeIds, setEditUnidadeIds] = useState<string[]>([]);
   const [updatingUnidades, setUpdatingUnidades] = useState(false);
+  
+  // Edit phone state
+  const [editPhoneDialogOpen, setEditPhoneDialogOpen] = useState(false);
+  const [editingPhoneUser, setEditingPhoneUser] = useState<UserData | null>(null);
+  const [editPhone, setEditPhone] = useState('');
+  const [updatingPhone, setUpdatingPhone] = useState(false);
   
   // Uppercase update state
   const [updatingUppercase, setUpdatingUppercase] = useState(false);
@@ -248,7 +256,8 @@ export default function AdminUsers() {
           email: newUserEmail, 
           password: newUserPassword,
           role: newUserRole,
-          unidade_ids: newUserUnidades
+          unidade_ids: newUserUnidades,
+          telefone: newUserPhone.trim() || null
         },
         headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
       });
@@ -267,6 +276,7 @@ export default function AdminUsers() {
       setNewUserPassword('');
       setNewUserRole('comercial');
       setNewUserUnidades([]);
+      setNewUserPhone('');
       setCreateDialogOpen(false);
 
       // Refresh list
@@ -468,6 +478,58 @@ export default function AdminUsers() {
       });
     } finally {
       setUpdatingUnidades(false);
+    }
+  };
+
+  const handleEditPhone = (user: UserData) => {
+    setEditingPhoneUser(user);
+    setEditPhone(user.telefone || '');
+    setEditPhoneDialogOpen(true);
+  };
+
+  const handleUpdatePhone = async () => {
+    if (!editingPhoneUser) return;
+
+    setUpdatingPhone(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.access_token) {
+        toast({ title: 'Sessão expirada', description: 'Faça login novamente.', variant: 'destructive' });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('update-user-phone', {
+        body: { userId: editingPhoneUser.id, telefone: editPhone.trim() || null },
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Update local state
+      setUsers(prev =>
+        prev.map(user =>
+          user.id === editingPhoneUser.id ? { ...user, telefone: editPhone.trim() || null } : user
+        )
+      );
+
+      toast({
+        title: 'Telefone atualizado!',
+        description: 'O telefone do usuário foi atualizado.',
+      });
+
+      setEditPhoneDialogOpen(false);
+      setEditingPhoneUser(null);
+      setEditPhone('');
+    } catch (error: any) {
+      console.error('Error updating phone:', error);
+      toast({
+        title: 'Erro ao atualizar telefone',
+        description: error.message || 'Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdatingPhone(false);
     }
   };
 
@@ -679,6 +741,7 @@ export default function AdminUsers() {
                   <TableRow>
                     <TableHead>Nome</TableHead>
                     <TableHead>Email</TableHead>
+                    <TableHead>Telefone</TableHead>
                     <TableHead>Unidades</TableHead>
                     <TableHead>Role Atual</TableHead>
                     <TableHead>Alterar Role</TableHead>
@@ -710,6 +773,22 @@ export default function AdminUsers() {
                         {currentUser?.id === user.id && (
                           <Badge variant="outline" className="ml-2 text-xs">Você</Badge>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">
+                            {user.telefone || '-'}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => handleEditPhone(user)}
+                            title="Editar telefone"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -875,6 +954,19 @@ export default function AdminUsers() {
                 Selecione as unidades que o usuário terá acesso
               </p>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Telefone (para notificações WhatsApp)</Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="(11) 99999-9999"
+                value={newUserPhone}
+                onChange={(e) => setNewUserPhone(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Este telefone será usado para enviar notificações de tarefas
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
@@ -994,6 +1086,42 @@ export default function AdminUsers() {
             </Button>
             <Button onClick={handleUpdateUnidades} disabled={updatingUnidades}>
               {updatingUnidades && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Phone Dialog */}
+      <Dialog open={editPhoneDialogOpen} onOpenChange={setEditPhoneDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Telefone</DialogTitle>
+            <DialogDescription>
+              Altere o telefone do usuário <strong>{editingPhoneUser?.name || editingPhoneUser?.email}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">Telefone (com DDD)</Label>
+              <Input
+                id="edit-phone"
+                type="tel"
+                placeholder="(11) 99999-9999"
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Este telefone será usado para enviar notificações de tarefas via WhatsApp
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditPhoneDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdatePhone} disabled={updatingPhone}>
+              {updatingPhone && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Salvar
             </Button>
           </DialogFooter>
