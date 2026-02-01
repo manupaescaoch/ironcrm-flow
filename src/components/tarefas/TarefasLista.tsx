@@ -38,6 +38,7 @@ import { isPast, isToday } from 'date-fns';
 interface TarefasListaProps {
   tasks: Task[];
   onTaskClick: (task: Task) => void;
+  onArchiveTask: (taskId: string) => Promise<void>;
   onDeleteTask: (taskId: string) => Promise<void>;
   showArchived?: boolean;
   onUnarchiveTask?: (taskId: string) => Promise<void>;
@@ -49,6 +50,7 @@ type SortOrder = 'asc' | 'desc';
 export function TarefasLista({
   tasks,
   onTaskClick,
+  onArchiveTask,
   onDeleteTask,
   showArchived = false,
   onUnarchiveTask,
@@ -340,7 +342,7 @@ export function TarefasLista({
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                                     <AlertDialogAction
-                                      onClick={() => onDeleteTask(task.id)}
+                                      onClick={() => onArchiveTask(task.id)}
                                     >
                                       Arquivar
                                     </AlertDialogAction>
@@ -348,6 +350,39 @@ export function TarefasLista({
                                 </AlertDialogContent>
                               </AlertDialog>
                             )}
+                            
+                            {/* Delete button - permanent deletion */}
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                  title="Excluir tarefa permanentemente"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Excluir tarefa permanentemente?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Esta ação não pode ser desfeita. A tarefa será excluída permanentemente do sistema.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    onClick={() => onDeleteTask(task.id)}
+                                  >
+                                    Excluir
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </>
                         )}
                       </div>
