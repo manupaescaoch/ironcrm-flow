@@ -17,6 +17,8 @@ export type AjustarMinimosItem = {
   nome_insumo: string;
   quantidade_minima: number;
   ponto_pedido: number;
+  usar_media_manual?: boolean;
+  media_diaria_manual?: number | null;
 };
 
 type Props = {
@@ -48,7 +50,8 @@ export function AjustarMinimosModal({
       : itens;
 
     const comPontoPedido = candidatos.filter((i) => (i.ponto_pedido ?? 0) > 0);
-    return { total, candidatos: candidatos.length, comPontoPedido: comPontoPedido.length };
+    const comMediaManual = candidatos.filter((i) => i.usar_media_manual && (i.media_diaria_manual ?? 0) > 0);
+    return { total, candidatos: candidatos.length, comPontoPedido: comPontoPedido.length, comMediaManual: comMediaManual.length };
   }, [itens, onlyIfEmptyOrDifferent]);
 
   return (
@@ -72,13 +75,18 @@ export function AjustarMinimosModal({
             <div className="text-sm text-muted-foreground mt-1">
               Itens que serão ajustados: <strong className="text-foreground">{preview.candidatos}</strong>
             </div>
+            {preview.comMediaManual > 0 && (
+              <div className="text-sm text-muted-foreground mt-1">
+                <span className="text-primary">●</span> Usando média manual: <strong className="text-foreground">{preview.comMediaManual}</strong>
+              </div>
+            )}
             {canApplyAllUnidades && (unidadesCount ?? 0) > 1 ? (
               <div className="text-xs text-muted-foreground mt-2">
                 Opcional: você pode aplicar também nas outras unidades (repete o processo por unidade).
               </div>
             ) : null}
             <div className="text-xs text-muted-foreground mt-2">
-              Observação: itens com ponto de pedido = 0 não trazem ganho (sem histórico suficiente).
+              Observação: itens com ponto de pedido = 0 não trazem ganho (sem histórico suficiente ou média manual não configurada).
             </div>
           </div>
 

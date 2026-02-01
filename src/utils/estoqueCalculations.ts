@@ -19,6 +19,9 @@ export interface CalculoEstoqueParams {
   estoque_seguranca_dias: number;
   custo_unitario?: number;
   quantidade_minima_compra?: number;
+  // Campos para média manual
+  media_diaria_manual?: number | null;
+  usar_media_manual?: boolean;
 }
 
 export interface CalculoEstoqueResult {
@@ -164,6 +167,8 @@ export function calcularMetricasEstoque(params: CalculoEstoqueParams): CalculoEs
     estoque_seguranca_dias,
     custo_unitario = 0,
     quantidade_minima_compra = 1,
+    media_diaria_manual,
+    usar_media_manual,
   } = params;
 
   const hoje = new Date();
@@ -177,8 +182,13 @@ export function calcularMetricasEstoque(params: CalculoEstoqueParams): CalculoEs
   // Duração média por unidade
   const duracao_media_por_unidade = calcularDuracaoMediaPorUnidade(retiradas, totalRetirado);
 
-  // Média diária
-  const media_diaria_raw = calcularMediaDiaria(duracao_media_por_unidade, totalRetirado, diasComOperacao);
+  // Média diária: usar média manual se habilitada, caso contrário cálculo automático
+  let media_diaria_raw: number;
+  if (usar_media_manual && media_diaria_manual && media_diaria_manual > 0) {
+    media_diaria_raw = media_diaria_manual;
+  } else {
+    media_diaria_raw = calcularMediaDiaria(duracao_media_por_unidade, totalRetirado, diasComOperacao);
+  }
   const media_diaria = Math.round(media_diaria_raw * 10) / 10;
 
   // Médias semanal e mensal
