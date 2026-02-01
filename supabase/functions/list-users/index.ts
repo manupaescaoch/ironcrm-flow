@@ -128,6 +128,16 @@ Deno.serve(async (req) => {
       // Continue without unidades - not a critical error
     }
 
+    // 8. Get telefones from user_profiles table
+    const { data: userProfiles, error: profilesError } = await supabaseAdmin
+      .from('user_profiles')
+      .select('user_id, telefone');
+
+    if (profilesError) {
+      console.error('Error fetching user profiles:', profilesError);
+      // Continue without profiles - not a critical error
+    }
+
     // Map roles by user_id
     const roleMap = new Map<string, string>();
     if (userRoles && Array.isArray(userRoles)) {
@@ -151,6 +161,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Map telefone by user_id
+    const phoneMap = new Map<string, string | null>();
+    if (userProfiles && Array.isArray(userProfiles)) {
+      userProfiles.forEach((up: { user_id: string; telefone: string | null }) => {
+        phoneMap.set(up.user_id, up.telefone);
+      });
+    }
+
     const formattedUsers = users.map(u => ({
       id: u.id,
       email: u.email || null,
@@ -159,6 +177,7 @@ Deno.serve(async (req) => {
       created_at: u.created_at,
       last_sign_in_at: u.last_sign_in_at || null,
       unidade_ids: unidadesMap.get(u.id) || [],
+      telefone: phoneMap.get(u.id) || null,
     }));
 
     console.log(`Successfully listed ${formattedUsers.length} users`);
