@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
 import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar, User } from 'lucide-react';
+import { Building2, Calendar, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { Task, PRIORIDADES } from '@/hooks/useTarefasData';
+import { useUnidade } from '@/contexts/UnidadeContext';
 
 interface TarefaCardProps {
   task: Task;
@@ -15,10 +16,17 @@ interface TarefaCardProps {
 }
 
 export function TarefaCard({ task, onClick, isDragging, compact = false }: TarefaCardProps) {
+  const { unidades } = useUnidade();
+  
   const prioridadeConfig = useMemo(
     () => PRIORIDADES.find((p) => p.value === task.prioridade),
     [task.prioridade]
   );
+
+  const unidadeNome = useMemo(() => {
+    const unidade = unidades.find((u) => u.id === task.unidade_id);
+    return unidade?.nome || '';
+  }, [unidades, task.unidade_id]);
 
   const prazoStatus = useMemo(() => {
     if (!task.prazo) return null;
@@ -83,6 +91,13 @@ export function TarefaCard({ task, onClick, isDragging, compact = false }: Taref
           <User className="w-3 h-3" />
           <span className="truncate">{task.responsavel}</span>
         </div>
+
+        {unidadeNome && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Building2 className="w-3 h-3" />
+            <span className="truncate">{unidadeNome}</span>
+          </div>
+        )}
 
         {task.prazo && (
           <div
