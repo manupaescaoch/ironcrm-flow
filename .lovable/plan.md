@@ -1,75 +1,93 @@
 
-# Plano: Ajuste de Media Manual e Estoque Minimo por Fornecedor
-
-## ✅ Status: IMPLEMENTADO
+# Plano: Sistema de Notificacoes para Tarefas
 
 ## Contexto Atual
 
-O sistema de estoque atualmente:
-1. Calcula a media diaria automaticamente baseada nas retiradas dos ultimos 30 dias
-2. Cada insumo tem um `lead_time_dias` fixo (tempo de entrega do fornecedor)
-3. O `fornecedor_padrao` e apenas um campo de texto, sem tabela dedicada
-4. O Ponto de Pedido e calculado como: `(Lead Time + Estoque Seguranca) x Media Diaria`
-5. Nao existe possibilidade de definir media manual quando nao ha historico suficiente
+O sistema de tarefas possui:
+1. Campo `responsavel` - armazena o **nome** do responsavel (texto livre, ex: "MANU PAES")
+2. Usuarios tem `name` no `auth.users.raw_user_meta_data` (pode ser null)
+3. Hook `useUnidadeUsers` retorna usuarios da unidade com nome em maiusculas
+4. Nao existe sistema de notificacoes implementado
 
-## Problemas Identificados
+## Problema Identificado
 
-1. **Insumos novos ou sem retiradas** nao tem media calculada (aparece "Aguardando")
-2. **Lead time por fornecedor** esta no insumo, mas o mesmo fornecedor pode ter insumos com lead times diferentes
-3. **Nao existe media manual** para produtos sazonais ou com consumo irregular
-4. **Falta cadastro centralizado de fornecedores** com seus respectivos lead times
+- O campo `responsavel` armazena um **nome** (string), nao um `user_id`
+- Isso dificulta vincular diretamente uma tarefa a um usuario autenticado
+- Para exibir notificacoes no perfil, precisamos:
+  1. Relacionar o nome do responsavel ao usuario logado
+  2. Criar um sistema de notificacoes persistente ou em tempo real
 
 ---
 
 ## Solucao Proposta
 
-### Fase 1: Tabela de Fornecedores
+### Fase 1: Tabela de Notificacoes
 
-Criar tabela `fornecedores` para centralizar informacoes:
+Criar tabela `task_notifications` para persistir notificacoes:
 
 | Campo | Tipo | Descricao |
 |-------|------|-----------|
 | id | uuid | Chave primaria |
-| unidade_id | uuid | FK para unidades |
-| nome | text | Nome do fornecedor |
-| lead_time_dias | integer | Tempo de entrega padrao |
-| telefone | text | Contato |
-| email | text | Email |
-| observacoes | text | Notas |
-| ativo | boolean | Status |
+| task_id | uuid | FK para tasks |
+| user_id | uuid | Usuario destinatario |
+| tipo | text | Tipo: 'nova_tarefa', 'prazo_proximo', 'tarefa_atualizada' |
+| titulo | text | Titulo da notificacao |
+| mensagem | text | Corpo da mensagem |
+| lida | boolean | Se foi lida |
+| created_at | timestamptz | Data de criacao |
 
-### Fase 2: Campo de Media Manual no Insumo
+### Fase 2: Trigger para Gerar Notificacoes
 
-Adicionar campos na tabela `insumos`:
+Criar trigger que dispara quando:
+1. Uma tarefa e criada (notifica o responsavel)
+2. O responsavel de uma tarefa e alterado (notifica o novo responsavel)
+3. Tarefa proxima do prazo (via cron ou trigger)
 
-| Campo | Tipo | Descricao |
-|-------|------|-----------|
-| media_diaria_manual | numeric | Media definida manualmente |
-| usar_media_manual | boolean | Se deve usar a media manual em vez da calculada |
-| fornecedor_id | uuid | FK para tabela fornecedores (opcional, mantem compatibilidade) |
+Desafio: O campo `responsavel` e texto. Precisamos de uma funcao que mapeie nome para `user_id`:
 
-### Fase 3: Alteracoes na Logica de Calculo
+```sql
+-- Funcao para encontrar user_id pelo nome
+CREATE FUNCTION find_user_by_name(p_name text)
+RETURNS uuid AS $$
+  SELECT id FROM auth.users
+  WHERE UPPER(raw_user_meta_data->>'name') = UPPER(p_name)
+  LIMIT 1
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
+```
 
-Modificar `estoqueCalculations.ts` para:
-1. Aceitar parametro `media_diaria_manual`
-2. Usar media manual quando `usar_media_manual = true`
-3. Continuar usando calculo automatico caso contrario
+### Fase 3: Hook useTaskNotifications
 
-### Fase 4: Interface do Usuario
+Criar hook para buscar notificacoes do usuario logado:
 
-**4.1 Modal de Gestao de Fornecedores**
-- Novo botao "Fornecedores" no header do estoque
-- CRUD completo de fornecedores
-- Exibicao do lead time de cada fornecedor
+```typescript
+// src/hooks/useTaskNotifications.ts
+export function useTaskNotifications() {
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  
+  // Buscar notificacoes
+  // Marcar como lida
+  // Realtime subscription
+}
+```
 
-**4.2 Formulario de Edicao do Insumo (Atualizado)**
-- Select para escolher fornecedor (puxa lead time automaticamente)
-- Campo "Media Diaria Manual" com checkbox "Usar media manual"
-- Preview do calculo com a media escolhida
+### Fase 4: Componente de Notificacoes no Layout
 
-**4.3 AjustarMinimosModal Aprimorado**
-- Opcao para considerar media manual quando disponivel
-- Preview mostrando qual fonte de media sera usada
+Adicionar icone de sino (Bell) no header/sidebar com badge de contagem:
+
+```text
++------------------+
+|  [Bell] 3        |  <- Icone com badge vermelho
++------------------+
+      |
+      v
++------------------+
+| Notificacoes     |
+| - Nova tarefa... |
+| - Prazo amanha...|
++------------------+
+```
 
 ---
 
@@ -78,53 +96,100 @@ Modificar `estoqueCalculations.ts` para:
 ### Migracao SQL
 
 ```sql
--- Tabela de fornecedores
-CREATE TABLE fornecedores (
+-- Tabela de notificacoes
+CREATE TABLE public.task_notifications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  unidade_id uuid REFERENCES unidades(id),
-  nome text NOT NULL,
-  lead_time_dias integer NOT NULL DEFAULT 3,
-  telefone text,
-  email text,
-  observacoes text,
-  ativo boolean NOT NULL DEFAULT true,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+  task_id uuid REFERENCES public.tasks(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL,
+  tipo text NOT NULL DEFAULT 'nova_tarefa',
+  titulo text NOT NULL,
+  mensagem text,
+  lida boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Novos campos em insumos
-ALTER TABLE insumos ADD COLUMN media_diaria_manual numeric;
-ALTER TABLE insumos ADD COLUMN usar_media_manual boolean DEFAULT false;
-ALTER TABLE insumos ADD COLUMN fornecedor_id uuid REFERENCES fornecedores(id);
-
 -- RLS
-ALTER TABLE fornecedores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.task_notifications ENABLE ROW LEVEL SECURITY;
 
--- Indices
-CREATE INDEX idx_fornecedores_unidade ON fornecedores(unidade_id);
-CREATE INDEX idx_insumos_fornecedor ON insumos(fornecedor_id);
-```
+-- Usuario so ve suas proprias notificacoes
+CREATE POLICY "Users can view own notifications"
+ON public.task_notifications FOR SELECT
+TO authenticated
+USING (user_id = auth.uid());
 
-### Calculo Atualizado
+CREATE POLICY "Users can update own notifications"
+ON public.task_notifications FOR UPDATE
+TO authenticated
+USING (user_id = auth.uid());
 
-```typescript
-// Em estoqueCalculations.ts
-export interface CalculoEstoqueParams {
-  // ... campos existentes
-  media_diaria_manual?: number | null;
-  usar_media_manual?: boolean;
-}
+-- Indice para performance
+CREATE INDEX idx_task_notifications_user ON public.task_notifications(user_id, lida);
 
-export function calcularMetricasEstoque(params: CalculoEstoqueParams) {
-  // Se usar media manual e ela estiver definida
-  if (params.usar_media_manual && params.media_diaria_manual && params.media_diaria_manual > 0) {
-    media_diaria_raw = params.media_diaria_manual;
-  } else {
-    // Calculo automatico existente
-    media_diaria_raw = calcularMediaDiaria(...);
-  }
-  // ... resto do calculo
-}
+-- Funcao para encontrar usuario pelo nome
+CREATE OR REPLACE FUNCTION public.find_user_by_name(p_name text)
+RETURNS uuid
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT id FROM auth.users
+  WHERE UPPER(COALESCE(raw_user_meta_data->>'name', '')) = UPPER(TRIM(p_name))
+  LIMIT 1
+$$;
+
+-- Trigger para criar notificacao quando tarefa e atribuida
+CREATE OR REPLACE FUNCTION public.notify_task_assignment()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id uuid;
+  v_creator_name text;
+BEGIN
+  -- Encontrar usuario pelo nome do responsavel
+  v_user_id := public.find_user_by_name(NEW.responsavel);
+  
+  -- Se encontrou usuario e nao e o proprio criador
+  IF v_user_id IS NOT NULL AND v_user_id != COALESCE(NEW.created_by, '00000000-0000-0000-0000-000000000000'::uuid) THEN
+    -- Buscar nome do criador
+    SELECT COALESCE(raw_user_meta_data->>'name', email) INTO v_creator_name
+    FROM auth.users WHERE id = NEW.created_by;
+    
+    IF TG_OP = 'INSERT' THEN
+      INSERT INTO public.task_notifications (task_id, user_id, tipo, titulo, mensagem)
+      VALUES (
+        NEW.id,
+        v_user_id,
+        'nova_tarefa',
+        'Nova tarefa atribuida',
+        'Voce foi designado para: ' || NEW.titulo || ' por ' || COALESCE(v_creator_name, 'Sistema')
+      );
+    ELSIF TG_OP = 'UPDATE' AND OLD.responsavel IS DISTINCT FROM NEW.responsavel THEN
+      INSERT INTO public.task_notifications (task_id, user_id, tipo, titulo, mensagem)
+      VALUES (
+        NEW.id,
+        v_user_id,
+        'tarefa_atualizada',
+        'Tarefa transferida para voce',
+        'A tarefa "' || NEW.titulo || '" foi transferida para voce'
+      );
+    END IF;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trigger_notify_task_assignment
+AFTER INSERT OR UPDATE OF responsavel ON public.tasks
+FOR EACH ROW
+EXECUTE FUNCTION public.notify_task_assignment();
+
+-- Habilitar realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE public.task_notifications;
 ```
 
 ---
@@ -133,32 +198,44 @@ export function calcularMetricasEstoque(params: CalculoEstoqueParams) {
 
 | Arquivo | Descricao |
 |---------|-----------|
-| `src/components/estoque/FornecedoresModal.tsx` | CRUD de fornecedores |
-| `src/hooks/useFornecedores.ts` | Hook para gerenciar fornecedores |
+| `src/hooks/useTaskNotifications.ts` | Hook para buscar/gerenciar notificacoes |
+| `src/components/notifications/NotificationBell.tsx` | Componente do sino com dropdown |
+| `src/components/notifications/NotificationItem.tsx` | Item individual de notificacao |
 
 ## Arquivos a Modificar
 
 | Arquivo | Alteracao |
 |---------|-----------|
-| `src/utils/estoqueCalculations.ts` | Suporte a media manual |
-| `src/pages/EstoqueInterno.tsx` | Botao fornecedores, select fornecedor, campos media manual |
-| `src/components/estoque/AjustarMinimosModal.tsx` | Preview com fonte da media |
-| `src/integrations/supabase/types.ts` | Novos tipos (auto-gerado) |
+| `src/components/Layout.tsx` | Adicionar NotificationBell no header |
 
 ---
 
 ## Fluxo de Uso
 
-1. **Cadastrar Fornecedores**: Admin vai em "Fornecedores" e cadastra DAVISA (lead 1-2 dias), NANITAS (lead 4 dias), SOLDIERS (lead 12 dias)
-2. **Associar ao Insumo**: Ao editar insumo, seleciona o fornecedor - lead time e preenchido automaticamente
-3. **Definir Media Manual**: Para produtos sem historico, marca "Usar media manual" e define o consumo estimado (ex: 0.5/dia)
-4. **Ajustar Minimos**: O modal mostra claramente qual fonte de media esta sendo usada (automatica ou manual)
+1. Admin cria tarefa e atribui a "JOAO SILVA" como responsavel
+2. Trigger identifica user_id de "JOAO SILVA" pelo nome
+3. Cria registro em `task_notifications`
+4. Joao ve o sino com badge "1" no sidebar
+5. Ao clicar, ve a lista de notificacoes
+6. Ao clicar em uma notificacao, marca como lida e pode navegar para a tarefa
+
+---
+
+## Consideracoes
+
+**Limitacao do mapeamento por nome:**
+- Se o nome nao bater exatamente (ex: "JOAO" vs "JOAO SILVA"), a notificacao nao sera criada
+- Recomendacao futura: adicionar campo `responsavel_id` na tabela tasks para vinculo direto
+
+**Realtime:**
+- As notificacoes terao update em tempo real via Supabase Realtime
+- O badge atualizara automaticamente quando nova notificacao chegar
 
 ---
 
 ## Beneficios
 
-- Gerenciamento centralizado de fornecedores e seus prazos de entrega
-- Media manual para produtos novos ou com consumo irregular
-- Lead time consistente por fornecedor em todos os insumos
-- Melhor previsibilidade para ambas as unidades (Zona Norte e Zona Sul)
+- Usuarios sao notificados imediatamente quando recebem tarefas
+- Badge visual no menu mostra quantidade de notificacoes nao lidas
+- Historico de notificacoes persistido
+- Possibilidade futura de expandir para outros tipos (vencimentos, follow-ups, etc.)
