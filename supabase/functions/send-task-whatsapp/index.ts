@@ -5,13 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface TaskNotification {
-  task_id: string;
-  task_title: string;
-  responsavel_name: string;
-  tipo: 'nova_tarefa' | 'tarefa_atualizada';
-  creator_name?: string;
-}
+// Interface kept for documentation but made more flexible
 
 /**
  * Normaliza telefone para formato brasileiro (55DDDNUMERO)
@@ -50,26 +44,69 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const body: TaskNotification = await req.json();
-    const { task_id, task_title, responsavel_name, tipo, creator_name } = body;
+    const body = await req.json();
+    const { task_id, task_title, responsavel_name, responsavel, tipo, creator_name, isNewTask } = body;
+    
+    // Support both old and new parameter names
+    const targetName = responsavel_name || responsavel;
+    const notificationType = tipo || (isNewTask ? 'nova_tarefa' : 'tarefa_atualizada');
+    const title = task_title || body.taskTitle;
 
-    console.log(`Processing WhatsApp for task: ${task_id}, responsavel: ${responsavel_name}`);
+    console.log(`Processing WhatsApp for task: ${task_id || 'new'}, responsavel: ${targetName}`);
 
-    // Buscar telefone do responsável usando a função get_user_phone_by_name
-    const { data: phone, error: phoneError } = await supabase.rpc('get_user_phone_by_name', {
-      p_name: responsavel_name
-    });
-
-    if (phoneError) {
-      console.error('Error fetching phone:', phoneError);
+    if (!targetName) {
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch user phone', details: phoneError.message }),
+        JSON.stringify({ error: 'Missing responsavel name' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    // Buscar telefone diretamente via query (evita problema de schema cache com RPC)
+    const { data: userData, error: userError } = await supabase
+      .from('user_profiles')
+      .select('telefone, user_id')
+      .not('telefone', 'is', null)
+      .neq('telefone', '');
+
+    if (userError) {
+      console.error('Error fetching user profiles:', userError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch user profiles', details: userError.message }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
+    // Buscar todos os usuários para fazer match pelo nome
+    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+    
+    if (authError) {
+      console.error('Error fetching auth users:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch users', details: authError.message }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
+    // Encontrar usuário pelo nome
+    const targetUser = authUsers.users.find(u => {
+      const userName = u.user_metadata?.full_name || u.user_metadata?.name || '';
+      return userName.toUpperCase() === targetName.toUpperCase().trim();
+    });
+
+    if (!targetUser) {
+      console.log(`User not found: ${targetName}`);
+      return new Response(
+        JSON.stringify({ success: false, reason: 'user_not_found' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
+    // Encontrar telefone do usuário
+    const userProfile = userData?.find(p => p.user_id === targetUser.id);
+    const phone = userProfile?.telefone;
+
     if (!phone) {
-      console.log(`No phone found for user: ${responsavel_name}`);
+      console.log(`No phone found for user: ${targetName}`);
       return new Response(
         JSON.stringify({ success: false, reason: 'no_phone_registered' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
@@ -81,16 +118,16 @@ Deno.serve(async (req) => {
 
     // Montar mensagem
     let message = '';
-    if (tipo === 'nova_tarefa') {
+    if (notificationType === 'nova_tarefa') {
       message = `📋 *Nova Tarefa Atribuída*\n\n`;
-      message += `Você foi designado para: *${task_title}*\n`;
+      message += `Você foi designado para: *${title}*\n`;
       if (creator_name) {
         message += `Atribuída por: ${creator_name}\n`;
       }
       message += `\nAcesse o sistema para ver os detalhes.`;
     } else {
       message = `🔄 *Tarefa Transferida*\n\n`;
-      message += `A tarefa "*${task_title}*" foi transferida para você.\n`;
+      message += `A tarefa "*${title}*" foi transferida para você.\n`;
       message += `\nAcesse o sistema para ver os detalhes.`;
     }
 
