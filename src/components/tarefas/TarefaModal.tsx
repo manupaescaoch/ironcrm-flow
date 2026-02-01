@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon, Loader2, MessageSquare, CheckSquare, History } from 'lucide-react';
+import { CalendarIcon, Clock, Loader2, MessageSquare, CheckSquare, History } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -29,7 +29,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { Task, TaskInsert, SETORES, PRIORIDADES } from '@/hooks/useTarefasData';
+import { Task, TaskInsert, PRIORIDADES } from '@/hooks/useTarefasData';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useUnidadeUsers } from '@/hooks/useUnidadeUsers';
 import { TaskComments } from './TaskComments';
@@ -40,9 +40,9 @@ const formSchema = z.object({
   titulo: z.string().min(1, 'Título é obrigatório'),
   descricao: z.string().optional(),
   responsavel: z.string().min(1, 'Responsável é obrigatório'),
-  setor: z.string().min(1, 'Setor é obrigatório'),
   prioridade: z.enum(['alta', 'media', 'baixa']),
   prazo: z.date().optional().nullable(),
+  hora_prazo: z.string().optional().nullable(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -73,9 +73,9 @@ export function TarefaModal({
       titulo: '',
       descricao: '',
       responsavel: '',
-      setor: '',
       prioridade: 'media',
       prazo: null,
+      hora_prazo: null,
     },
   });
 
@@ -85,18 +85,18 @@ export function TarefaModal({
         titulo: task.titulo,
         descricao: task.descricao || '',
         responsavel: task.responsavel,
-        setor: task.setor,
         prioridade: task.prioridade,
         prazo: task.prazo ? new Date(task.prazo) : null,
+        hora_prazo: task.hora_prazo || null,
       });
     } else {
       form.reset({
         titulo: '',
         descricao: '',
         responsavel: '',
-        setor: '',
         prioridade: 'media',
         prazo: null,
+        hora_prazo: null,
       });
       setActiveTab('detalhes');
     }
@@ -109,10 +109,11 @@ export function TarefaModal({
       titulo: data.titulo,
       descricao: data.descricao || null,
       responsavel: data.responsavel,
-      setor: data.setor,
+      setor: '', // Campo opcional, deixar vazio
       prioridade: data.prioridade,
       status: task?.status || 'a_fazer',
       prazo: data.prazo ? format(data.prazo, 'yyyy-MM-dd') : null,
+      hora_prazo: data.hora_prazo || null,
       unidade_id: unidadeAtual.id,
     };
 
@@ -175,96 +176,75 @@ export function TarefaModal({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Responsável *</Label>
-                  {usersLoading ? (
-                    <div className="flex items-center gap-2 h-10 px-3 border rounded-md text-muted-foreground text-sm">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Carregando...
-                    </div>
-                  ) : users.length > 0 ? (
-                    <Select
-                      value={selectedResponsavel}
-                      onValueChange={(value) => form.setValue('responsavel', value)}
-                    >
-                      <SelectTrigger className={cn(form.formState.errors.responsavel && 'border-destructive')}>
-                        <SelectValue placeholder="Selecione o responsável" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {users.map((user) => (
-                          <SelectItem key={user.id} value={user.name}>
-                            {user.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      placeholder="Nome do responsável"
-                      {...form.register('responsavel')}
-                      className={cn(form.formState.errors.responsavel && 'border-destructive')}
-                    />
-                  )}
-                  {form.formState.errors.responsavel && (
-                    <p className="text-xs text-destructive">
-                      {form.formState.errors.responsavel.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Setor *</Label>
+              <div className="space-y-2">
+                <Label>Responsável *</Label>
+                {usersLoading ? (
+                  <div className="flex items-center gap-2 h-10 px-3 border rounded-md text-muted-foreground text-sm">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Carregando...
+                  </div>
+                ) : users.length > 0 ? (
                   <Select
-                    value={form.watch('setor')}
-                    onValueChange={(value) => form.setValue('setor', value)}
+                    value={selectedResponsavel}
+                    onValueChange={(value) => form.setValue('responsavel', value)}
                   >
-                    <SelectTrigger className={cn(form.formState.errors.setor && 'border-destructive')}>
-                      <SelectValue placeholder="Selecione" />
+                    <SelectTrigger className={cn(form.formState.errors.responsavel && 'border-destructive')}>
+                      <SelectValue placeholder="Selecione o responsável" />
                     </SelectTrigger>
                     <SelectContent>
-                      {SETORES.map((setor) => (
-                        <SelectItem key={setor} value={setor}>
-                          {setor}
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.name}>
+                          {user.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
+                ) : (
+                  <Input
+                    placeholder="Nome do responsável"
+                    {...form.register('responsavel')}
+                    className={cn(form.formState.errors.responsavel && 'border-destructive')}
+                  />
+                )}
+                {form.formState.errors.responsavel && (
+                  <p className="text-xs text-destructive">
+                    {form.formState.errors.responsavel.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Prioridade *</Label>
+                <Select
+                  value={form.watch('prioridade')}
+                  onValueChange={(value: 'alta' | 'media' | 'baixa') =>
+                    form.setValue('prioridade', value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRIORIDADES.map((p) => (
+                      <SelectItem key={p.value} value={p.value}>
+                        <span className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              'w-2 h-2 rounded-full',
+                              p.value === 'alta' && 'bg-red-500',
+                              p.value === 'media' && 'bg-yellow-500',
+                              p.value === 'baixa' && 'bg-green-500'
+                            )}
+                          />
+                          {p.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Prioridade *</Label>
-                  <Select
-                    value={form.watch('prioridade')}
-                    onValueChange={(value: 'alta' | 'media' | 'baixa') =>
-                      form.setValue('prioridade', value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PRIORIDADES.map((p) => (
-                        <SelectItem key={p.value} value={p.value}>
-                          <span className="flex items-center gap-2">
-                            <span
-                              className={cn(
-                                'w-2 h-2 rounded-full',
-                                p.value === 'alta' && 'bg-red-500',
-                                p.value === 'media' && 'bg-yellow-500',
-                                p.value === 'baixa' && 'bg-green-500'
-                              )}
-                            />
-                            {p.label}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 <div className="space-y-2">
                   <Label>Prazo</Label>
                   <Popover>
@@ -291,6 +271,19 @@ export function TarefaModal({
                       />
                     </PopoverContent>
                   </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Horário</Label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="time"
+                      className="pl-9"
+                      value={form.watch('hora_prazo') || ''}
+                      onChange={(e) => form.setValue('hora_prazo', e.target.value || null)}
+                    />
+                  </div>
                 </div>
               </div>
 

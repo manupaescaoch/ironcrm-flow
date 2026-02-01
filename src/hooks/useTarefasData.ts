@@ -12,6 +12,7 @@ export interface Task {
   prioridade: 'alta' | 'media' | 'baixa';
   status: 'a_fazer' | 'em_andamento' | 'aguardando' | 'concluida';
   prazo: string | null;
+  hora_prazo: string | null;
   unidade_id: string;
   created_by: string | null;
   created_at: string;
@@ -20,19 +21,14 @@ export interface Task {
   arquivada: boolean;
   recorrencia: string | null;
   recorrencia_fim: string | null;
+  notificado_24h: boolean;
+  notificado_prazo: boolean;
 }
 
-export type TaskInsert = Omit<Task, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'concluida_em' | 'arquivada' | 'recorrencia' | 'recorrencia_fim'>;
+export type TaskInsert = Omit<Task, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'concluida_em' | 'arquivada' | 'recorrencia' | 'recorrencia_fim' | 'notificado_24h' | 'notificado_prazo'> & { setor?: string };
 export type TaskUpdate = Partial<TaskInsert> & { arquivada?: boolean };
 
-export const SETORES = [
-  'Financeiro',
-  'Treinadores',
-  'Recepção',
-  'Marketing',
-  'Limpeza/Manutenção',
-  'Coordenação',
-] as const;
+// SETORES removido - campo agora opcional
 
 export const PRIORIDADES = [
   { value: 'alta', label: 'Alta', color: 'bg-red-500/10 text-red-600 border-red-500/30' },

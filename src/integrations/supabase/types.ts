@@ -900,13 +900,16 @@ export type Database = {
           created_at: string
           created_by: string | null
           descricao: string | null
+          hora_prazo: string | null
           id: string
+          notificado_24h: boolean | null
+          notificado_prazo: boolean | null
           prazo: string | null
           prioridade: string
           recorrencia: string | null
           recorrencia_fim: string | null
           responsavel: string
-          setor: string
+          setor: string | null
           status: string
           titulo: string
           unidade_id: string
@@ -918,13 +921,16 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          hora_prazo?: string | null
           id?: string
+          notificado_24h?: boolean | null
+          notificado_prazo?: boolean | null
           prazo?: string | null
           prioridade?: string
           recorrencia?: string | null
           recorrencia_fim?: string | null
           responsavel: string
-          setor: string
+          setor?: string | null
           status?: string
           titulo: string
           unidade_id: string
@@ -936,13 +942,16 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          hora_prazo?: string | null
           id?: string
+          notificado_24h?: boolean | null
+          notificado_prazo?: boolean | null
           prazo?: string | null
           prioridade?: string
           recorrencia?: string | null
           recorrencia_fim?: string | null
           responsavel?: string
-          setor?: string
+          setor?: string | null
           status?: string
           titulo?: string
           unidade_id?: string
