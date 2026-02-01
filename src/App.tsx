@@ -13,7 +13,7 @@ import LeadDetail from "./pages/LeadDetail";
 import Kanban from "./pages/Kanban";
 import Comissoes from "./pages/Comissoes";
 import RelatorioVendas from "./pages/RelatorioVendas";
-
+import GestaoTarefas from "./pages/GestaoTarefas";
 import Indicacoes from "./pages/Indicacoes";
 import AdminUsers from "./pages/AdminUsers";
 import Backups from "./pages/Backups";
@@ -258,6 +258,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <Escala />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/tarefas"
+      element={
+        <ProtectedRoute>
+          <GestaoTarefas />
         </ProtectedRoute>
       }
     />
