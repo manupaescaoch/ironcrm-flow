@@ -88,7 +88,8 @@ export function useTarefasData() {
     taskTitle: string, 
     responsavelName: string, 
     tipo: 'nova_tarefa' | 'tarefa_atualizada',
-    creatorName?: string
+    creatorName?: string,
+    taskDescription?: string | null
   ) => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -98,6 +99,7 @@ export function useTarefasData() {
         body: {
           task_id: taskId,
           task_title: taskTitle,
+          task_description: taskDescription,
           responsavel_name: responsavelName,
           tipo,
           creator_name: creatorName,
@@ -130,7 +132,7 @@ export function useTarefasData() {
 
       // Enviar WhatsApp automaticamente
       if (data) {
-        sendWhatsAppNotification(data.id, data.titulo, task.responsavel, 'nova_tarefa', creatorName);
+        sendWhatsAppNotification(data.id, data.titulo, task.responsavel, 'nova_tarefa', creatorName, data.descricao);
       }
 
       return data as Task;
@@ -158,7 +160,7 @@ export function useTarefasData() {
 
       // Se o responsável mudou, enviar WhatsApp para o novo responsável
       if (updates.responsavel && previousResponsavel && updates.responsavel !== previousResponsavel) {
-        sendWhatsAppNotification(id, data.titulo, updates.responsavel, 'tarefa_atualizada');
+        sendWhatsAppNotification(id, data.titulo, updates.responsavel, 'tarefa_atualizada', undefined, data.descricao);
       }
 
       return data as Task;
