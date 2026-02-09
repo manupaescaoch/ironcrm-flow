@@ -45,11 +45,12 @@ Deno.serve(async (req) => {
     );
 
     const body = await req.json();
-    const { task_id, task_title, responsavel_name, responsavel, tipo, creator_name, isNewTask } = body;
+    const { task_id, task_title, task_description, responsavel_name, responsavel, tipo, creator_name, isNewTask } = body;
     
     // Support both old and new parameter names
     const targetName = responsavel_name || responsavel;
     const notificationType = tipo || (isNewTask ? 'nova_tarefa' : 'tarefa_atualizada');
+    const description = task_description || null;
     const title = task_title || body.taskTitle;
 
     console.log(`Processing WhatsApp for task: ${task_id || 'new'}, responsavel: ${targetName}`);
@@ -121,13 +122,19 @@ Deno.serve(async (req) => {
     if (notificationType === 'nova_tarefa') {
       message = `📋 *Nova Tarefa Atribuída*\n\n`;
       message += `Você foi designado para: *${title}*\n`;
-      if (creator_name) {
-        message += `Atribuída por: ${creator_name}\n`;
+      if (description) {
+        message += `\n📝 *Descrição:*\n${description}\n`;
       }
-      message += `\nAcesse o sistema para ver os detalhes.`;
+      if (creator_name) {
+        message += `\nAtribuída por: ${creator_name}`;
+      }
+      message += `\n\nAcesse o sistema para ver os detalhes.`;
     } else {
       message = `🔄 *Tarefa Transferida*\n\n`;
       message += `A tarefa "*${title}*" foi transferida para você.\n`;
+      if (description) {
+        message += `\n📝 *Descrição:*\n${description}\n`;
+      }
       message += `\nAcesse o sistema para ver os detalhes.`;
     }
 
