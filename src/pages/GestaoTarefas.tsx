@@ -37,6 +37,7 @@ export default function GestaoTarefas() {
     search: '',
     responsavel: '',
     prioridade: '',
+    recorrencia: '',
   });
 
   // Filter tasks
