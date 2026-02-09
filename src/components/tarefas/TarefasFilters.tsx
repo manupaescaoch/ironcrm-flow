@@ -15,6 +15,7 @@ export interface TarefasFiltersState {
   search: string;
   responsavel: string;
   prioridade: string;
+  recorrencia: string;
 }
 
 interface TarefasFiltersProps {
@@ -37,13 +38,15 @@ export function TarefasFilters({
   const hasActiveFilters =
     filters.search ||
     filters.responsavel ||
-    filters.prioridade;
+    filters.prioridade ||
+    filters.recorrencia;
 
   const handleClearFilters = () => {
     onFiltersChange({
       search: '',
       responsavel: '',
       prioridade: '',
+      recorrencia: '',
     });
   };
 
@@ -102,6 +105,23 @@ export function TarefasFilters({
         </SelectContent>
       </Select>
 
+      {/* Recorrência */}
+      <Select
+        value={filters.recorrencia || 'all'}
+        onValueChange={(value) =>
+          onFiltersChange({ ...filters, recorrencia: value === 'all' ? '' : value })
+        }
+      >
+        <SelectTrigger className="w-[120px] h-9 text-sm">
+          <SelectValue placeholder="Recorrência" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Todas</SelectItem>
+          <SelectItem value="recorrente">Recorrentes</SelectItem>
+          <SelectItem value="unica">Únicas</SelectItem>
+        </SelectContent>
+      </Select>
+
       {/* Clear Filters */}
       {hasActiveFilters && (
         <Button
@@ -140,6 +160,14 @@ export function filterTasks(
 
     // Prioridade filter
     if (filters.prioridade && task.prioridade !== filters.prioridade) {
+      return false;
+    }
+
+    // Recorrência filter
+    if (filters.recorrencia === 'recorrente' && !task.recorrencia) {
+      return false;
+    }
+    if (filters.recorrencia === 'unica' && task.recorrencia) {
       return false;
     }
 

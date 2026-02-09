@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon, Clock, Loader2, MessageSquare, CheckSquare, History, Trash2 } from 'lucide-react';
+import { CalendarIcon, Clock, Loader2, MessageSquare, CheckSquare, History, Trash2, Repeat } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -40,7 +41,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { Task, TaskInsert, PRIORIDADES, STATUS_CONFIG } from '@/hooks/useTarefasData';
+import { Task, TaskInsert, PRIORIDADES, STATUS_CONFIG, RECORRENCIA_OPTIONS, DIAS_SEMANA } from '@/hooks/useTarefasData';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useUnidadeUsers } from '@/hooks/useUnidadeUsers';
@@ -68,6 +69,25 @@ interface TarefaModalProps {
   isLoading?: boolean;
 }
 
+// Helper to parse recorrencia string
+function parseRecorrencia(recorrencia: string | null): { tipo: string; dias: string[] } {
+  if (!recorrencia) return { tipo: '', dias: [] };
+  if (recorrencia.startsWith('semanal:')) {
+    const dias = recorrencia.replace('semanal:', '').split(',');
+    return { tipo: 'semanal', dias };
+  }
+  return { tipo: recorrencia, dias: [] };
+}
+
+function buildRecorrencia(tipo: string, dias: string[]): string | null {
+  if (!tipo) return null;
+  if (tipo === 'semanal') {
+    if (dias.length === 0) return null;
+    return `semanal:${dias.join(',')}`;
+  }
+  return tipo;
+}
+
 export function TarefaModal({
   open,
   onOpenChange,
@@ -82,6 +102,9 @@ export function TarefaModal({
   const isEditing = !!task;
   const [activeTab, setActiveTab] = useState('detalhes');
   const [selectedStatus, setSelectedStatus] = useState<Task['status']>('a_fazer');
+  const [recorrenciaTipo, setRecorrenciaTipo] = useState('');
+  const [recorrenciaDias, setRecorrenciaDias] = useState<string[]>([]);
+  const [recorrenciaFim, setRecorrenciaFim] = useState<Date | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -106,6 +129,10 @@ export function TarefaModal({
         hora_prazo: task.hora_prazo || null,
       });
       setSelectedStatus(task.status);
+      const parsed = parseRecorrencia(task.recorrencia);
+      setRecorrenciaTipo(parsed.tipo);
+      setRecorrenciaDias(parsed.dias);
+      setRecorrenciaFim(task.recorrencia_fim ? new Date(task.recorrencia_fim) : null);
     } else {
       form.reset({
         titulo: '',
@@ -116,6 +143,9 @@ export function TarefaModal({
         hora_prazo: null,
       });
       setSelectedStatus('a_fazer');
+      setRecorrenciaTipo('');
+      setRecorrenciaDias([]);
+      setRecorrenciaFim(null);
       setActiveTab('detalhes');
     }
   }, [task, form, open]);
@@ -127,12 +157,14 @@ export function TarefaModal({
       titulo: data.titulo,
       descricao: data.descricao || null,
       responsavel: data.responsavel,
-      setor: '', // Campo opcional, deixar vazio
+      setor: '',
       prioridade: data.prioridade,
       status: selectedStatus,
       prazo: data.prazo ? format(data.prazo, 'yyyy-MM-dd') : null,
       hora_prazo: data.hora_prazo || null,
       unidade_id: unidadeAtual.id,
+      recorrencia: buildRecorrencia(recorrenciaTipo, recorrenciaDias),
+      recorrencia_fim: recorrenciaFim ? format(recorrenciaFim, 'yyyy-MM-dd') : null,
     };
 
     await onSave(taskData);
@@ -144,6 +176,12 @@ export function TarefaModal({
       await onDelete(task.id);
       onOpenChange(false);
     }
+  };
+
+  const toggleDia = (dia: string) => {
+    setRecorrenciaDias((prev) =>
+      prev.includes(dia) ? prev.filter((d) => d !== dia) : [...prev, dia]
+    );
   };
 
   const selectedResponsavel = form.watch('responsavel');
@@ -269,7 +307,6 @@ export function TarefaModal({
                 </Select>
               </div>
 
-              {/* Status - only visible when editing */}
               {isEditing && (
                 <div className="space-y-2">
                   <Label>Status</Label>
@@ -337,8 +374,90 @@ export function TarefaModal({
                 </div>
               </div>
 
+              {/* Recorrência */}
+              <div className="space-y-3 rounded-lg border p-3">
+                <div className="flex items-center gap-2">
+                  <Repeat className="w-4 h-4 text-muted-foreground" />
+                  <Label className="mb-0">Recorrência</Label>
+                </div>
+                <Select
+                  value={recorrenciaTipo || 'nenhuma'}
+                  onValueChange={(value) => {
+                    setRecorrenciaTipo(value === 'nenhuma' ? '' : value);
+                    if (value !== 'semanal') setRecorrenciaDias([]);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Nenhuma" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RECORRENCIA_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value || 'nenhuma'} value={opt.value || 'nenhuma'}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {recorrenciaTipo === 'semanal' && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Dias da semana</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {DIAS_SEMANA.map((dia) => (
+                        <label
+                          key={dia.value}
+                          className={cn(
+                            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs cursor-pointer transition-colors',
+                            recorrenciaDias.includes(dia.value)
+                              ? 'bg-primary/10 border-primary text-primary'
+                              : 'bg-card border-border text-muted-foreground hover:bg-muted'
+                          )}
+                        >
+                          <Checkbox
+                            checked={recorrenciaDias.includes(dia.value)}
+                            onCheckedChange={() => toggleDia(dia.value)}
+                            className="w-3 h-3"
+                          />
+                          {dia.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {recorrenciaTipo && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Repetir até (opcional)</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={cn(
+                            'w-full justify-start text-left font-normal',
+                            !recorrenciaFim && 'text-muted-foreground'
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                          {recorrenciaFim
+                            ? format(recorrenciaFim, 'dd/MM/yyyy')
+                            : 'Sem data de fim'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={recorrenciaFim || undefined}
+                          onSelect={(date) => setRecorrenciaFim(date || null)}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-between pt-4">
-                {/* Delete button - only for admins when editing */}
                 {isEditing && isAdmin && onDelete ? (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>

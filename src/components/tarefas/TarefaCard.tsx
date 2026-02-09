@@ -1,11 +1,12 @@
 import { useMemo, useEffect, useState } from 'react';
 import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { AlertTriangle, Building2, Calendar, CheckSquare, User } from 'lucide-react';
+import { AlertTriangle, Building2, Calendar, CheckSquare, Repeat } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Task, PRIORIDADES } from '@/hooks/useTarefasData';
+import { Task, PRIORIDADES, RECORRENCIA_OPTIONS } from '@/hooks/useTarefasData';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -135,13 +136,34 @@ export function TarefaCard({ task, onClick, isDragging, compact = false }: Taref
 
         <h4 className="font-medium text-sm line-clamp-2">{task.titulo}</h4>
 
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 items-center">
           <Badge
             variant="outline"
             className={cn('text-[10px] px-1.5 py-0 h-5', prioridadeConfig?.color)}
           >
             {prioridadeConfig?.label}
           </Badge>
+          {task.recorrencia && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 gap-0.5 text-muted-foreground">
+                    <Repeat className="w-2.5 h-2.5" />
+                    {(() => {
+                      const tipo = task.recorrencia.startsWith('semanal:') ? 'semanal' : task.recorrencia;
+                      return RECORRENCIA_OPTIONS.find(o => o.value === tipo)?.label || tipo;
+                    })()}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Tarefa recorrente: {task.recorrencia.startsWith('semanal:')
+                    ? `Semanal (${task.recorrencia.replace('semanal:', '')})`
+                    : RECORRENCIA_OPTIONS.find(o => o.value === task.recorrencia)?.label
+                  }</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
 
         {/* Responsável with avatar */}

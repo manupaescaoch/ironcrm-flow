@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { addDays, addMonths, nextDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useToast } from '@/hooks/use-toast';
@@ -25,7 +26,7 @@ export interface Task {
   notificado_prazo: boolean;
 }
 
-export type TaskInsert = Omit<Task, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'concluida_em' | 'arquivada' | 'recorrencia' | 'recorrencia_fim' | 'notificado_24h' | 'notificado_prazo'> & { setor?: string };
+export type TaskInsert = Omit<Task, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'concluida_em' | 'arquivada' | 'notificado_24h' | 'notificado_prazo'> & { setor?: string };
 export type TaskUpdate = Partial<TaskInsert> & { arquivada?: boolean };
 
 // SETORES removido - campo agora opcional
@@ -34,6 +35,24 @@ export const PRIORIDADES = [
   { value: 'alta', label: 'Alta', color: 'bg-red-500/10 text-red-600 border-red-500/30' },
   { value: 'media', label: 'Média', color: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/30' },
   { value: 'baixa', label: 'Baixa', color: 'bg-green-500/10 text-green-600 border-green-500/30' },
+] as const;
+
+export const RECORRENCIA_OPTIONS = [
+  { value: '', label: 'Nenhuma' },
+  { value: 'diaria', label: 'Diária' },
+  { value: 'semanal', label: 'Semanal' },
+  { value: 'quinzenal', label: 'Quinzenal' },
+  { value: 'mensal', label: 'Mensal' },
+] as const;
+
+export const DIAS_SEMANA = [
+  { value: 'seg', label: 'Seg' },
+  { value: 'ter', label: 'Ter' },
+  { value: 'qua', label: 'Qua' },
+  { value: 'qui', label: 'Qui' },
+  { value: 'sex', label: 'Sex' },
+  { value: 'sab', label: 'Sáb' },
+  { value: 'dom', label: 'Dom' },
 ] as const;
 
 export const STATUS_CONFIG = [
@@ -199,9 +218,77 @@ export function useTarefasData() {
     }
   }, [toast]);
 
+  const createNextRecurringTask = useCallback(async (completedTask: Task) => {
+    if (!completedTask.recorrencia || !completedTask.prazo) return;
+
+    const currentDate = new Date(completedTask.prazo);
+    let nextDate: Date | null = null;
+    const recorrencia = completedTask.recorrencia;
+
+    if (recorrencia === 'diaria') {
+      nextDate = addDays(currentDate, 1);
+    } else if (recorrencia === 'quinzenal') {
+      nextDate = addDays(currentDate, 15);
+    } else if (recorrencia === 'mensal') {
+      nextDate = addMonths(currentDate, 1);
+    } else if (recorrencia.startsWith('semanal:')) {
+      const diasMap: Record<string, number> = { dom: 0, seg: 1, ter: 2, qua: 3, qui: 4, sex: 5, sab: 6 };
+      const dias = recorrencia.replace('semanal:', '').split(',').map(d => diasMap[d]).filter(d => d !== undefined);
+      if (dias.length > 0) {
+        // Find next matching day after current date
+        let closest: Date | null = null;
+        for (const dayNum of dias) {
+          const candidate = nextDay(currentDate, dayNum as 0 | 1 | 2 | 3 | 4 | 5 | 6);
+          if (!closest || candidate < closest) closest = candidate;
+        }
+        nextDate = closest;
+      }
+    }
+
+    if (!nextDate) return;
+
+    // Check if past recorrencia_fim
+    if (completedTask.recorrencia_fim) {
+      const fimDate = new Date(completedTask.recorrencia_fim);
+      if (nextDate > fimDate) return;
+    }
+
+    const { format } = await import('date-fns');
+    const newTaskData: TaskInsert = {
+      titulo: completedTask.titulo,
+      descricao: completedTask.descricao,
+      responsavel: completedTask.responsavel,
+      setor: completedTask.setor,
+      prioridade: completedTask.prioridade,
+      status: 'a_fazer',
+      prazo: format(nextDate, 'yyyy-MM-dd'),
+      hora_prazo: completedTask.hora_prazo,
+      unidade_id: completedTask.unidade_id,
+      recorrencia: completedTask.recorrencia,
+      recorrencia_fim: completedTask.recorrencia_fim,
+    };
+
+    try {
+      await supabase.from('tasks').insert(newTaskData);
+    } catch (err) {
+      console.error('Erro ao criar próxima tarefa recorrente:', err);
+    }
+  }, []);
+
   const updateTaskStatus = useCallback(async (id: string, status: Task['status']) => {
-    return updateTask(id, { status });
-  }, [updateTask]);
+    const result = await updateTask(id, { status });
+    
+    // If marking as completed and task is recurring, create next occurrence
+    if (status === 'concluida' && result) {
+      const completedTask = tasks.find(t => t.id === id);
+      if (completedTask?.recorrencia) {
+        await createNextRecurringTask({ ...completedTask, status: 'concluida' });
+        toast({ title: 'Próxima ocorrência criada', description: 'A tarefa recorrente foi reagendada automaticamente.' });
+      }
+    }
+    
+    return result;
+  }, [updateTask, tasks, createNextRecurringTask, toast]);
 
   // Initial fetch
   useEffect(() => {
