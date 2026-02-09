@@ -216,7 +216,7 @@ export function TarefaModal({
                     <SelectTrigger className={cn(form.formState.errors.responsavel && 'border-destructive')}>
                       <SelectValue placeholder="Selecione o responsável" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-60 overflow-y-auto">
                       {users.map((user) => (
                         <SelectItem key={user.id} value={user.name}>
                           {user.name}
