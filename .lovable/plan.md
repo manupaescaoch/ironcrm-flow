@@ -1,36 +1,39 @@
 
+# Controle de Vencimentos - Foco em Mensais + Alerta Final para Outros Planos + Plano Editavel
 
-# Editar Datas Diretamente na Tabela de Vencimentos
+## O que muda
 
-## O que sera implementado
-Permitir que o usuario clique diretamente nas datas de Fechamento e Vencimento na tabela para edita-las inline, sem precisar abrir o modal.
+### 1. Separacao por tipo de plano
+- A tela de Controle de Vencimentos mostrara **por padrao apenas alunos com planos mensais** (Mensal, Executivo Mensal), pois sao esses que precisam de acompanhamento mensal de pagamento
+- Alunos com planos trimestrais, semestrais e anuais **so aparecerao quando estiverem proximos do vencimento** (ex: ultimos 30 dias do plano), funcionando como um alerta de renovacao
+- Um novo filtro "Tipo" permitira alternar entre: **Mensais** (padrao), **Fim de Plano** (tri/sem/anual proximos do vencimento), ou **Todos**
 
-## Como vai funcionar
+### 2. Plano editavel na tabela
+- A coluna "Plano" na tabela passara a ser editavel inline (mesmo padrao da edicao de datas)
+- Ao clicar no nome do plano, aparece um Select com as opcoes de plano disponiveis
+- Ao selecionar um novo plano, o sistema atualiza o campo `plano_escolhido` na interacao e recalcula automaticamente a `data_vencimento` baseada no novo plano
+- Permite que um aluno mensal renove em trimestral, semestral, etc. sem precisar abrir modal
 
-### Para o usuario
-1. As datas de **Fechamento** e **Vencimento** na tabela terao um estilo clicavel (icone de lapis sutil ao lado)
-2. Ao clicar em uma data, ela se transforma em um campo de data editavel (input date) no lugar
-3. Ao confirmar (pressionar Enter ou clicar fora), a data e salva automaticamente no banco
-4. Um toast confirma a atualizacao ou informa erro
-5. O botao de lapis do modal continua disponivel para quem preferir editar ambas as datas de uma vez
+### 3. Ajustes nos KPIs
+- Os KPIs refletirao os dados filtrados conforme o tipo selecionado
 
-### Detalhes Tecnicos
+## Detalhes Tecnicos
+
+**Arquivo: `src/hooks/useVencimentosData.ts`**
+- Adicionar campo `tipo` ao `VencimentosFilters`: `'mensais' | 'fim_plano' | 'todos'` (padrao: `'mensais'`)
+- Na logica de filtragem:
+  - `mensais`: mostrar apenas planos que contenham "mensal" no nome
+  - `fim_plano`: mostrar planos tri/sem/anual apenas quando `diasRestantes <= 30`
+  - `todos`: sem filtro de tipo
+
+**Arquivo: `src/components/vencimentos/VencimentosFilters.tsx`**
+- Adicionar um terceiro Select "Tipo" com opcoes: Mensais, Fim de Plano, Todos
 
 **Arquivo: `src/components/vencimentos/VencimentosTable.tsx`**
+- Criar componente `InlineEditablePlano` (similar ao `InlineEditableDate`)
+- Ao clicar no plano, exibe um Select com as opcoes de plano
+- Ao selecionar, atualiza `plano_escolhido` e recalcula `data_vencimento` automaticamente
+- Substituir celula estatica do plano pelo componente editavel
 
-1. Criar um componente interno `InlineEditableDate` que:
-   - Mostra a data formatada por padrao com um icone de lapis discreto ao hover
-   - Ao clicar, troca para `<Input type="date" />` com o valor atual
-   - No `onBlur` ou `onKeyDown (Enter)`, faz a chamada ao Supabase para salvar
-   - Usa `supabase.from('interacoes').update({ [campo]: novaData }).eq('id', itemId)`
-   - Chama `onRefresh()` apos salvar com sucesso
-
-2. Substituir as celulas estaticas de Fechamento e Vencimento pelo componente `InlineEditableDate`:
-   - Celula Fechamento: campo `data_fechamento`
-   - Celula Vencimento: campo `data_vencimento`
-
-3. Feedback visual:
-   - Campo em edicao tera borda azul sutil
-   - Loading spinner durante o salvamento
-   - Toast de sucesso/erro via `sonner`
-
+**Arquivo: `src/pages/ControleVencimentos.tsx`**
+- Atualizar estado de filtros para incluir `tipo: 'mensais'` como padrao
