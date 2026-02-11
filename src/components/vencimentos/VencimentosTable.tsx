@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { VencimentoBadge } from './VencimentoBadge';
+import { InlineEditableDate } from './InlineEditableDate';
 import { RenovacaoModal } from './RenovacaoModal';
 import { EditarVencimentoModal } from './EditarVencimentoModal';
 import { ConfirmarPagamentoModal } from './ConfirmarPagamentoModal';
@@ -97,10 +98,20 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
                 </TableCell>
                 <TableCell>{item.planoEscolhido}</TableCell>
                 <TableCell>
-                  {format(item.dataFechamento, 'dd/MM/yyyy', { locale: ptBR })}
+                  <InlineEditableDate
+                    date={item.dataFechamento}
+                    field="data_fechamento"
+                    interacaoId={item.id}
+                    onSuccess={handleSuccess}
+                  />
                 </TableCell>
                 <TableCell>
-                  {format(item.dataVencimento, 'dd/MM/yyyy', { locale: ptBR })}
+                  <InlineEditableDate
+                    date={item.dataVencimento}
+                    field="data_vencimento"
+                    interacaoId={item.id}
+                    onSuccess={handleSuccess}
+                  />
                 </TableCell>
                 <TableCell>
                   <VencimentoBadge status={item.status} diasRestantes={item.diasRestantes} />
