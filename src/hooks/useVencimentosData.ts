@@ -21,9 +21,12 @@ export interface VencimentoItem {
   pagamentoConfirmado: boolean;
 }
 
+export type VencimentoTipo = 'mensais' | 'fim_plano' | 'todos';
+
 export interface VencimentosFilters {
   status: VencimentoStatus | 'todos' | 'hoje';
   plano: string | 'todos';
+  tipo: VencimentoTipo;
 }
 
 export interface VencimentosSummary {
@@ -66,7 +69,9 @@ const getVencimentoStatus = (diasRestantes: number): VencimentoStatus => {
   return 'ok';
 };
 
-export function useVencimentosData(filters: VencimentosFilters = { status: 'todos', plano: 'todos' }) {
+const isMensal = (plano: string) => plano.toLowerCase().includes('mensal');
+
+export function useVencimentosData(filters: VencimentosFilters = { status: 'todos', plano: 'todos', tipo: 'mensais' }) {
   const { unidadeAtual } = useUnidade();
 
   // Buscar pagamentos confirmados
@@ -179,6 +184,13 @@ export function useVencimentosData(filters: VencimentosFilters = { status: 'todo
 
   const filteredVencimentos = useMemo(() => {
     return vencimentos.filter((item) => {
+      // Filtro por tipo de plano
+      if (filters.tipo === 'mensais') {
+        if (!isMensal(item.planoEscolhido)) return false;
+      } else if (filters.tipo === 'fim_plano') {
+        if (isMensal(item.planoEscolhido)) return false;
+        if (item.diasRestantes > 30) return false;
+      }
       // Filtro especial para "hoje"
       if (filters.status === 'hoje') {
         return isToday(item.dataVencimento);
