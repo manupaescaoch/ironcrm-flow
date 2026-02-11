@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { VencimentoBadge } from './VencimentoBadge';
 import { InlineEditableDate } from './InlineEditableDate';
+import { InlineEditablePlano } from './InlineEditablePlano';
 import { RenovacaoModal } from './RenovacaoModal';
 import { EditarVencimentoModal } from './EditarVencimentoModal';
 import { ConfirmarPagamentoModal } from './ConfirmarPagamentoModal';
@@ -96,7 +97,14 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
                     )}
                   </div>
                 </TableCell>
-                <TableCell>{item.planoEscolhido}</TableCell>
+                <TableCell>
+                  <InlineEditablePlano
+                    plano={item.planoEscolhido}
+                    interacaoId={item.id}
+                    dataFechamento={item.dataFechamento}
+                    onSuccess={handleSuccess}
+                  />
+                </TableCell>
                 <TableCell>
                   <InlineEditableDate
                     date={item.dataFechamento}

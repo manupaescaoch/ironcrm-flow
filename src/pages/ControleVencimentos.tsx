@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function ControleVencimentos() {
-  const [filters, setFilters] = useState<FiltersType>({ status: 'todos', plano: 'todos' });
+  const [filters, setFilters] = useState<FiltersType>({ status: 'todos', plano: 'todos', tipo: 'mensais' });
   const { vencimentos, summary, planosDisponiveis, isLoading, refetch } = useVencimentosData(filters);
 
   const handleExportExcel = () => {

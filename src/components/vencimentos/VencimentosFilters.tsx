@@ -1,5 +1,5 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { VencimentosFilters as FiltersType, VencimentoStatus } from '@/hooks/useVencimentosData';
+import { VencimentosFilters as FiltersType, VencimentoStatus, VencimentoTipo } from '@/hooks/useVencimentosData';
 
 interface VencimentosFiltersProps {
   filters: FiltersType;
@@ -18,9 +18,31 @@ const statusOptions: { value: VencimentoStatus | 'todos' | 'hoje'; label: string
   { value: 'ok', label: '🟢 OK (+30 dias)' },
 ];
 
+const tipoOptions: { value: VencimentoTipo; label: string }[] = [
+  { value: 'mensais', label: '📋 Mensais' },
+  { value: 'fim_plano', label: '⏰ Fim de Plano' },
+  { value: 'todos', label: '📊 Todos' },
+];
+
 export function VencimentosFilters({ filters, onFiltersChange, planosDisponiveis }: VencimentosFiltersProps) {
   return (
     <div className="flex flex-wrap gap-3">
+      <Select
+        value={filters.tipo}
+        onValueChange={(value) => onFiltersChange({ ...filters, tipo: value as VencimentoTipo })}
+      >
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Tipo" />
+        </SelectTrigger>
+        <SelectContent>
+          {tipoOptions.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
       <Select
         value={filters.status}
         onValueChange={(value) => onFiltersChange({ ...filters, status: value as FiltersType['status'] })}
