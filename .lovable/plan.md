@@ -1,50 +1,36 @@
 
-# Tarefas Recorrentes
 
-## O que será implementado
-Adicionar a funcionalidade de tarefas recorrentes ao sistema, permitindo definir a periodicidade com que uma tarefa se repete (ex: toda segunda-feira, diariamente, semanalmente, mensalmente).
+# Editar Datas Diretamente na Tabela de Vencimentos
+
+## O que sera implementado
+Permitir que o usuario clique diretamente nas datas de Fechamento e Vencimento na tabela para edita-las inline, sem precisar abrir o modal.
 
 ## Como vai funcionar
 
-### Para o usuário
-1. Ao criar ou editar uma tarefa, um novo campo **"Recorrencia"** aparece no modal
-2. Opcoes de periodicidade:
-   - **Nenhuma** (padrao)
-   - **Diaria** - repete todo dia
-   - **Semanal** - escolhe o(s) dia(s) da semana (ex: segunda, quarta, sexta)
-   - **Quinzenal** - a cada 15 dias
-   - **Mensal** - a cada mes
-3. Campo opcional **"Repetir ate"** para definir data de fim da recorrencia
-4. Quando uma tarefa recorrente e marcada como "Concluida", o sistema cria automaticamente a proxima ocorrencia com a data do proximo prazo
+### Para o usuario
+1. As datas de **Fechamento** e **Vencimento** na tabela terao um estilo clicavel (icone de lapis sutil ao lado)
+2. Ao clicar em uma data, ela se transforma em um campo de data editavel (input date) no lugar
+3. Ao confirmar (pressionar Enter ou clicar fora), a data e salva automaticamente no banco
+4. Um toast confirma a atualizacao ou informa erro
+5. O botao de lapis do modal continua disponivel para quem preferir editar ambas as datas de uma vez
 
 ### Detalhes Tecnicos
 
-**1. Atualizar `TaskInsert` para incluir campos de recorrencia**
-- Arquivo: `src/hooks/useTarefasData.ts`
-- Incluir `recorrencia` e `recorrencia_fim` no tipo `TaskInsert`
-- Adicionar constante `RECORRENCIA_OPTIONS` com as opcoes disponiveis
-- Valores de recorrencia no banco: `diaria`, `semanal:seg`, `semanal:seg,qua,sex`, `quinzenal`, `mensal`
+**Arquivo: `src/components/vencimentos/VencimentosTable.tsx`**
 
-**2. Adicionar campos no modal de tarefa**
-- Arquivo: `src/components/tarefas/TarefaModal.tsx`
-- Novo campo Select "Recorrencia" apos o bloco de Prazo/Horario
-- Quando "Semanal" for selecionado, mostrar checkboxes para os dias da semana
-- Campo opcional de data "Repetir ate" (calendario)
-- Icone de repeticao (Repeat) para indicar visualmente
+1. Criar um componente interno `InlineEditableDate` que:
+   - Mostra a data formatada por padrao com um icone de lapis discreto ao hover
+   - Ao clicar, troca para `<Input type="date" />` com o valor atual
+   - No `onBlur` ou `onKeyDown (Enter)`, faz a chamada ao Supabase para salvar
+   - Usa `supabase.from('interacoes').update({ [campo]: novaData }).eq('id', itemId)`
+   - Chama `onRefresh()` apos salvar com sucesso
 
-**3. Logica de criacao da proxima tarefa**
-- Arquivo: `src/hooks/useTarefasData.ts`
-- Na funcao `updateTaskStatus`, quando status muda para `concluida` e a tarefa tem recorrencia:
-  - Calcular proxima data baseada na periodicidade
-  - Verificar se a proxima data nao ultrapassa `recorrencia_fim`
-  - Criar nova tarefa com os mesmos dados e novo prazo
-  - Manter a tarefa concluida no historico
+2. Substituir as celulas estaticas de Fechamento e Vencimento pelo componente `InlineEditableDate`:
+   - Celula Fechamento: campo `data_fechamento`
+   - Celula Vencimento: campo `data_vencimento`
 
-**4. Indicador visual nos cards de tarefa**
-- Arquivo: `src/components/tarefas/TarefaCard.tsx`
-- Mostrar icone de repeticao nos cards de tarefas recorrentes
-- Tooltip com a periodicidade configurada
+3. Feedback visual:
+   - Campo em edicao tera borda azul sutil
+   - Loading spinner durante o salvamento
+   - Toast de sucesso/erro via `sonner`
 
-**5. Filtro por recorrencia**
-- Arquivo: `src/components/tarefas/TarefasFilters.tsx`
-- Adicionar opcao de filtrar tarefas recorrentes vs. unicas
