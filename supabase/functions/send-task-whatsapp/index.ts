@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
     );
 
     const body = await req.json();
-    const { task_id, task_title, task_description, responsavel_name, responsavel, tipo, creator_name, isNewTask } = body;
+    const { task_id, task_title, task_description, responsavel_name, responsavel, tipo, creator_name, isNewTask, unidade_nome } = body;
     
     // Support both old and new parameter names
     const targetName = responsavel_name || responsavel;
@@ -120,8 +120,11 @@ Deno.serve(async (req) => {
     // Montar mensagem
     let message = '';
     if (notificationType === 'nova_tarefa') {
-      message = `📋 *Nova Tarefa Atribuída*\n\n`;
-      message += `Você foi designado para: *${title}*\n`;
+      message = `📋 *Nova Tarefa Atribuída*\n`;
+      if (unidade_nome) {
+        message += `📍 Unidade: *${unidade_nome}*\n`;
+      }
+      message += `\nVocê foi designado para: *${title}*\n`;
       if (description) {
         message += `\n📝 *Descrição:*\n${description}\n`;
       }
@@ -130,8 +133,11 @@ Deno.serve(async (req) => {
       }
       message += `\n\nAcesse o sistema para ver os detalhes.`;
     } else {
-      message = `🔄 *Tarefa Transferida*\n\n`;
-      message += `A tarefa "*${title}*" foi transferida para você.\n`;
+      message = `🔄 *Tarefa Transferida*\n`;
+      if (unidade_nome) {
+        message += `📍 Unidade: *${unidade_nome}*\n`;
+      }
+      message += `\nA tarefa "*${title}*" foi transferida para você.\n`;
       if (description) {
         message += `\n📝 *Descrição:*\n${description}\n`;
       }
