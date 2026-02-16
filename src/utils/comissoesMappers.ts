@@ -16,7 +16,7 @@ export function normalizeCadastrador(nome: string | null | undefined): string {
   if (normalizado.startsWith('ANDREZA')) return 'ANDREZA TEODORO';
   if (normalizado.startsWith('THAIS')) return 'THAIS';
   if (normalizado.startsWith('GABRIELA')) return 'GABRIELA LIMA';
-  if (normalizado.startsWith('NATANAEL')) return 'NATANAEL DA SILVA';
+  if (normalizado.startsWith('NATAN')) return 'NATANAEL DA SILVA';
   if (normalizado === 'GABRIEL') return 'GABRIEL';
   
   // Retorna normalizado (sem acentos, maiúsculas)
