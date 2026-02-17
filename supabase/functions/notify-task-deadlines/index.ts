@@ -105,7 +105,7 @@ serve(async (req) => {
     // 1. Find tasks due in approximately 24h (not yet notified)
     const { data: tasks24h, error: error24h } = await supabase
       .from("tasks")
-      .select("id, titulo, responsavel, prazo, hora_prazo, notificado_24h")
+      .select("id, titulo, responsavel, prazo, hora_prazo, notificado_24h, descricao, created_by, unidade_id")
       .eq("notificado_24h", false)
       .eq("arquivada", false)
       .neq("status", "concluida")
@@ -130,7 +130,27 @@ serve(async (req) => {
         const prazoDate = new Date(task.prazo);
         const prazoFormatado = prazoDate.toLocaleDateString("pt-BR");
 
-        const message = `⏰ *Lembrete de Prazo*\n\nA tarefa *"${task.titulo}"* vence amanhã (${prazoFormatado}${horaStr}).\n\nNão esqueça de concluí-la!`;
+        // Buscar nome da unidade
+        let unidadeNome = "";
+        if (task.unidade_id) {
+          const { data: unidade } = await supabase.from("unidades").select("nome").eq("id", task.unidade_id).single();
+          unidadeNome = unidade?.nome || "";
+        }
+
+        // Buscar nome do criador
+        let criadorNome = "";
+        if (task.created_by) {
+          const { data: { users } } = await supabase.auth.admin.listUsers();
+          const creator = users?.find(u => u.id === task.created_by);
+          criadorNome = creator?.user_metadata?.full_name || creator?.user_metadata?.name || "";
+        }
+
+        let message = `⏰ *Lembrete de Prazo*\n`;
+        if (unidadeNome) message += `📍 Unidade: *${unidadeNome}*\n`;
+        message += `\nA tarefa *"${task.titulo}"* vence amanhã (${prazoFormatado}${horaStr}).\n`;
+        if (task.descricao) message += `\n📝 *Descrição:*\n${task.descricao}\n`;
+        if (criadorNome) message += `\nAtribuída por: ${criadorNome}`;
+        message += `\n\nNão esqueça de concluí-la!`;
 
         const sent = await sendWhatsApp(phone, message);
         if (sent) {
@@ -148,7 +168,7 @@ serve(async (req) => {
     // 2. Find tasks that are due NOW (not yet notified for deadline)
     const { data: tasksPrazo, error: errorPrazo } = await supabase
       .from("tasks")
-      .select("id, titulo, responsavel, prazo, hora_prazo, notificado_prazo")
+      .select("id, titulo, responsavel, prazo, hora_prazo, notificado_prazo, descricao, created_by, unidade_id")
       .eq("notificado_prazo", false)
       .eq("arquivada", false)
       .neq("status", "concluida")
@@ -168,7 +188,27 @@ serve(async (req) => {
     for (const task of tasksToNotifyDeadline) {
       const phone = await getPhoneByName(supabase, task.responsavel);
       if (phone) {
-        const message = `🚨 *Prazo Final!*\n\nA tarefa *"${task.titulo}"* vence *AGORA*!\n\nPor favor, conclua-a o mais rápido possível.`;
+        // Buscar nome da unidade
+        let unidadeNome = "";
+        if (task.unidade_id) {
+          const { data: unidade } = await supabase.from("unidades").select("nome").eq("id", task.unidade_id).single();
+          unidadeNome = unidade?.nome || "";
+        }
+
+        // Buscar nome do criador
+        let criadorNome = "";
+        if (task.created_by) {
+          const { data: { users } } = await supabase.auth.admin.listUsers();
+          const creator = users?.find(u => u.id === task.created_by);
+          criadorNome = creator?.user_metadata?.full_name || creator?.user_metadata?.name || "";
+        }
+
+        let message = `🚨 *Prazo Final!*\n`;
+        if (unidadeNome) message += `📍 Unidade: *${unidadeNome}*\n`;
+        message += `\nA tarefa *"${task.titulo}"* vence *AGORA*!\n`;
+        if (task.descricao) message += `\n📝 *Descrição:*\n${task.descricao}\n`;
+        if (criadorNome) message += `\nAtribuída por: ${criadorNome}`;
+        message += `\n\nPor favor, conclua-a o mais rápido possível.`;
 
         const sent = await sendWhatsApp(phone, message);
         if (sent) {
