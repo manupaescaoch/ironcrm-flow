@@ -646,7 +646,14 @@ export default function EstoqueInterno() {
       toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
       return;
     }
-    criarInsumoMutation.mutate(novoInsumo);
+    criarInsumoMutation.mutate({
+      ...novoInsumo,
+      quantidade_minima: novoInsumo.quantidade_minima || 0,
+      lead_time_dias: novoInsumo.lead_time_dias || 3,
+      estoque_seguranca_dias: novoInsumo.estoque_seguranca_dias || 2,
+      custo_unitario: novoInsumo.custo_unitario || 0,
+      quantidade_minima_compra: novoInsumo.quantidade_minima_compra || 1,
+    });
   };
 
   const handleEditarInsumo = () => {
@@ -654,7 +661,15 @@ export default function EstoqueInterno() {
       toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
       return;
     }
-    editarInsumoMutation.mutate(editInsumo);
+    editarInsumoMutation.mutate({
+      ...editInsumo,
+      quantidade_minima: editInsumo.quantidade_minima || 0,
+      lead_time_dias: editInsumo.lead_time_dias || 3,
+      estoque_seguranca_dias: editInsumo.estoque_seguranca_dias || 2,
+      custo_unitario: editInsumo.custo_unitario || 0,
+      quantidade_minima_compra: editInsumo.quantidade_minima_compra || 1,
+      media_diaria_manual: editInsumo.media_diaria_manual || 0,
+    });
   };
 
   const openEditarInsumo = (insumo: Insumo) => {
@@ -899,8 +914,9 @@ export default function EstoqueInterno() {
                         <Label className="text-xs text-muted-foreground">Quantidade Mínima em Estoque</Label>
                         <Input 
                           type="number" 
-                          value={novoInsumo.quantidade_minima} 
-                          onChange={e => setNovoInsumo(p => ({ ...p, quantidade_minima: parseInt(e.target.value) || 0 }))}
+                          min={0}
+                          value={novoInsumo.quantidade_minima || ''} 
+                          onChange={e => setNovoInsumo(p => ({ ...p, quantidade_minima: e.target.value === '' ? 0 : parseInt(e.target.value) }))}
                           className="mt-1"
                         />
                       </div>
@@ -928,8 +944,8 @@ export default function EstoqueInterno() {
                           <Input 
                             type="number" 
                             min={1}
-                            value={novoInsumo.lead_time_dias} 
-                            onChange={e => setNovoInsumo(p => ({ ...p, lead_time_dias: parseInt(e.target.value) || 3 }))}
+                      value={novoInsumo.lead_time_dias || ''} 
+                            onChange={e => setNovoInsumo(p => ({ ...p, lead_time_dias: e.target.value === '' ? 0 : parseInt(e.target.value) }))}
                             className="mt-1"
                           />
                         </div>
@@ -948,8 +964,8 @@ export default function EstoqueInterno() {
                           <Input 
                             type="number" 
                             min={0}
-                            value={novoInsumo.estoque_seguranca_dias} 
-                            onChange={e => setNovoInsumo(p => ({ ...p, estoque_seguranca_dias: parseInt(e.target.value) || 2 }))}
+                      value={novoInsumo.estoque_seguranca_dias || ''} 
+                            onChange={e => setNovoInsumo(p => ({ ...p, estoque_seguranca_dias: e.target.value === '' ? 0 : parseInt(e.target.value) }))}
                             className="mt-1"
                           />
                         </div>
@@ -981,8 +997,8 @@ export default function EstoqueInterno() {
                               type="number" 
                               step="0.01"
                               min={0}
-                              value={novoInsumo.custo_unitario} 
-                              onChange={e => setNovoInsumo(p => ({ ...p, custo_unitario: parseFloat(e.target.value) || 0 }))}
+                            value={novoInsumo.custo_unitario || ''} 
+                              onChange={e => setNovoInsumo(p => ({ ...p, custo_unitario: e.target.value === '' ? 0 : parseFloat(e.target.value) }))}
                               placeholder="0,00"
                               className="pl-10"
                             />
@@ -1003,8 +1019,8 @@ export default function EstoqueInterno() {
                           <Input 
                             type="number" 
                             min={1}
-                            value={novoInsumo.quantidade_minima_compra} 
-                            onChange={e => setNovoInsumo(p => ({ ...p, quantidade_minima_compra: parseInt(e.target.value) || 1 }))}
+                          value={novoInsumo.quantidade_minima_compra || ''} 
+                            onChange={e => setNovoInsumo(p => ({ ...p, quantidade_minima_compra: e.target.value === '' ? 0 : parseInt(e.target.value) }))}
                           />
                         </div>
                       </div>
@@ -1563,8 +1579,9 @@ export default function EstoqueInterno() {
                     <Label className="text-xs text-muted-foreground">Quantidade Mínima em Estoque</Label>
                     <Input 
                       type="number" 
-                      value={editInsumo.quantidade_minima} 
-                      onChange={e => setEditInsumo(p => ({ ...p, quantidade_minima: parseInt(e.target.value) || 0 }))}
+                      min={0}
+                      value={editInsumo.quantidade_minima || ''} 
+                      onChange={e => setEditInsumo(p => ({ ...p, quantidade_minima: e.target.value === '' ? 0 : parseInt(e.target.value) }))}
                       className="mt-1"
                     />
                     {(() => {
@@ -1613,8 +1630,8 @@ export default function EstoqueInterno() {
                       <Input 
                         type="number" 
                         min={1}
-                        value={editInsumo.lead_time_dias} 
-                        onChange={e => setEditInsumo(p => ({ ...p, lead_time_dias: parseInt(e.target.value) || 3 }))}
+                      value={editInsumo.lead_time_dias || ''} 
+                        onChange={e => setEditInsumo(p => ({ ...p, lead_time_dias: e.target.value === '' ? 0 : parseInt(e.target.value) }))}
                         className="mt-1"
                       />
                     </div>
@@ -1633,8 +1650,8 @@ export default function EstoqueInterno() {
                       <Input 
                         type="number" 
                         min={0}
-                        value={editInsumo.estoque_seguranca_dias} 
-                        onChange={e => setEditInsumo(p => ({ ...p, estoque_seguranca_dias: parseInt(e.target.value) || 2 }))}
+                      value={editInsumo.estoque_seguranca_dias || ''} 
+                        onChange={e => setEditInsumo(p => ({ ...p, estoque_seguranca_dias: e.target.value === '' ? 0 : parseInt(e.target.value) }))}
                         className="mt-1"
                       />
                     </div>
@@ -1666,8 +1683,8 @@ export default function EstoqueInterno() {
                           type="number" 
                           step="0.01"
                           min={0}
-                          value={editInsumo.custo_unitario} 
-                          onChange={e => setEditInsumo(p => ({ ...p, custo_unitario: parseFloat(e.target.value) || 0 }))}
+                          value={editInsumo.custo_unitario || ''} 
+                          onChange={e => setEditInsumo(p => ({ ...p, custo_unitario: e.target.value === '' ? 0 : parseFloat(e.target.value) }))}
                           placeholder="0,00"
                           className="pl-10"
                         />
@@ -1688,8 +1705,8 @@ export default function EstoqueInterno() {
                       <Input 
                         type="number" 
                         min={1}
-                        value={editInsumo.quantidade_minima_compra} 
-                        onChange={e => setEditInsumo(p => ({ ...p, quantidade_minima_compra: parseInt(e.target.value) || 1 }))}
+                      value={editInsumo.quantidade_minima_compra || ''} 
+                        onChange={e => setEditInsumo(p => ({ ...p, quantidade_minima_compra: e.target.value === '' ? 0 : parseInt(e.target.value) }))}
                       />
                     </div>
                   </div>
@@ -1800,8 +1817,8 @@ export default function EstoqueInterno() {
                         type="number" 
                         step="0.1"
                         min={0}
-                        value={editInsumo.media_diaria_manual} 
-                        onChange={e => setEditInsumo(p => ({ ...p, media_diaria_manual: parseFloat(e.target.value) || 0 }))}
+                        value={editInsumo.media_diaria_manual || ''} 
+                        onChange={e => setEditInsumo(p => ({ ...p, media_diaria_manual: e.target.value === '' ? 0 : parseFloat(e.target.value) }))}
                         placeholder="Ex: 0.5"
                         className="mt-1"
                       />
