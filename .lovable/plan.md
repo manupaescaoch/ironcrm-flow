@@ -1,31 +1,35 @@
 
-# Incluir Nome da Unidade nas Mensagens WhatsApp de Tarefas
+# Corrigir erro ao editar manualmente a Quantidade Minima no Estoque
 
-## O que muda
-As mensagens de WhatsApp enviadas ao atribuir ou transferir tarefas passarao a incluir o nome da unidade, facilitando a identificacao para quem recebe.
+## Problema
+Ao tentar digitar manualmente o valor de "Quantidade Minima em Estoque" nos modais de criar ou editar insumo, o campo reseta para 0 toda vez que o usuario tenta limpar o valor atual. Isso acontece porque o codigo usa `parseInt(e.target.value) || 0`, que converte string vazia em 0 instantaneamente, impedindo o usuario de digitar um novo numero.
 
-### Exemplo da mensagem atualizada:
-```
-📋 *Nova Tarefa Atribuída*
-📍 Unidade: *ZONA NORTE*
-
-Você foi designado para: *BOLETO NANITAS 18/02 O VENCIMENTO*
-
-📝 *Descrição:*
-45090.02004 00159.596626 20218.042008 7 13610000036750
-
-Atribuída por: Sistema
-
-Acesse o sistema para ver os detalhes.
-```
+## Solucao
+Alterar o tratamento do campo `quantidade_minima` para aceitar string vazia temporariamente durante a digitacao, e converter para numero apenas na hora de salvar.
 
 ## Detalhes Tecnicos
 
-**1. Edge Function (`supabase/functions/send-task-whatsapp/index.ts`)**
-- Aceitar novo parametro `unidade_nome` no body da requisicao
-- Adicionar linha `📍 Unidade: *${unidade_nome}*` nas mensagens de nova tarefa e tarefa transferida
+**Arquivo: `src/pages/EstoqueInterno.tsx`**
 
-**2. Hook (`src/hooks/useTarefasData.ts`)**
-- Adicionar parametro `unidadeNome` na funcao `sendWhatsAppNotification`
-- Passar `unidade_nome` no body da chamada a edge function
-- Nos pontos onde `sendWhatsAppNotification` e chamado (`createTask` e `updateTask`), passar `unidadeAtual.nome` como parametro
+1. Alterar o `onChange` dos inputs de `quantidade_minima` nos dois modais (criar e editar) para usar `Number(e.target.value)` em vez de `parseInt(e.target.value) || 0`, permitindo que o campo fique vazio:
+
+```typescript
+// De:
+onChange={e => setEditInsumo(p => ({ ...p, quantidade_minima: parseInt(e.target.value) || 0 }))}
+
+// Para:
+onChange={e => setEditInsumo(p => ({ ...p, quantidade_minima: e.target.value === '' ? 0 : parseInt(e.target.value) }))}
+```
+
+2. Ajustar o `value` para mostrar string vazia quando for 0, ou manter o valor numerico usando uma abordagem que permite o campo vazio:
+
+```typescript
+// Usar min={0} para evitar valores negativos
+value={editInsumo.quantidade_minima || ''}
+```
+
+3. Aplicar a mesma correcao no modal de criar insumo (campo `novoInsumo.quantidade_minima`).
+
+4. Garantir que o `handleEditarInsumo` e `handleCriarInsumo` usem `|| 0` como fallback antes de enviar ao banco.
+
+Essas mesmas correcoes serao aplicadas nos outros campos numericos que possam ter o mesmo problema (`lead_time_dias`, `estoque_seguranca_dias`, `custo_unitario`, `quantidade_minima_compra`, `media_diaria_manual`).
