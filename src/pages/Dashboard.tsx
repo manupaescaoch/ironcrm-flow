@@ -255,11 +255,7 @@ export default function Dashboard() {
               <PendenciasDia
                 pendenciasHoje={pendenciasHoje}
                 pendenciasAmanha={pendenciasAmanha}
-                followUpsHoje={urgentAutoFollowUpItems.filter(item => {
-                  const dataPrevista = new Date(item.data_prevista);
-                  const hoje = new Date();
-                  return dataPrevista.toDateString() === hoje.toDateString();
-                })}
+                followUpsHoje={urgentAutoFollowUpItems}
                 onReagendar={handleReagendar}
                 onFollowUpClick={() => {
                   setShowFollowUpSection(true);
