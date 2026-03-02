@@ -1,35 +1,27 @@
 
-# Corrigir erro ao editar manualmente a Quantidade Minima no Estoque
+
+# Corrigir contagem de Follow-ups Pendentes
 
 ## Problema
-Ao tentar digitar manualmente o valor de "Quantidade Minima em Estoque" nos modais de criar ou editar insumo, o campo reseta para 0 toda vez que o usuario tenta limpar o valor atual. Isso acontece porque o codigo usa `parseInt(e.target.value) || 0`, que converte string vazia em 0 instantaneamente, impedindo o usuario de digitar um novo numero.
+No card "Pendências do Dia", o filtro de follow-ups (`followUpsHoje`) só mostra os follow-ups com data prevista de **hoje**, excluindo os **vencidos** (datas anteriores a hoje). O usuario quer que os follow-ups pendentes incluam tanto os do dia quanto os vencidos.
 
 ## Solucao
-Alterar o tratamento do campo `quantidade_minima` para aceitar string vazia temporariamente durante a digitacao, e converter para numero apenas na hora de salvar.
 
-## Detalhes Tecnicos
+**Arquivo: `src/pages/Dashboard.tsx` (linhas 258-262)**
 
-**Arquivo: `src/pages/EstoqueInterno.tsx`**
-
-1. Alterar o `onChange` dos inputs de `quantidade_minima` nos dois modais (criar e editar) para usar `Number(e.target.value)` em vez de `parseInt(e.target.value) || 0`, permitindo que o campo fique vazio:
+Remover o filtro que restringe apenas ao dia de hoje. Em vez de filtrar `urgentAutoFollowUpItems` para mostrar apenas os de hoje, passar todos os `urgentAutoFollowUpItems` diretamente (que ja incluem hoje + vencidos, conforme a logica do hook `useDashboardFollowUps`).
 
 ```typescript
 // De:
-onChange={e => setEditInsumo(p => ({ ...p, quantidade_minima: parseInt(e.target.value) || 0 }))}
+followUpsHoje={urgentAutoFollowUpItems.filter(item => {
+  const dataPrevista = new Date(item.data_prevista);
+  const hoje = new Date();
+  return dataPrevista.toDateString() === hoje.toDateString();
+})}
 
 // Para:
-onChange={e => setEditInsumo(p => ({ ...p, quantidade_minima: e.target.value === '' ? 0 : parseInt(e.target.value) }))}
+followUpsHoje={urgentAutoFollowUpItems}
 ```
 
-2. Ajustar o `value` para mostrar string vazia quando for 0, ou manter o valor numerico usando uma abordagem que permite o campo vazio:
+Nenhuma outra alteracao necessaria — o KPI principal (linha 161) ja conta corretamente com `urgentAutoFollowUpItems.length`.
 
-```typescript
-// Usar min={0} para evitar valores negativos
-value={editInsumo.quantidade_minima || ''}
-```
-
-3. Aplicar a mesma correcao no modal de criar insumo (campo `novoInsumo.quantidade_minima`).
-
-4. Garantir que o `handleEditarInsumo` e `handleCriarInsumo` usem `|| 0` como fallback antes de enviar ao banco.
-
-Essas mesmas correcoes serao aplicadas nos outros campos numericos que possam ter o mesmo problema (`lead_time_dias`, `estoque_seguranca_dias`, `custo_unitario`, `quantidade_minima_compra`, `media_diaria_manual`).
