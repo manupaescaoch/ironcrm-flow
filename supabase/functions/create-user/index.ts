@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     }
 
     // Validate role if provided
-    const allowedRoles = ['admin', 'recepcao', 'comercial'];
+    const allowedRoles = ['admin', 'recepcao', 'comercial', 'coordenador'];
     if (role && !allowedRoles.includes(role)) {
       return new Response(
         JSON.stringify({ error: `Invalid role. Allowed roles: ${allowedRoles.join(', ')}` }),
@@ -102,9 +102,10 @@ Deno.serve(async (req) => {
 
     // 7. Add role if specified
     if (role && newUser.user) {
-      let appRole: 'admin' | 'moderator' | 'user';
+      let appRole: 'admin' | 'moderator' | 'user' | 'coordenador';
       if (role === 'admin') appRole = 'admin';
       else if (role === 'recepcao') appRole = 'moderator';
+      else if (role === 'coordenador') appRole = 'coordenador';
       else appRole = 'user'; // comercial
 
       const { error: roleInsertError } = await supabase

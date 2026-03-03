@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-export type UserRole = 'admin' | 'recepcao' | 'comercial';
+export type UserRole = 'admin' | 'recepcao' | 'comercial' | 'coordenador';
 
 interface AuthContextType {
   user: User | null;
@@ -19,6 +19,7 @@ interface AuthContextType {
   canAccessRelatorio: boolean;
   canAccessAdminUsers: boolean;
   canEditLead: (leadCreatedBy: string | null) => boolean;
+  canEditEscala: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.role === 'admin') return 'admin';
       if (data.role === 'moderator') return 'recepcao';
       if (data.role === 'user') return 'comercial';
+      if (data.role === 'coordenador') return 'coordenador';
       
       return null;
     } catch (err) {
@@ -119,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const canAccessComissoes = userRole === 'admin';
   const canAccessRelatorio = userRole === 'admin';
   const canAccessAdminUsers = userRole === 'admin';
+  const canEditEscala = userRole === 'admin' || userRole === 'coordenador';
 
   // Check if user can edit a lead
   // Admin can edit any lead
@@ -147,7 +150,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       canAccessComissoes,
       canAccessRelatorio,
       canAccessAdminUsers,
-      canEditLead
+      canEditLead,
+      canEditEscala
     }}>
       {children}
     </AuthContext.Provider>
