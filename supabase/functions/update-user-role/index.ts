@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     }
 
     // Validate role
-    const allowedRoles = ['admin', 'recepcao', 'comercial'];
+    const allowedRoles = ['admin', 'recepcao', 'comercial', 'coordenador'];
     if (!allowedRoles.includes(role)) {
       return new Response(
         JSON.stringify({ error: `Invalid role. Allowed roles: ${allowedRoles.join(', ')}` }),
@@ -85,9 +85,10 @@ Deno.serve(async (req) => {
     console.log(`Admin ${user.id} (${user.email}) updating user ${userId} role to ${role}...`);
 
     // 6. Convert display role to app_role enum
-    let appRole: 'admin' | 'moderator' | 'user';
+    let appRole: 'admin' | 'moderator' | 'user' | 'coordenador';
     if (role === 'admin') appRole = 'admin';
     else if (role === 'recepcao') appRole = 'moderator';
+    else if (role === 'coordenador') appRole = 'coordenador';
     else appRole = 'user'; // comercial
 
     // 7. Update user_roles table (delete existing, insert new)

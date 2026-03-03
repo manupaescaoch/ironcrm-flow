@@ -72,6 +72,7 @@ type FetchError = {
 
 const roleOptions: { value: string; label: string; icon: typeof Shield }[] = [
   { value: 'admin', label: 'Admin', icon: Shield },
+  { value: 'coordenador', label: 'Coordenador', icon: UserCheck },
   { value: 'recepcao', label: 'Recepção', icon: UserCheck },
   { value: 'comercial', label: 'Comercial', icon: Briefcase },
 ];

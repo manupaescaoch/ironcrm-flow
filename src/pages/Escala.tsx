@@ -86,7 +86,7 @@ const MESES = [
 const ANOS = Array.from({ length: 7 }, (_, i) => 2024 + i);
 
 const EscalaPage = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, canEditEscala } = useAuth();
   const { unidadeAtual, unidadesPermitidas } = useUnidade();
   
   // Filters
@@ -401,7 +401,7 @@ const EscalaPage = () => {
               <FileDown className="w-4 h-4 mr-2" />
               Exportar PDF
             </Button>
-            {isAdmin && (
+            {canEditEscala && (
               <>
                 <Button variant="outline" onClick={() => setImportarTextoOpen(true)}>
                   <FileText className="w-4 h-4 mr-2" />
@@ -525,19 +525,19 @@ const EscalaPage = () => {
                     <TableHead>Segurança</TableHead>
                     <TableHead>Feriado</TableHead>
                     <TableHead>Observações</TableHead>
-                    {isAdmin && <TableHead className="text-right">Ações</TableHead>}
+                    {canEditEscala && <TableHead className="text-right">Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={isAdmin ? 10 : 9} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={canEditEscala ? 10 : 9} className="text-center py-8 text-muted-foreground">
                         Carregando...
                       </TableCell>
                     </TableRow>
                   ) : escalas.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={isAdmin ? 10 : 9} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={canEditEscala ? 10 : 9} className="text-center py-8 text-muted-foreground">
                         Nenhuma escala encontrada
                       </TableCell>
                     </TableRow>
@@ -562,7 +562,7 @@ const EscalaPage = () => {
                           )}
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate">{escala.observacoes || '-'}</TableCell>
-                        {isAdmin && (
+                        {canEditEscala && (
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
                               <Button
