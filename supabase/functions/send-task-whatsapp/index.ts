@@ -117,6 +117,16 @@ Deno.serve(async (req) => {
     const normalizedPhone = normalizePhone(phone);
     console.log(`Sending WhatsApp to: ${normalizedPhone}`);
 
+    // Format deadline string
+    let prazoStr = '';
+    if (prazo) {
+      const [year, month, day] = prazo.split('-');
+      prazoStr = `${day}/${month}/${year}`;
+      if (hora_prazo) {
+        prazoStr += ` às ${hora_prazo.substring(0, 5)}`;
+      }
+    }
+
     // Montar mensagem
     let message = '';
     if (notificationType === 'nova_tarefa') {
@@ -127,6 +137,9 @@ Deno.serve(async (req) => {
       message += `\nVocê foi designado para: *${title}*\n`;
       if (description) {
         message += `\n📝 *Descrição:*\n${description}\n`;
+      }
+      if (prazoStr) {
+        message += `\n⏰ *Prazo Final:* ${prazoStr}\n`;
       }
       if (creator_name) {
         message += `\nAtribuída por: ${creator_name}`;
@@ -140,6 +153,9 @@ Deno.serve(async (req) => {
       message += `\nA tarefa "*${title}*" foi transferida para você.\n`;
       if (description) {
         message += `\n📝 *Descrição:*\n${description}\n`;
+      }
+      if (prazoStr) {
+        message += `\n⏰ *Prazo Final:* ${prazoStr}\n`;
       }
       message += `\nAcesse o sistema para ver os detalhes.`;
     }
