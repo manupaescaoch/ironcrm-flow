@@ -158,7 +158,7 @@ export function useTarefasData() {
 
       // Enviar WhatsApp automaticamente
       if (data) {
-        sendWhatsAppNotification(data.id, data.titulo, task.responsavel, 'nova_tarefa', creatorName, data.descricao, unidadeAtual?.nome);
+        sendWhatsAppNotification(data.id, data.titulo, task.responsavel, 'nova_tarefa', creatorName, data.descricao, unidadeAtual?.nome, data.prazo, data.hora_prazo);
       }
 
       return data as Task;
