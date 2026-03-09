@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
     );
 
     const body = await req.json();
-    const { task_id, task_title, task_description, responsavel_name, responsavel, tipo, creator_name, isNewTask, unidade_nome } = body;
+    const { task_id, task_title, task_description, responsavel_name, responsavel, tipo, creator_name, isNewTask, unidade_nome, prazo, hora_prazo } = body;
     
     // Support both old and new parameter names
     const targetName = responsavel_name || responsavel;
