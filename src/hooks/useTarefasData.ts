@@ -110,7 +110,9 @@ export function useTarefasData() {
     tipo: 'nova_tarefa' | 'tarefa_atualizada',
     creatorName?: string,
     taskDescription?: string | null,
-    unidadeNome?: string
+    unidadeNome?: string,
+    prazo?: string | null,
+    horaPrazo?: string | null
   ) => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -125,6 +127,8 @@ export function useTarefasData() {
           tipo,
           creator_name: creatorName,
           unidade_nome: unidadeNome,
+          prazo,
+          hora_prazo: horaPrazo,
         },
         headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
       });
