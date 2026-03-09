@@ -186,7 +186,7 @@ export function useTarefasData() {
 
       // Se o responsável mudou, enviar WhatsApp para o novo responsável
       if (updates.responsavel && previousResponsavel && updates.responsavel !== previousResponsavel) {
-        sendWhatsAppNotification(id, data.titulo, updates.responsavel, 'tarefa_atualizada', undefined, data.descricao, unidadeAtual?.nome);
+        sendWhatsAppNotification(id, data.titulo, updates.responsavel, 'tarefa_atualizada', undefined, data.descricao, unidadeAtual?.nome, data.prazo, data.hora_prazo);
       }
 
       return data as Task;
