@@ -84,6 +84,7 @@ export function useTarefasData() {
         .from('tasks')
         .select('*')
         .eq('unidade_id', unidadeAtual.id)
+        .order('prazo', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
