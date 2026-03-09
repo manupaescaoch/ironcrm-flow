@@ -84,6 +84,7 @@ export function useTarefasData() {
         .from('tasks')
         .select('*')
         .eq('unidade_id', unidadeAtual.id)
+        .order('prazo', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
@@ -109,7 +110,9 @@ export function useTarefasData() {
     tipo: 'nova_tarefa' | 'tarefa_atualizada',
     creatorName?: string,
     taskDescription?: string | null,
-    unidadeNome?: string
+    unidadeNome?: string,
+    prazo?: string | null,
+    horaPrazo?: string | null
   ) => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -124,6 +127,8 @@ export function useTarefasData() {
           tipo,
           creator_name: creatorName,
           unidade_nome: unidadeNome,
+          prazo,
+          hora_prazo: horaPrazo,
         },
         headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
       });
@@ -153,7 +158,7 @@ export function useTarefasData() {
 
       // Enviar WhatsApp automaticamente
       if (data) {
-        sendWhatsAppNotification(data.id, data.titulo, task.responsavel, 'nova_tarefa', creatorName, data.descricao, unidadeAtual?.nome);
+        sendWhatsAppNotification(data.id, data.titulo, task.responsavel, 'nova_tarefa', creatorName, data.descricao, unidadeAtual?.nome, data.prazo, data.hora_prazo);
       }
 
       return data as Task;
@@ -181,7 +186,7 @@ export function useTarefasData() {
 
       // Se o responsável mudou, enviar WhatsApp para o novo responsável
       if (updates.responsavel && previousResponsavel && updates.responsavel !== previousResponsavel) {
-        sendWhatsAppNotification(id, data.titulo, updates.responsavel, 'tarefa_atualizada', undefined, data.descricao, unidadeAtual?.nome);
+        sendWhatsAppNotification(id, data.titulo, updates.responsavel, 'tarefa_atualizada', undefined, data.descricao, unidadeAtual?.nome, data.prazo, data.hora_prazo);
       }
 
       return data as Task;
