@@ -46,6 +46,7 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
   const [renovacaoModalOpen, setRenovacaoModalOpen] = useState(false);
   const [editarModalOpen, setEditarModalOpen] = useState(false);
   const [confirmarPagamentoModalOpen, setConfirmarPagamentoModalOpen] = useState(false);
+  const [inativarDialogOpen, setInativarDialogOpen] = useState(false);
   const [selectedVencimento, setSelectedVencimento] = useState<VencimentoItem | null>(null);
 
   const handleRenovar = (item: VencimentoItem) => {
