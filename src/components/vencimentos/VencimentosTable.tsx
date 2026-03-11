@@ -64,6 +64,27 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
     setConfirmarPagamentoModalOpen(true);
   };
 
+  const handleInativar = (item: VencimentoItem) => {
+    setSelectedVencimento(item);
+    setInativarDialogOpen(true);
+  };
+
+  const confirmInativar = async () => {
+    if (!selectedVencimento) return;
+    const { error } = await supabase
+      .from('leads')
+      .update({ ativo: false })
+      .eq('id', selectedVencimento.leadId);
+
+    if (error) {
+      toast({ title: 'Erro ao inativar aluno', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Aluno inativado com sucesso' });
+      onRefresh?.();
+    }
+    setInativarDialogOpen(false);
+  };
+
   const handleSuccess = () => {
     onRefresh?.();
   };
