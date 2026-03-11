@@ -273,6 +273,24 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
                           <TooltipContent>Ver detalhes</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
+
+                      <Separator orientation="vertical" className="h-5 mx-0.5" />
+
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleInativar(item)}
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 transition-all hover:scale-105"
+                            >
+                              <UserX className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Inativar aluno</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </div>
                 </TableCell>
