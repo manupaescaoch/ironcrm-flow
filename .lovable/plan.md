@@ -1,25 +1,49 @@
 
 
-# Adicionar botão "Inativar Aluno" na tabela de Vencimentos
+# Criar Perfil Coordenador
 
-## Objetivo
-Adicionar um botão de ação na tabela de vencimentos para marcar o aluno (lead) como inativo (`ativo = false`) quando ele não renovar o plano. Isso aparecerá junto aos botões existentes de Editar, Renovar e Ver detalhes.
+## Resumo
+Adicionar o perfil "coordenador" ao sistema. O coordenador terá as mesmas permissões que recepção/comercial, mas poderá editar dados da Escala (adicionar, editar, excluir registros).
 
-## Alterações
+## Alterações necessárias
 
-### 1. `src/components/vencimentos/VencimentosTable.tsx`
-- Adicionar botão com ícone `UserX` (já importado na page) na coluna de ações
-- Ao clicar, abrir um `AlertDialog` de confirmação pedindo confirmação antes de inativar
-- Ao confirmar, executar `supabase.from('leads').update({ ativo: false }).eq('id', item.leadId)`
-- Exibir toast de sucesso e chamar `onRefresh`
-- Botão aparece em vermelho para indicar ação destrutiva
+### 1. Banco de dados - Novo valor no enum `app_role`
+Adicionar `'coordenador'` ao enum `app_role` existente (que hoje tem: admin, moderator, user).
 
-### 2. Nenhuma alteração de banco necessária
-- A coluna `ativo` já existe na tabela `leads`
-- As RLS policies de UPDATE já permitem usuários com acesso à unidade atualizarem leads
-- O trigger `enforce_leads_update_permissions` permite admin alterar qualquer campo; para não-admin, precisamos verificar se `ativo` está na lista de campos bloqueados -- sim, está bloqueado para não-admin/não-owner. Apenas admin e o criador do lead poderão inativar.
+### 2. Banco de dados - RLS da tabela `escala`
+Atualizar as policies de INSERT, UPDATE e DELETE da tabela `escala` para permitir também o role `'coordenador'` (além de admin).
 
-### Detalhes técnicos
-- O `enforce_leads_update_permissions` bloqueia alteração de `ativo` por não-admin/não-owner. Isso é o comportamento correto (só admin/recepção que criou o lead pode inativar).
-- Componente usado: `AlertDialog` do shadcn para confirmação
+### 3. AuthContext (`src/contexts/AuthContext.tsx`)
+- Adicionar `'coordenador'` ao tipo `UserRole`
+- No `fetchUserRole`, mapear o enum `'coordenador'` para o display role `'coordenador'`
+- Adicionar helper `canEditEscala` que retorna `true` para admin e coordenador
+
+### 4. Edge Functions (`update-user-role` e `create-user`)
+- Adicionar `'coordenador'` à lista de `allowedRoles`
+- Mapear `'coordenador'` para o app_role `'coordenador'` (em vez de moderator/user)
+
+### 5. Layout (`src/components/Layout.tsx`)
+- Adicionar `'coordenador'` ao array de roles dos itens de navegação que coordenador pode acessar (mesmos que recepcao/comercial)
+
+### 6. Escala page (`src/pages/Escala.tsx`)
+- Substituir `isAdmin` por `isAdmin || userRole === 'coordenador'` (ou usar o novo helper `canEditEscala`) nas verificações de permissão de edição
+
+### 7. AdminUsers page
+- Adicionar opção "Coordenador" no select de roles ao criar/editar usuários
+
+## Detalhes técnicos
+
+**Migração SQL:**
+```sql
+ALTER TYPE public.app_role ADD VALUE 'coordenador';
+
+-- Update escala INSERT policy
+DROP POLICY IF EXISTS "insert_escala_admin" ON public.escala;
+CREATE POLICY "insert_escala_admin_coord" ON public.escala
+FOR INSERT WITH CHECK (
+  has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'coordenador'::app_role)
+);
+
+-- Similar for UPDATE and DELETE policies
+```
 

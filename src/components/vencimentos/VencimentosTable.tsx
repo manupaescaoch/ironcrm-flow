@@ -2,8 +2,20 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
-import { ExternalLink, Pencil, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { ExternalLink, Pencil, RefreshCw, CheckCircle2, UserX } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 import {
   Table,
   TableBody,
@@ -34,6 +46,7 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
   const [renovacaoModalOpen, setRenovacaoModalOpen] = useState(false);
   const [editarModalOpen, setEditarModalOpen] = useState(false);
   const [confirmarPagamentoModalOpen, setConfirmarPagamentoModalOpen] = useState(false);
+  const [inativarDialogOpen, setInativarDialogOpen] = useState(false);
   const [selectedVencimento, setSelectedVencimento] = useState<VencimentoItem | null>(null);
 
   const handleRenovar = (item: VencimentoItem) => {
@@ -49,6 +62,27 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
   const handleConfirmarPagamento = (item: VencimentoItem) => {
     setSelectedVencimento(item);
     setConfirmarPagamentoModalOpen(true);
+  };
+
+  const handleInativar = (item: VencimentoItem) => {
+    setSelectedVencimento(item);
+    setInativarDialogOpen(true);
+  };
+
+  const confirmInativar = async () => {
+    if (!selectedVencimento) return;
+    const { error } = await supabase
+      .from('leads')
+      .update({ ativo: false })
+      .eq('id', selectedVencimento.leadId);
+
+    if (error) {
+      toast({ title: 'Erro ao inativar aluno', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Aluno inativado com sucesso' });
+      onRefresh?.();
+    }
+    setInativarDialogOpen(false);
   };
 
   const handleSuccess = () => {
@@ -239,6 +273,24 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
                           <TooltipContent>Ver detalhes</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
+
+                      <Separator orientation="vertical" className="h-5 mx-0.5" />
+
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleInativar(item)}
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 transition-all hover:scale-105"
+                            >
+                              <UserX className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Inativar aluno</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </div>
                 </TableCell>
@@ -268,6 +320,23 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
         vencimento={selectedVencimento}
         onSuccess={handleSuccess}
       />
+
+      <AlertDialog open={inativarDialogOpen} onOpenChange={setInativarDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Inativar aluno</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja inativar <strong>{selectedVencimento?.nome}</strong>? O aluno será marcado como inativo e não aparecerá mais nos controles de vencimento.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmInativar} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Inativar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
