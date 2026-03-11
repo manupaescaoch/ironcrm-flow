@@ -320,6 +320,23 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
         vencimento={selectedVencimento}
         onSuccess={handleSuccess}
       />
+
+      <AlertDialog open={inativarDialogOpen} onOpenChange={setInativarDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Inativar aluno</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja inativar <strong>{selectedVencimento?.nome}</strong>? O aluno será marcado como inativo e não aparecerá mais nos controles de vencimento.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmInativar} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Inativar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
