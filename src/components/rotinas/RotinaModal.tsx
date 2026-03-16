@@ -129,7 +129,7 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
               <Select value={responsavelPrincipal} onValueChange={setResponsavelPrincipal}>
                 <SelectTrigger><SelectValue placeholder="Selecionar responsável" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
+                  <SelectItem value="__none__">Nenhum</SelectItem>
                   {userOptions.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
                 </SelectContent>
               </Select>
