@@ -10,6 +10,7 @@ import { RotinasKPIGrid } from '@/components/rotinas/RotinasKPIGrid';
 import { RotinasFilters, RotinasFiltersState, filterRotinas } from '@/components/rotinas/RotinasFilters';
 import { RotinasLista } from '@/components/rotinas/RotinasLista';
 import { RotinasKanban } from '@/components/rotinas/RotinasKanban';
+import { RotinasCalendario } from '@/components/rotinas/RotinasCalendario';
 import { RotinaModal } from '@/components/rotinas/RotinaModal';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
