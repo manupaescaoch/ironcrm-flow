@@ -741,6 +741,173 @@ export type Database = {
           },
         ]
       }
+      rotina_atividades: {
+        Row: {
+          created_at: string
+          horario: string | null
+          id: string
+          observacao: string | null
+          ordem: number
+          responsavel: string | null
+          rotina_id: string
+          titulo: string
+        }
+        Insert: {
+          created_at?: string
+          horario?: string | null
+          id?: string
+          observacao?: string | null
+          ordem?: number
+          responsavel?: string | null
+          rotina_id: string
+          titulo: string
+        }
+        Update: {
+          created_at?: string
+          horario?: string | null
+          id?: string
+          observacao?: string | null
+          ordem?: number
+          responsavel?: string | null
+          rotina_id?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotina_atividades_rotina_id_fkey"
+            columns: ["rotina_id"]
+            isOneToOne: false
+            referencedRelation: "rotinas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rotina_execucoes: {
+        Row: {
+          atividade_id: string | null
+          concluida: boolean
+          concluida_em: string | null
+          concluida_por: string | null
+          created_at: string
+          data_execucao: string
+          foto_url: string | null
+          id: string
+          observacao: string | null
+          rotina_id: string
+          unidade_id: string
+        }
+        Insert: {
+          atividade_id?: string | null
+          concluida?: boolean
+          concluida_em?: string | null
+          concluida_por?: string | null
+          created_at?: string
+          data_execucao?: string
+          foto_url?: string | null
+          id?: string
+          observacao?: string | null
+          rotina_id: string
+          unidade_id: string
+        }
+        Update: {
+          atividade_id?: string | null
+          concluida?: boolean
+          concluida_em?: string | null
+          concluida_por?: string | null
+          created_at?: string
+          data_execucao?: string
+          foto_url?: string | null
+          id?: string
+          observacao?: string | null
+          rotina_id?: string
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotina_execucoes_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "rotina_atividades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rotina_execucoes_rotina_id_fkey"
+            columns: ["rotina_id"]
+            isOneToOne: false
+            referencedRelation: "rotinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rotina_execucoes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rotinas: {
+        Row: {
+          arquivada: boolean
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          frequencia: string
+          horario_esperado: string | null
+          id: string
+          nome: string
+          prioridade: string
+          responsavel_conferencia: string | null
+          responsavel_principal: string | null
+          setor: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          arquivada?: boolean
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          frequencia?: string
+          horario_esperado?: string | null
+          id?: string
+          nome: string
+          prioridade?: string
+          responsavel_conferencia?: string | null
+          responsavel_principal?: string | null
+          setor?: string
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          arquivada?: boolean
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          frequencia?: string
+          horario_esperado?: string | null
+          id?: string
+          nome?: string
+          prioridade?: string
+          responsavel_conferencia?: string | null
+          responsavel_principal?: string | null
+          setor?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotinas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_comments: {
         Row: {
           content: string
