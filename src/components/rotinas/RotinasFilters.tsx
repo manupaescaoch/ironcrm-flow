@@ -81,7 +81,7 @@ export function filterRotinas(rotinas: Rotina[], filters: RotinasFiltersState): 
     if (!filters.showArchived && r.arquivada) return false;
     if (filters.search && !r.nome.toLowerCase().includes(filters.search.toLowerCase())) return false;
     if (filters.setor && filters.setor !== 'todos' && r.setor !== filters.setor) return false;
-    if (filters.frequencia && filters.frequencia !== 'todas' && r.frequencia !== filters.frequencia) return false;
+    if (filters.frequencia && filters.frequencia !== 'todas' && r.frequencia.split(':')[0] !== filters.frequencia) return false;
     if (filters.prioridade && filters.prioridade !== 'todas' && r.prioridade !== filters.prioridade) return false;
     if (filters.responsavel && filters.responsavel !== 'todos' && r.responsavel_principal !== filters.responsavel) return false;
     return true;
