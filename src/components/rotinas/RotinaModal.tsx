@@ -35,8 +35,8 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
   const [setor, setSetor] = useState('Geral');
   const [responsavelPrincipal, setResponsavelPrincipal] = useState('');
   const [responsavelConferencia, setResponsavelConferencia] = useState('');
-  const [frequencia, setFrequencia] = useState('diaria');
-  const [diasSemana, setDiasSemana] = useState<string[]>([]);
+  const [seRepete, setSeRepete] = useState(true);
+  const [diasSemana, setDiasSemana] = useState<string[]>(['seg', 'ter', 'qua', 'qui', 'sex']);
   const [horarioEsperado, setHorarioEsperado] = useState('');
   const [prioridade, setPrioridade] = useState('media');
   const [atividades, setAtividades] = useState<AtividadeForm[]>([]);
