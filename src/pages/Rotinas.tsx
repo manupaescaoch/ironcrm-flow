@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Plus, List, Kanban, Loader2, ClipboardList } from 'lucide-react';
+import { Plus, List, Kanban, Loader2, ClipboardList, CalendarDays } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,6 +10,7 @@ import { RotinasKPIGrid } from '@/components/rotinas/RotinasKPIGrid';
 import { RotinasFilters, RotinasFiltersState, filterRotinas } from '@/components/rotinas/RotinasFilters';
 import { RotinasLista } from '@/components/rotinas/RotinasLista';
 import { RotinasKanban } from '@/components/rotinas/RotinasKanban';
+import { RotinasCalendario } from '@/components/rotinas/RotinasCalendario';
 import { RotinaModal } from '@/components/rotinas/RotinaModal';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -122,11 +123,18 @@ export default function Rotinas() {
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <Tabs defaultValue="lista">
+          <Tabs defaultValue="calendario">
             <TabsList>
+              <TabsTrigger value="calendario"><CalendarDays className="w-4 h-4 mr-1" />Calendário</TabsTrigger>
               <TabsTrigger value="lista"><List className="w-4 h-4 mr-1" />Lista</TabsTrigger>
               <TabsTrigger value="kanban"><Kanban className="w-4 h-4 mr-1" />Kanban</TabsTrigger>
             </TabsList>
+            <TabsContent value="calendario">
+              <RotinasCalendario
+                rotinas={filteredRotinas} atividades={atividades} execucoes={execucoes}
+                onEdit={handleEdit} onToggleExecucao={toggleExecucao} canEdit={canEdit}
+              />
+            </TabsContent>
             <TabsContent value="lista">
               <RotinasLista
                 rotinas={filteredRotinas} atividades={atividades} execucoes={execucoes}
