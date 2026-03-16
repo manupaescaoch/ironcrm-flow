@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.cleanup-duplicates]
 verify_jwt = false
+
+[functions.rotina-whatsapp-response]
+verify_jwt = false
