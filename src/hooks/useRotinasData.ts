@@ -136,9 +136,12 @@ export function useRotinasData() {
       toast({ title: 'Erro ao criar rotina', description: error.message, variant: 'destructive' });
       return null;
     }
+    console.log('[Rotinas] Atividades a salvar:', newAtividades.length, JSON.stringify(newAtividades));
     if (newAtividades.length > 0 && rotina) {
       const ativs = newAtividades.map((a, i) => ({ ...a, rotina_id: rotina.id, ordem: i }));
-      const { error: atError } = await supabase.from('rotina_atividades').insert(ativs as any);
+      console.log('[Rotinas] Inserindo atividades:', JSON.stringify(ativs));
+      const { error: atError, data: atData } = await supabase.from('rotina_atividades').insert(ativs as any).select();
+      console.log('[Rotinas] Resultado insert atividades:', atError, atData);
       if (atError) {
         toast({ title: 'Erro ao salvar atividades', description: atError.message, variant: 'destructive' });
       }
