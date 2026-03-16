@@ -138,7 +138,10 @@ export function useRotinasData() {
     }
     if (newAtividades.length > 0 && rotina) {
       const ativs = newAtividades.map((a, i) => ({ ...a, rotina_id: rotina.id, ordem: i }));
-      await supabase.from('rotina_atividades').insert(ativs as any);
+      const { error: atError } = await supabase.from('rotina_atividades').insert(ativs as any);
+      if (atError) {
+        toast({ title: 'Erro ao salvar atividades', description: atError.message, variant: 'destructive' });
+      }
     }
     toast({ title: 'Rotina criada com sucesso' });
 
