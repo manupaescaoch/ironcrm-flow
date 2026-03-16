@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
-import { Rotina, RotinaInsert, SETORES, FREQUENCIAS, PRIORIDADES_ROTINA } from '@/hooks/useRotinasData';
+import { Rotina, RotinaInsert, SETORES, PRIORIDADES_ROTINA } from '@/hooks/useRotinasData';
 import { useUnidadeFilter } from '@/hooks/useUnidadeFilter';
 import { useUnidadeUsers } from '@/hooks/useUnidadeUsers';
 
@@ -35,8 +35,8 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
   const [setor, setSetor] = useState('Geral');
   const [responsavelPrincipal, setResponsavelPrincipal] = useState('');
   const [responsavelConferencia, setResponsavelConferencia] = useState('');
-  const [frequencia, setFrequencia] = useState('diaria');
-  const [diasSemana, setDiasSemana] = useState<string[]>([]);
+  const [seRepete, setSeRepete] = useState(true);
+  const [diasSemana, setDiasSemana] = useState<string[]>(['seg', 'ter', 'qua', 'qui', 'sex']);
   const [horarioEsperado, setHorarioEsperado] = useState('');
   const [prioridade, setPrioridade] = useState('media');
   const [atividades, setAtividades] = useState<AtividadeForm[]>([]);
@@ -49,8 +49,9 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
       setResponsavelPrincipal(rotina.responsavel_principal || '');
       setResponsavelConferencia(rotina.responsavel_conferencia || '');
       const freqParts = rotina.frequencia.split(':');
-      setFrequencia(freqParts[0]);
-      setDiasSemana(freqParts[1] ? freqParts[1].split(',') : []);
+      const dias = freqParts[1] ? freqParts[1].split(',') : [];
+      setSeRepete(dias.length > 0 || freqParts[0] === 'diaria');
+      setDiasSemana(dias.length > 0 ? dias : ['seg', 'ter', 'qua', 'qui', 'sex']);
       setHorarioEsperado(rotina.horario_esperado?.slice(0, 5) || '');
       setPrioridade(rotina.prioridade);
       setAtividades(
@@ -63,7 +64,7 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
       );
     } else {
       setNome(''); setDescricao(''); setSetor('Geral'); setResponsavelPrincipal('');
-      setResponsavelConferencia(''); setFrequencia('diaria'); setDiasSemana([]);
+      setResponsavelConferencia(''); setSeRepete(true); setDiasSemana(['seg', 'ter', 'qua', 'qui', 'sex']);
       setHorarioEsperado(''); setPrioridade('media'); setAtividades([]);
     }
   }, [rotina, existingAtividades, open]);
@@ -92,9 +93,11 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
 
   const handleSubmit = async () => {
     if (!nome.trim() || !unidadeId) return;
-    let freq = frequencia;
-    if (frequencia === 'semanal' && diasSemana.length > 0) {
-      freq = `semanal:${diasSemana.join(',')}`;
+    let freq = 'unica';
+    if (seRepete && diasSemana.length > 0) {
+      const allDays = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+      const isAll = allDays.every(d => diasSemana.includes(d));
+      freq = isAll ? 'diaria' : `semanal:${diasSemana.join(',')}`;
     }
     await onSave({
       unidade_id: unidadeId,
@@ -137,31 +140,33 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Frequência *</Label>
-              <Select value={frequencia} onValueChange={setFrequencia}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {FREQUENCIAS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            {frequencia === 'semanal' && (
-              <div className="md:col-span-2">
-                <Label className="mb-2 block">Dias da Semana</Label>
-                <div className="flex flex-wrap gap-3">
-                  {DIAS_SEMANA.map(dia => (
-                    <label key={dia.value} className="flex items-center gap-1.5 cursor-pointer">
-                      <Checkbox
-                        checked={diasSemana.includes(dia.value)}
-                        onCheckedChange={() => toggleDia(dia.value)}
-                      />
-                      <span className="text-sm">{dia.label}</span>
-                    </label>
-                  ))}
-                </div>
+            <div className="md:col-span-2">
+              <div className="flex items-center gap-3 mb-3">
+                <Switch id="seRepete" checked={seRepete} onCheckedChange={setSeRepete} />
+                <Label htmlFor="seRepete" className="text-sm font-medium cursor-pointer">Se repete</Label>
               </div>
-            )}
+              {seRepete && (
+                <div className="flex gap-1.5">
+                  {DIAS_SEMANA.map(dia => {
+                    const active = diasSemana.includes(dia.value);
+                    return (
+                      <button
+                        key={dia.value}
+                        type="button"
+                        onClick={() => toggleDia(dia.value)}
+                        className={`w-10 h-10 rounded-full text-xs font-semibold border transition-colors ${
+                          active
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-muted text-muted-foreground border-border hover:border-primary/50'
+                        }`}
+                      >
+                        {dia.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
             <div>
               <Label>Responsável Principal</Label>
               <Select value={responsavelPrincipal || '__none__'} onValueChange={(v) => setResponsavelPrincipal(v === '__none__' ? '' : v)}>
