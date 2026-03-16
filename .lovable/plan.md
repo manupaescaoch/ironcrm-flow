@@ -1,49 +1,56 @@
 
 
-# Criar Perfil Coordenador
+## Confirmação de Rotinas via WhatsApp com Botões
 
-## Resumo
-Adicionar o perfil "coordenador" ao sistema. O coordenador terá as mesmas permissões que recepção/comercial, mas poderá editar dados da Escala (adicionar, editar, excluir registros).
+### Resumo
+Sim, é possível. A Z-API suporta envio de mensagens com botões interativos. O fluxo seria:
 
-## Alterações necessárias
+1. A mensagem das 13h já enviada passa a incluir botões "✅ Feito" e "❌ Não feito" para cada rotina
+2. Quando o responsável clica no botão, a Z-API envia um webhook de volta
+3. Uma nova edge function recebe esse webhook e registra a confirmação no banco de dados
 
-### 1. Banco de dados - Novo valor no enum `app_role`
-Adicionar `'coordenador'` ao enum `app_role` existente (que hoje tem: admin, moderator, user).
+### Fluxo Técnico
 
-### 2. Banco de dados - RLS da tabela `escala`
-Atualizar as policies de INSERT, UPDATE e DELETE da tabela `escala` para permitir também o role `'coordenador'` (além de admin).
+```text
+[13:00 Cron] → notify-rotinas-diarias
+    → Envia msg com botões via Z-API (send-button-list)
+    → Botões: "✅ Feito" (id=rotina_id) / "❌ Não feito"
 
-### 3. AuthContext (`src/contexts/AuthContext.tsx`)
-- Adicionar `'coordenador'` ao tipo `UserRole`
-- No `fetchUserRole`, mapear o enum `'coordenador'` para o display role `'coordenador'`
-- Adicionar helper `canEditEscala` que retorna `true` para admin e coordenador
-
-### 4. Edge Functions (`update-user-role` e `create-user`)
-- Adicionar `'coordenador'` à lista de `allowedRoles`
-- Mapear `'coordenador'` para o app_role `'coordenador'` (em vez de moderator/user)
-
-### 5. Layout (`src/components/Layout.tsx`)
-- Adicionar `'coordenador'` ao array de roles dos itens de navegação que coordenador pode acessar (mesmos que recepcao/comercial)
-
-### 6. Escala page (`src/pages/Escala.tsx`)
-- Substituir `isAdmin` por `isAdmin || userRole === 'coordenador'` (ou usar o novo helper `canEditEscala`) nas verificações de permissão de edição
-
-### 7. AdminUsers page
-- Adicionar opção "Coordenador" no select de roles ao criar/editar usuários
-
-## Detalhes técnicos
-
-**Migração SQL:**
-```sql
-ALTER TYPE public.app_role ADD VALUE 'coordenador';
-
--- Update escala INSERT policy
-DROP POLICY IF EXISTS "insert_escala_admin" ON public.escala;
-CREATE POLICY "insert_escala_admin_coord" ON public.escala
-FOR INSERT WITH CHECK (
-  has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'coordenador'::app_role)
-);
-
--- Similar for UPDATE and DELETE policies
+[Responsável clica botão no WhatsApp]
+    → Z-API Webhook → POST /rotina-whatsapp-response
+    → Edge function identifica rotina + telefone
+    → Atualiza rotina_execucoes (concluida=true/false)
+    → Responde ao usuário: "✅ Rotina X marcada como concluída!"
 ```
+
+### Alterações necessárias
+
+**1. Nova edge function: `rotina-whatsapp-response`**
+- Recebe webhook da Z-API quando um botão é clicado
+- Identifica o responsável pelo telefone (busca em user_profiles + auth.users)
+- Extrai o `rotina_id` do `buttonId` do payload
+- Insere/atualiza `rotina_execucoes` com `concluida=true` e `concluida_por` = nome do usuário
+- Responde via Z-API confirmando o registro
+- Configurar `verify_jwt = false` no config.toml (webhook externo)
+
+**2. Atualizar `notify-rotinas-diarias`**
+- Trocar de `send-text` para `send-button-list` da Z-API
+- Enviar uma mensagem por rotina (não consolidada) para que cada botão identifique a rotina específica
+- Formato do botão: `{ id: rotina_id, label: "✅ Feito" }`
+
+**3. Configuração na Z-API**
+- O webhook de recebimento da Z-API precisa ser configurado no painel Z-API para apontar para:
+  `https://zspcdvtdgssabpqrybib.supabase.co/functions/v1/rotina-whatsapp-response`
+
+### Limitações importantes
+- Botões do WhatsApp só podem ser clicados **uma vez** pelo usuário
+- WhatsApp limita a **3 botões** por mensagem
+- Se houver muitas rotinas, cada uma será enviada como mensagem separada com seus botões
+
+### Dados armazenados
+A tabela `rotina_execucoes` já existe e será usada para guardar:
+- `concluida = true/false`
+- `concluida_por = "Nome (via WhatsApp)"`
+- `concluida_em = timestamp`
+- `data_execucao = hoje`
 
