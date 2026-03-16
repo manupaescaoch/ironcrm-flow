@@ -38,7 +38,6 @@ Deno.serve(async (req) => {
     const today = new Date().toISOString().split('T')[0];
     console.log(`[notify-rotinas] Buscando rotinas ativas para hoje: ${today}`);
 
-    // Buscar rotinas ativas (não arquivadas)
     const { data: rotinas, error: rotinasError } = await supabase
       .from('rotinas')
       .select('id, nome, descricao, setor, responsavel_principal, horario_esperado, unidade_id, frequencia')
@@ -65,7 +64,7 @@ Deno.serve(async (req) => {
     const rotinaIds = rotinas.map(r => r.id);
     const { data: execucoes } = await supabase
       .from('rotina_execucoes')
-      .select('rotina_id, atividade_id, concluida')
+      .select('rotina_id, concluida')
       .eq('data_execucao', today)
       .eq('concluida', true)
       .in('rotina_id', rotinaIds);
@@ -99,7 +98,6 @@ Deno.serve(async (req) => {
     const { data: authData } = await supabase.auth.admin.listUsers();
     const authUsers = authData?.users || [];
 
-    // Função para encontrar telefone por nome
     function findPhoneByName(name: string): string | null {
       const user = authUsers.find(u => {
         const userName = u.user_metadata?.full_name || u.user_metadata?.name || '';
@@ -110,17 +108,27 @@ Deno.serve(async (req) => {
       return profile?.telefone || null;
     }
 
-    // Agrupar rotinas pendentes por responsável
-    const responsavelRotinas: Record<string, { rotinas: Array<{ nome: string; setor: string; horario: string | null; atividades: string[] }>; unidadeNome: string }> = {};
+    // Enviar uma mensagem POR ROTINA com botões
+    let sentCount = 0;
+    const errors: string[] = [];
 
     for (const rotina of rotinas) {
-      // Pular rotinas já totalmente concluídas hoje
       if (rotinasConcluidas.has(rotina.id)) continue;
 
       const responsavel = rotina.responsavel_principal;
       if (!responsavel) continue;
 
+      const phone = findPhoneByName(responsavel);
+      if (!phone) {
+        console.log(`[notify-rotinas] Telefone não encontrado para: ${responsavel}`);
+        errors.push(`Telefone não encontrado: ${responsavel}`);
+        continue;
+      }
+
+      const normalizedPhone = normalizePhone(phone);
       const unidadeNome = unidadeMap.get(rotina.unidade_id) || 'Unidade';
+
+      // Montar mensagem da rotina
       const rotinaAtividades = (atividades || [])
         .filter(a => a.rotina_id === rotina.id)
         .map(a => {
@@ -130,56 +138,24 @@ Deno.serve(async (req) => {
           return label;
         });
 
-      if (!responsavelRotinas[responsavel]) {
-        responsavelRotinas[responsavel] = { rotinas: [], unidadeNome };
-      }
-
-      responsavelRotinas[responsavel].rotinas.push({
-        nome: rotina.nome,
-        setor: rotina.setor,
-        horario: rotina.horario_esperado,
-        atividades: rotinaAtividades,
-      });
-    }
-
-    // Enviar WhatsApp para cada responsável
-    let sentCount = 0;
-    const errors: string[] = [];
-
-    for (const [responsavel, data] of Object.entries(responsavelRotinas)) {
-      const phone = findPhoneByName(responsavel);
-      if (!phone) {
-        console.log(`[notify-rotinas] Telefone não encontrado para: ${responsavel}`);
-        errors.push(`Telefone não encontrado: ${responsavel}`);
-        continue;
-      }
-
-      const normalizedPhone = normalizePhone(phone);
-
-      // Montar mensagem consolidada
-      let message = `📋 *Rotinas Pendentes de Hoje*\n`;
-      message += `📍 Unidade: *${data.unidadeNome}*\n`;
+      let message = `📋 *Rotina Pendente*\n`;
+      message += `📍 *${unidadeNome}*\n`;
       message += `📅 ${new Date().toLocaleDateString('pt-BR')}\n\n`;
+      message += `🔹 *${rotina.nome}* (${rotina.setor})`;
+      if (rotina.horario_esperado) {
+        message += ` - ${rotina.horario_esperado.substring(0, 5)}`;
+      }
+      message += `\n`;
 
-      for (const rotina of data.rotinas) {
-        message += `🔹 *${rotina.nome}* (${rotina.setor})`;
-        if (rotina.horario) {
-          message += ` - ${rotina.horario.substring(0, 5)}`;
-        }
-        message += `\n`;
-
-        if (rotina.atividades.length > 0) {
-          message += rotina.atividades.join('\n') + '\n';
-        }
-        message += '\n';
+      if (rotinaAtividades.length > 0) {
+        message += rotinaAtividades.join('\n') + '\n';
       }
 
-      message += `Total: *${data.rotinas.length} rotina(s)* pendente(s)\n`;
-      message += `\nAcesse o sistema para marcar como concluída.`;
+      message += `\nClique abaixo para confirmar:`;
 
-      console.log(`[notify-rotinas] Enviando para ${responsavel} (${normalizedPhone}): ${data.rotinas.length} rotinas`);
+      console.log(`[notify-rotinas] Enviando botões para ${responsavel} (${normalizedPhone}): ${rotina.nome}`);
 
-      const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
+      const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-button-list`;
 
       try {
         const zapiResponse = await fetch(zapiUrl, {
@@ -188,7 +164,16 @@ Deno.serve(async (req) => {
             'Content-Type': 'application/json',
             'Client-Token': ZAPI_CLIENT_TOKEN || '',
           },
-          body: JSON.stringify({ phone: normalizedPhone, message }),
+          body: JSON.stringify({
+            phone: normalizedPhone,
+            message,
+            buttonList: {
+              buttons: [
+                { id: `feito_${rotina.id}`, label: '✅ Feito' },
+                { id: `naofeito_${rotina.id}`, label: '❌ Não feito' },
+              ],
+            },
+          }),
         });
 
         const zapiResult = await zapiResponse.json();
@@ -198,11 +183,11 @@ Deno.serve(async (req) => {
           console.log(`[notify-rotinas] ✅ Enviado para ${responsavel}:`, zapiResult);
         } else {
           console.error(`[notify-rotinas] ❌ Erro Zapi para ${responsavel}:`, zapiResult);
-          errors.push(`Erro Zapi: ${responsavel}`);
+          errors.push(`Erro Zapi: ${responsavel} - ${rotina.nome}`);
         }
       } catch (err) {
         console.error(`[notify-rotinas] ❌ Erro ao enviar para ${responsavel}:`, err);
-        errors.push(`Erro envio: ${responsavel}`);
+        errors.push(`Erro envio: ${responsavel} - ${rotina.nome}`);
       }
     }
 
