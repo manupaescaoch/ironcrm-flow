@@ -1,49 +1,87 @@
 
 
-# Criar Perfil Coordenador
+# Plano: Página "Rotinas" - Painel Operacional
 
-## Resumo
-Adicionar o perfil "coordenador" ao sistema. O coordenador terá as mesmas permissões que recepção/comercial, mas poderá editar dados da Escala (adicionar, editar, excluir registros).
+Este é um módulo grande. Vou dividir a implementação em fases para manter qualidade e funcionalidade.
 
-## Alterações necessárias
+## Fase 1 — Banco de Dados (Migrações)
 
-### 1. Banco de dados - Novo valor no enum `app_role`
-Adicionar `'coordenador'` ao enum `app_role` existente (que hoje tem: admin, moderator, user).
+Criar 3 tabelas principais:
 
-### 2. Banco de dados - RLS da tabela `escala`
-Atualizar as policies de INSERT, UPDATE e DELETE da tabela `escala` para permitir também o role `'coordenador'` (além de admin).
+```text
+rotinas
+├── id, unidade_id, nome, descricao, setor, responsavel_principal
+├── responsavel_conferencia, frequencia (diaria/semanal/quinzenal/mensal)
+├── horario_esperado (time), prioridade (baixa/media/alta)
+├── status (pendente/em_andamento/concluida/atrasada)
+├── ativo, arquivada, created_by, created_at, updated_at
+└── RLS: por unidade_id
 
-### 3. AuthContext (`src/contexts/AuthContext.tsx`)
-- Adicionar `'coordenador'` ao tipo `UserRole`
-- No `fetchUserRole`, mapear o enum `'coordenador'` para o display role `'coordenador'`
-- Adicionar helper `canEditEscala` que retorna `true` para admin e coordenador
+rotina_atividades
+├── id, rotina_id (FK), titulo, responsavel, horario (time)
+├── observacao, ordem, created_at
+└── RLS: via join com rotinas → unidade_id
 
-### 4. Edge Functions (`update-user-role` e `create-user`)
-- Adicionar `'coordenador'` à lista de `allowedRoles`
-- Mapear `'coordenador'` para o app_role `'coordenador'` (em vez de moderator/user)
+rotina_execucoes
+├── id, rotina_id (FK), atividade_id (FK nullable)
+├── data_execucao (date), concluida, concluida_por, concluida_em
+├── observacao, foto_url, unidade_id, created_at
+└── RLS: por unidade_id
+```
 
-### 5. Layout (`src/components/Layout.tsx`)
-- Adicionar `'coordenador'` ao array de roles dos itens de navegação que coordenador pode acessar (mesmos que recepcao/comercial)
+- Habilitar Storage bucket `rotinas-comprovantes` para upload de fotos
+- Habilitar Realtime na tabela `rotina_execucoes`
 
-### 6. Escala page (`src/pages/Escala.tsx`)
-- Substituir `isAdmin` por `isAdmin || userRole === 'coordenador'` (ou usar o novo helper `canEditEscala`) nas verificações de permissão de edição
+## Fase 2 — Código Frontend
 
-### 7. AdminUsers page
-- Adicionar opção "Coordenador" no select de roles ao criar/editar usuários
+### Novos arquivos:
+
+1. **`src/pages/Rotinas.tsx`** — Página principal com:
+   - Layout padrão (sidebar, seletor de unidade)
+   - KPIs no topo (total rotinas, ativas, pendentes hoje, concluídas hoje, atrasadas, taxa execução %)
+   - Filtros (setor, responsável, frequência, status, prioridade, data, arquivadas)
+   - 3 abas de visualização: Lista, Kanban por status, Calendário
+   - Botões "Nova Rotina" e "Nova Atividade"
+   - Organização por blocos de setor (Coordenação, Limpeza, Recepção, etc.)
+
+2. **`src/hooks/useRotinasData.ts`** — Hook principal com CRUD de rotinas, atividades e execuções
+
+3. **`src/components/rotinas/`** — Componentes:
+   - `RotinaModal.tsx` — Criar/editar rotina com checklist de atividades
+   - `RotinasKPIGrid.tsx` — Cards de resumo
+   - `RotinasFilters.tsx` — Filtros
+   - `RotinaCard.tsx` — Card individual de rotina
+   - `RotinasLista.tsx` — Visualização em lista por setor
+   - `RotinasKanban.tsx` — Kanban por status
+   - `RotinasCalendario.tsx` — Visão calendário
+   - `AtividadeChecklist.tsx` — Checklist de atividades dentro de cada rotina
+   - `ExecucaoHistorico.tsx` — Histórico de execuções
+
+### Rota e navegação:
+- Adicionar `/rotinas` no `App.tsx` como `ProtectedRoute`
+- Adicionar item na sidebar do `Layout.tsx` com ícone `ClipboardList`, visível para admin, recepcao, comercial, coordenador
+
+### Permissões:
+- Admin: CRUD completo, arquivar, excluir
+- Coordenador: criar e acompanhar rotinas do seu setor
+- Funcionário (recepcao/comercial): visualizar e concluir atividades atribuídas
+
+### Dados de exemplo:
+- Inserir via migration 3 rotinas pré-configuradas (Vistoria Limpeza/Coordenação, Limpeza Geral, Recepção) com suas atividades
+
+## Fase 3 — Upload de fotos
+
+- Criar bucket `rotinas-comprovantes` no Storage
+- Implementar upload na execução de atividades
 
 ## Detalhes técnicos
 
-**Migração SQL:**
-```sql
-ALTER TYPE public.app_role ADD VALUE 'coordenador';
+- Frequência recorrente: ao carregar a página, o hook verifica se existem execuções para o dia atual. Se não, gera registros pendentes automaticamente baseado na frequência da rotina.
+- Status atrasada: rotinas cuja execução do dia não foi concluída até o horário esperado são marcadas visualmente como atrasadas (lógica no frontend).
+- Duplicar rotina: botão no modal que copia a rotina e suas atividades.
+- Exportar: relatório PDF/CSV por período filtrado.
 
--- Update escala INSERT policy
-DROP POLICY IF EXISTS "insert_escala_admin" ON public.escala;
-CREATE POLICY "insert_escala_admin_coord" ON public.escala
-FOR INSERT WITH CHECK (
-  has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'coordenador'::app_role)
-);
+## Escopo da implementação
 
--- Similar for UPDATE and DELETE policies
-```
+Dado o tamanho, implementarei a estrutura completa do banco, a página funcional com Lista e Kanban, modal de criação/edição, checklist de atividades, KPIs e filtros. Upload de fotos e calendário serão incluídos mas podem ser iterados depois.
 
