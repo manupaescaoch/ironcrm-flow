@@ -132,7 +132,7 @@ export function TarefaModal({
       const parsed = parseRecorrencia(task.recorrencia);
       setRecorrenciaTipo(parsed.tipo);
       setRecorrenciaDias(parsed.dias);
-      setRecorrenciaFim(task.recorrencia_fim ? new Date(task.recorrencia_fim) : null);
+      setRecorrenciaFim(task.recorrencia_fim ? (() => { const [y, m, d] = task.recorrencia_fim!.split('-').map(Number); return new Date(y, m - 1, d); })() : null);
     } else {
       form.reset({
         titulo: '',
