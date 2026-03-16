@@ -23,7 +23,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   rotina?: Rotina | null;
   existingAtividades?: { titulo: string; responsavel: string | null; horario: string | null; observacao: string | null }[];
-  onSave: (data: RotinaInsert, atividades: AtividadeForm[]) => Promise<void>;
+  onSave: (data: RotinaInsert, atividades: AtividadeForm[]) => Promise<boolean>;
   saving: boolean;
 }
 
