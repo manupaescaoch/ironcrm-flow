@@ -204,13 +204,17 @@ export function useRotinasData() {
     const existing = execucoes.find(e => e.rotina_id === rotinaId && e.atividade_id === atividadeId && e.data_execucao === today);
     
     if (existing) {
-      await supabase.from('rotina_execucoes').update({
+      const { error } = await supabase.from('rotina_execucoes').update({
         concluida,
         concluida_por: concluida ? (userName || 'Usuário') : null,
         concluida_em: concluida ? new Date().toISOString() : null,
       } as any).eq('id', existing.id);
+      if (error) {
+        toast({ title: 'Erro ao salvar execução', description: error.message, variant: 'destructive' });
+        return;
+      }
     } else {
-      await supabase.from('rotina_execucoes').insert({
+      const { error } = await supabase.from('rotina_execucoes').insert({
         rotina_id: rotinaId,
         atividade_id: atividadeId,
         data_execucao: today,
@@ -219,9 +223,13 @@ export function useRotinasData() {
         concluida_em: concluida ? new Date().toISOString() : null,
         unidade_id: unidadeAtual.id,
       } as any);
+      if (error) {
+        toast({ title: 'Erro ao salvar execução', description: error.message, variant: 'destructive' });
+        return;
+      }
     }
     await fetchData();
-  }, [unidadeAtual?.id, execucoes, userName, fetchData]);
+  }, [unidadeAtual?.id, execucoes, userName, fetchData, toast]);
 
   const saveAtividades = useCallback(async (rotinaId: string, newAtividades: Omit<AtividadeInsert, 'rotina_id'>[]) => {
     // Delete existing
