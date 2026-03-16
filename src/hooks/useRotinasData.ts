@@ -225,14 +225,22 @@ export function useRotinasData() {
 
   const saveAtividades = useCallback(async (rotinaId: string, newAtividades: Omit<AtividadeInsert, 'rotina_id'>[]) => {
     // Delete existing
-    await supabase.from('rotina_atividades').delete().eq('rotina_id', rotinaId);
+    const { error: delError } = await supabase.from('rotina_atividades').delete().eq('rotina_id', rotinaId);
+    if (delError) {
+      toast({ title: 'Erro ao atualizar atividades', description: delError.message, variant: 'destructive' });
+      await fetchData();
+      return;
+    }
     // Insert new
     if (newAtividades.length > 0) {
       const ativs = newAtividades.map((a, i) => ({ ...a, rotina_id: rotinaId, ordem: i }));
-      await supabase.from('rotina_atividades').insert(ativs as any);
+      const { error: insError } = await supabase.from('rotina_atividades').insert(ativs as any);
+      if (insError) {
+        toast({ title: 'Erro ao salvar atividades', description: insError.message, variant: 'destructive' });
+      }
     }
     await fetchData();
-  }, [fetchData]);
+  }, [fetchData, toast]);
 
   return {
     rotinas, atividades, execucoes, loading,
