@@ -23,7 +23,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   rotina?: Rotina | null;
   existingAtividades?: { titulo: string; responsavel: string | null; horario: string | null; observacao: string | null }[];
-  onSave: (data: RotinaInsert, atividades: AtividadeForm[]) => Promise<void>;
+  onSave: (data: RotinaInsert, atividades: AtividadeForm[]) => Promise<boolean>;
   saving: boolean;
 }
 
@@ -42,6 +42,8 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
   const [atividades, setAtividades] = useState<AtividadeForm[]>([]);
 
   useEffect(() => {
+    if (!open) return;
+
     if (rotina) {
       setNome(rotina.nome);
       setDescricao(rotina.descricao || '');
@@ -63,11 +65,18 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
         })) || []
       );
     } else {
-      setNome(''); setDescricao(''); setSetor('Geral'); setResponsavelPrincipal('');
-      setResponsavelConferencia(''); setSeRepete(true); setDiasSemana(['seg', 'ter', 'qua', 'qui', 'sex']);
-      setHorarioEsperado(''); setPrioridade('media'); setAtividades([]);
+      setNome('');
+      setDescricao('');
+      setSetor('Geral');
+      setResponsavelPrincipal('');
+      setResponsavelConferencia('');
+      setSeRepete(true);
+      setDiasSemana(['seg', 'ter', 'qua', 'qui', 'sex']);
+      setHorarioEsperado('');
+      setPrioridade('media');
+      setAtividades([]);
     }
-  }, [rotina, existingAtividades, open]);
+  }, [open, rotina?.id]);
 
   const addAtividade = () => setAtividades([...atividades, { titulo: '', responsavel: '', horario: '', observacao: '' }]);
   const removeAtividade = (i: number) => setAtividades(atividades.filter((_, idx) => idx !== i));
@@ -99,7 +108,7 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
       const isAll = allDays.every(d => diasSemana.includes(d));
       freq = isAll ? 'diaria' : `semanal:${diasSemana.join(',')}`;
     }
-    await onSave({
+    const saved = await onSave({
       unidade_id: unidadeId,
       nome: nome.trim().toUpperCase(),
       descricao: descricao.trim() || null,
@@ -110,7 +119,8 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
       horario_esperado: horarioEsperado || null,
       prioridade,
     }, atividades.filter(a => a.titulo.trim()));
-    onOpenChange(false);
+
+    if (saved) onOpenChange(false);
   };
 
   const userOptions = users.map(u => ({ value: u.name, label: u.name }));

@@ -53,21 +53,27 @@ export default function Rotinas() {
     setSaving(true);
     try {
       if (selectedRotina) {
-        await updateRotina(selectedRotina.id, data);
-        await saveAtividades(selectedRotina.id, atividadesForm.map(a => ({
+        const rotinaUpdated = await updateRotina(selectedRotina.id, data);
+        if (!rotinaUpdated) return false;
+
+        const atividadesSaved = await saveAtividades(selectedRotina.id, atividadesForm.map(a => ({
           titulo: a.titulo.toUpperCase(),
           responsavel: a.responsavel?.toUpperCase() || null,
           horario: a.horario || null,
           observacao: a.observacao || null,
         })));
-      } else {
-        await createRotina(data, atividadesForm.map(a => ({
-          titulo: a.titulo.toUpperCase(),
-          responsavel: a.responsavel?.toUpperCase() || null,
-          horario: a.horario || null,
-          observacao: a.observacao || null,
-        })));
+
+        return !!atividadesSaved;
       }
+
+      const created = await createRotina(data, atividadesForm.map(a => ({
+        titulo: a.titulo.toUpperCase(),
+        responsavel: a.responsavel?.toUpperCase() || null,
+        horario: a.horario || null,
+        observacao: a.observacao || null,
+      })));
+
+      return !!created;
     } finally {
       setSaving(false);
     }

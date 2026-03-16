@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/utils/errorMessages';
 
 async function sendRotinaWhatsApp(responsavel: string, rotinaNome: string, rotinaDescricao: string | null, unidadeNome: string, creatorName: string) {
   if (!responsavel) return;
@@ -133,26 +134,26 @@ export function useRotinasData() {
   const createRotina = useCallback(async (data: RotinaInsert, newAtividades: Omit<AtividadeInsert, 'rotina_id'>[]) => {
     const { data: rotina, error } = await supabase.from('rotinas').insert(data as any).select().single();
     if (error) {
-      toast({ title: 'Erro ao criar rotina', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erro ao criar rotina', description: getErrorMessage(error), variant: 'destructive' });
       return null;
     }
-    console.log('[Rotinas] Atividades a salvar:', newAtividades.length, JSON.stringify(newAtividades));
+
     if (newAtividades.length > 0 && rotina) {
       const ativs = newAtividades.map((a, i) => ({ ...a, rotina_id: rotina.id, ordem: i }));
-      console.log('[Rotinas] Inserindo atividades:', JSON.stringify(ativs));
-      const { error: atError, data: atData } = await supabase.from('rotina_atividades').insert(ativs as any).select();
-      console.log('[Rotinas] Resultado insert atividades:', atError, atData);
+      const { error: atError } = await supabase.from('rotina_atividades').insert(ativs as any);
       if (atError) {
-        toast({ title: 'Erro ao salvar atividades', description: atError.message, variant: 'destructive' });
+        toast({ title: 'Erro ao salvar atividades', description: getErrorMessage(atError), variant: 'destructive' });
+        await supabase.from('rotinas').delete().eq('id', rotina.id);
+        return null;
       }
     }
+
     toast({ title: 'Rotina criada com sucesso' });
 
-    // Enviar WhatsApp para responsável principal
     if (data.responsavel_principal && unidadeAtual?.nome) {
       sendRotinaWhatsApp(data.responsavel_principal, data.nome, data.descricao, unidadeAtual.nome, userName || 'Sistema');
     }
-    // Enviar WhatsApp para responsáveis das atividades (se diferente do principal)
+
     const notified = new Set<string>([data.responsavel_principal || '']);
     newAtividades.forEach(a => {
       if (a.responsavel && !notified.has(a.responsavel) && unidadeAtual?.nome) {
@@ -168,11 +169,11 @@ export function useRotinasData() {
   const updateRotina = useCallback(async (id: string, data: Partial<RotinaInsert>) => {
     const { error } = await supabase.from('rotinas').update(data as any).eq('id', id);
     if (error) {
-      toast({ title: 'Erro ao atualizar rotina', description: error.message, variant: 'destructive' });
-      return;
+      toast({ title: 'Erro ao atualizar rotina', description: getErrorMessage(error), variant: 'destructive' });
+      return false;
     }
-    toast({ title: 'Rotina atualizada' });
     await fetchData();
+    return true;
   }, [toast, fetchData]);
 
   const deleteRotina = useCallback(async (id: string) => {
@@ -235,23 +236,34 @@ export function useRotinasData() {
   }, [unidadeAtual?.id, execucoes, userName, fetchData, toast]);
 
   const saveAtividades = useCallback(async (rotinaId: string, newAtividades: Omit<AtividadeInsert, 'rotina_id'>[]) => {
-    // Delete existing
+    const previousAtividades = atividades.filter(a => a.rotina_id === rotinaId);
+
     const { error: delError } = await supabase.from('rotina_atividades').delete().eq('rotina_id', rotinaId);
     if (delError) {
-      toast({ title: 'Erro ao atualizar atividades', description: delError.message, variant: 'destructive' });
+      toast({ title: 'Erro ao atualizar atividades', description: getErrorMessage(delError), variant: 'destructive' });
       await fetchData();
-      return;
+      return false;
     }
-    // Insert new
+
     if (newAtividades.length > 0) {
       const ativs = newAtividades.map((a, i) => ({ ...a, rotina_id: rotinaId, ordem: i }));
       const { error: insError } = await supabase.from('rotina_atividades').insert(ativs as any);
       if (insError) {
-        toast({ title: 'Erro ao salvar atividades', description: insError.message, variant: 'destructive' });
+        toast({ title: 'Erro ao salvar atividades', description: getErrorMessage(insError), variant: 'destructive' });
+
+        if (previousAtividades.length > 0) {
+          const rollbackAtividades = previousAtividades.map(({ id: _id, created_at: _createdAt, ...atividade }) => atividade);
+          await supabase.from('rotina_atividades').insert(rollbackAtividades as any);
+        }
+
+        await fetchData();
+        return false;
       }
     }
+
     await fetchData();
-  }, [fetchData, toast]);
+    return true;
+  }, [fetchData, toast, atividades]);
 
   return {
     rotinas, atividades, execucoes, loading,
