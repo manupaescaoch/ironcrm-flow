@@ -146,6 +146,22 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
                 </SelectContent>
               </Select>
             </div>
+            {frequencia === 'semanal' && (
+              <div className="md:col-span-2">
+                <Label className="mb-2 block">Dias da Semana</Label>
+                <div className="flex flex-wrap gap-3">
+                  {DIAS_SEMANA.map(dia => (
+                    <label key={dia.value} className="flex items-center gap-1.5 cursor-pointer">
+                      <Checkbox
+                        checked={diasSemana.includes(dia.value)}
+                        onCheckedChange={() => toggleDia(dia.value)}
+                      />
+                      <span className="text-sm">{dia.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
             <div>
               <Label>Responsável Principal</Label>
               <Select value={responsavelPrincipal || '__none__'} onValueChange={(v) => setResponsavelPrincipal(v === '__none__' ? '' : v)}>
