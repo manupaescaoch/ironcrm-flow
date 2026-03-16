@@ -140,33 +140,33 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Frequência *</Label>
-              <Select value={frequencia} onValueChange={setFrequencia}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {FREQUENCIAS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            {frequencia === 'semanal' && (
-              <div className="md:col-span-2">
-                <Label className="mb-2 block">Dias da Semana</Label>
-                <div className="flex flex-wrap gap-3">
-                  {DIAS_SEMANA.map(dia => (
-                    <label key={dia.value} className="flex items-center gap-1.5 cursor-pointer">
-                      <Checkbox
-                        checked={diasSemana.includes(dia.value)}
-                        onCheckedChange={() => toggleDia(dia.value)}
-                      />
-                      <span className="text-sm">{dia.label}</span>
-                    </label>
-                  ))}
-                </div>
+            <div className="md:col-span-2">
+              <div className="flex items-center gap-3 mb-3">
+                <Switch id="seRepete" checked={seRepete} onCheckedChange={setSeRepete} />
+                <Label htmlFor="seRepete" className="text-sm font-medium cursor-pointer">Se repete</Label>
               </div>
-            )}
-            <div>
-              <Label>Responsável Principal</Label>
+              {seRepete && (
+                <div className="flex gap-1.5">
+                  {DIAS_SEMANA.map(dia => {
+                    const active = diasSemana.includes(dia.value);
+                    return (
+                      <button
+                        key={dia.value}
+                        type="button"
+                        onClick={() => toggleDia(dia.value)}
+                        className={`w-10 h-10 rounded-full text-xs font-semibold border transition-colors ${
+                          active
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-muted text-muted-foreground border-border hover:border-primary/50'
+                        }`}
+                      >
+                        {dia.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
               <Select value={responsavelPrincipal || '__none__'} onValueChange={(v) => setResponsavelPrincipal(v === '__none__' ? '' : v)}>
                 <SelectTrigger><SelectValue placeholder="Selecionar responsável" /></SelectTrigger>
                 <SelectContent>
