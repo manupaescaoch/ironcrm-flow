@@ -42,6 +42,8 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
   const [atividades, setAtividades] = useState<AtividadeForm[]>([]);
 
   useEffect(() => {
+    if (!open) return;
+
     if (rotina) {
       setNome(rotina.nome);
       setDescricao(rotina.descricao || '');
@@ -63,11 +65,18 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
         })) || []
       );
     } else {
-      setNome(''); setDescricao(''); setSetor('Geral'); setResponsavelPrincipal('');
-      setResponsavelConferencia(''); setSeRepete(true); setDiasSemana(['seg', 'ter', 'qua', 'qui', 'sex']);
-      setHorarioEsperado(''); setPrioridade('media'); setAtividades([]);
+      setNome('');
+      setDescricao('');
+      setSetor('Geral');
+      setResponsavelPrincipal('');
+      setResponsavelConferencia('');
+      setSeRepete(true);
+      setDiasSemana(['seg', 'ter', 'qua', 'qui', 'sex']);
+      setHorarioEsperado('');
+      setPrioridade('media');
+      setAtividades([]);
     }
-  }, [rotina, existingAtividades, open]);
+  }, [open, rotina?.id]);
 
   const addAtividade = () => setAtividades([...atividades, { titulo: '', responsavel: '', horario: '', observacao: '' }]);
   const removeAtividade = (i: number) => setAtividades(atividades.filter((_, idx) => idx !== i));
