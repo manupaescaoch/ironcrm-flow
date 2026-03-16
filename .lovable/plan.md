@@ -1,49 +1,27 @@
 
 
-# Criar Perfil Coordenador
+# Confirmação de Rotinas via WhatsApp com Botões
 
-## Resumo
-Adicionar o perfil "coordenador" ao sistema. O coordenador terá as mesmas permissões que recepção/comercial, mas poderá editar dados da Escala (adicionar, editar, excluir registros).
+## Status: ✅ Implementado
 
-## Alterações necessárias
+## O que foi feito
 
-### 1. Banco de dados - Novo valor no enum `app_role`
-Adicionar `'coordenador'` ao enum `app_role` existente (que hoje tem: admin, moderator, user).
+### 1. `notify-rotinas-diarias` (atualizado)
+- Agora envia **uma mensagem por rotina** (não mais consolidada) usando `send-button-list` da Z-API
+- Cada mensagem tem 2 botões: "✅ Feito" (`feito_<rotina_id>`) e "❌ Não feito" (`naofeito_<rotina_id>`)
+- Inclui nome da unidade, setor, horário e atividades
 
-### 2. Banco de dados - RLS da tabela `escala`
-Atualizar as policies de INSERT, UPDATE e DELETE da tabela `escala` para permitir também o role `'coordenador'` (além de admin).
+### 2. `rotina-whatsapp-response` (novo)
+- Edge function que recebe o webhook da Z-API quando um botão é clicado
+- Identifica o responsável pelo número de telefone (busca em user_profiles + auth.users)
+- Extrai o `rotina_id` do `buttonId` do payload
+- Insere/atualiza `rotina_execucoes` com `concluida=true/false` e `concluida_por = "Nome (via WhatsApp)"`
+- Envia mensagem de confirmação de volta ao usuário
+- `verify_jwt = false` no config.toml (webhook externo)
 
-### 3. AuthContext (`src/contexts/AuthContext.tsx`)
-- Adicionar `'coordenador'` ao tipo `UserRole`
-- No `fetchUserRole`, mapear o enum `'coordenador'` para o display role `'coordenador'`
-- Adicionar helper `canEditEscala` que retorna `true` para admin e coordenador
+## Configuração necessária na Z-API
 
-### 4. Edge Functions (`update-user-role` e `create-user`)
-- Adicionar `'coordenador'` à lista de `allowedRoles`
-- Mapear `'coordenador'` para o app_role `'coordenador'` (em vez de moderator/user)
-
-### 5. Layout (`src/components/Layout.tsx`)
-- Adicionar `'coordenador'` ao array de roles dos itens de navegação que coordenador pode acessar (mesmos que recepcao/comercial)
-
-### 6. Escala page (`src/pages/Escala.tsx`)
-- Substituir `isAdmin` por `isAdmin || userRole === 'coordenador'` (ou usar o novo helper `canEditEscala`) nas verificações de permissão de edição
-
-### 7. AdminUsers page
-- Adicionar opção "Coordenador" no select de roles ao criar/editar usuários
-
-## Detalhes técnicos
-
-**Migração SQL:**
-```sql
-ALTER TYPE public.app_role ADD VALUE 'coordenador';
-
--- Update escala INSERT policy
-DROP POLICY IF EXISTS "insert_escala_admin" ON public.escala;
-CREATE POLICY "insert_escala_admin_coord" ON public.escala
-FOR INSERT WITH CHECK (
-  has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'coordenador'::app_role)
-);
-
--- Similar for UPDATE and DELETE policies
+Configure o webhook de recebimento (on-message-received) no painel Z-API para:
 ```
-
+https://zspcdvtdgssabpqrybib.supabase.co/functions/v1/rotina-whatsapp-response
+```
