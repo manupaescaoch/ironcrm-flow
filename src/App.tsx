@@ -24,6 +24,7 @@ import VisaoFinanceiraEstoque from "./pages/VisaoFinanceiraEstoque";
 import DashboardExecutivoEstoque from "./pages/DashboardExecutivoEstoque";
 import RelatorioGastosEstoque from "./pages/RelatorioGastosEstoque";
 import Escala from "./pages/Escala";
+import Rotinas from "./pages/Rotinas";
 import ControleVencimentos from "./pages/ControleVencimentos";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
