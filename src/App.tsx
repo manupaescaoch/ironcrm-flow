@@ -271,6 +271,14 @@ const AppRoutes = () => (
       }
     />
     <Route
+      path="/rotinas"
+      element={
+        <ProtectedRoute>
+          <Rotinas />
+        </ProtectedRoute>
+      }
+    />
+    <Route
       path="/vencimentos"
       element={
         <ProtectedRoute>

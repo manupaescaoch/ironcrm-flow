@@ -48,7 +48,7 @@ export interface RotinaExecucao {
 }
 
 export type RotinaInsert = Omit<Rotina, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'ativo' | 'arquivada'>;
-export type AtividadeInsert = Omit<RotinaAtividade, 'id' | 'created_at'>;
+export type AtividadeInsert = Omit<RotinaAtividade, 'id' | 'created_at' | 'ordem'>;
 
 export const SETORES = [
   'Coordenação', 'Limpeza', 'Recepção', 'Comercial', 'Treinadores', 'Manutenção', 'Geral'
