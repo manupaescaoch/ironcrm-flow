@@ -64,7 +64,7 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
       );
     } else {
       setNome(''); setDescricao(''); setSetor('Geral'); setResponsavelPrincipal('');
-      setResponsavelConferencia(''); setFrequencia('diaria'); setDiasSemana([]);
+      setResponsavelConferencia(''); setSeRepete(true); setDiasSemana(['seg', 'ter', 'qua', 'qui', 'sex']);
       setHorarioEsperado(''); setPrioridade('media'); setAtividades([]);
     }
   }, [rotina, existingAtividades, open]);
