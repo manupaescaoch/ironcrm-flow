@@ -176,7 +176,7 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
                     <GripVertical className="w-4 h-4 text-muted-foreground mt-2.5 shrink-0" />
                     <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
                       <Input placeholder="Título da atividade *" value={at.titulo} onChange={(e) => updateAtividade(i, 'titulo', e.target.value)} className="md:col-span-2" />
-                      <Select value={at.responsavel} onValueChange={(v) => updateAtividade(i, 'responsavel', v)}>
+                      <Select value={at.responsavel || '__none__'} onValueChange={(v) => updateAtividade(i, 'responsavel', v === '__none__' ? '' : v)}>
                         <SelectTrigger><SelectValue placeholder="Responsável" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="__none__">Nenhum</SelectItem>
