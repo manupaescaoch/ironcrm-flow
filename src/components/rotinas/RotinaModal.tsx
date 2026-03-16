@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
-import { Rotina, RotinaInsert, SETORES, FREQUENCIAS, PRIORIDADES_ROTINA } from '@/hooks/useRotinasData';
+import { Rotina, RotinaInsert, SETORES, PRIORIDADES_ROTINA } from '@/hooks/useRotinasData';
 import { useUnidadeFilter } from '@/hooks/useUnidadeFilter';
 import { useUnidadeUsers } from '@/hooks/useUnidadeUsers';
 
