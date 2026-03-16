@@ -4,6 +4,24 @@ import { useUnidade } from '@/contexts/UnidadeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
+async function sendRotinaWhatsApp(responsavel: string, rotinaNome: string, rotinaDescricao: string | null, unidadeNome: string, creatorName: string) {
+  if (!responsavel) return;
+  try {
+    await supabase.functions.invoke('send-task-whatsapp', {
+      body: {
+        responsavel_name: responsavel,
+        task_title: rotinaNome,
+        task_description: rotinaDescricao || '',
+        tipo: 'nova_tarefa',
+        creator_name: creatorName,
+        unidade_nome: unidadeNome,
+      },
+    });
+  } catch (err) {
+    console.error('Erro ao enviar WhatsApp da rotina:', err);
+  }
+}
+
 export interface Rotina {
   id: string;
   unidade_id: string;
@@ -123,9 +141,23 @@ export function useRotinasData() {
       await supabase.from('rotina_atividades').insert(ativs as any);
     }
     toast({ title: 'Rotina criada com sucesso' });
+
+    // Enviar WhatsApp para responsável principal
+    if (data.responsavel_principal && unidadeAtual?.nome) {
+      sendRotinaWhatsApp(data.responsavel_principal, data.nome, data.descricao, unidadeAtual.nome, userName || 'Sistema');
+    }
+    // Enviar WhatsApp para responsáveis das atividades (se diferente do principal)
+    const notified = new Set<string>([data.responsavel_principal || '']);
+    newAtividades.forEach(a => {
+      if (a.responsavel && !notified.has(a.responsavel) && unidadeAtual?.nome) {
+        sendRotinaWhatsApp(a.responsavel, data.nome, data.descricao, unidadeAtual.nome, userName || 'Sistema');
+        notified.add(a.responsavel);
+      }
+    });
+
     await fetchData();
     return rotina;
-  }, [toast, fetchData]);
+  }, [toast, fetchData, unidadeAtual, userName]);
 
   const updateRotina = useCallback(async (id: string, data: Partial<RotinaInsert>) => {
     const { error } = await supabase.from('rotinas').update(data as any).eq('id', id);
