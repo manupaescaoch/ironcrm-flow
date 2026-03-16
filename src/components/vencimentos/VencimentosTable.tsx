@@ -72,9 +72,7 @@ export function VencimentosTable({ vencimentos, isLoading, onRefresh }: Vencimen
   const confirmInativar = async () => {
     if (!selectedVencimento) return;
     const { error } = await supabase
-      .from('leads')
-      .update({ ativo: false })
-      .eq('id', selectedVencimento.leadId);
+      .rpc('inativar_aluno', { p_lead_id: selectedVencimento.leadId });
 
     if (error) {
       toast({ title: 'Erro ao inativar aluno', description: error.message, variant: 'destructive' });

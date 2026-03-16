@@ -125,7 +125,7 @@ export function TarefaModal({
         descricao: task.descricao || '',
         responsavel: task.responsavel,
         prioridade: task.prioridade,
-        prazo: task.prazo ? new Date(task.prazo) : null,
+        prazo: task.prazo ? (() => { const [y, m, d] = task.prazo!.split('-').map(Number); return new Date(y, m - 1, d); })() : null,
         hora_prazo: task.hora_prazo || null,
       });
       setSelectedStatus(task.status);

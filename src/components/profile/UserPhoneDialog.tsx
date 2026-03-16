@@ -20,7 +20,7 @@ export function UserPhoneDialog({ open, onOpenChange }: UserPhoneDialogProps) {
   const { profile, loading, saving, updatePhone } = useUserProfile();
   const [phone, setPhone] = useState('');
   const [saved, setSaved] = useState(false);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (profile?.telefone) {
