@@ -134,26 +134,26 @@ export function useRotinasData() {
   const createRotina = useCallback(async (data: RotinaInsert, newAtividades: Omit<AtividadeInsert, 'rotina_id'>[]) => {
     const { data: rotina, error } = await supabase.from('rotinas').insert(data as any).select().single();
     if (error) {
-      toast({ title: 'Erro ao criar rotina', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erro ao criar rotina', description: getErrorMessage(error), variant: 'destructive' });
       return null;
     }
-    console.log('[Rotinas] Atividades a salvar:', newAtividades.length, JSON.stringify(newAtividades));
+
     if (newAtividades.length > 0 && rotina) {
       const ativs = newAtividades.map((a, i) => ({ ...a, rotina_id: rotina.id, ordem: i }));
-      console.log('[Rotinas] Inserindo atividades:', JSON.stringify(ativs));
-      const { error: atError, data: atData } = await supabase.from('rotina_atividades').insert(ativs as any).select();
-      console.log('[Rotinas] Resultado insert atividades:', atError, atData);
+      const { error: atError } = await supabase.from('rotina_atividades').insert(ativs as any);
       if (atError) {
-        toast({ title: 'Erro ao salvar atividades', description: atError.message, variant: 'destructive' });
+        toast({ title: 'Erro ao salvar atividades', description: getErrorMessage(atError), variant: 'destructive' });
+        await supabase.from('rotinas').delete().eq('id', rotina.id);
+        return null;
       }
     }
+
     toast({ title: 'Rotina criada com sucesso' });
 
-    // Enviar WhatsApp para responsável principal
     if (data.responsavel_principal && unidadeAtual?.nome) {
       sendRotinaWhatsApp(data.responsavel_principal, data.nome, data.descricao, unidadeAtual.nome, userName || 'Sistema');
     }
-    // Enviar WhatsApp para responsáveis das atividades (se diferente do principal)
+
     const notified = new Set<string>([data.responsavel_principal || '']);
     newAtividades.forEach(a => {
       if (a.responsavel && !notified.has(a.responsavel) && unidadeAtual?.nome) {
