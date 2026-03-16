@@ -236,23 +236,34 @@ export function useRotinasData() {
   }, [unidadeAtual?.id, execucoes, userName, fetchData, toast]);
 
   const saveAtividades = useCallback(async (rotinaId: string, newAtividades: Omit<AtividadeInsert, 'rotina_id'>[]) => {
-    // Delete existing
+    const previousAtividades = atividades.filter(a => a.rotina_id === rotinaId);
+
     const { error: delError } = await supabase.from('rotina_atividades').delete().eq('rotina_id', rotinaId);
     if (delError) {
-      toast({ title: 'Erro ao atualizar atividades', description: delError.message, variant: 'destructive' });
+      toast({ title: 'Erro ao atualizar atividades', description: getErrorMessage(delError), variant: 'destructive' });
       await fetchData();
-      return;
+      return false;
     }
-    // Insert new
+
     if (newAtividades.length > 0) {
       const ativs = newAtividades.map((a, i) => ({ ...a, rotina_id: rotinaId, ordem: i }));
       const { error: insError } = await supabase.from('rotina_atividades').insert(ativs as any);
       if (insError) {
-        toast({ title: 'Erro ao salvar atividades', description: insError.message, variant: 'destructive' });
+        toast({ title: 'Erro ao salvar atividades', description: getErrorMessage(insError), variant: 'destructive' });
+
+        if (previousAtividades.length > 0) {
+          const rollbackAtividades = previousAtividades.map(({ id: _id, created_at: _createdAt, ...atividade }) => atividade);
+          await supabase.from('rotina_atividades').insert(rollbackAtividades as any);
+        }
+
+        await fetchData();
+        return false;
       }
     }
+
     await fetchData();
-  }, [fetchData, toast]);
+    return true;
+  }, [fetchData, toast, atividades]);
 
   return {
     rotinas, atividades, execucoes, loading,
