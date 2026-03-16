@@ -93,9 +93,11 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
 
   const handleSubmit = async () => {
     if (!nome.trim() || !unidadeId) return;
-    let freq = frequencia;
-    if (frequencia === 'semanal' && diasSemana.length > 0) {
-      freq = `semanal:${diasSemana.join(',')}`;
+    let freq = 'unica';
+    if (seRepete && diasSemana.length > 0) {
+      const allDays = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+      const isAll = allDays.every(d => diasSemana.includes(d));
+      freq = isAll ? 'diaria' : `semanal:${diasSemana.join(',')}`;
     }
     await onSave({
       unidade_id: unidadeId,
