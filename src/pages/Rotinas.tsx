@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Plus, List, Kanban, Loader2, ClipboardList } from 'lucide-react';
+import { Plus, List, Kanban, Loader2, ClipboardList, CalendarDays } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
