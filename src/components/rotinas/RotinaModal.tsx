@@ -76,8 +76,26 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
     setAtividades(updated);
   };
 
+  const DIAS_SEMANA = [
+    { value: 'seg', label: 'Seg' },
+    { value: 'ter', label: 'Ter' },
+    { value: 'qua', label: 'Qua' },
+    { value: 'qui', label: 'Qui' },
+    { value: 'sex', label: 'Sex' },
+    { value: 'sab', label: 'Sáb' },
+    { value: 'dom', label: 'Dom' },
+  ];
+
+  const toggleDia = (dia: string) => {
+    setDiasSemana(prev => prev.includes(dia) ? prev.filter(d => d !== dia) : [...prev, dia]);
+  };
+
   const handleSubmit = async () => {
     if (!nome.trim() || !unidadeId) return;
+    let freq = frequencia;
+    if (frequencia === 'semanal' && diasSemana.length > 0) {
+      freq = `semanal:${diasSemana.join(',')}`;
+    }
     await onSave({
       unidade_id: unidadeId,
       nome: nome.trim().toUpperCase(),
@@ -85,7 +103,7 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
       setor,
       responsavel_principal: responsavelPrincipal || null,
       responsavel_conferencia: responsavelConferencia || null,
-      frequencia,
+      frequencia: freq,
       horario_esperado: horarioEsperado || null,
       prioridade,
     }, atividades.filter(a => a.titulo.trim()));
