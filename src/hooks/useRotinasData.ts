@@ -169,11 +169,11 @@ export function useRotinasData() {
   const updateRotina = useCallback(async (id: string, data: Partial<RotinaInsert>) => {
     const { error } = await supabase.from('rotinas').update(data as any).eq('id', id);
     if (error) {
-      toast({ title: 'Erro ao atualizar rotina', description: error.message, variant: 'destructive' });
-      return;
+      toast({ title: 'Erro ao atualizar rotina', description: getErrorMessage(error), variant: 'destructive' });
+      return false;
     }
-    toast({ title: 'Rotina atualizada' });
     await fetchData();
+    return true;
   }, [toast, fetchData]);
 
   const deleteRotina = useCallback(async (id: string) => {
