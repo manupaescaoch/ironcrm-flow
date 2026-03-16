@@ -108,7 +108,7 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
       const isAll = allDays.every(d => diasSemana.includes(d));
       freq = isAll ? 'diaria' : `semanal:${diasSemana.join(',')}`;
     }
-    await onSave({
+    const saved = await onSave({
       unidade_id: unidadeId,
       nome: nome.trim().toUpperCase(),
       descricao: descricao.trim() || null,
@@ -119,7 +119,8 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
       horario_esperado: horarioEsperado || null,
       prioridade,
     }, atividades.filter(a => a.titulo.trim()));
-    onOpenChange(false);
+
+    if (saved) onOpenChange(false);
   };
 
   const userOptions = users.map(u => ({ value: u.name, label: u.name }));
