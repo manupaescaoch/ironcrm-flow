@@ -47,7 +47,9 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
       setSetor(rotina.setor);
       setResponsavelPrincipal(rotina.responsavel_principal || '');
       setResponsavelConferencia(rotina.responsavel_conferencia || '');
-      setFrequencia(rotina.frequencia);
+      const freqParts = rotina.frequencia.split(':');
+      setFrequencia(freqParts[0]);
+      setDiasSemana(freqParts[1] ? freqParts[1].split(',') : []);
       setHorarioEsperado(rotina.horario_esperado?.slice(0, 5) || '');
       setPrioridade(rotina.prioridade);
       setAtividades(
@@ -60,8 +62,8 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
       );
     } else {
       setNome(''); setDescricao(''); setSetor('Geral'); setResponsavelPrincipal('');
-      setResponsavelConferencia(''); setFrequencia('diaria'); setHorarioEsperado('');
-      setPrioridade('media'); setAtividades([]);
+      setResponsavelConferencia(''); setFrequencia('diaria'); setDiasSemana([]);
+      setHorarioEsperado(''); setPrioridade('media'); setAtividades([]);
     }
   }, [rotina, existingAtividades, open]);
 
