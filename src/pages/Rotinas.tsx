@@ -123,11 +123,18 @@ export default function Rotinas() {
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <Tabs defaultValue="lista">
+          <Tabs defaultValue="calendario">
             <TabsList>
+              <TabsTrigger value="calendario"><CalendarDays className="w-4 h-4 mr-1" />Calendário</TabsTrigger>
               <TabsTrigger value="lista"><List className="w-4 h-4 mr-1" />Lista</TabsTrigger>
               <TabsTrigger value="kanban"><Kanban className="w-4 h-4 mr-1" />Kanban</TabsTrigger>
             </TabsList>
+            <TabsContent value="calendario">
+              <RotinasCalendario
+                rotinas={filteredRotinas} atividades={atividades} execucoes={execucoes}
+                onEdit={handleEdit} onToggleExecucao={toggleExecucao} canEdit={canEdit}
+              />
+            </TabsContent>
             <TabsContent value="lista">
               <RotinasLista
                 rotinas={filteredRotinas} atividades={atividades} execucoes={execucoes}
