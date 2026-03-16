@@ -1104,6 +1104,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      inativar_aluno: { Args: { p_lead_id: string }; Returns: undefined }
       normalize_phone: { Args: { phone: string }; Returns: string }
       user_has_unidade_access: {
         Args: { _unidade_id: string; _user_id: string }
