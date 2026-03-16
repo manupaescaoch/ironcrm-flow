@@ -49,8 +49,9 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
       setResponsavelPrincipal(rotina.responsavel_principal || '');
       setResponsavelConferencia(rotina.responsavel_conferencia || '');
       const freqParts = rotina.frequencia.split(':');
-      setFrequencia(freqParts[0]);
-      setDiasSemana(freqParts[1] ? freqParts[1].split(',') : []);
+      const dias = freqParts[1] ? freqParts[1].split(',') : [];
+      setSeRepete(dias.length > 0 || freqParts[0] === 'diaria');
+      setDiasSemana(dias.length > 0 ? dias : ['seg', 'ter', 'qua', 'qui', 'sex']);
       setHorarioEsperado(rotina.horario_esperado?.slice(0, 5) || '');
       setPrioridade(rotina.prioridade);
       setAtividades(
