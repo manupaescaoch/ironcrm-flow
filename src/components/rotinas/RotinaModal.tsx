@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 import { Rotina, RotinaInsert, SETORES, FREQUENCIAS, PRIORIDADES_ROTINA } from '@/hooks/useRotinasData';
 import { useUnidadeFilter } from '@/hooks/useUnidadeFilter';
+import { useUnidadeUsers } from '@/hooks/useUnidadeUsers';
 
 interface AtividadeForm {
   titulo: string;
@@ -27,6 +28,7 @@ interface Props {
 
 export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, onSave, saving }: Props) {
   const { unidadeId } = useUnidadeFilter();
+  const { users } = useUnidadeUsers();
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [setor, setSetor] = useState('Geral');
@@ -77,14 +79,16 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
       nome: nome.trim().toUpperCase(),
       descricao: descricao.trim() || null,
       setor,
-      responsavel_principal: responsavelPrincipal.trim().toUpperCase() || null,
-      responsavel_conferencia: responsavelConferencia.trim().toUpperCase() || null,
+      responsavel_principal: responsavelPrincipal || null,
+      responsavel_conferencia: responsavelConferencia || null,
       frequencia,
       horario_esperado: horarioEsperado || null,
       prioridade,
     }, atividades.filter(a => a.titulo.trim()));
     onOpenChange(false);
   };
+
+  const userOptions = users.map(u => ({ value: u.name, label: u.name }));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -122,11 +126,23 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
             </div>
             <div>
               <Label>Responsável Principal</Label>
-              <Input value={responsavelPrincipal} onChange={(e) => setResponsavelPrincipal(e.target.value)} placeholder="Nome" />
+              <Select value={responsavelPrincipal} onValueChange={setResponsavelPrincipal}>
+                <SelectTrigger><SelectValue placeholder="Selecionar responsável" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Nenhum</SelectItem>
+                  {userOptions.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Responsável Conferência</Label>
-              <Input value={responsavelConferencia} onChange={(e) => setResponsavelConferencia(e.target.value)} placeholder="Nome" />
+              <Select value={responsavelConferencia} onValueChange={setResponsavelConferencia}>
+                <SelectTrigger><SelectValue placeholder="Selecionar responsável" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Nenhum</SelectItem>
+                  {userOptions.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Horário Esperado</Label>
@@ -160,7 +176,13 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
                     <GripVertical className="w-4 h-4 text-muted-foreground mt-2.5 shrink-0" />
                     <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
                       <Input placeholder="Título da atividade *" value={at.titulo} onChange={(e) => updateAtividade(i, 'titulo', e.target.value)} className="md:col-span-2" />
-                      <Input placeholder="Responsável" value={at.responsavel} onChange={(e) => updateAtividade(i, 'responsavel', e.target.value)} />
+                      <Select value={at.responsavel} onValueChange={(v) => updateAtividade(i, 'responsavel', v)}>
+                        <SelectTrigger><SelectValue placeholder="Responsável" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Nenhum</SelectItem>
+                          {userOptions.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive" onClick={() => removeAtividade(i)}>
                       <Trash2 className="w-4 h-4" />
