@@ -23,7 +23,8 @@ import {
   Shield,
   Menu,
   CheckSquare,
-  Phone
+  Phone,
+  ClipboardList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/logo.png';
