@@ -4,6 +4,24 @@ import { useUnidade } from '@/contexts/UnidadeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
+async function sendRotinaWhatsApp(responsavel: string, rotinaNome: string, rotinaDescricao: string | null, unidadeNome: string, creatorName: string) {
+  if (!responsavel) return;
+  try {
+    await supabase.functions.invoke('send-task-whatsapp', {
+      body: {
+        responsavel_name: responsavel,
+        task_title: rotinaNome,
+        task_description: rotinaDescricao || '',
+        tipo: 'nova_tarefa',
+        creator_name: creatorName,
+        unidade_nome: unidadeNome,
+      },
+    });
+  } catch (err) {
+    console.error('Erro ao enviar WhatsApp da rotina:', err);
+  }
+}
+
 export interface Rotina {
   id: string;
   unidade_id: string;
