@@ -136,7 +136,7 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
             </div>
             <div>
               <Label>Responsável Conferência</Label>
-              <Select value={responsavelConferencia} onValueChange={setResponsavelConferencia}>
+              <Select value={responsavelConferencia || '__none__'} onValueChange={(v) => setResponsavelConferencia(v === '__none__' ? '' : v)}>
                 <SelectTrigger><SelectValue placeholder="Selecionar responsável" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">Nenhum</SelectItem>
