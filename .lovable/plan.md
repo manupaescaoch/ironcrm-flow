@@ -1,27 +1,31 @@
 
 
-# Confirmação de Rotinas via WhatsApp com Botões
+## Diagnóstico: Estoque FLANELA e AGUA MINERAL não atualizam quantidade
 
-## Status: ✅ Implementado
+### Problema encontrado
+O trigger que atualiza automaticamente a quantidade do estoque após uma movimentação **não existe** no banco de dados. A função `atualizar_estoque_apos_movimentacao()` está criada, mas não há trigger vinculado à tabela `movimentacoes_estoque` para executá-la.
 
-## O que foi feito
+Isso significa que quando alguém registra uma entrada, a linha é inserida em `movimentacoes_estoque`, mas a `quantidade_atual` em `estoque_interno` **nunca é atualizada**.
 
-### 1. `notify-rotinas-diarias` (atualizado)
-- Agora envia **uma mensagem por rotina** (não mais consolidada) usando `send-button-list` da Z-API
-- Cada mensagem tem 2 botões: "✅ Feito" (`feito_<rotina_id>`) e "❌ Não feito" (`naofeito_<rotina_id>`)
-- Inclui nome da unidade, setor, horário e atividades
+### Evidências
+- As movimentações estão sendo registradas normalmente (entradas de AGUA MINERAL e FLANELA existem no banco)
+- A quantidade atual permanece inalterada porque o trigger não dispara
+- A consulta `information_schema.triggers` retorna vazio para `movimentacoes_estoque`
 
-### 2. `rotina-whatsapp-response` (novo)
-- Edge function que recebe o webhook da Z-API quando um botão é clicado
-- Identifica o responsável pelo número de telefone (busca em user_profiles + auth.users)
-- Extrai o `rotina_id` do `buttonId` do payload
-- Insere/atualiza `rotina_execucoes` com `concluida=true/false` e `concluida_por = "Nome (via WhatsApp)"`
-- Envia mensagem de confirmação de volta ao usuário
-- `verify_jwt = false` no config.toml (webhook externo)
+### Correção
+Criar o trigger que falta via migração SQL:
 
-## Configuração necessária na Z-API
-
-Configure o webhook de recebimento (on-message-received) no painel Z-API para:
+```sql
+CREATE TRIGGER trigger_atualizar_estoque
+AFTER INSERT ON public.movimentacoes_estoque
+FOR EACH ROW
+EXECUTE FUNCTION public.atualizar_estoque_apos_movimentacao();
 ```
-https://zspcdvtdgssabpqrybib.supabase.co/functions/v1/rotina-whatsapp-response
-```
+
+### Correção de dados existentes
+Após criar o trigger, recalcular as quantidades atuais dos insumos afetados baseando-se no histórico de movimentações (último ajuste + entradas - retiradas).
+
+### Impacto
+- Nenhuma alteração de código frontend necessária
+- Apenas uma migração SQL para criar o trigger
+- Recalcular saldos dos insumos afetados
