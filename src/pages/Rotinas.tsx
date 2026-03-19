@@ -132,7 +132,8 @@ export default function Rotinas() {
             <TabsContent value="calendario">
               <RotinasCalendario
                 rotinas={filteredRotinas} atividades={atividades}
-                onEdit={handleEdit} canEdit={canEdit}
+                onEdit={handleEdit} onDelete={setDeleteTarget} canEdit={canEdit}
+                isAdmin={isAdmin}
               />
             </TabsContent>
             <TabsContent value="lista">

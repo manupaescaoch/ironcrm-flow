@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Clock, User } from 'lucide-react';
+import { useMemo, useState, useRef, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Clock, User, Pencil, Trash2, X, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Rotina, RotinaAtividade } from '@/hooks/useRotinasData';
@@ -9,21 +9,23 @@ interface Props {
   rotinas: Rotina[];
   atividades: RotinaAtividade[];
   onEdit: (rotina: Rotina) => void;
+  onDelete?: (rotina: Rotina) => void;
   canEdit: boolean;
+  isAdmin?: boolean;
 }
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 5);
 const DAY_LABELS = ['DOM.', 'SEG.', 'TER.', 'QUA.', 'QUI.', 'SEX.', 'SÁB.'];
 const DAY_KEYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
 
-const SETOR_COLORS: Record<string, string> = {
-  'Coordenação': 'bg-blue-500/90 border-blue-600 text-white',
-  'Limpeza': 'bg-emerald-500/90 border-emerald-600 text-white',
-  'Recepção': 'bg-orange-500/90 border-orange-600 text-white',
-  'Comercial': 'bg-violet-500/90 border-violet-600 text-white',
-  'Treinadores': 'bg-red-500/90 border-red-600 text-white',
-  'Manutenção': 'bg-amber-600/90 border-amber-700 text-white',
-  'Geral': 'bg-slate-500/90 border-slate-600 text-white',
+const SETOR_COLORS: Record<string, { bg: string; border: string; dot: string }> = {
+  'Coordenação': { bg: 'bg-blue-500/90 text-white', border: 'border-blue-600', dot: 'bg-blue-500' },
+  'Limpeza': { bg: 'bg-emerald-500/90 text-white', border: 'border-emerald-600', dot: 'bg-emerald-500' },
+  'Recepção': { bg: 'bg-orange-500/90 text-white', border: 'border-orange-600', dot: 'bg-orange-500' },
+  'Comercial': { bg: 'bg-violet-500/90 text-white', border: 'border-violet-600', dot: 'bg-violet-500' },
+  'Treinadores': { bg: 'bg-red-500/90 text-white', border: 'border-red-600', dot: 'bg-red-500' },
+  'Manutenção': { bg: 'bg-amber-600/90 text-white', border: 'border-amber-700', dot: 'bg-amber-600' },
+  'Geral': { bg: 'bg-slate-500/90 text-white', border: 'border-slate-600', dot: 'bg-slate-500' },
 };
 
 function getWeekDates(baseDate: Date): Date[] {
@@ -53,9 +55,13 @@ function parseHour(timeStr: string | null): number | null {
   return isNaN(h) ? null : h;
 }
 
-export function RotinasCalendario({ rotinas, atividades, onEdit, canEdit }: Props) {
+function formatDayOfWeek(date: Date): string {
+  return date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+export function RotinasCalendario({ rotinas, atividades, onEdit, onDelete, canEdit, isAdmin }: Props) {
   const [weekOffset, setWeekOffset] = useState(0);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<{ rotina: Rotina; dayIdx: number; rect: DOMRect } | null>(null);
 
   const today = new Date();
   const baseDate = useMemo(() => {
@@ -94,6 +100,15 @@ export function RotinasCalendario({ rotinas, atividades, onEdit, canEdit }: Prop
   const todayDayIdx = today.getDay();
   const monthYear = weekDates[3].toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
+  const handleEventClick = (rotina: Rotina, dayIdx: number, e: React.MouseEvent) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setSelectedEvent({ rotina, dayIdx, rect });
+  };
+
+  const selectedAtividades = selectedEvent
+    ? atividades.filter(a => a.rotina_id === selectedEvent.rotina.id)
+    : [];
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -111,7 +126,7 @@ export function RotinasCalendario({ rotinas, atividades, onEdit, canEdit }: Prop
         </div>
       </div>
 
-      <div className="border rounded-lg overflow-hidden bg-card">
+      <div className="border rounded-lg overflow-hidden bg-card relative">
         {/* Day Headers */}
         <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b bg-muted/30">
           <div className="p-2 text-xs text-muted-foreground text-center border-r">GMT-03</div>
@@ -137,13 +152,16 @@ export function RotinasCalendario({ rotinas, atividades, onEdit, canEdit }: Prop
             {weekDates.map((_, dayIdx) => {
               const dayRotinas = rotinasWithoutTime.filter(r => rotinaAppliesOnDay(r, DAY_KEYS[dayIdx]));
               return (
-                <div key={dayIdx} className="border-r last:border-r-0 p-0.5 min-h-[32px]">
-                  {dayRotinas.map(r => (
-                    <EventBlock key={r.id} rotina={r} atividades={atividades.filter(a => a.rotina_id === r.id)}
-                      expanded={expandedId === `${r.id}-${dayIdx}`}
-                      onToggle={() => setExpandedId(expandedId === `${r.id}-${dayIdx}` ? null : `${r.id}-${dayIdx}`)}
-                      onEdit={onEdit} canEdit={canEdit} compact />
-                  ))}
+                <div key={dayIdx} className="border-r last:border-r-0 p-0.5 min-h-[40px]">
+                  {dayRotinas.map(r => {
+                    const colors = SETOR_COLORS[r.setor] || SETOR_COLORS['Geral'];
+                    return (
+                      <button key={r.id} onClick={(e) => handleEventClick(r, dayIdx, e)}
+                        className={cn('w-full text-left rounded-sm px-1.5 py-1 border-l-[3px] mb-0.5 text-[11px] leading-tight truncate font-medium cursor-pointer hover:opacity-80 transition-opacity', colors.bg, colors.border)}>
+                        {r.nome}
+                      </button>
+                    );
+                  })}
                 </div>
               );
             })}
@@ -153,7 +171,7 @@ export function RotinasCalendario({ rotinas, atividades, onEdit, canEdit }: Prop
         {/* Time Grid */}
         <div className="relative overflow-y-auto max-h-[calc(100vh-380px)]">
           {HOURS.map(hour => (
-            <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] border-b last:border-b-0 h-16">
+            <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] border-b last:border-b-0 h-[72px]">
               <div className="p-1 text-[11px] text-muted-foreground text-right pr-2 border-r -mt-2">
                 {String(hour).padStart(2, '0')}:00
               </div>
@@ -165,14 +183,19 @@ export function RotinasCalendario({ rotinas, atividades, onEdit, canEdit }: Prop
                 const overflow = items.length - MAX_VISIBLE;
                 return (
                   <div key={dayIdx} className={cn('border-r last:border-r-0 p-0.5 relative overflow-hidden', isToday && 'bg-primary/[0.02]')}>
-                    {visible.map(({ rotina, rotinaAtividades }) => (
-                      <EventBlock key={rotina.id} rotina={rotina} atividades={rotinaAtividades}
-                        expanded={expandedId === `${rotina.id}-${dayIdx}`}
-                        onToggle={() => setExpandedId(expandedId === `${rotina.id}-${dayIdx}` ? null : `${rotina.id}-${dayIdx}`)}
-                        onEdit={onEdit} canEdit={canEdit} />
-                    ))}
+                    {visible.map(({ rotina }) => {
+                      const colors = SETOR_COLORS[rotina.setor] || SETOR_COLORS['Geral'];
+                      const timeLabel = rotina.horario_esperado?.substring(0, 5);
+                      return (
+                        <button key={rotina.id} onClick={(e) => handleEventClick(rotina, dayIdx, e)}
+                          className={cn('w-full text-left rounded-sm px-1.5 py-1 border-l-[3px] mb-0.5 text-[11px] leading-tight cursor-pointer hover:opacity-80 transition-opacity', colors.bg, colors.border)}>
+                          <span className="font-semibold truncate block">{rotina.nome}</span>
+                          {timeLabel && <span className="opacity-80 text-[10px]">{timeLabel}</span>}
+                        </button>
+                      );
+                    })}
                     {overflow > 0 && (
-                      <div className="text-[9px] text-muted-foreground font-medium px-1 truncate">+{overflow} mais</div>
+                      <div className="text-[10px] text-muted-foreground font-medium px-1 truncate">+{overflow} mais</div>
                     )}
                   </div>
                 );
@@ -199,49 +222,119 @@ export function RotinasCalendario({ rotinas, atividades, onEdit, canEdit }: Prop
             </div>
           )}
         </div>
+
+        {/* Detail Popup (Google Calendar style) */}
+        {selectedEvent && (
+          <EventDetailPopup
+            rotina={selectedEvent.rotina}
+            atividades={selectedAtividades}
+            date={weekDates[selectedEvent.dayIdx]}
+            canEdit={canEdit}
+            isAdmin={isAdmin}
+            onEdit={() => { onEdit(selectedEvent.rotina); setSelectedEvent(null); }}
+            onDelete={onDelete ? () => { onDelete(selectedEvent.rotina); setSelectedEvent(null); } : undefined}
+            onClose={() => setSelectedEvent(null)}
+          />
+        )}
       </div>
     </div>
   );
 }
 
-function EventBlock({ rotina, atividades, expanded, onToggle, onEdit, canEdit, compact }: {
-  rotina: Rotina; atividades: RotinaAtividade[]; expanded: boolean;
-  onToggle: () => void; onEdit: (r: Rotina) => void; canEdit: boolean; compact?: boolean;
+function EventDetailPopup({ rotina, atividades, date, canEdit, isAdmin, onEdit, onDelete, onClose }: {
+  rotina: Rotina; atividades: RotinaAtividade[]; date: Date;
+  canEdit: boolean; isAdmin?: boolean;
+  onEdit: () => void; onDelete?: () => void; onClose: () => void;
 }) {
-  const colorClass = SETOR_COLORS[rotina.setor] || SETOR_COLORS['Geral'];
+  const popupRef = useRef<HTMLDivElement>(null);
+  const colors = SETOR_COLORS[rotina.setor] || SETOR_COLORS['Geral'];
   const timeLabel = rotina.horario_esperado?.substring(0, 5);
+  const dayLabel = formatDayOfWeek(date);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
 
   return (
-    <div className="mb-px">
-      <button onClick={onToggle}
-        className={cn('w-full text-left rounded px-1 border-l-2 transition-all text-[9px] leading-none overflow-hidden py-px', colorClass)}>
-        <span className="font-semibold truncate block">{rotina.nome}</span>
-      </button>
-
-      {expanded && (
-        <div className="absolute z-20 left-1 right-1 top-full bg-popover border rounded-lg shadow-lg p-3 min-w-[220px] space-y-2"
-          onClick={e => e.stopPropagation()}>
-          <div className="flex items-center justify-between">
-            <h4 className="font-semibold text-sm">{rotina.nome}</h4>
-            {canEdit && <button onClick={() => onEdit(rotina)} className="text-xs text-primary hover:underline">Editar</button>}
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            <Badge variant="secondary" className="text-[10px]">{rotina.setor}</Badge>
-            {timeLabel && <Badge variant="outline" className="text-[10px] gap-0.5"><Clock className="w-2.5 h-2.5" />{timeLabel}</Badge>}
-          </div>
-          {rotina.responsavel_principal && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground"><User className="w-3 h-3" />{rotina.responsavel_principal}</div>
+    <>
+      <div className="fixed inset-0 z-40" />
+      <div ref={popupRef}
+        className="fixed z-50 bg-popover border rounded-xl shadow-xl w-[360px] max-w-[90vw] overflow-hidden animate-in fade-in-0 zoom-in-95"
+        style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+        {/* Header actions */}
+        <div className="flex items-center justify-end gap-1 px-3 pt-3">
+          {canEdit && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
+              <Pencil className="w-4 h-4" />
+            </Button>
           )}
-          {rotina.descricao && <p className="text-xs text-muted-foreground">{rotina.descricao}</p>}
+          {isAdmin && onDelete && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete}>
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* Content */}
+        <div className="px-5 pb-5 space-y-3">
+          {/* Title with color dot */}
+          <div className="flex items-start gap-3">
+            <div className={cn('w-4 h-4 rounded-sm mt-1 shrink-0', colors.dot)} />
+            <div>
+              <h3 className="text-lg font-semibold leading-tight">{rotina.nome}</h3>
+              <p className="text-sm text-muted-foreground capitalize mt-0.5">
+                {dayLabel}
+                {timeLabel && ` · ${timeLabel}`}
+              </p>
+            </div>
+          </div>
+
+          {/* Description */}
+          {rotina.descricao && (
+            <div className="flex items-start gap-3">
+              <List className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+              <p className="text-sm text-muted-foreground">{rotina.descricao}</p>
+            </div>
+          )}
+
+          {/* Responsible */}
+          {rotina.responsavel_principal && (
+            <div className="flex items-center gap-3">
+              <User className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm">{rotina.responsavel_principal}</span>
+            </div>
+          )}
+
+          {/* Setor badge */}
+          <div className="flex items-center gap-3">
+            <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+            <Badge variant="secondary" className="text-xs">{rotina.setor}</Badge>
+          </div>
+
+          {/* Activities */}
           {atividades.length > 0 && (
-            <div className="space-y-1 pt-1 border-t">
+            <div className="border-t pt-3 space-y-1.5">
+              <span className="text-xs font-medium text-muted-foreground">Atividades ({atividades.length})</span>
               {atividades.map(at => (
-                <div key={at.id} className="text-xs text-foreground">• {at.titulo}</div>
+                <div key={at.id} className="text-sm flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 shrink-0" />
+                  {at.titulo}
+                  {at.responsavel && <span className="text-xs text-muted-foreground ml-auto">{at.responsavel}</span>}
+                </div>
               ))}
             </div>
           )}
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }
