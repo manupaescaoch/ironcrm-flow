@@ -37,7 +37,7 @@ function parseHour(timeStr: string | null): number | null {
 }
 
 export function CronogramaTab() {
-  const { atividades, isLoading, createAtividade, deleteAtividade } = useCronogramaAtividades();
+  const { atividades, isLoading, createAtividade, updateAtividade, deleteAtividade } = useCronogramaAtividades();
   const { ativos: funcionarios } = useCronogramaFuncionarios();
   const { data: formularios } = useFormularios();
   const { unidadeId } = useUnidadeFilter();
