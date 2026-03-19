@@ -63,6 +63,29 @@ export function useCronogramaAtividades() {
     onError: () => toast({ title: 'Erro ao atualizar atividade', variant: 'destructive' }),
   });
 
+  const bulkUpdateAtividades = useMutation({
+    mutationFn: async ({ ids, data }: { ids: string[]; data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; mensagem?: string | null } }) => {
+      const { error } = await supabase.from('cronograma_atividades').update(data).in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cronograma-atividades'] });
+      toast({ title: 'Todas as atividades relacionadas foram atualizadas' });
+    },
+    onError: () => toast({ title: 'Erro ao atualizar atividades', variant: 'destructive' }),
+  });
+
+  const bulkDeleteAtividades = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from('cronograma_atividades').update({ ativo: false }).in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cronograma-atividades'] });
+      toast({ title: 'Todas as atividades relacionadas foram removidas' });
+    },
+  });
+
   const deleteAtividade = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('cronograma_atividades').update({ ativo: false }).eq('id', id);
