@@ -208,12 +208,13 @@ function EventBlock({ rotina, atividades, expanded, onToggle, onEdit, canEdit, c
   return (
     <div className="mb-0.5">
       <button onClick={onToggle}
-        className={cn('w-full text-left rounded px-1.5 border-l-[3px] transition-all text-[11px] leading-tight', colorClass, compact ? 'py-0.5' : 'py-1')}>
-        <div className="font-semibold truncate">{rotina.nome}</div>
-        {timeLabel && !compact && <div className="opacity-80 text-[10px]">{timeLabel}</div>}
-        {rotina.responsavel_principal && (
-          <div className="opacity-80 text-[10px] truncate">{rotina.responsavel_principal}</div>
-        )}
+        className={cn('w-full text-left rounded px-1.5 border-l-[3px] transition-all text-[10px] leading-tight overflow-hidden', colorClass, compact ? 'py-0.5' : 'py-0.5')}>
+        <div className="font-semibold truncate text-[10px]">{rotina.nome}</div>
+        <div className="opacity-80 text-[9px] truncate">
+          {timeLabel && <span>{timeLabel}</span>}
+          {timeLabel && rotina.responsavel_principal && <span> · </span>}
+          {rotina.responsavel_principal && <span>{rotina.responsavel_principal.split(' ')[0]}</span>}
+        </div>
       </button>
 
       {expanded && (
