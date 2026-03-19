@@ -18,6 +18,9 @@ export interface Formulario {
   unidade_id: string;
   titulo: string;
   descricao: string | null;
+  setor: string;
+  turno: string;
+  whatsapp_grupo: string | null;
   ativo: boolean;
   created_by: string | null;
   created_at: string;
