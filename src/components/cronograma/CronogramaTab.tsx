@@ -416,6 +416,108 @@ export function CronogramaTab() {
   );
 }
 
+function formatDayOfWeek(date: Date): string {
+  return date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+function CronogramaEventPopup({ atividade, date, funcionarios, formularios, onEdit, onDelete, onClose }: {
+  atividade: CronogramaAtividade;
+  date: Date;
+  funcionarios: Array<{ id: string; nome: string; telefone: string | null }>;
+  formularios: Array<{ id: string; titulo: string }>;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  const popupRef = useRef<HTMLDivElement>(null);
+  const timeLabel = atividade.horario?.substring(0, 5);
+  const dayLabel = formatDayOfWeek(date);
+  const responsavel = funcionarios.find(f => f.id === atividade.responsavel_id);
+  const formulario = formularios.find(f => f.id === atividade.formulario_id);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40" />
+      <div ref={popupRef}
+        className="fixed z-50 bg-popover border rounded-xl shadow-xl w-[360px] max-w-[90vw] overflow-hidden animate-in fade-in-0 zoom-in-95"
+        style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+        {/* Header actions */}
+        <div className="flex items-center justify-end gap-1 px-3 pt-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete}>
+            <Trash2 className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* Content */}
+        <div className="px-5 pb-5 space-y-3">
+          {/* Title with color dot */}
+          <div className="flex items-start gap-3">
+            <div className="w-4 h-4 rounded-sm mt-1 shrink-0 bg-primary" />
+            <div>
+              <h3 className="text-lg font-semibold leading-tight">{atividade.titulo}</h3>
+              <p className="text-sm text-muted-foreground capitalize mt-0.5">
+                {dayLabel}
+                {timeLabel && ` · ${timeLabel}`}
+              </p>
+            </div>
+          </div>
+
+          {/* Responsible */}
+          {responsavel && (
+            <div className="flex items-center gap-3">
+              <User className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm">{responsavel.nome}</span>
+              {responsavel.telefone && (
+                <span className="text-xs text-muted-foreground ml-auto">{responsavel.telefone}</span>
+              )}
+            </div>
+          )}
+
+          {/* Linked form */}
+          {formulario && (
+            <div className="flex items-center gap-3">
+              <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm">Formulário: {formulario.titulo}</span>
+            </div>
+          )}
+
+          {/* Custom message */}
+          {atividade.mensagem && (
+            <div className="flex items-start gap-3">
+              <MessageSquare className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+              <p className="text-sm text-muted-foreground">{atividade.mensagem}</p>
+            </div>
+          )}
+
+          {/* Day badge */}
+          {atividade.dia_semana !== null && (
+            <div className="flex items-center gap-3">
+              <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
+              <Badge variant="secondary" className="text-xs">{DIAS_SEMANA[atividade.dia_semana]}</Badge>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 function AtividadeEditForm({ atividade, funcionarios, formularios, onUpdate, onDelete }: {
   atividade: CronogramaAtividade;
   funcionarios: Array<{ id: string; nome: string; telefone: string | null }>;
