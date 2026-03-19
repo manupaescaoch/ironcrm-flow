@@ -20,7 +20,7 @@ interface Props {
   isAdmin?: boolean;
 }
 
-export function RotinaCard({ rotina, atividades, execucoes, onEdit, onDuplicate, onArchive, onDelete, onToggleExecucao, canEdit }: Props) {
+export function RotinaCard({ rotina, atividades, execucoes, onEdit, onDuplicate, onArchive, onDelete, onToggleExecucao, canEdit, isAdmin }: Props) {
   const rotinaAtividades = atividades.filter(a => a.rotina_id === rotina.id);
   const prioridadeInfo = PRIORIDADES_ROTINA.find(p => p.value === rotina.prioridade);
   const frequenciaLabel = FREQUENCIAS.find(f => f.value === rotina.frequencia)?.label || rotina.frequencia;
