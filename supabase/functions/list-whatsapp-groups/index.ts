@@ -36,8 +36,13 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Z-API not configured' }), { status: 500, headers: corsHeaders });
     }
 
+    const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN');
     const url = `https://api.z-api.io/instances/${instanceId}/token/${zapiToken}/chats`;
-    const response = await fetch(url);
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (clientToken) {
+      headers['Client-Token'] = clientToken;
+    }
+    const response = await fetch(url, { headers });
 
     if (!response.ok) {
       throw new Error(`Z-API error: ${response.status}`);
