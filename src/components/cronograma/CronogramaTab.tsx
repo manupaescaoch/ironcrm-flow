@@ -632,7 +632,9 @@ function CronogramaEventPopup({ atividade, date, funcionarios, formularios, onEd
           {atividade.dia_semana !== null && (
             <div className="flex items-center gap-3">
               <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
-              <Badge variant="secondary" className="text-xs">{DIAS_SEMANA[atividade.dia_semana]}</Badge>
+              <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground">
+                {DIAS_SEMANA[atividade.dia_semana]}
+              </span>
             </div>
           )}
         </div>
