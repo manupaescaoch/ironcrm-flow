@@ -287,6 +287,14 @@ const AppRoutes = () => (
         </ProtectedRoute>
       }
     />
+    <Route
+      path="/cronograma"
+      element={
+        <AdminRoute>
+          <CronogramaOperacional />
+        </AdminRoute>
+      }
+    />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
