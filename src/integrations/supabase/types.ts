@@ -22,6 +22,7 @@ export type Database = {
           formulario_id: string | null
           horario: string | null
           id: string
+          mensagem: string | null
           responsavel_id: string | null
           titulo: string
           unidade_id: string
@@ -34,6 +35,7 @@ export type Database = {
           formulario_id?: string | null
           horario?: string | null
           id?: string
+          mensagem?: string | null
           responsavel_id?: string | null
           titulo: string
           unidade_id: string
@@ -46,6 +48,7 @@ export type Database = {
           formulario_id?: string | null
           horario?: string | null
           id?: string
+          mensagem?: string | null
           responsavel_id?: string | null
           titulo?: string
           unidade_id?: string
