@@ -347,9 +347,16 @@ export function CronogramaTab() {
 
         {/* Detail Popup */}
         {selectedEvent && (
-          <AtividadeDetailPopup
+          <AtividadeEditPopup
             atividade={selectedEvent.atividade}
             date={weekDates[selectedEvent.dayIdx]}
+            funcionarios={funcionarios}
+            formularios={formularios || []}
+            onUpdate={(data) => {
+              updateAtividade.mutate({ id: selectedEvent.atividade.id, ...data }, {
+                onSuccess: () => setSelectedEvent(null),
+              });
+            }}
             onDelete={() => {
               deleteAtividade.mutate(selectedEvent.atividade.id);
               setSelectedEvent(null);
