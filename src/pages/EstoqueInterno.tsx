@@ -458,11 +458,48 @@ export default function EstoqueInterno() {
       nota_fiscal: string | null;
     }) => {
       if (!unidadeAtual) throw new Error('Nenhuma unidade selecionada');
+      
+      // 1. Inserir movimentação
       const { error } = await supabase.from('movimentacoes_estoque').insert({
         ...data,
         unidade_id: unidadeAtual.id,
       });
       if (error) throw error;
+
+      // 2. Atualizar estoque manualmente (sem depender de trigger)
+      // Verificar se já existe registro de estoque
+      const { data: estoqueExistente } = await supabase
+        .from('estoque_interno')
+        .select('id, quantidade_atual')
+        .eq('insumo_id', data.insumo_id)
+        .eq('unidade_id', unidadeAtual.id)
+        .maybeSingle();
+
+      if (!estoqueExistente) {
+        // Criar registro de estoque se não existir
+        const qtdInicial = data.tipo === 'entrada' ? data.quantidade : data.tipo === 'ajuste' ? data.quantidade : 0;
+        const { error: errInsert } = await supabase.from('estoque_interno').insert({
+          insumo_id: data.insumo_id,
+          unidade_id: unidadeAtual.id,
+          quantidade_atual: qtdInicial,
+        });
+        if (errInsert) throw errInsert;
+      } else {
+        let novaQtd: number;
+        if (data.tipo === 'entrada') {
+          novaQtd = estoqueExistente.quantidade_atual + data.quantidade;
+        } else if (data.tipo === 'retirada') {
+          novaQtd = Math.max(0, estoqueExistente.quantidade_atual - data.quantidade);
+        } else {
+          // ajuste: define valor absoluto
+          novaQtd = data.quantidade;
+        }
+        const { error: errUpdate } = await supabase
+          .from('estoque_interno')
+          .update({ quantidade_atual: novaQtd, updated_at: new Date().toISOString() })
+          .eq('id', estoqueExistente.id);
+        if (errUpdate) throw errUpdate;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estoque_interno', unidadeAtual?.id] });
