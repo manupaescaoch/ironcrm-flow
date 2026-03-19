@@ -118,12 +118,12 @@ export function useCreateFormulario() {
   const { unidadeAtual } = useUnidade();
 
   return useMutation({
-    mutationFn: async ({ titulo, descricao, campos }: { titulo: string; descricao?: string; campos: FormularioCampo[] }) => {
+    mutationFn: async ({ titulo, descricao, setor, turno, whatsapp_grupo, campos }: { titulo: string; descricao?: string; setor?: string; turno?: string; whatsapp_grupo?: string; campos: FormularioCampo[] }) => {
       if (!unidadeAtual?.id) throw new Error('Unidade não selecionada');
 
       const { data: form, error: formError } = await supabase
         .from('formularios')
-        .insert({ titulo, descricao: descricao || null, unidade_id: unidadeAtual.id })
+        .insert({ titulo, descricao: descricao || null, setor: setor || 'geral', turno: turno || 'integral', whatsapp_grupo: whatsapp_grupo || null, unidade_id: unidadeAtual.id })
         .select()
         .single();
       if (formError) throw formError;
