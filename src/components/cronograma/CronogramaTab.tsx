@@ -314,11 +314,11 @@ export function CronogramaTab() {
                 a.dia_semana === null || a.dia_semana === dayIdx
               );
               return (
-                <div key={dayIdx} className="border-r last:border-r-0 p-0.5 min-h-[40px]">
+                <div key={dayIdx} className="border-r last:border-r-0 p-0.5 min-h-[40px] overflow-hidden">
                   {items.map(atv => (
                     <button key={atv.id} onClick={() => handleEventClick(atv, dayIdx)}
-                      className="w-full text-left rounded-sm px-1.5 py-1 border-l-[3px] mb-0.5 text-[11px] leading-tight truncate font-medium cursor-pointer hover:opacity-80 transition-opacity bg-primary/90 text-primary-foreground border-primary">
-                      {atv.titulo}
+                      className="w-full text-left rounded-md px-1.5 py-1 mb-0.5 text-[11px] leading-tight truncate font-medium cursor-pointer hover:opacity-80 transition-opacity bg-primary/90 text-primary-foreground overflow-hidden">
+                      <span className="truncate block">{atv.titulo}</span>
                     </button>
                   ))}
                 </div>
@@ -338,14 +338,15 @@ export function CronogramaTab() {
                 const items = atividadesByHourDay[`${hour}-${dayIdx}`] || [];
                 const isToday = date.toISOString().split('T')[0] === todayStr;
                 return (
-                  <div key={dayIdx} className={cn('border-r last:border-r-0 p-0.5 relative', isToday && 'bg-primary/[0.02]')}>
+                  <div key={dayIdx} className={cn('border-r last:border-r-0 p-0.5 relative overflow-hidden', isToday && 'bg-primary/[0.02]')}>
                     {items.map(atv => {
                       const timeLabel = atv.horario?.substring(0, 5);
+                      const responsavel = funcionarios.find(f => f.id === atv.responsavel_id);
                       return (
                         <button key={atv.id} onClick={() => handleEventClick(atv, dayIdx)}
-                          className="w-full text-left rounded-sm px-1.5 py-1 border-l-[3px] mb-0.5 text-[11px] leading-tight cursor-pointer hover:opacity-80 transition-opacity bg-primary/90 text-primary-foreground border-primary">
-                          <span className="font-semibold truncate block">{atv.titulo}</span>
-                          {timeLabel && <span className="opacity-80 text-[10px]">{timeLabel}</span>}
+                          className="w-full text-left rounded-md px-1.5 py-1 mb-0.5 text-[11px] leading-tight cursor-pointer hover:opacity-80 transition-opacity bg-primary/90 text-primary-foreground overflow-hidden">
+                          <span className="font-semibold truncate block">{atv.titulo}{responsavel ? ` (${responsavel.nome.split(' ')[0]})` : ''}</span>
+                          {timeLabel && <span className="opacity-80 text-[10px] truncate block">{timeLabel}</span>}
                         </button>
                       );
                     })}
