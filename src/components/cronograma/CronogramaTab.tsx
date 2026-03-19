@@ -530,6 +530,15 @@ function AtividadeEditForm({ atividade, funcionarios, formularios, onUpdate, onD
             />
           </div>
         )}
+        {(editForm.formulario_id || editForm.mensagem) && (
+          <WhatsAppPreview
+            titulo={editForm.titulo}
+            horario={editForm.horario}
+            responsavelNome={selectedFuncionario?.nome}
+            formularioTitulo={formularios.find(f => f.id === editForm.formulario_id)?.titulo}
+            mensagem={editForm.mensagem}
+          />
+        )}
       </div>
       <div className="flex gap-2">
         <Button onClick={handleSave} disabled={!editForm.titulo} className="flex-1">
