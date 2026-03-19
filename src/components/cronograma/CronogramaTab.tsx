@@ -37,7 +37,7 @@ function parseHour(timeStr: string | null): number | null {
 }
 
 export function CronogramaTab() {
-  const { atividades, isLoading, createAtividade, deleteAtividade } = useCronogramaAtividades();
+  const { atividades, isLoading, createAtividade, updateAtividade, deleteAtividade } = useCronogramaAtividades();
   const { ativos: funcionarios } = useCronogramaFuncionarios();
   const { data: formularios } = useFormularios();
   const { unidadeId } = useUnidadeFilter();
@@ -347,9 +347,16 @@ export function CronogramaTab() {
 
         {/* Detail Popup */}
         {selectedEvent && (
-          <AtividadeDetailPopup
+          <AtividadeEditPopup
             atividade={selectedEvent.atividade}
             date={weekDates[selectedEvent.dayIdx]}
+            funcionarios={funcionarios}
+            formularios={formularios || []}
+            onUpdate={(data) => {
+              updateAtividade.mutate({ id: selectedEvent.atividade.id, ...data }, {
+                onSuccess: () => setSelectedEvent(null),
+              });
+            }}
             onDelete={() => {
               deleteAtividade.mutate(selectedEvent.atividade.id);
               setSelectedEvent(null);
@@ -362,14 +369,24 @@ export function CronogramaTab() {
   );
 }
 
-function AtividadeDetailPopup({ atividade, date, onDelete, onClose }: {
+function AtividadeEditPopup({ atividade, date, funcionarios, formularios, onUpdate, onDelete, onClose }: {
   atividade: CronogramaAtividade;
   date: Date;
+  funcionarios: Array<{ id: string; nome: string; telefone: string | null }>;
+  formularios: Array<{ id: string; titulo: string }>;
+  onUpdate: (data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; dia_semana?: number | null }) => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
   const popupRef = useRef<HTMLDivElement>(null);
-  const timeLabel = atividade.horario?.substring(0, 5);
+  const [editForm, setEditForm] = useState({
+    titulo: atividade.titulo,
+    horario: atividade.horario?.substring(0, 5) || '',
+    responsavel_id: atividade.responsavel_id || '',
+    formulario_id: atividade.formulario_id || '',
+    dia_semana: atividade.dia_semana,
+  });
+
   const dayLabel = date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
   useEffect(() => {
@@ -380,51 +397,85 @@ function AtividadeDetailPopup({ atividade, date, onDelete, onClose }: {
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose]);
 
+  const handleSave = () => {
+    onUpdate({
+      titulo: editForm.titulo,
+      horario: editForm.horario || null,
+      responsavel_id: editForm.responsavel_id || null,
+      formulario_id: editForm.formulario_id || null,
+      dia_semana: editForm.dia_semana,
+    });
+  };
+
   return (
     <>
-      <div className="fixed inset-0 z-40" />
+      <div className="fixed inset-0 z-40 bg-black/20" />
       <div ref={popupRef}
-        className="fixed z-50 bg-popover border rounded-xl shadow-xl w-[360px] max-w-[90vw] overflow-hidden animate-in fade-in-0 zoom-in-95"
+        className="fixed z-50 bg-popover border rounded-xl shadow-xl w-[400px] max-w-[90vw] max-h-[85vh] overflow-y-auto animate-in fade-in-0 zoom-in-95"
         style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-        <div className="flex items-center justify-end gap-1 px-3 pt-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete}>
-            <Trash2 className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
-        <div className="px-5 pb-5 space-y-3">
-          <div className="flex items-start gap-3">
-            <div className="w-4 h-4 rounded-sm mt-1 shrink-0 bg-primary" />
-            <div>
-              <h3 className="text-lg font-semibold leading-tight">{atividade.titulo}</h3>
-              <p className="text-sm text-muted-foreground capitalize mt-0.5">
-                {dayLabel}{timeLabel && ` · ${timeLabel}`}
-              </p>
-            </div>
+        <div className="flex items-center justify-between px-4 pt-4">
+          <h3 className="text-base font-semibold">Editar Atividade</h3>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete}>
+              <Trash2 className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
+              <X className="w-4 h-4" />
+            </Button>
           </div>
-
-          {atividade.cronograma_funcionarios && (
-            <div className="flex items-center gap-3">
-              <User className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span className="text-sm">{atividade.cronograma_funcionarios.nome}</span>
+        </div>
+        <p className="px-4 text-xs text-muted-foreground capitalize mt-0.5">{dayLabel}</p>
+        <div className="px-4 pb-4 pt-3 space-y-3">
+          <div>
+            <Label className="text-xs">Título</Label>
+            <Input value={editForm.titulo} onChange={(e) => setEditForm(f => ({ ...f, titulo: e.target.value }))} />
+          </div>
+          <div>
+            <Label className="text-xs">Horário</Label>
+            <Input type="time" value={editForm.horario} onChange={(e) => setEditForm(f => ({ ...f, horario: e.target.value }))} />
+          </div>
+          <div>
+            <Label className="text-xs">Dia da semana</Label>
+            <div className="mt-1 grid grid-cols-7 gap-1">
+              {DIAS_SEMANA.map((d, i) => {
+                const isActive = editForm.dia_semana === i;
+                return (
+                  <button key={i} type="button"
+                    onClick={() => setEditForm(f => ({ ...f, dia_semana: f.dia_semana === i ? null : i }))}
+                    className={cn('rounded-md border px-1 py-1.5 text-[10px] font-medium transition-colors',
+                      isActive ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background text-muted-foreground hover:bg-accent')}>
+                    {d}
+                  </button>
+                );
+              })}
             </div>
-          )}
-
-          {atividade.formularios && (
-            <div className="flex items-center gap-3">
-              <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span className="text-sm">{atividade.formularios.titulo}</span>
-            </div>
-          )}
-
-          {atividade.dia_semana !== null && (
-            <div className="flex items-center gap-3">
-              <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
-              <Badge variant="secondary" className="text-xs">{DIAS_SEMANA[atividade.dia_semana]}</Badge>
-            </div>
-          )}
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              {editForm.dia_semana === null ? 'Todos os dias' : `Apenas: ${DIAS_SEMANA[editForm.dia_semana]}`}
+            </p>
+          </div>
+          <div>
+            <Label className="text-xs">Responsável</Label>
+            <Select value={editForm.responsavel_id} onValueChange={(v) => setEditForm(f => ({ ...f, responsavel_id: v }))}>
+              <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecionar" /></SelectTrigger>
+              <SelectContent>
+                {funcionarios.map((f) => (
+                  <SelectItem key={f.id} value={f.id} className="text-xs">{f.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Formulário</Label>
+            <Select value={editForm.formulario_id} onValueChange={(v) => setEditForm(f => ({ ...f, formulario_id: v }))}>
+              <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Nenhum" /></SelectTrigger>
+              <SelectContent>
+                {formularios.map((f) => <SelectItem key={f.id} value={f.id} className="text-xs">{f.titulo}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={handleSave} disabled={!editForm.titulo} className="w-full" size="sm">
+            Salvar Alterações
+          </Button>
         </div>
       </div>
     </>
