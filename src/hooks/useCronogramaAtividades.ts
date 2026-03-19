@@ -73,5 +73,5 @@ export function useCronogramaAtividades() {
     },
   });
 
-  return { atividades, isLoading, createAtividade, deleteAtividade };
+  return { atividades, isLoading, createAtividade, updateAtividade, deleteAtividade };
 }
