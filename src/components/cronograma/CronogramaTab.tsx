@@ -119,6 +119,7 @@ export function CronogramaTab() {
           responsavel_id: form.responsavel_id || undefined,
           formulario_id: form.formulario_id || undefined,
           dia_semana: Number(dia),
+          mensagem: form.mensagem || undefined,
         }))
       : [{
           unidade_id: unidadeId,
@@ -127,6 +128,7 @@ export function CronogramaTab() {
           responsavel_id: form.responsavel_id || undefined,
           formulario_id: form.formulario_id || undefined,
           dia_semana: undefined,
+          mensagem: form.mensagem || undefined,
         }];
 
     createAtividade.mutate(atividadesParaCriar, {
@@ -378,7 +380,7 @@ function AtividadeEditForm({ atividade, funcionarios, formularios, onUpdate, onD
   atividade: CronogramaAtividade;
   funcionarios: Array<{ id: string; nome: string; telefone: string | null }>;
   formularios: Array<{ id: string; titulo: string }>;
-  onUpdate: (data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; dia_semana?: number | null }) => void;
+  onUpdate: (data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; dia_semana?: number | null; mensagem?: string | null }) => void;
   onDelete: () => void;
 }) {
   const [editForm, setEditForm] = useState({
@@ -387,7 +389,7 @@ function AtividadeEditForm({ atividade, funcionarios, formularios, onUpdate, onD
     responsavel_id: atividade.responsavel_id || '',
     formulario_id: atividade.formulario_id || '',
     dia_semana: atividade.dia_semana,
-    mensagem: '',
+    mensagem: atividade.mensagem || '',
   });
 
   const selectedFuncionario = useMemo(() => {
@@ -402,6 +404,7 @@ function AtividadeEditForm({ atividade, funcionarios, formularios, onUpdate, onD
       responsavel_id: editForm.responsavel_id || null,
       formulario_id: editForm.formulario_id || null,
       dia_semana: editForm.dia_semana,
+      mensagem: editForm.mensagem || null,
     });
   };
 

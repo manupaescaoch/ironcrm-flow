@@ -11,6 +11,7 @@ export interface CronogramaAtividade {
   titulo: string;
   horario: string | null;
   dia_semana: number | null;
+  mensagem: string | null;
   ativo: boolean;
   created_at: string;
   updated_at: string;
@@ -39,7 +40,7 @@ export function useCronogramaAtividades() {
   });
 
   const createAtividade = useMutation({
-    mutationFn: async (atv: Array<{ unidade_id: string; titulo: string; horario?: string; responsavel_id?: string; formulario_id?: string; dia_semana?: number }>) => {
+    mutationFn: async (atv: Array<{ unidade_id: string; titulo: string; horario?: string; responsavel_id?: string; formulario_id?: string; dia_semana?: number; mensagem?: string }>) => {
       const { error } = await supabase.from('cronograma_atividades').insert(atv);
       if (error) throw error;
     },
@@ -51,7 +52,7 @@ export function useCronogramaAtividades() {
   });
 
   const updateAtividade = useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; dia_semana?: number | null }) => {
+    mutationFn: async ({ id, ...data }: { id: string; titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; dia_semana?: number | null; mensagem?: string | null }) => {
       const { error } = await supabase.from('cronograma_atividades').update(data).eq('id', id);
       if (error) throw error;
     },
