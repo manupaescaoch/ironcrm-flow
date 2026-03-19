@@ -50,6 +50,18 @@ export function useCronogramaAtividades() {
     onError: () => toast({ title: 'Erro ao criar atividade', variant: 'destructive' }),
   });
 
+  const updateAtividade = useMutation({
+    mutationFn: async ({ id, ...data }: { id: string; titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; dia_semana?: number | null }) => {
+      const { error } = await supabase.from('cronograma_atividades').update(data).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cronograma-atividades'] });
+      toast({ title: 'Atividade atualizada' });
+    },
+    onError: () => toast({ title: 'Erro ao atualizar atividade', variant: 'destructive' }),
+  });
+
   const deleteAtividade = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('cronograma_atividades').update({ ativo: false }).eq('id', id);
