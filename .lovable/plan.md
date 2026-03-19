@@ -1,23 +1,28 @@
 
 
-## Problem: Stock Double-Counting
+## Problem
 
-The stock quantity is being updated **twice** for every movement:
+The database **function** `atualizar_estoque_apos_movimentacao()` exists, but the **trigger** that calls it on `movimentacoes_estoque` inserts is missing. When we removed the frontend manual update (to fix double-counting), we left the system with no mechanism to update stock balances at all.
 
-1. **Database trigger** `atualizar_estoque_apos_movimentacao` — fires on INSERT to `movimentacoes_estoque` and updates `estoque_interno.quantidade_atual`
-2. **Frontend code** in `EstoqueInterno.tsx` (lines 469-502) — manually fetches current stock and updates it again
-
-When you add 1 unit to a stock of 1, the trigger makes it 2, then the frontend reads 2 and adds 1 again making it 3 (or reads the already-updated value). The exact result depends on timing, which explains the jump to 4.
+This explains why the quantity stays stuck at 3 regardless of entries or withdrawals.
 
 ## Solution
 
-**Remove the manual stock update from the frontend** (lines 469-501 in `EstoqueInterno.tsx`). Keep only the movement INSERT. The database trigger already handles the stock balance correctly.
+Create the missing trigger via a database migration:
 
-### Changes to `src/pages/EstoqueInterno.tsx`:
+```sql
+CREATE TRIGGER trigger_atualizar_estoque
+  AFTER INSERT ON public.movimentacoes_estoque
+  FOR EACH ROW
+  EXECUTE FUNCTION public.atualizar_estoque_apos_movimentacao();
+```
 
-1. **Simplify `registrarMovimentacaoMutation`**: Remove the entire block that fetches `estoqueExistente` and manually updates `estoque_interno`. The mutation should only insert into `movimentacoes_estoque` — the trigger handles the rest.
+Then fix the current "Copo Café" balance by recalculating from movement history. Based on the data: 12 entries, multiple withdrawals — the correct balance needs to be computed and set via an adjustment.
 
-2. **Same fix for `corrigirMutation`** in `SincronizacaoEstoque.tsx` (line ~148): Remove the manual `estoque_interno` update there too, since the trigger already handles adjustments.
+### Steps
 
-This is a one-line-of-logic fix — the trigger is correct and handles all three types (entrada, retirada, ajuste). The frontend duplication is the bug.
+1. **Create migration** to add the trigger `trigger_atualizar_estoque` on `movimentacoes_estoque` AFTER INSERT
+2. **Fix existing balances** — run a one-time data correction for all items whose `quantidade_atual` is out of sync (using the synchronization tool already in the app, or a direct SQL update)
+
+No frontend code changes needed — the mutation and trigger function are already correct.
 
