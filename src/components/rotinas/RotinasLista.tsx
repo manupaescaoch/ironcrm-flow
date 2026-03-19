@@ -48,6 +48,7 @@ export function RotinasLista({ rotinas, atividades, execucoes, onEdit, onDuplica
                   onDelete={onDelete}
                   onToggleExecucao={onToggleExecucao}
                   canEdit={canEdit}
+                  isAdmin={isAdmin}
                 />
               ))}
             </div>
