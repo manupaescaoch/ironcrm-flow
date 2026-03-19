@@ -380,7 +380,7 @@ function AtividadeEditForm({ atividade, funcionarios, formularios, onUpdate, onD
   atividade: CronogramaAtividade;
   funcionarios: Array<{ id: string; nome: string; telefone: string | null }>;
   formularios: Array<{ id: string; titulo: string }>;
-  onUpdate: (data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; dia_semana?: number | null }) => void;
+  onUpdate: (data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; dia_semana?: number | null; mensagem?: string | null }) => void;
   onDelete: () => void;
 }) {
   const [editForm, setEditForm] = useState({
