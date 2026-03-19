@@ -389,7 +389,7 @@ function AtividadeEditForm({ atividade, funcionarios, formularios, onUpdate, onD
     responsavel_id: atividade.responsavel_id || '',
     formulario_id: atividade.formulario_id || '',
     dia_semana: atividade.dia_semana,
-    mensagem: '',
+    mensagem: atividade.mensagem || '',
   });
 
   const selectedFuncionario = useMemo(() => {
