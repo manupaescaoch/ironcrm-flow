@@ -52,7 +52,7 @@ export function useCronogramaAtividades() {
   });
 
   const updateAtividade = useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; dia_semana?: number | null }) => {
+    mutationFn: async ({ id, ...data }: { id: string; titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; dia_semana?: number | null; mensagem?: string | null }) => {
       const { error } = await supabase.from('cronograma_atividades').update(data).eq('id', id);
       if (error) throw error;
     },
