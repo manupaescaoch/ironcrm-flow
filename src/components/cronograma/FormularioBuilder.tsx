@@ -6,9 +6,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, GripVertical, ArrowLeft, Save } from 'lucide-react';
+import { Plus, Trash2, GripVertical, ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { useCreateFormulario, useUpdateFormulario, useFormularioCampos, FormularioCampo } from '@/hooks/useFormulariosData';
 import { supabase } from '@/integrations/supabase/client';
+
+interface WhatsAppGroup {
+  id: string;
+  name: string;
+}
 
 interface FormularioBuilderProps {
   formularioId?: string | null;
