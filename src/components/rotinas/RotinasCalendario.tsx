@@ -212,15 +212,10 @@ function EventBlock({ rotina, atividades, expanded, onToggle, onEdit, canEdit, c
   const timeLabel = rotina.horario_esperado?.substring(0, 5);
 
   return (
-    <div className="mb-0.5">
+    <div className="mb-px">
       <button onClick={onToggle}
-        className={cn('w-full text-left rounded px-1.5 border-l-[3px] transition-all text-[10px] leading-tight overflow-hidden', colorClass, compact ? 'py-0.5' : 'py-0.5')}>
-        <div className="font-semibold truncate text-[10px]">{rotina.nome}</div>
-        <div className="opacity-80 text-[9px] truncate">
-          {timeLabel && <span>{timeLabel}</span>}
-          {timeLabel && rotina.responsavel_principal && <span> · </span>}
-          {rotina.responsavel_principal && <span>{rotina.responsavel_principal.split(' ')[0]}</span>}
-        </div>
+        className={cn('w-full text-left rounded px-1 border-l-2 transition-all text-[9px] leading-none overflow-hidden py-px', colorClass)}>
+        <span className="font-semibold truncate block">{rotina.nome}</span>
       </button>
 
       {expanded && (
