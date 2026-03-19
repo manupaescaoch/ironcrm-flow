@@ -477,15 +477,15 @@ export function CronogramaTab() {
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <Button variant="outline" onClick={() => {
                 if (!selectedEvent) return;
+                const cleanup = () => { setEditingEvent(false); setSelectedEvent(null); setBulkConfirm(null); };
                 if (bulkConfirm?.type === 'edit') {
                   updateAtividade.mutate({ id: selectedEvent.atividade.id, ...bulkConfirm.data }, {
-                    onSuccess: () => { setEditingEvent(false); setSelectedEvent(null); setBulkConfirm(null); },
+                    onSuccess: cleanup,
                   });
                 } else {
-                  deleteAtividade.mutate(selectedEvent.atividade.id);
-                  setEditingEvent(false);
-                  setSelectedEvent(null);
-                  setBulkConfirm(null);
+                  deleteAtividade.mutate(selectedEvent.atividade.id, {
+                    onSuccess: cleanup,
+                  });
                 }
               }}>
                 Apenas este dia
