@@ -52,6 +52,8 @@ export function CronogramaTab() {
     formulario_id: '',
     dias_semana: [] as string[],
     mensagem: '',
+    showFormulario: false,
+    showMensagem: false,
   });
 
   const selectedFuncionario = useMemo(() => {
