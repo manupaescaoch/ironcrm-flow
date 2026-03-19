@@ -52,6 +52,8 @@ export function CronogramaTab() {
     formulario_id: '',
     dias_semana: [] as string[],
     mensagem: '',
+    showFormulario: false,
+    showMensagem: false,
   });
 
   const selectedFuncionario = useMemo(() => {
@@ -134,7 +136,7 @@ export function CronogramaTab() {
     createAtividade.mutate(atividadesParaCriar, {
       onSuccess: () => {
         setOpen(false);
-        setForm({ titulo: '', horario: '', responsavel_id: '', formulario_id: '', dias_semana: [], mensagem: '' });
+        setForm({ titulo: '', horario: '', responsavel_id: '', formulario_id: '', dias_semana: [], mensagem: '', showFormulario: false, showMensagem: false });
       },
     });
   };
@@ -230,23 +232,40 @@ export function CronogramaTab() {
                 )}
               </div>
               <div>
-                <Label>Formulário vinculado</Label>
-                <Select value={form.formulario_id} onValueChange={(v) => setForm((f) => ({ ...f, formulario_id: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
-                  <SelectContent>
-                    {formularios?.map((f) => <SelectItem key={f.id} value={f.id}>{f.titulo}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Mensagem WhatsApp</Label>
-                <Textarea
-                  value={form.mensagem}
-                  onChange={(e) => setForm((f) => ({ ...f, mensagem: e.target.value }))}
-                  placeholder="Mensagem enviada junto com o link do formulário..."
-                  rows={3}
-                  className="resize-none"
-                />
+                <Label>Ação WhatsApp</Label>
+                <div className="mt-1.5 flex gap-2">
+                  <Button type="button" variant={form.formulario_id ? 'default' : 'outline'} size="sm"
+                    onClick={() => setForm(f => ({ ...f, showFormulario: true, showMensagem: false }))}
+                    className="flex-1 text-xs">
+                    <FileText className="w-3.5 h-3.5 mr-1" /> Vincular Formulário
+                  </Button>
+                  <Button type="button" variant={form.mensagem && !form.formulario_id ? 'default' : 'outline'} size="sm"
+                    onClick={() => setForm(f => ({ ...f, showMensagem: true, showFormulario: false, formulario_id: '' }))}
+                    className="flex-1 text-xs">
+                    <Phone className="w-3.5 h-3.5 mr-1" /> Escrever Mensagem
+                  </Button>
+                </div>
+                {form.showFormulario && (
+                  <div className="mt-2">
+                    <Select value={form.formulario_id} onValueChange={(v) => setForm((f) => ({ ...f, formulario_id: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Selecionar formulário" /></SelectTrigger>
+                      <SelectContent>
+                        {formularios?.map((f) => <SelectItem key={f.id} value={f.id}>{f.titulo}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                {form.showMensagem && (
+                  <div className="mt-2">
+                    <Textarea
+                      value={form.mensagem}
+                      onChange={(e) => setForm((f) => ({ ...f, mensagem: e.target.value }))}
+                      placeholder="Mensagem enviada via WhatsApp..."
+                      rows={3}
+                      className="resize-none"
+                    />
+                  </div>
+                )}
               </div>
               <Button onClick={handleCreate} disabled={!form.titulo || createAtividade.isPending} className="w-full">
                 {createAtividade.isPending ? 'Salvando...' : 'Criar Atividade'}
@@ -391,6 +410,9 @@ function AtividadeEditForm({ atividade, funcionarios, formularios, onUpdate, onD
     dia_semana: atividade.dia_semana,
     mensagem: atividade.mensagem || '',
   });
+  const [showSection, setShowSection] = useState<'formulario' | 'mensagem' | null>(
+    atividade.formulario_id ? 'formulario' : atividade.mensagem ? 'mensagem' : null
+  );
 
   const selectedFuncionario = useMemo(() => {
     if (!editForm.responsavel_id) return null;
@@ -465,23 +487,40 @@ function AtividadeEditForm({ atividade, funcionarios, formularios, onUpdate, onD
         )}
       </div>
       <div>
-        <Label>Formulário vinculado</Label>
-        <Select value={editForm.formulario_id} onValueChange={(v) => setEditForm(f => ({ ...f, formulario_id: v }))}>
-          <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
-          <SelectContent>
-            {formularios.map((f) => <SelectItem key={f.id} value={f.id}>{f.titulo}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
-      <div>
-        <Label>Mensagem WhatsApp</Label>
-        <Textarea
-          value={editForm.mensagem}
-          onChange={(e) => setEditForm(f => ({ ...f, mensagem: e.target.value }))}
-          placeholder="Mensagem enviada junto com o link do formulário..."
-          rows={3}
-          className="resize-none"
-        />
+        <Label>Ação WhatsApp</Label>
+        <div className="mt-1.5 flex gap-2">
+          <Button type="button" variant={showSection === 'formulario' ? 'default' : 'outline'} size="sm"
+            onClick={() => setShowSection(s => s === 'formulario' ? null : 'formulario')}
+            className="flex-1 text-xs">
+            <FileText className="w-3.5 h-3.5 mr-1" /> Vincular Formulário
+          </Button>
+          <Button type="button" variant={showSection === 'mensagem' ? 'default' : 'outline'} size="sm"
+            onClick={() => { setShowSection(s => s === 'mensagem' ? null : 'mensagem'); setEditForm(f => ({ ...f, formulario_id: '' })); }}
+            className="flex-1 text-xs">
+            <Phone className="w-3.5 h-3.5 mr-1" /> Escrever Mensagem
+          </Button>
+        </div>
+        {showSection === 'formulario' && (
+          <div className="mt-2">
+            <Select value={editForm.formulario_id} onValueChange={(v) => setEditForm(f => ({ ...f, formulario_id: v }))}>
+              <SelectTrigger><SelectValue placeholder="Selecionar formulário" /></SelectTrigger>
+              <SelectContent>
+                {formularios.map((f) => <SelectItem key={f.id} value={f.id}>{f.titulo}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        {showSection === 'mensagem' && (
+          <div className="mt-2">
+            <Textarea
+              value={editForm.mensagem}
+              onChange={(e) => setEditForm(f => ({ ...f, mensagem: e.target.value }))}
+              placeholder="Mensagem enviada via WhatsApp..."
+              rows={3}
+              className="resize-none"
+            />
+          </div>
+        )}
       </div>
       <div className="flex gap-2">
         <Button onClick={handleSave} disabled={!editForm.titulo} className="flex-1">
