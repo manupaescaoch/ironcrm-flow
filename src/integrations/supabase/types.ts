@@ -175,6 +175,136 @@ export type Database = {
           },
         ]
       }
+      formulario_campos: {
+        Row: {
+          created_at: string
+          formulario_id: string
+          id: string
+          label: string
+          obrigatorio: boolean
+          opcoes: Json | null
+          ordem: number
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          formulario_id: string
+          id?: string
+          label: string
+          obrigatorio?: boolean
+          opcoes?: Json | null
+          ordem?: number
+          tipo?: string
+        }
+        Update: {
+          created_at?: string
+          formulario_id?: string
+          id?: string
+          label?: string
+          obrigatorio?: boolean
+          opcoes?: Json | null
+          ordem?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formulario_campos_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "formularios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      formulario_respostas: {
+        Row: {
+          created_at: string
+          enviado_grupo: boolean
+          formulario_id: string
+          id: string
+          respondido_por_nome: string
+          respondido_por_telefone: string | null
+          respostas: Json
+          unidade_id: string
+        }
+        Insert: {
+          created_at?: string
+          enviado_grupo?: boolean
+          formulario_id: string
+          id?: string
+          respondido_por_nome: string
+          respondido_por_telefone?: string | null
+          respostas?: Json
+          unidade_id: string
+        }
+        Update: {
+          created_at?: string
+          enviado_grupo?: boolean
+          formulario_id?: string
+          id?: string
+          respondido_por_nome?: string
+          respondido_por_telefone?: string | null
+          respostas?: Json
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formulario_respostas_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "formularios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formulario_respostas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      formularios: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          titulo: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          titulo: string
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          titulo?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formularios_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fornecedores: {
         Row: {
           ativo: boolean

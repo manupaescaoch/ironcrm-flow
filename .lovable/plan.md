@@ -1,58 +1,27 @@
 
 
-## Nova página: Cronograma Operacional (Formulários + WhatsApp)
+# Confirmação de Rotinas via WhatsApp com Botões
 
-Página independente `/cronograma` acessível apenas por admin, com item no menu lateral na seção administrativa (após Estoque, antes de Executivo).
+## Status: ✅ Implementado
 
-### Fase 1 — Banco de dados + CRUD de formulários
+## O que foi feito
 
-**3 tabelas novas (migration):**
+### 1. `notify-rotinas-diarias` (atualizado)
+- Agora envia **uma mensagem por rotina** (não mais consolidada) usando `send-button-list` da Z-API
+- Cada mensagem tem 2 botões: "✅ Feito" (`feito_<rotina_id>`) e "❌ Não feito" (`naofeito_<rotina_id>`)
+- Inclui nome da unidade, setor, horário e atividades
 
-- **`formularios`** — id, unidade_id, titulo, descricao, ativo, created_by, created_at, updated_at
-- **`formulario_campos`** — id, formulario_id, tipo (texto/numero/sim_nao/foto/selecao), label, opcoes (jsonb), ordem, obrigatorio
-- **`formulario_respostas`** — id, formulario_id, respondido_por_nome (text), respondido_por_telefone (text), respostas (jsonb), created_at, enviado_grupo (boolean default false)
+### 2. `rotina-whatsapp-response` (novo)
+- Edge function que recebe o webhook da Z-API quando um botão é clicado
+- Identifica o responsável pelo número de telefone (busca em user_profiles + auth.users)
+- Extrai o `rotina_id` do `buttonId` do payload
+- Insere/atualiza `rotina_execucoes` com `concluida=true/false` e `concluida_por = "Nome (via WhatsApp)"`
+- Envia mensagem de confirmação de volta ao usuário
+- `verify_jwt = false` no config.toml (webhook externo)
 
-RLS: admin-only para CRUD de formulários/campos; insert público (anon) para respostas; select por unidade para respostas.
+## Configuração necessária na Z-API
 
-**Novos arquivos:**
-
-| Arquivo | Descrição |
-|---|---|
-| `src/pages/CronogramaOperacional.tsx` | Página principal com 3 sub-views via tabs: Formulários, Envios, Relatório |
-| `src/components/cronograma/FormularioBuilder.tsx` | Criador/editor de formulários com campos dinâmicos |
-| `src/components/cronograma/FormulariosList.tsx` | Lista de formulários com toggle ativo, ações (editar, excluir, enviar) |
-| `src/components/cronograma/EnviosTab.tsx` | Histórico de envios com status (pendente/enviado/respondido) |
-| `src/components/cronograma/RelatorioTab.tsx` | KPIs: enviados, respondidos, pendentes, taxa de resposta |
-| `src/hooks/useFormulariosData.ts` | Hook CRUD para formulários, campos e respostas |
-
-**Alterações existentes:**
-
-- `src/components/Layout.tsx` — adicionar item "Cronograma" com ícone `FileCheck` na seção admin (entre Estoque e Executivo)
-- `src/App.tsx` — nova rota `/cronograma` protegida por `AdminRoute`
-
-### Fase 2 — Página pública + envio WhatsApp
-
-| Arquivo | Descrição |
-|---|---|
-| `src/pages/FormularioPublico.tsx` | Página pública `/formulario/:id` (sem auth) para preenchimento pelo celular |
-| `supabase/functions/enviar-formulario-whatsapp/index.ts` | Envia link do formulário via Z-API para o responsável |
-
-- Rota pública no App.tsx (sem ProtectedRoute)
-- Formulário renderiza campos dinâmicos, salva respostas no banco
-
-### Fase 3 — Notificação no grupo + relatório
-
-| Arquivo | Descrição |
-|---|---|
-| `supabase/functions/formulario-resposta-grupo/index.ts` | Ao receber resposta, formata resumo e envia no grupo WhatsApp via Z-API |
-| `src/components/cronograma/RelatorioTab.tsx` | Dashboard com KPIs e filtros por data |
-
-### Seção técnica
-
-- `verify_jwt = false` para `formulario-resposta-grupo` (webhook) e para `enviar-formulario-whatsapp` (chamado pelo frontend autenticado via `supabase.functions.invoke`)
-- Secrets Z-API já configurados (ZAPI_INSTANCE_ID, ZAPI_CLIENT_TOKEN, ZAPI_TOKEN)
-- Storage bucket `rotinas-comprovantes` reutilizado para fotos dos formulários
-- RLS de `formulario_respostas` precisa de policy anon para INSERT (página pública)
-
-Vamos começar pela Fase 1?
-
+Configure o webhook de recebimento (on-message-received) no painel Z-API para:
+```
+https://zspcdvtdgssabpqrybib.supabase.co/functions/v1/rotina-whatsapp-response
+```

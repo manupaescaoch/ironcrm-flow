@@ -26,6 +26,7 @@ import RelatorioGastosEstoque from "./pages/RelatorioGastosEstoque";
 import Escala from "./pages/Escala";
 import Rotinas from "./pages/Rotinas";
 import ControleVencimentos from "./pages/ControleVencimentos";
+import CronogramaOperacional from "./pages/CronogramaOperacional";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -284,6 +285,14 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <ControleVencimentos />
         </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/cronograma"
+      element={
+        <AdminRoute>
+          <CronogramaOperacional />
+        </AdminRoute>
       }
     />
     <Route path="*" element={<NotFound />} />
