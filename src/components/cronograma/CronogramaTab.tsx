@@ -101,15 +101,7 @@ export function CronogramaTab() {
                   <SelectContent>
                     {funcionarios.map(f => (
                       <SelectItem key={f.id} value={f.id}>
-                        <div className="flex items-center gap-2">
-                          <span>{f.nome}</span>
-                          {f.telefone && (
-                            <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-                              <Phone className="w-3 h-3" />
-                              {f.telefone}
-                            </span>
-                          )}
-                        </div>
+                        {f.nome}{f.telefone ? ` — ${f.telefone}` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
