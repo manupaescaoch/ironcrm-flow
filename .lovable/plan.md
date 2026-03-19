@@ -1,27 +1,31 @@
 
 
-# Confirmação de Rotinas via WhatsApp com Botões
+## Buscar grupos do WhatsApp via Z-API no FormularioBuilder
 
-## Status: ✅ Implementado
+Criar uma edge function que lista os grupos do WhatsApp conectados à instância Z-API e usar essa lista como select no campo "WhatsApp do Grupo para Respostas".
 
-## O que foi feito
+### Edge Function: `list-whatsapp-groups`
 
-### 1. `notify-rotinas-diarias` (atualizado)
-- Agora envia **uma mensagem por rotina** (não mais consolidada) usando `send-button-list` da Z-API
-- Cada mensagem tem 2 botões: "✅ Feito" (`feito_<rotina_id>`) e "❌ Não feito" (`naofeito_<rotina_id>`)
-- Inclui nome da unidade, setor, horário e atividades
+Novo arquivo `supabase/functions/list-whatsapp-groups/index.ts`:
+- Chama a API Z-API: `GET https://api.z-api.io/instances/{INSTANCE}/token/{TOKEN}/chats` (filtrando `isGroup: true`)
+- Retorna array `[{ id, name }]` com ID e nome de cada grupo
+- Requer autenticação (apenas admin)
+- CORS headers padrão
 
-### 2. `rotina-whatsapp-response` (novo)
-- Edge function que recebe o webhook da Z-API quando um botão é clicado
-- Identifica o responsável pelo número de telefone (busca em user_profiles + auth.users)
-- Extrai o `rotina_id` do `buttonId` do payload
-- Insere/atualiza `rotina_execucoes` com `concluida=true/false` e `concluida_por = "Nome (via WhatsApp)"`
-- Envia mensagem de confirmação de volta ao usuário
-- `verify_jwt = false` no config.toml (webhook externo)
+Configurar `verify_jwt = false` no `supabase/config.toml`.
 
-## Configuração necessária na Z-API
+### Alterações no FormularioBuilder
 
-Configure o webhook de recebimento (on-message-received) no painel Z-API para:
-```
-https://zspcdvtdgssabpqrybib.supabase.co/functions/v1/rotina-whatsapp-response
-```
+- Ao carregar o componente, invocar `supabase.functions.invoke('list-whatsapp-groups')` para buscar a lista de grupos
+- Substituir o `<Input>` do campo "WhatsApp do Grupo" por um `<Select>` com as opções vindas da API
+- Cada opção mostra o nome do grupo e salva o ID do grupo no banco
+- Fallback: se a chamada falhar, manter o input manual como está hoje
+
+### Arquivos alterados
+
+| Arquivo | Ação |
+|---|---|
+| `supabase/functions/list-whatsapp-groups/index.ts` | Novo |
+| `supabase/config.toml` | Adicionar `[functions.list-whatsapp-groups]` |
+| `src/components/cronograma/FormularioBuilder.tsx` | Trocar Input por Select com grupos do WhatsApp |
+
