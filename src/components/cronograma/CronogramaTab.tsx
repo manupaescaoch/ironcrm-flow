@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useCronogramaAtividades } from '@/hooks/useCronogramaAtividades';
 import { useCronogramaFuncionarios } from '@/hooks/useCronogramaFuncionarios';
 import { useFormularios } from '@/hooks/useFormulariosData';
@@ -6,11 +6,12 @@ import { useUnidadeFilter } from '@/hooks/useUnidadeFilter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Clock, Trash2, CalendarDays } from 'lucide-react';
+import { Plus, Clock, Trash2, CalendarDays, Phone } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -21,7 +22,12 @@ export function CronogramaTab() {
   const { data: formularios } = useFormularios();
   const { unidadeId } = useUnidadeFilter();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ titulo: '', horario: '', responsavel_id: '', formulario_id: '', dia_semana: '' });
+  const [form, setForm] = useState({ titulo: '', horario: '', responsavel_id: '', formulario_id: '', dia_semana: '', mensagem: '' });
+
+  const selectedFuncionario = useMemo(() => {
+    if (!form.responsavel_id) return null;
+    return funcionarios.find(f => f.id === form.responsavel_id) || null;
+  }, [form.responsavel_id, funcionarios]);
 
   const handleCreate = () => {
     if (!form.titulo || !unidadeId) return;
@@ -35,7 +41,7 @@ export function CronogramaTab() {
     }, {
       onSuccess: () => {
         setOpen(false);
-        setForm({ titulo: '', horario: '', responsavel_id: '', formulario_id: '', dia_semana: '' });
+        setForm({ titulo: '', horario: '', responsavel_id: '', formulario_id: '', dia_semana: '', mensagem: '' });
       },
     });
   };
@@ -55,7 +61,7 @@ export function CronogramaTab() {
           <DialogTrigger asChild>
             <Button size="sm"><Plus className="w-4 h-4 mr-1" /> Nova Atividade</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Nova Atividade</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div>
@@ -93,9 +99,32 @@ export function CronogramaTab() {
                 <Select value={form.responsavel_id} onValueChange={v => setForm(f => ({ ...f, responsavel_id: v }))}>
                   <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                   <SelectContent>
-                    {funcionarios.map(f => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
+                    {funcionarios.map(f => (
+                      <SelectItem key={f.id} value={f.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{f.nome}</span>
+                          {f.telefone && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                              <Phone className="w-3 h-3" />
+                              {f.telefone}
+                            </span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+                {selectedFuncionario && (
+                  <div className="mt-1.5 flex items-center gap-2 text-xs rounded-md bg-muted px-3 py-2">
+                    <Phone className="w-3.5 h-3.5 text-green-600" />
+                    <span className="font-medium">{selectedFuncionario.nome}</span>
+                    <span className="text-muted-foreground">
+                      {selectedFuncionario.telefone
+                        ? `— WhatsApp: ${selectedFuncionario.telefone}`
+                        : '— Sem WhatsApp cadastrado'}
+                    </span>
+                  </div>
+                )}
               </div>
               <div>
                 <Label>Formulário vinculado</Label>
@@ -105,6 +134,19 @@ export function CronogramaTab() {
                     {formularios?.map(f => <SelectItem key={f.id} value={f.id}>{f.titulo}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label>Mensagem WhatsApp</Label>
+                <Textarea
+                  value={form.mensagem}
+                  onChange={e => setForm(f => ({ ...f, mensagem: e.target.value }))}
+                  placeholder="Mensagem que será enviada junto com o link do formulário via WhatsApp..."
+                  rows={3}
+                  className="resize-none"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Texto enviado ao responsável no WhatsApp ao acionar a atividade.
+                </p>
               </div>
               <Button onClick={handleCreate} disabled={!form.titulo || createAtividade.isPending} className="w-full">
                 {createAtividade.isPending ? 'Salvando...' : 'Criar Atividade'}
