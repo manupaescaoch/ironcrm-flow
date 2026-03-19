@@ -28,6 +28,12 @@ const SETOR_COLORS: Record<string, { bg: string; border: string; dot: string }> 
   'Geral': { bg: 'bg-slate-500/90 text-white', border: 'border-slate-600', dot: 'bg-slate-500' },
 };
 
+const PRIORIDADE_COLORS: Record<string, { bg: string; border: string; dot: string }> = {
+  'alta': { bg: 'bg-red-500/90 text-white', border: 'border-red-600', dot: 'bg-red-500' },
+  'media': { bg: 'bg-amber-500/90 text-white', border: 'border-amber-600', dot: 'bg-amber-500' },
+  'baixa': { bg: 'bg-emerald-500/90 text-white', border: 'border-emerald-600', dot: 'bg-emerald-500' },
+};
+
 function getWeekDates(baseDate: Date): Date[] {
   const start = new Date(baseDate);
   start.setDate(start.getDate() - start.getDay());
@@ -154,7 +160,7 @@ export function RotinasCalendario({ rotinas, atividades, onEdit, onDelete, canEd
               return (
                 <div key={dayIdx} className="border-r last:border-r-0 p-0.5 min-h-[40px]">
                   {dayRotinas.map(r => {
-                    const colors = SETOR_COLORS[r.setor] || SETOR_COLORS['Geral'];
+                    const colors = PRIORIDADE_COLORS[r.prioridade] || PRIORIDADE_COLORS['media'];
                     return (
                       <button key={r.id} onClick={(e) => handleEventClick(r, dayIdx, e)}
                         className={cn('w-full text-left rounded-sm px-1.5 py-1 border-l-[3px] mb-0.5 text-[11px] leading-tight truncate font-medium cursor-pointer hover:opacity-80 transition-opacity', colors.bg, colors.border)}>
@@ -181,7 +187,7 @@ export function RotinasCalendario({ rotinas, atividades, onEdit, onDelete, canEd
                 return (
                   <div key={dayIdx} className={cn('border-r last:border-r-0 p-0.5 relative', isToday && 'bg-primary/[0.02]')}>
                     {items.map(({ rotina }) => {
-                      const colors = SETOR_COLORS[rotina.setor] || SETOR_COLORS['Geral'];
+                      const colors = PRIORIDADE_COLORS[rotina.prioridade] || PRIORIDADE_COLORS['media'];
                       const timeLabel = rotina.horario_esperado?.substring(0, 5);
                       return (
                         <button key={rotina.id} onClick={(e) => handleEventClick(rotina, dayIdx, e)}
@@ -241,7 +247,7 @@ function EventDetailPopup({ rotina, atividades, date, canEdit, isAdmin, onEdit, 
   onEdit: () => void; onDelete?: () => void; onClose: () => void;
 }) {
   const popupRef = useRef<HTMLDivElement>(null);
-  const colors = SETOR_COLORS[rotina.setor] || SETOR_COLORS['Geral'];
+  const colors = PRIORIDADE_COLORS[rotina.prioridade] || PRIORIDADE_COLORS['media'];
   const timeLabel = rotina.horario_esperado?.substring(0, 5);
   const dayLabel = formatDayOfWeek(date);
 
