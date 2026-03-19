@@ -62,15 +62,32 @@ export function CronogramaTab() {
     return funcionarios.find((f) => f.id === form.responsavel_id) || null;
   }, [form.responsavel_id, funcionarios]);
 
-  const today = new Date();
+  // Brasília time helper
+  const getBrasiliaDate = () => {
+    const now = new Date();
+    const str = now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
+    return new Date(str);
+  };
+
+  const [brasiliaTime, setBrasiliaTime] = useState(getBrasiliaDate);
+
+  useEffect(() => {
+    const interval = setInterval(() => setBrasiliaTime(getBrasiliaDate()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const today = brasiliaTime;
   const baseDate = useMemo(() => {
-    const d = new Date();
+    const d = getBrasiliaDate();
     d.setDate(d.getDate() + weekOffset * 7);
     return d;
   }, [weekOffset]);
   const weekDates = useMemo(() => getWeekDates(baseDate), [baseDate]);
-  const todayStr = today.toISOString().split('T')[0];
-  const isCurrentWeek = weekDates.some(d => d.toISOString().split('T')[0] === todayStr);
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const isCurrentWeek = weekDates.some(d => {
+    const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return ds === todayStr;
+  });
   const nowHour = today.getHours();
   const nowMinutes = today.getMinutes();
   const todayDayIdx = today.getDay();
