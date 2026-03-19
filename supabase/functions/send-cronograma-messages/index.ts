@@ -219,16 +219,14 @@ Deno.serve(async (req) => {
         const formularioId = atividade.formulario_id;
         // Se não tem formulario_id, precisamos de um para o registro (campo obrigatório)
         // Usamos o formulario_id da atividade ou criamos um registro sem
-        if (formularioId) {
-          await supabase.from('cronograma_envios').insert({
-            atividade_id: atividade.id,
-            formulario_id: formularioId,
-            funcionario_id: funcionarioId,
-            unidade_id: atividade.unidade_id,
-            status: zapiResponse.ok ? 'enviado' : 'erro',
-            enviado_em: new Date().toISOString(),
-          });
-        }
+        await supabase.from('cronograma_envios').insert({
+          atividade_id: atividade.id,
+          formulario_id: formularioId || null,
+          funcionario_id: funcionarioId,
+          unidade_id: atividade.unidade_id,
+          status: zapiResponse.ok ? 'enviado' : 'erro',
+          enviado_em: new Date().toISOString(),
+        });
 
         if (zapiResponse.ok) {
           sentCount++;

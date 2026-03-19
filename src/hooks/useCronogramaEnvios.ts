@@ -24,7 +24,7 @@ export function useCronogramaEnvios() {
       if (!unidadeId) return [];
       const { data, error } = await supabase
         .from('cronograma_envios')
-        .select('*, cronograma_funcionarios(nome), formularios(titulo)')
+        .select('*, cronograma_funcionarios(nome), formularios(titulo), cronograma_atividades(titulo)')
         .eq('unidade_id', unidadeId)
         .order('created_at', { ascending: false });
       if (error) throw error;

@@ -83,7 +83,7 @@ export type Database = {
           atividade_id: string | null
           created_at: string
           enviado_em: string | null
-          formulario_id: string
+          formulario_id: string | null
           funcionario_id: string
           id: string
           respondido_em: string | null
@@ -95,7 +95,7 @@ export type Database = {
           atividade_id?: string | null
           created_at?: string
           enviado_em?: string | null
-          formulario_id: string
+          formulario_id?: string | null
           funcionario_id: string
           id?: string
           respondido_em?: string | null
@@ -107,7 +107,7 @@ export type Database = {
           atividade_id?: string | null
           created_at?: string
           enviado_em?: string | null
-          formulario_id?: string
+          formulario_id?: string | null
           funcionario_id?: string
           id?: string
           respondido_em?: string | null

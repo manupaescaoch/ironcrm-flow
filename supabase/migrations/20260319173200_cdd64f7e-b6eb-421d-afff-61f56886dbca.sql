@@ -1,0 +1,1 @@
+ALTER TABLE cronograma_envios ALTER COLUMN formulario_id DROP NOT NULL;
