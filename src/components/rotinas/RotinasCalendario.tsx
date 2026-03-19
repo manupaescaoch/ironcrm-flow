@@ -153,21 +153,27 @@ export function RotinasCalendario({ rotinas, atividades, onEdit, canEdit }: Prop
         {/* Time Grid */}
         <div className="relative overflow-y-auto max-h-[calc(100vh-380px)]">
           {HOURS.map(hour => (
-            <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] border-b last:border-b-0 min-h-[64px]">
+            <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] border-b last:border-b-0 h-16">
               <div className="p-1 text-[11px] text-muted-foreground text-right pr-2 border-r -mt-2">
                 {String(hour).padStart(2, '0')}:00
               </div>
               {weekDates.map((date, dayIdx) => {
                 const items = rotinasByHourDay[`${hour}-${dayIdx}`] || [];
                 const isToday = date.toISOString().split('T')[0] === todayStr;
+                const MAX_VISIBLE = 3;
+                const visible = items.slice(0, MAX_VISIBLE);
+                const overflow = items.length - MAX_VISIBLE;
                 return (
-                  <div key={dayIdx} className={cn('border-r last:border-r-0 p-0.5 relative', isToday && 'bg-primary/[0.02]')}>
-                    {items.map(({ rotina, rotinaAtividades }) => (
+                  <div key={dayIdx} className={cn('border-r last:border-r-0 p-0.5 relative overflow-hidden', isToday && 'bg-primary/[0.02]')}>
+                    {visible.map(({ rotina, rotinaAtividades }) => (
                       <EventBlock key={rotina.id} rotina={rotina} atividades={rotinaAtividades}
                         expanded={expandedId === `${rotina.id}-${dayIdx}`}
                         onToggle={() => setExpandedId(expandedId === `${rotina.id}-${dayIdx}` ? null : `${rotina.id}-${dayIdx}`)}
                         onEdit={onEdit} canEdit={canEdit} />
                     ))}
+                    {overflow > 0 && (
+                      <div className="text-[9px] text-muted-foreground font-medium px-1 truncate">+{overflow} mais</div>
+                    )}
                   </div>
                 );
               })}
