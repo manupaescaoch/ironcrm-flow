@@ -140,6 +140,7 @@ export default function Rotinas() {
                 rotinas={filteredRotinas} atividades={atividades} execucoes={execucoes}
                 onEdit={handleEdit} onDuplicate={handleDuplicate} onArchive={handleArchive}
                 onDelete={setDeleteTarget} onToggleExecucao={toggleExecucao} canEdit={canEdit}
+                isAdmin={isAdmin}
               />
             </TabsContent>
             <TabsContent value="kanban">
