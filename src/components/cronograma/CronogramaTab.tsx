@@ -474,38 +474,61 @@ export function CronogramaTab() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <Button variant="outline" onClick={() => {
-                if (!selectedEvent) return;
-                const cleanup = () => { setEditingEvent(false); setSelectedEvent(null); setBulkConfirm(null); };
-                if (bulkConfirm?.type === 'edit') {
-                  updateAtividade.mutate({ id: selectedEvent.atividade.id, ...bulkConfirm.data }, {
-                    onSuccess: cleanup,
-                  });
-                } else {
-                  deleteAtividade.mutate(selectedEvent.atividade.id, {
-                    onSuccess: cleanup,
-                  });
-                }
-              }}>
+              <Button
+                variant="outline"
+                onClick={() => setBulkConfirm(null)}
+                disabled={updateAtividade.isPending || deleteAtividade.isPending || bulkUpdateAtividades.isPending || bulkDeleteAtividades.isPending}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  if (!selectedEvent || !bulkConfirm) return;
+
+                  try {
+                    if (bulkConfirm.type === 'edit') {
+                      await updateAtividade.mutateAsync({ id: selectedEvent.atividade.id, ...bulkConfirm.data });
+                    } else {
+                      await deleteAtividade.mutateAsync(selectedEvent.atividade.id);
+                    }
+
+                    setEditingEvent(false);
+                    setSelectedEvent(null);
+                    setBulkConfirm(null);
+                  } catch {
+                    // toast handled in mutation hook
+                  }
+                }}
+                disabled={updateAtividade.isPending || deleteAtividade.isPending || bulkUpdateAtividades.isPending || bulkDeleteAtividades.isPending}
+              >
                 Apenas este dia
               </Button>
-              <AlertDialogAction onClick={() => {
-                if (!selectedEvent || !bulkConfirm) return;
-                const allIds = [selectedEvent.atividade.id, ...bulkConfirm.siblings.map(s => s.id)];
-                if (bulkConfirm.type === 'edit') {
-                  const { dia_semana, ...bulkData } = bulkConfirm.data;
-                  bulkUpdateAtividades.mutate({ ids: allIds, data: bulkData }, {
-                    onSuccess: () => { setEditingEvent(false); setSelectedEvent(null); setBulkConfirm(null); },
-                  });
-                } else {
-                  bulkDeleteAtividades.mutate(allIds, {
-                    onSuccess: () => { setEditingEvent(false); setSelectedEvent(null); setBulkConfirm(null); },
-                  });
-                }
-              }}>
+              <Button
+                onClick={async () => {
+                  if (!selectedEvent || !bulkConfirm) return;
+
+                  const allIds = [selectedEvent.atividade.id, ...bulkConfirm.siblings.map((s) => s.id)];
+
+                  try {
+                    if (bulkConfirm.type === 'edit') {
+                      const { dia_semana, ...bulkData } = bulkConfirm.data;
+                      await bulkUpdateAtividades.mutateAsync({ ids: allIds, data: bulkData });
+                    } else {
+                      await bulkDeleteAtividades.mutateAsync(allIds);
+                    }
+
+                    setEditingEvent(false);
+                    setSelectedEvent(null);
+                    setBulkConfirm(null);
+                  } catch {
+                    // toast handled in mutation hook
+                  }
+                }}
+                disabled={updateAtividade.isPending || deleteAtividade.isPending || bulkUpdateAtividades.isPending || bulkDeleteAtividades.isPending}
+              >
                 {bulkConfirm?.type === 'edit' ? 'Alterar todos' : 'Excluir todos'}
-              </AlertDialogAction>
+              </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
