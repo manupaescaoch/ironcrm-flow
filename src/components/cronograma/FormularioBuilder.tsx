@@ -86,6 +86,25 @@ export function FormularioBuilder({ formularioId, onBack }: FormularioBuilderPro
     }
   }, [existingCampos]);
 
+  useEffect(() => {
+    const fetchGroups = async () => {
+      setLoadingGroups(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('list-whatsapp-groups');
+        if (error || !Array.isArray(data)) {
+          setGroupsFailed(true);
+        } else {
+          setWhatsappGroups(data);
+        }
+      } catch {
+        setGroupsFailed(true);
+      } finally {
+        setLoadingGroups(false);
+      }
+    };
+    fetchGroups();
+  }, []);
+
   const addCampo = () => {
     setCampos(prev => [...prev, { tipo: 'texto', label: '', opcoes: null, ordem: prev.length, obrigatorio: false }]);
   };
