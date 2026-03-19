@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useCronogramaAtividades } from '@/hooks/useCronogramaAtividades';
 import { useCronogramaFuncionarios } from '@/hooks/useCronogramaFuncionarios';
 import { useFormularios } from '@/hooks/useFormulariosData';
@@ -11,17 +11,40 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Clock, Trash2, CalendarDays, Phone } from 'lucide-react';
+import { Plus, Clock, Trash2, CalendarDays, Phone, ChevronLeft, ChevronRight, Pencil, X, FileText, User } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
+import { CronogramaAtividade } from '@/hooks/useCronogramaAtividades';
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const DAY_LABELS = ['DOM.', 'SEG.', 'TER.', 'QUA.', 'QUI.', 'SEX.', 'SÁB.'];
+const HOURS = Array.from({ length: 18 }, (_, i) => i + 5); // 05:00 - 22:00
+
+function getWeekDates(baseDate: Date): Date[] {
+  const start = new Date(baseDate);
+  start.setDate(start.getDate() - start.getDay());
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    return d;
+  });
+}
+
+function parseHour(timeStr: string | null): number | null {
+  if (!timeStr) return null;
+  const h = parseInt(timeStr.substring(0, 2), 10);
+  return isNaN(h) ? null : h;
+}
 
 export function CronogramaTab() {
   const { atividades, isLoading, createAtividade, deleteAtividade } = useCronogramaAtividades();
   const { ativos: funcionarios } = useCronogramaFuncionarios();
   const { data: formularios } = useFormularios();
   const { unidadeId } = useUnidadeFilter();
+
   const [open, setOpen] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [selectedEvent, setSelectedEvent] = useState<{ atividade: CronogramaAtividade; dayIdx: number } | null>(null);
   const [form, setForm] = useState({
     titulo: '',
     horario: '',
@@ -36,18 +59,58 @@ export function CronogramaTab() {
     return funcionarios.find((f) => f.id === form.responsavel_id) || null;
   }, [form.responsavel_id, funcionarios]);
 
+  const today = new Date();
+  const baseDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + weekOffset * 7);
+    return d;
+  }, [weekOffset]);
+  const weekDates = useMemo(() => getWeekDates(baseDate), [baseDate]);
+  const todayStr = today.toISOString().split('T')[0];
+  const isCurrentWeek = weekDates.some(d => d.toISOString().split('T')[0] === todayStr);
+  const nowHour = today.getHours();
+  const nowMinutes = today.getMinutes();
+  const todayDayIdx = today.getDay();
+  const monthYear = weekDates[3].toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+  // Map activities to hour/day grid
+  const atividadesByHourDay = useMemo(() => {
+    const map: Record<string, CronogramaAtividade[]> = {};
+    for (const atv of atividades) {
+      const hour = parseHour(atv.horario);
+      if (hour === null) continue;
+
+      if (atv.dia_semana !== null) {
+        // Specific day
+        const key = `${hour}-${atv.dia_semana}`;
+        if (!map[key]) map[key] = [];
+        map[key].push(atv);
+      } else {
+        // All days
+        for (let d = 0; d < 7; d++) {
+          const key = `${hour}-${d}`;
+          if (!map[key]) map[key] = [];
+          map[key].push(atv);
+        }
+      }
+    }
+    return map;
+  }, [atividades]);
+
+  const atividadesSemHorario = useMemo(() =>
+    atividades.filter(a => !a.horario), [atividades]);
+
   const toggleDiaSemana = (dia: string) => {
     setForm((current) => ({
       ...current,
       dias_semana: current.dias_semana.includes(dia)
-        ? current.dias_semana.filter((value) => value !== dia)
+        ? current.dias_semana.filter((v) => v !== dia)
         : [...current.dias_semana, dia].sort((a, b) => Number(a) - Number(b)),
     }));
   };
 
   const handleCreate = () => {
     if (!form.titulo || !unidadeId) return;
-
     const atividadesParaCriar = form.dias_semana.length
       ? form.dias_semana.map((dia) => ({
           unidade_id: unidadeId,
@@ -69,29 +132,35 @@ export function CronogramaTab() {
     createAtividade.mutate(atividadesParaCriar, {
       onSuccess: () => {
         setOpen(false);
-        setForm({
-          titulo: '',
-          horario: '',
-          responsavel_id: '',
-          formulario_id: '',
-          dias_semana: [],
-          mensagem: '',
-        });
+        setForm({ titulo: '', horario: '', responsavel_id: '', formulario_id: '', dias_semana: [], mensagem: '' });
       },
     });
   };
 
+  const handleEventClick = (atv: CronogramaAtividade, dayIdx: number) => {
+    setSelectedEvent({ atividade: atv, dayIdx });
+  };
+
   if (isLoading) {
-    return <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-16" />)}</div>;
+    return <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-16" />)}</div>;
   }
 
   return (
     <div className="space-y-4">
+      {/* Header with navigation */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold flex items-center gap-2">
-          <CalendarDays className="w-5 h-5" />
-          Atividades do Cronograma
-        </h3>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => setWeekOffset(0)}>Hoje</Button>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setWeekOffset(w => w - 1)}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setWeekOffset(w => w + 1)}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+          <h2 className="text-lg font-semibold capitalize">{monthYear}</h2>
+        </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button size="sm"><Plus className="w-4 h-4 mr-1" /> Nova Atividade</Button>
@@ -112,7 +181,6 @@ export function CronogramaTab() {
                 <div className="mt-1 grid grid-cols-7 gap-1.5">
                   {DIAS_SEMANA.map((d, i) => {
                     const isActive = form.dias_semana.includes(String(i));
-
                     return (
                       <button
                         key={i}
@@ -131,7 +199,7 @@ export function CronogramaTab() {
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {form.dias_semana.length === 0
-                    ? 'Nenhum dia específico selecionado: a atividade valerá para todos os dias.'
+                    ? 'Nenhum dia selecionado: valerá para todos os dias.'
                     : `Será criada para: ${form.dias_semana.map((dia) => DIAS_SEMANA[Number(dia)]).join(', ')}`}
                 </p>
               </div>
@@ -173,13 +241,10 @@ export function CronogramaTab() {
                 <Textarea
                   value={form.mensagem}
                   onChange={(e) => setForm((f) => ({ ...f, mensagem: e.target.value }))}
-                  placeholder="Mensagem que será enviada junto com o link do formulário via WhatsApp..."
+                  placeholder="Mensagem enviada junto com o link do formulário..."
                   rows={3}
                   className="resize-none"
                 />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Texto enviado ao responsável no WhatsApp ao acionar a atividade.
-                </p>
               </div>
               <Button onClick={handleCreate} disabled={!form.titulo || createAtividade.isPending} className="w-full">
                 {createAtividade.isPending ? 'Salvando...' : 'Criar Atividade'}
@@ -189,49 +254,179 @@ export function CronogramaTab() {
         </Dialog>
       </div>
 
-      {atividades.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <CalendarDays className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">Nenhuma atividade cadastrada.</p>
-            <p className="text-xs text-muted-foreground mt-1">Crie atividades para montar o cronograma operacional.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {atividades.map((a) => (
-            <Card key={a.id}>
-              <CardContent className="py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {a.horario && (
-                    <div className="flex items-center gap-1 text-sm font-mono text-muted-foreground">
-                      <Clock className="w-3.5 h-3.5" />
-                      {a.horario.slice(0, 5)}
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-sm font-medium">{a.titulo}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {a.cronograma_funcionarios && (
-                        <Badge variant="outline" className="text-xs">{a.cronograma_funcionarios.nome}</Badge>
-                      )}
-                      {a.formularios && (
-                        <Badge variant="secondary" className="text-xs">{a.formularios.titulo}</Badge>
-                      )}
-                      {a.dia_semana !== null && (
-                        <Badge variant="outline" className="text-xs">{DIAS_SEMANA[a.dia_semana]}</Badge>
-                      )}
-                    </div>
-                  </div>
+      {/* Calendar Grid */}
+      <div className="border rounded-lg overflow-hidden bg-card relative">
+        {/* Day Headers */}
+        <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b bg-muted/30">
+          <div className="p-2 text-xs text-muted-foreground text-center border-r">GMT-03</div>
+          {weekDates.map((date, i) => {
+            const isToday = date.toISOString().split('T')[0] === todayStr;
+            return (
+              <div key={i} className={cn('p-2 text-center border-r last:border-r-0', isToday && 'bg-primary/5')}>
+                <div className={cn('text-xs font-medium', isToday ? 'text-primary' : 'text-muted-foreground')}>{DAY_LABELS[i]}</div>
+                <div className={cn('text-lg font-bold mt-0.5 inline-flex items-center justify-center', isToday && 'bg-primary text-primary-foreground rounded-full w-9 h-9')}>
+                  {date.getDate()}
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => deleteAtividade.mutate(a.id)}>
-                  <Trash2 className="w-4 h-4 text-destructive" />
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+            );
+          })}
         </div>
-      )}
+
+        {/* Activities without time */}
+        {atividadesSemHorario.length > 0 && (
+          <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b bg-muted/10">
+            <div className="p-1 text-[10px] text-muted-foreground text-right pr-2 border-r flex items-center justify-end">
+              <Clock className="w-3 h-3" />
+            </div>
+            {weekDates.map((_, dayIdx) => {
+              const items = atividadesSemHorario.filter(a =>
+                a.dia_semana === null || a.dia_semana === dayIdx
+              );
+              return (
+                <div key={dayIdx} className="border-r last:border-r-0 p-0.5 min-h-[40px]">
+                  {items.map(atv => (
+                    <button key={atv.id} onClick={() => handleEventClick(atv, dayIdx)}
+                      className="w-full text-left rounded-sm px-1.5 py-1 border-l-[3px] mb-0.5 text-[11px] leading-tight truncate font-medium cursor-pointer hover:opacity-80 transition-opacity bg-primary/90 text-primary-foreground border-primary">
+                      {atv.titulo}
+                    </button>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Time Grid */}
+        <div className="relative overflow-y-auto max-h-[calc(100vh-380px)]">
+          {HOURS.map(hour => (
+            <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] border-b last:border-b-0 min-h-[72px]">
+              <div className="p-1 text-[11px] text-muted-foreground text-right pr-2 border-r -mt-2">
+                {String(hour).padStart(2, '0')}:00
+              </div>
+              {weekDates.map((date, dayIdx) => {
+                const items = atividadesByHourDay[`${hour}-${dayIdx}`] || [];
+                const isToday = date.toISOString().split('T')[0] === todayStr;
+                return (
+                  <div key={dayIdx} className={cn('border-r last:border-r-0 p-0.5 relative', isToday && 'bg-primary/[0.02]')}>
+                    {items.map(atv => {
+                      const timeLabel = atv.horario?.substring(0, 5);
+                      return (
+                        <button key={atv.id} onClick={() => handleEventClick(atv, dayIdx)}
+                          className="w-full text-left rounded-sm px-1.5 py-1 border-l-[3px] mb-0.5 text-[11px] leading-tight cursor-pointer hover:opacity-80 transition-opacity bg-primary/90 text-primary-foreground border-primary">
+                          <span className="font-semibold truncate block">{atv.titulo}</span>
+                          {timeLabel && <span className="opacity-80 text-[10px]">{timeLabel}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+
+          {/* Current time indicator */}
+          {isCurrentWeek && (
+            <div className="absolute left-0 right-0 pointer-events-none z-10"
+              style={{ top: `${((nowHour - 5) + nowMinutes / 60) / 18 * 100}%` }}>
+              <div className="grid grid-cols-[60px_repeat(7,1fr)]">
+                <div className="border-r" />
+                {weekDates.map((_, i) => (
+                  <div key={i} className="relative border-r last:border-r-0">
+                    {i === todayDayIdx && (
+                      <div className="absolute inset-x-0 flex items-center">
+                        <div className="w-2.5 h-2.5 rounded-full bg-destructive -ml-1 shrink-0" />
+                        <div className="h-[2px] bg-destructive flex-1" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Detail Popup */}
+        {selectedEvent && (
+          <AtividadeDetailPopup
+            atividade={selectedEvent.atividade}
+            date={weekDates[selectedEvent.dayIdx]}
+            onDelete={() => {
+              deleteAtividade.mutate(selectedEvent.atividade.id);
+              setSelectedEvent(null);
+            }}
+            onClose={() => setSelectedEvent(null)}
+          />
+        )}
+      </div>
     </div>
+  );
+}
+
+function AtividadeDetailPopup({ atividade, date, onDelete, onClose }: {
+  atividade: CronogramaAtividade;
+  date: Date;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  const popupRef = useRef<HTMLDivElement>(null);
+  const timeLabel = atividade.horario?.substring(0, 5);
+  const dayLabel = date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40" />
+      <div ref={popupRef}
+        className="fixed z-50 bg-popover border rounded-xl shadow-xl w-[360px] max-w-[90vw] overflow-hidden animate-in fade-in-0 zoom-in-95"
+        style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+        <div className="flex items-center justify-end gap-1 px-3 pt-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete}>
+            <Trash2 className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+        <div className="px-5 pb-5 space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-4 h-4 rounded-sm mt-1 shrink-0 bg-primary" />
+            <div>
+              <h3 className="text-lg font-semibold leading-tight">{atividade.titulo}</h3>
+              <p className="text-sm text-muted-foreground capitalize mt-0.5">
+                {dayLabel}{timeLabel && ` · ${timeLabel}`}
+              </p>
+            </div>
+          </div>
+
+          {atividade.cronograma_funcionarios && (
+            <div className="flex items-center gap-3">
+              <User className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm">{atividade.cronograma_funcionarios.nome}</span>
+            </div>
+          )}
+
+          {atividade.formularios && (
+            <div className="flex items-center gap-3">
+              <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm">{atividade.formularios.titulo}</span>
+            </div>
+          )}
+
+          {atividade.dia_semana !== null && (
+            <div className="flex items-center gap-3">
+              <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
+              <Badge variant="secondary" className="text-xs">{DIAS_SEMANA[atividade.dia_semana]}</Badge>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
