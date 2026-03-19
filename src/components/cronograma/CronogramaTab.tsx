@@ -374,33 +374,26 @@ export function CronogramaTab() {
   );
 }
 
-function AtividadeEditPopup({ atividade, date, funcionarios, formularios, onUpdate, onDelete, onClose }: {
+function AtividadeEditForm({ atividade, funcionarios, formularios, onUpdate, onDelete }: {
   atividade: CronogramaAtividade;
-  date: Date;
   funcionarios: Array<{ id: string; nome: string; telefone: string | null }>;
   formularios: Array<{ id: string; titulo: string }>;
   onUpdate: (data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; dia_semana?: number | null }) => void;
   onDelete: () => void;
-  onClose: () => void;
 }) {
-  const popupRef = useRef<HTMLDivElement>(null);
   const [editForm, setEditForm] = useState({
     titulo: atividade.titulo,
     horario: atividade.horario?.substring(0, 5) || '',
     responsavel_id: atividade.responsavel_id || '',
     formulario_id: atividade.formulario_id || '',
     dia_semana: atividade.dia_semana,
+    mensagem: '',
   });
 
-  const dayLabel = date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (popupRef.current && !popupRef.current.contains(e.target as Node)) onClose();
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [onClose]);
+  const selectedFuncionario = useMemo(() => {
+    if (!editForm.responsavel_id) return null;
+    return funcionarios.find((f) => f.id === editForm.responsavel_id) || null;
+  }, [editForm.responsavel_id, funcionarios]);
 
   const handleSave = () => {
     onUpdate({
@@ -413,76 +406,88 @@ function AtividadeEditPopup({ atividade, date, funcionarios, formularios, onUpda
   };
 
   return (
-    <>
-      <div className="fixed inset-0 z-40 bg-black/20" />
-      <div ref={popupRef}
-        className="fixed z-50 bg-popover border rounded-xl shadow-xl w-[400px] max-w-[90vw] max-h-[85vh] overflow-y-auto animate-in fade-in-0 zoom-in-95"
-        style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-        <div className="flex items-center justify-between px-4 pt-4">
-          <h3 className="text-base font-semibold">Editar Atividade</h3>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete}>
-              <Trash2 className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-        <p className="px-4 text-xs text-muted-foreground capitalize mt-0.5">{dayLabel}</p>
-        <div className="px-4 pb-4 pt-3 space-y-3">
-          <div>
-            <Label className="text-xs">Título</Label>
-            <Input value={editForm.titulo} onChange={(e) => setEditForm(f => ({ ...f, titulo: e.target.value }))} />
-          </div>
-          <div>
-            <Label className="text-xs">Horário</Label>
-            <Input type="time" value={editForm.horario} onChange={(e) => setEditForm(f => ({ ...f, horario: e.target.value }))} />
-          </div>
-          <div>
-            <Label className="text-xs">Dia da semana</Label>
-            <div className="mt-1 grid grid-cols-7 gap-1">
-              {DIAS_SEMANA.map((d, i) => {
-                const isActive = editForm.dia_semana === i;
-                return (
-                  <button key={i} type="button"
-                    onClick={() => setEditForm(f => ({ ...f, dia_semana: f.dia_semana === i ? null : i }))}
-                    className={cn('rounded-md border px-1 py-1.5 text-[10px] font-medium transition-colors',
-                      isActive ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background text-muted-foreground hover:bg-accent')}>
-                    {d}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-1 text-[10px] text-muted-foreground">
-              {editForm.dia_semana === null ? 'Todos os dias' : `Apenas: ${DIAS_SEMANA[editForm.dia_semana]}`}
-            </p>
-          </div>
-          <div>
-            <Label className="text-xs">Responsável</Label>
-            <Select value={editForm.responsavel_id} onValueChange={(v) => setEditForm(f => ({ ...f, responsavel_id: v }))}>
-              <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecionar" /></SelectTrigger>
-              <SelectContent>
-                {funcionarios.map((f) => (
-                  <SelectItem key={f.id} value={f.id} className="text-xs">{f.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs">Formulário</Label>
-            <Select value={editForm.formulario_id} onValueChange={(v) => setEditForm(f => ({ ...f, formulario_id: v }))}>
-              <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Nenhum" /></SelectTrigger>
-              <SelectContent>
-                {formularios.map((f) => <SelectItem key={f.id} value={f.id} className="text-xs">{f.titulo}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button onClick={handleSave} disabled={!editForm.titulo} className="w-full" size="sm">
-            Salvar Alterações
-          </Button>
-        </div>
+    <div className="space-y-3">
+      <div>
+        <Label>Título *</Label>
+        <Input value={editForm.titulo} onChange={(e) => setEditForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Ex: Abertura da unidade" />
       </div>
-    </>
+      <div>
+        <Label>Horário</Label>
+        <Input type="time" value={editForm.horario} onChange={(e) => setEditForm(f => ({ ...f, horario: e.target.value }))} />
+      </div>
+      <div>
+        <Label>Dia da semana</Label>
+        <div className="mt-1 grid grid-cols-7 gap-1.5">
+          {DIAS_SEMANA.map((d, i) => {
+            const isActive = editForm.dia_semana === i;
+            return (
+              <button key={i} type="button"
+                onClick={() => setEditForm(f => ({ ...f, dia_semana: f.dia_semana === i ? null : i }))}
+                className={`rounded-md border px-1 py-2 text-xs font-medium transition-colors ${
+                  isActive
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                }`}>
+                {d}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {editForm.dia_semana === null ? 'Nenhum dia selecionado: valerá para todos os dias.' : `Apenas: ${DIAS_SEMANA[editForm.dia_semana]}`}
+        </p>
+      </div>
+      <div>
+        <Label>Responsável</Label>
+        <Select value={editForm.responsavel_id} onValueChange={(v) => setEditForm(f => ({ ...f, responsavel_id: v }))}>
+          <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+          <SelectContent>
+            {funcionarios.map((f) => (
+              <SelectItem key={f.id} value={f.id}>
+                {f.nome}{f.telefone ? ` — ${f.telefone}` : ''}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {selectedFuncionario && (
+          <div className="mt-1.5 flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs">
+            <Phone className="w-3.5 h-3.5 text-primary" />
+            <span className="font-medium">{selectedFuncionario.nome}</span>
+            <span className="text-muted-foreground">
+              {selectedFuncionario.telefone
+                ? `— WhatsApp: ${selectedFuncionario.telefone}`
+                : '— Sem WhatsApp cadastrado'}
+            </span>
+          </div>
+        )}
+      </div>
+      <div>
+        <Label>Formulário vinculado</Label>
+        <Select value={editForm.formulario_id} onValueChange={(v) => setEditForm(f => ({ ...f, formulario_id: v }))}>
+          <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+          <SelectContent>
+            {formularios.map((f) => <SelectItem key={f.id} value={f.id}>{f.titulo}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label>Mensagem WhatsApp</Label>
+        <Textarea
+          value={editForm.mensagem}
+          onChange={(e) => setEditForm(f => ({ ...f, mensagem: e.target.value }))}
+          placeholder="Mensagem enviada junto com o link do formulário..."
+          rows={3}
+          className="resize-none"
+        />
+      </div>
+      <div className="flex gap-2">
+        <Button onClick={handleSave} disabled={!editForm.titulo} className="flex-1">
+          Salvar Alterações
+        </Button>
+        <Button variant="destructive" onClick={onDelete} size="icon">
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
   );
 }
