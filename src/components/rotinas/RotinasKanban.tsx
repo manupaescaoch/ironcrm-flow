@@ -62,6 +62,7 @@ export function RotinasKanban({ rotinas, atividades, execucoes, onEdit, onDuplic
                   onDelete={onDelete}
                   onToggleExecucao={onToggleExecucao}
                   canEdit={canEdit}
+                  isAdmin={isAdmin}
                 />
               ))}
             </div>
