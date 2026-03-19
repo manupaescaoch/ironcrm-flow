@@ -18,7 +18,7 @@ import { CronogramaAtividade } from '@/hooks/useCronogramaAtividades';
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const DAY_LABELS = ['DOM.', 'SEG.', 'TER.', 'QUA.', 'QUI.', 'SEX.', 'SÁB.'];
-const HOURS = Array.from({ length: 18 }, (_, i) => i + 5); // 05:00 - 22:00
+const HOURS = Array.from({ length: 19 }, (_, i) => i + 5); // 05:00 - 23:00
 
 function getWeekDates(baseDate: Date): Date[] {
   const start = new Date(baseDate);
