@@ -160,7 +160,7 @@ export function RotinasCalendario({ rotinas, atividades, onEdit, onDelete, canEd
               return (
                 <div key={dayIdx} className="border-r last:border-r-0 p-0.5 min-h-[40px]">
                   {dayRotinas.map(r => {
-                    const colors = SETOR_COLORS[r.setor] || SETOR_COLORS['Geral'];
+                    const colors = PRIORIDADE_COLORS[r.prioridade] || PRIORIDADE_COLORS['media'];
                     return (
                       <button key={r.id} onClick={(e) => handleEventClick(r, dayIdx, e)}
                         className={cn('w-full text-left rounded-sm px-1.5 py-1 border-l-[3px] mb-0.5 text-[11px] leading-tight truncate font-medium cursor-pointer hover:opacity-80 transition-opacity', colors.bg, colors.border)}>
