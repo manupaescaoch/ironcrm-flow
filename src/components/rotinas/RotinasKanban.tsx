@@ -34,7 +34,7 @@ const columns = [
   { key: 'atrasada', label: 'Atrasada', color: 'border-red-500' },
 ];
 
-export function RotinasKanban({ rotinas, atividades, execucoes, onEdit, onDuplicate, onArchive, onDelete, onToggleExecucao, canEdit }: Props) {
+export function RotinasKanban({ rotinas, atividades, execucoes, onEdit, onDuplicate, onArchive, onDelete, onToggleExecucao, canEdit, isAdmin }: Props) {
   if (rotinas.length === 0) {
     return <p className="text-center text-muted-foreground py-12">Nenhuma rotina encontrada.</p>;
   }
