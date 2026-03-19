@@ -43,6 +43,7 @@ export function CronogramaTab() {
   const { unidadeId } = useUnidadeFilter();
 
   const [open, setOpen] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState<{ atividade: CronogramaAtividade; dayIdx: number } | null>(null);
   const [editingEvent, setEditingEvent] = useState(false);
   const [form, setForm] = useState({
