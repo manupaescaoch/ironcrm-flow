@@ -51,13 +51,20 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
+    // Aceitar force_hour e force_minute para disparo manual
+    let body: any = {};
+    try { body = await req.json(); } catch { /* sem body */ }
+
     const brasilia = getBrasiliaTime();
-    const currentHour = brasilia.hour;
-    const currentMinute = brasilia.minute;
+    const forceHour = body?.force_hour;
+    const forceMinute = body?.force_minute ?? 0;
+    const currentHour = forceHour !== undefined ? forceHour : brasilia.hour;
+    const currentMinute = forceHour !== undefined ? forceMinute : brasilia.minute;
     const dayOfWeek = brasilia.dayOfWeek;
     const todayStr = brasilia.dateStr;
+    const isForced = forceHour !== undefined;
 
-    console.log(`[send-cronograma] Hora Brasília: ${currentHour}:${String(currentMinute).padStart(2, '0')}, dia semana: ${dayOfWeek}, data: ${todayStr}`);
+    console.log(`[send-cronograma] Hora Brasília: ${currentHour}:${String(currentMinute).padStart(2, '0')}, dia semana: ${dayOfWeek}, data: ${todayStr}${isForced ? ' (FORÇADO)' : ''}`);
 
     // Buscar atividades ativas do dia da semana atual
     const { data: atividades, error: atividadesError } = await supabase
