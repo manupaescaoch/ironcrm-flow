@@ -11,6 +11,7 @@ interface Props {
   onDelete: (rotina: Rotina) => void;
   onToggleExecucao: (rotinaId: string, atividadeId: string | null, concluida: boolean) => void;
   canEdit: boolean;
+  isAdmin?: boolean;
 }
 
 function getStatus(rotina: Rotina, atividades: RotinaAtividade[], execucoes: RotinaExecucao[]): string {
@@ -33,7 +34,7 @@ const columns = [
   { key: 'atrasada', label: 'Atrasada', color: 'border-red-500' },
 ];
 
-export function RotinasKanban({ rotinas, atividades, execucoes, onEdit, onDuplicate, onArchive, onDelete, onToggleExecucao, canEdit }: Props) {
+export function RotinasKanban({ rotinas, atividades, execucoes, onEdit, onDuplicate, onArchive, onDelete, onToggleExecucao, canEdit, isAdmin }: Props) {
   if (rotinas.length === 0) {
     return <p className="text-center text-muted-foreground py-12">Nenhuma rotina encontrada.</p>;
   }
@@ -61,6 +62,7 @@ export function RotinasKanban({ rotinas, atividades, execucoes, onEdit, onDuplic
                   onDelete={onDelete}
                   onToggleExecucao={onToggleExecucao}
                   canEdit={canEdit}
+                  isAdmin={isAdmin}
                 />
               ))}
             </div>

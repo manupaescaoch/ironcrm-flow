@@ -17,9 +17,10 @@ interface Props {
   onDelete: (rotina: Rotina) => void;
   onToggleExecucao: (rotinaId: string, atividadeId: string | null, concluida: boolean) => void;
   canEdit: boolean;
+  isAdmin?: boolean;
 }
 
-export function RotinaCard({ rotina, atividades, execucoes, onEdit, onDuplicate, onArchive, onDelete, onToggleExecucao, canEdit }: Props) {
+export function RotinaCard({ rotina, atividades, execucoes, onEdit, onDuplicate, onArchive, onDelete, onToggleExecucao, canEdit, isAdmin }: Props) {
   const rotinaAtividades = atividades.filter(a => a.rotina_id === rotina.id);
   const prioridadeInfo = PRIORIDADES_ROTINA.find(p => p.value === rotina.prioridade);
   const frequenciaLabel = FREQUENCIAS.find(f => f.value === rotina.frequencia)?.label || rotina.frequencia;
@@ -64,7 +65,9 @@ export function RotinaCard({ rotina, atividades, execucoes, onEdit, onDuplicate,
                   {rotina.arquivada ? <ArchiveRestore className="w-4 h-4 mr-2" /> : <Archive className="w-4 h-4 mr-2" />}
                   {rotina.arquivada ? 'Desarquivar' : 'Arquivar'}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onDelete(rotina)} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" />Excluir</DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem onClick={() => onDelete(rotina)} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" />Excluir</DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
