@@ -3,16 +3,17 @@ import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FormulariosList } from '@/components/cronograma/FormulariosList';
 import { FormularioBuilder } from '@/components/cronograma/FormularioBuilder';
-import { EnviosTab } from '@/components/cronograma/EnviosTab';
-import { RelatorioTab } from '@/components/cronograma/RelatorioTab';
-import { FileCheck } from 'lucide-react';
+import { CronogramaDashboard } from '@/components/cronograma/CronogramaDashboard';
+import { CronogramaTab } from '@/components/cronograma/CronogramaTab';
+import { FuncionariosTab } from '@/components/cronograma/FuncionariosTab';
+import { FileCheck, LayoutDashboard, CalendarDays, Users, FileText } from 'lucide-react';
 
 type View = 'list' | 'builder';
 
 export default function CronogramaOperacional() {
   const [view, setView] = useState<View>('list');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('formularios');
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   const handleCreateNew = () => {
     setEditingId(null);
@@ -29,10 +30,6 @@ export default function CronogramaOperacional() {
     setEditingId(null);
   };
 
-  const handleViewRespostas = (id: string) => {
-    setActiveTab('envios');
-  };
-
   return (
     <Layout>
       <div className="p-4 md:p-6 space-y-6">
@@ -40,35 +37,52 @@ export default function CronogramaOperacional() {
           <FileCheck className="w-6 h-6 text-primary" />
           <div>
             <h1 className="text-2xl font-bold">Cronograma Operacional</h1>
-            <p className="text-sm text-muted-foreground">Formulários, envios e relatórios</p>
+            <p className="text-sm text-muted-foreground">Dashboard, cronograma, funcionários e formulários</p>
           </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
-            <TabsTrigger value="formularios">Formulários</TabsTrigger>
-            <TabsTrigger value="envios">Envios</TabsTrigger>
-            <TabsTrigger value="relatorio">Relatório</TabsTrigger>
+            <TabsTrigger value="dashboard" className="gap-1.5">
+              <LayoutDashboard className="w-4 h-4" />
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="cronograma" className="gap-1.5">
+              <CalendarDays className="w-4 h-4" />
+              Cronograma
+            </TabsTrigger>
+            <TabsTrigger value="funcionarios" className="gap-1.5">
+              <Users className="w-4 h-4" />
+              Funcionários
+            </TabsTrigger>
+            <TabsTrigger value="formularios" className="gap-1.5">
+              <FileText className="w-4 h-4" />
+              Formulários
+            </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="dashboard" className="mt-4">
+            <CronogramaDashboard />
+          </TabsContent>
+
+          <TabsContent value="cronograma" className="mt-4">
+            <CronogramaTab />
+          </TabsContent>
+
+          <TabsContent value="funcionarios" className="mt-4">
+            <FuncionariosTab />
+          </TabsContent>
 
           <TabsContent value="formularios" className="mt-4">
             {view === 'list' ? (
               <FormulariosList
                 onCreateNew={handleCreateNew}
                 onEdit={handleEdit}
-                onViewRespostas={handleViewRespostas}
+                onViewRespostas={() => {}}
               />
             ) : (
               <FormularioBuilder formularioId={editingId} onBack={handleBack} />
             )}
-          </TabsContent>
-
-          <TabsContent value="envios" className="mt-4">
-            <EnviosTab />
-          </TabsContent>
-
-          <TabsContent value="relatorio" className="mt-4">
-            <RelatorioTab />
           </TabsContent>
         </Tabs>
       </div>
