@@ -39,13 +39,13 @@ export function useCronogramaAtividades() {
   });
 
   const createAtividade = useMutation({
-    mutationFn: async (atv: { unidade_id: string; titulo: string; horario?: string; responsavel_id?: string; formulario_id?: string; dia_semana?: number }) => {
+    mutationFn: async (atv: Array<{ unidade_id: string; titulo: string; horario?: string; responsavel_id?: string; formulario_id?: string; dia_semana?: number }>) => {
       const { error } = await supabase.from('cronograma_atividades').insert(atv);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['cronograma-atividades'] });
-      toast({ title: 'Atividade criada' });
+      toast({ title: variables.length > 1 ? 'Atividades criadas' : 'Atividade criada' });
     },
     onError: () => toast({ title: 'Erro ao criar atividade', variant: 'destructive' }),
   });
