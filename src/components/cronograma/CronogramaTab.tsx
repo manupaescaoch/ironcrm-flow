@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Clock, Trash2, CalendarDays, Phone, ChevronLeft, ChevronRight, Pencil, X, FileText, User } from 'lucide-react';
+import { Plus, Clock, Trash2, CalendarDays, Phone, ChevronLeft, ChevronRight, Pencil, X, FileText, User, MessageSquare, List } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { CronogramaAtividade } from '@/hooks/useCronogramaAtividades';
@@ -45,6 +45,7 @@ export function CronogramaTab() {
   const [open, setOpen] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState<{ atividade: CronogramaAtividade; dayIdx: number } | null>(null);
+  const [editingEvent, setEditingEvent] = useState(false);
   const [form, setForm] = useState({
     titulo: '',
     horario: '',
@@ -375,12 +376,22 @@ export function CronogramaTab() {
           )}
         </div>
 
-        {/* Detail Popup */}
-        <Dialog open={!!selectedEvent} onOpenChange={(open) => { if (!open) setSelectedEvent(null); }}>
+        {selectedEvent && !editingEvent && (
+          <CronogramaEventPopup
+            atividade={selectedEvent.atividade}
+            date={weekDates[selectedEvent.dayIdx]}
+            funcionarios={funcionarios}
+            formularios={formularios || []}
+            onEdit={() => setEditingEvent(true)}
+            onDelete={() => { deleteAtividade.mutate(selectedEvent.atividade.id); setSelectedEvent(null); }}
+            onClose={() => setSelectedEvent(null)}
+          />
+        )}
+
+        {/* Edit Dialog */}
+        <Dialog open={editingEvent && !!selectedEvent} onOpenChange={(open) => { if (!open) { setEditingEvent(false); setSelectedEvent(null); } }}>
           <DialogContent className="max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Editar Atividade</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>Editar Atividade</DialogTitle></DialogHeader>
             {selectedEvent && (
               <AtividadeEditForm
                 atividade={selectedEvent.atividade}
@@ -388,11 +399,12 @@ export function CronogramaTab() {
                 formularios={formularios || []}
                 onUpdate={(data) => {
                   updateAtividade.mutate({ id: selectedEvent.atividade.id, ...data }, {
-                    onSuccess: () => setSelectedEvent(null),
+                    onSuccess: () => { setEditingEvent(false); setSelectedEvent(null); },
                   });
                 }}
                 onDelete={() => {
                   deleteAtividade.mutate(selectedEvent.atividade.id);
+                  setEditingEvent(false);
                   setSelectedEvent(null);
                 }}
               />
@@ -401,6 +413,108 @@ export function CronogramaTab() {
         </Dialog>
       </div>
     </div>
+  );
+}
+
+function formatDayOfWeek(date: Date): string {
+  return date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+function CronogramaEventPopup({ atividade, date, funcionarios, formularios, onEdit, onDelete, onClose }: {
+  atividade: CronogramaAtividade;
+  date: Date;
+  funcionarios: Array<{ id: string; nome: string; telefone: string | null }>;
+  formularios: Array<{ id: string; titulo: string }>;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  const popupRef = useRef<HTMLDivElement>(null);
+  const timeLabel = atividade.horario?.substring(0, 5);
+  const dayLabel = formatDayOfWeek(date);
+  const responsavel = funcionarios.find(f => f.id === atividade.responsavel_id);
+  const formulario = formularios.find(f => f.id === atividade.formulario_id);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40" />
+      <div ref={popupRef}
+        className="fixed z-50 bg-popover border rounded-xl shadow-xl w-[360px] max-w-[90vw] overflow-hidden animate-in fade-in-0 zoom-in-95"
+        style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+        {/* Header actions */}
+        <div className="flex items-center justify-end gap-1 px-3 pt-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete}>
+            <Trash2 className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* Content */}
+        <div className="px-5 pb-5 space-y-3">
+          {/* Title with color dot */}
+          <div className="flex items-start gap-3">
+            <div className="w-4 h-4 rounded-sm mt-1 shrink-0 bg-primary" />
+            <div>
+              <h3 className="text-lg font-semibold leading-tight">{atividade.titulo}</h3>
+              <p className="text-sm text-muted-foreground capitalize mt-0.5">
+                {dayLabel}
+                {timeLabel && ` · ${timeLabel}`}
+              </p>
+            </div>
+          </div>
+
+          {/* Responsible */}
+          {responsavel && (
+            <div className="flex items-center gap-3">
+              <User className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm">{responsavel.nome}</span>
+              {responsavel.telefone && (
+                <span className="text-xs text-muted-foreground ml-auto">{responsavel.telefone}</span>
+              )}
+            </div>
+          )}
+
+          {/* Linked form */}
+          {formulario && (
+            <div className="flex items-center gap-3">
+              <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm">Formulário: {formulario.titulo}</span>
+            </div>
+          )}
+
+          {/* Custom message */}
+          {atividade.mensagem && (
+            <div className="flex items-start gap-3">
+              <MessageSquare className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+              <p className="text-sm text-muted-foreground">{atividade.mensagem}</p>
+            </div>
+          )}
+
+          {/* Day badge */}
+          {atividade.dia_semana !== null && (
+            <div className="flex items-center gap-3">
+              <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
+              <Badge variant="secondary" className="text-xs">{DIAS_SEMANA[atividade.dia_semana]}</Badge>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
 
