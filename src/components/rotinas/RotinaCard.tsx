@@ -65,7 +65,9 @@ export function RotinaCard({ rotina, atividades, execucoes, onEdit, onDuplicate,
                   {rotina.arquivada ? <ArchiveRestore className="w-4 h-4 mr-2" /> : <Archive className="w-4 h-4 mr-2" />}
                   {rotina.arquivada ? 'Desarquivar' : 'Arquivar'}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onDelete(rotina)} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" />Excluir</DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem onClick={() => onDelete(rotina)} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" />Excluir</DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
