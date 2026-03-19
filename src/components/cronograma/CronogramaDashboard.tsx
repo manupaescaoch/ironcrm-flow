@@ -107,7 +107,7 @@ export function CronogramaDashboard() {
                 <div key={e.id} className="flex items-center justify-between p-2 rounded-md border">
                   <div>
                     <p className="text-sm font-medium">{e.cronograma_funcionarios?.nome || 'N/A'}</p>
-                    <p className="text-xs text-muted-foreground">{e.formularios?.titulo || 'Formulário'}</p>
+                    <p className="text-xs text-muted-foreground">{e.formularios?.titulo || e.cronograma_atividades?.titulo || 'Atividade'}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant={e.status === 'respondido' ? 'default' : e.status === 'enviado' ? 'secondary' : 'outline'}>
