@@ -68,12 +68,25 @@ export function CronogramaTab() {
               </div>
               <div>
                 <Label>Dia da semana</Label>
-                <Select value={form.dia_semana} onValueChange={v => setForm(f => ({ ...f, dia_semana: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Todos os dias" /></SelectTrigger>
-                  <SelectContent>
-                    {DIAS_SEMANA.map((d, i) => <SelectItem key={i} value={String(i)}>{d}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-1.5 mt-1">
+                  {DIAS_SEMANA.map((d, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, dia_semana: f.dia_semana === String(i) ? '' : String(i) }))}
+                      className={`flex-1 py-2 px-1 text-xs font-medium rounded-md border transition-colors ${
+                        form.dia_semana === String(i)
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground'
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {form.dia_semana === '' ? 'Todos os dias' : `Apenas ${DIAS_SEMANA[Number(form.dia_semana)]}`}
+                </p>
               </div>
               <div>
                 <Label>Responsável</Label>
