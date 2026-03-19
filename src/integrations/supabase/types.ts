@@ -14,6 +14,186 @@ export type Database = {
   }
   public: {
     Tables: {
+      cronograma_atividades: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          dia_semana: number | null
+          formulario_id: string | null
+          horario: string | null
+          id: string
+          responsavel_id: string | null
+          titulo: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          dia_semana?: number | null
+          formulario_id?: string | null
+          horario?: string | null
+          id?: string
+          responsavel_id?: string | null
+          titulo: string
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          dia_semana?: number | null
+          formulario_id?: string | null
+          horario?: string | null
+          id?: string
+          responsavel_id?: string | null
+          titulo?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cronograma_atividades_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "formularios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cronograma_atividades_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "cronograma_funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cronograma_atividades_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cronograma_envios: {
+        Row: {
+          atividade_id: string | null
+          created_at: string
+          enviado_em: string | null
+          formulario_id: string
+          funcionario_id: string
+          id: string
+          respondido_em: string | null
+          resposta_id: string | null
+          status: string
+          unidade_id: string
+        }
+        Insert: {
+          atividade_id?: string | null
+          created_at?: string
+          enviado_em?: string | null
+          formulario_id: string
+          funcionario_id: string
+          id?: string
+          respondido_em?: string | null
+          resposta_id?: string | null
+          status?: string
+          unidade_id: string
+        }
+        Update: {
+          atividade_id?: string | null
+          created_at?: string
+          enviado_em?: string | null
+          formulario_id?: string
+          funcionario_id?: string
+          id?: string
+          respondido_em?: string | null
+          resposta_id?: string | null
+          status?: string
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cronograma_envios_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "cronograma_atividades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cronograma_envios_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "formularios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cronograma_envios_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "cronograma_funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cronograma_envios_resposta_id_fkey"
+            columns: ["resposta_id"]
+            isOneToOne: false
+            referencedRelation: "formulario_respostas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cronograma_envios_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cronograma_funcionarios: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          setor: string
+          telefone: string | null
+          turno: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          setor?: string
+          telefone?: string | null
+          turno?: string
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          setor?: string
+          telefone?: string | null
+          turno?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cronograma_funcionarios_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       escala: {
         Row: {
           ano: number
