@@ -410,6 +410,9 @@ function AtividadeEditForm({ atividade, funcionarios, formularios, onUpdate, onD
     dia_semana: atividade.dia_semana,
     mensagem: atividade.mensagem || '',
   });
+  const [showSection, setShowSection] = useState<'formulario' | 'mensagem' | null>(
+    atividade.formulario_id ? 'formulario' : atividade.mensagem ? 'mensagem' : null
+  );
 
   const selectedFuncionario = useMemo(() => {
     if (!editForm.responsavel_id) return null;
