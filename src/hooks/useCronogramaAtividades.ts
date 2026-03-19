@@ -11,6 +11,7 @@ export interface CronogramaAtividade {
   titulo: string;
   horario: string | null;
   dia_semana: number | null;
+  mensagem: string | null;
   ativo: boolean;
   created_at: string;
   updated_at: string;
