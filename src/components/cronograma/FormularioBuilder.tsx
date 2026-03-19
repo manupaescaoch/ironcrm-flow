@@ -188,8 +188,29 @@ export function FormularioBuilder({ formularioId, onBack }: FormularioBuilderPro
           </div>
           <div>
             <Label>WhatsApp do Grupo para Respostas</Label>
-            <Input value={whatsappGrupo} onChange={e => setWhatsappGrupo(e.target.value)} placeholder="ID do grupo WhatsApp" />
-            <p className="text-xs text-muted-foreground mt-1">ID do grupo onde as respostas serão enviadas automaticamente</p>
+            {loadingGroups ? (
+              <div className="flex items-center gap-2 h-10 px-3 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Carregando grupos...
+              </div>
+            ) : groupsFailed ? (
+              <>
+                <Input value={whatsappGrupo} onChange={e => setWhatsappGrupo(e.target.value)} placeholder="ID do grupo WhatsApp" />
+                <p className="text-xs text-muted-foreground mt-1">Não foi possível carregar os grupos. Digite o ID manualmente.</p>
+              </>
+            ) : (
+              <Select value={whatsappGrupo} onValueChange={setWhatsappGrupo}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um grupo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {whatsappGroups.map(g => (
+                    <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">Grupo onde as respostas serão enviadas automaticamente</p>
           </div>
           {formularioId && (
             <div className="flex items-center justify-between rounded-lg border p-3">
