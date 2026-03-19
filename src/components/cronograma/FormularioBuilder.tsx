@@ -51,6 +51,9 @@ export function FormularioBuilder({ formularioId, onBack }: FormularioBuilderPro
   const [ativo, setAtivo] = useState(true);
   const [campos, setCampos] = useState<FormularioCampo[]>([]);
   const [loading, setLoading] = useState(false);
+  const [whatsappGroups, setWhatsappGroups] = useState<WhatsAppGroup[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [groupsFailed, setGroupsFailed] = useState(false);
 
   const createFormulario = useCreateFormulario();
   const updateFormulario = useUpdateFormulario();
