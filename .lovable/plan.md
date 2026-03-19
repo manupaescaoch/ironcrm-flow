@@ -1,82 +1,25 @@
 
-Objetivo: substituir o fluxo atual de “perguntar se altera/exclui os demais” por uma seleção em lote no calendário, igual ao padrão da referência: selecionar vários cards, ter ações de Editar, Excluir e Selecionar todos, e remover o botão/diálogo atual de exclusão em massa por recorrência.
 
-Plano
+## Corrigir Dashboard do Cronograma Operacional
 
-1. Remover a lógica atual de “irmãos”
-- Tirar de `CronogramaTab.tsx`:
-  - `findSiblings`
-  - estado `bulkConfirm`
-  - diálogo “Apenas este dia / Alterar todos / Excluir todos”
-  - qualquer decisão automática baseada em título+horário+responsável
-- Resultado: editar/excluir deixam de depender de recorrência implícita.
+**Problema**: A edge function `send-cronograma-messages` só registra envios na tabela `cronograma_envios` quando a atividade tem `formulario_id`. Como as atividades de hoje (ENCERRAMENTO DE TURNO) não têm formulário vinculado, os envios não são registrados e o Dashboard mostra tudo zerado.
 
-2. Criar seleção manual de atividades
-- Adicionar estado de seleção por `id` em `CronogramaTab.tsx`:
-  - conjunto/lista de ids selecionados
-  - helpers para selecionar/desselecionar um item
-  - limpar seleção ao trocar semana ou após ação concluída
-- Permitir selecionar clicando no card em modo seleção, sem abrir popup.
-- Manter clique normal abrindo detalhes quando não estiver em modo seleção.
+**Causa raiz**: A coluna `formulario_id` na tabela `cronograma_envios` é `NOT NULL`, impedindo insert sem formulário.
 
-3. Adicionar barra de ações no topo do cronograma
-- Incluir controles visíveis acima da grade:
-  - `Selecionar`
-  - `Selecionar todos`
-  - `Editar`
-  - `Excluir`
-  - `Cancelar seleção`
-- Comportamento:
-  - `Selecionar todos`: marca todas as atividades visíveis da semana atual
-  - `Editar`: habilitado somente quando houver itens selecionados
-  - `Excluir`: habilitado somente quando houver itens selecionados
-- Remover o conceito de “exclusão em massa” automática e deixar só essa ação manual.
+### Plano
 
-4. Ajustar UX visual da seleção
-- Destacar cards selecionados com borda/ring/check para ficar claro.
-- No modo seleção, impedir abertura do popup de detalhes.
-- Exibir contador: “X atividades selecionadas”.
+1. **Migration**: Tornar `formulario_id` nullable na tabela `cronograma_envios`
+   - `ALTER TABLE cronograma_envios ALTER COLUMN formulario_id DROP NOT NULL;`
 
-5. Editar múltiplos itens de forma explícita
-- Reaproveitar o formulário de edição, mas em modo lote.
-- Regra proposta:
-  - se 1 item selecionado: abre edição normal completa
-  - se 2+ itens selecionados: abre edição em massa
-- Na edição em massa, atualizar apenas campos comuns e seguros:
-  - título
-  - horário
-  - responsável
-  - formulário
-  - mensagem
-- Não alterar `dia_semana` em massa, porque agora a seleção já define exatamente quais registros serão afetados.
+2. **Edge Function**: Remover o `if (formularioId)` condicional e sempre registrar o envio
+   - No `send-cronograma-messages/index.ts`, linhas 222-231: tirar o `if` e inserir sempre, passando `formulario_id: formularioId || null`
 
-6. Excluir múltiplos itens de forma explícita
-- Ao clicar em `Excluir`, abrir apenas um diálogo simples de confirmação:
-  - “Deseja excluir X atividades selecionadas?”
-- Confirmando, usar `bulkDeleteAtividades` com os ids selecionados.
-- Se houver só 1 item selecionado, usar o mesmo fluxo com texto singular ou a mutação individual.
+3. **Dashboard**: Ajustar `CronogramaDashboard` e `useCronogramaEnvios` para exibir envios sem formulário
+   - O hook já funciona sem filtro de formulário, mas a UI mostra `e.formularios?.titulo || 'Formulário'` — ajustar para mostrar o título da atividade quando não há formulário vinculado
+   - Fazer join com `cronograma_atividades(titulo)` no hook para exibir o nome da atividade
 
-7. Compatibilizar popup e edição individual
-- No popup de evento, manter apenas ações individuais de editar/excluir.
-- Remover qualquer herança do fluxo “apenas este dia / todos”.
-- Se o usuário quiser agir em vários, ele entra no modo seleção.
+### Resultado
+- Todos os envios (com ou sem formulário) serão registrados
+- O Dashboard mostrará KPIs corretos de enviados/respondidos/pendentes
+- Os envios futuros do cron a cada 15 min aparecerão automaticamente
 
-8. Hooks e dados
-- `useCronogramaAtividades.ts` já tem quase tudo necessário:
-  - `updateAtividade`
-  - `bulkUpdateAtividades`
-  - `deleteAtividade`
-  - `bulkDeleteAtividades`
-- Não vejo necessidade de alteração no banco.
-- Só pode ser útil ajustar mensagens de toast para refletir seleção manual (“atividades selecionadas”).
-
-Detalhes técnicos
-- Arquivo principal a refatorar: `src/components/cronograma/CronogramaTab.tsx`
-- Hook provavelmente só precisará de ajustes menores de mensagens: `src/hooks/useCronogramaAtividades.ts`
-- A seleção deve considerar somente atividades renderizadas/visíveis na semana atual, evitando “selecionar todos” de registros fora do contexto.
-- A referência enviada sugere um toolbar de ações em massa no topo; seguirei esse padrão em vez do popup de recorrência atual.
-
-Resultado esperado
-- Some o problema do “Apenas este dia” porque esse fluxo deixa de existir.
-- O usuário escolhe exatamente quais atividades quer alterar/excluir.
-- A interface fica mais previsível: selecionar > editar/excluir > confirmar.
