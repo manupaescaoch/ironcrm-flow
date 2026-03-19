@@ -1,27 +1,14 @@
 
 
-# Confirmação de Rotinas via WhatsApp com Botões
+## Corrigir layout do calendário - eventos contidos dentro da célula do dia
 
-## Status: ✅ Implementado
+### Problema
+Os blocos de evento estão empilhando verticalmente e expandindo a célula, quebrando o grid. No Google Calendar, cada evento é uma linha compacta que fica contida dentro da célula da hora, com `overflow-hidden` e um indicador "+N" quando há muitos.
 
-## O que foi feito
+### Alterações em `RotinasCalendario.tsx`
 
-### 1. `notify-rotinas-diarias` (atualizado)
-- Agora envia **uma mensagem por rotina** (não mais consolidada) usando `send-button-list` da Z-API
-- Cada mensagem tem 2 botões: "✅ Feito" (`feito_<rotina_id>`) e "❌ Não feito" (`naofeito_<rotina_id>`)
-- Inclui nome da unidade, setor, horário e atividades
+1. **Célula do dia/hora**: Adicionar `overflow-hidden` para conter os eventos dentro do espaço fixo da célula
+2. **EventBlock mais compacto**: Reduzir para uma única linha (nome truncado apenas), removendo a segunda linha de detalhes quando há múltiplos eventos na mesma célula
+3. **Limitar eventos visíveis**: Mostrar no máximo 2-3 eventos por célula e um badge "+N mais" para os restantes
+4. **Altura fixa por hora**: Garantir que cada linha de hora tem altura fixa (64px) e não cresce com o conteúdo
 
-### 2. `rotina-whatsapp-response` (novo)
-- Edge function que recebe o webhook da Z-API quando um botão é clicado
-- Identifica o responsável pelo número de telefone (busca em user_profiles + auth.users)
-- Extrai o `rotina_id` do `buttonId` do payload
-- Insere/atualiza `rotina_execucoes` com `concluida=true/false` e `concluida_por = "Nome (via WhatsApp)"`
-- Envia mensagem de confirmação de volta ao usuário
-- `verify_jwt = false` no config.toml (webhook externo)
-
-## Configuração necessária na Z-API
-
-Configure o webhook de recebimento (on-message-received) no painel Z-API para:
-```
-https://zspcdvtdgssabpqrybib.supabase.co/functions/v1/rotina-whatsapp-response
-```
