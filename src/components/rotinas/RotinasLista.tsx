@@ -11,6 +11,7 @@ interface Props {
   onDelete: (rotina: Rotina) => void;
   onToggleExecucao: (rotinaId: string, atividadeId: string | null, concluida: boolean) => void;
   canEdit: boolean;
+  isAdmin?: boolean;
 }
 
 export function RotinasLista({ rotinas, atividades, execucoes, onEdit, onDuplicate, onArchive, onDelete, onToggleExecucao, canEdit }: Props) {
