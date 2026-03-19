@@ -14,7 +14,7 @@ interface Props {
   isAdmin?: boolean;
 }
 
-export function RotinasLista({ rotinas, atividades, execucoes, onEdit, onDuplicate, onArchive, onDelete, onToggleExecucao, canEdit }: Props) {
+export function RotinasLista({ rotinas, atividades, execucoes, onEdit, onDuplicate, onArchive, onDelete, onToggleExecucao, canEdit, isAdmin }: Props) {
   const setoresComRotinas = SETORES.filter(s => rotinas.some(r => r.setor === s));
   const outrosSetores = [...new Set(rotinas.map(r => r.setor).filter(s => !SETORES.includes(s as any)))];
   const todosSetores = [...setoresComRotinas, ...outrosSetores];
