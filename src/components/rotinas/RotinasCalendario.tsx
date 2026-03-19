@@ -153,21 +153,27 @@ export function RotinasCalendario({ rotinas, atividades, onEdit, canEdit }: Prop
         {/* Time Grid */}
         <div className="relative overflow-y-auto max-h-[calc(100vh-380px)]">
           {HOURS.map(hour => (
-            <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] border-b last:border-b-0 min-h-[64px]">
+            <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] border-b last:border-b-0 h-16">
               <div className="p-1 text-[11px] text-muted-foreground text-right pr-2 border-r -mt-2">
                 {String(hour).padStart(2, '0')}:00
               </div>
               {weekDates.map((date, dayIdx) => {
                 const items = rotinasByHourDay[`${hour}-${dayIdx}`] || [];
                 const isToday = date.toISOString().split('T')[0] === todayStr;
+                const MAX_VISIBLE = 3;
+                const visible = items.slice(0, MAX_VISIBLE);
+                const overflow = items.length - MAX_VISIBLE;
                 return (
-                  <div key={dayIdx} className={cn('border-r last:border-r-0 p-0.5 relative', isToday && 'bg-primary/[0.02]')}>
-                    {items.map(({ rotina, rotinaAtividades }) => (
+                  <div key={dayIdx} className={cn('border-r last:border-r-0 p-0.5 relative overflow-hidden', isToday && 'bg-primary/[0.02]')}>
+                    {visible.map(({ rotina, rotinaAtividades }) => (
                       <EventBlock key={rotina.id} rotina={rotina} atividades={rotinaAtividades}
                         expanded={expandedId === `${rotina.id}-${dayIdx}`}
                         onToggle={() => setExpandedId(expandedId === `${rotina.id}-${dayIdx}` ? null : `${rotina.id}-${dayIdx}`)}
                         onEdit={onEdit} canEdit={canEdit} />
                     ))}
+                    {overflow > 0 && (
+                      <div className="text-[9px] text-muted-foreground font-medium px-1 truncate">+{overflow} mais</div>
+                    )}
                   </div>
                 );
               })}
@@ -206,15 +212,10 @@ function EventBlock({ rotina, atividades, expanded, onToggle, onEdit, canEdit, c
   const timeLabel = rotina.horario_esperado?.substring(0, 5);
 
   return (
-    <div className="mb-0.5">
+    <div className="mb-px">
       <button onClick={onToggle}
-        className={cn('w-full text-left rounded px-1.5 border-l-[3px] transition-all text-[10px] leading-tight overflow-hidden', colorClass, compact ? 'py-0.5' : 'py-0.5')}>
-        <div className="font-semibold truncate text-[10px]">{rotina.nome}</div>
-        <div className="opacity-80 text-[9px] truncate">
-          {timeLabel && <span>{timeLabel}</span>}
-          {timeLabel && rotina.responsavel_principal && <span> · </span>}
-          {rotina.responsavel_principal && <span>{rotina.responsavel_principal.split(' ')[0]}</span>}
-        </div>
+        className={cn('w-full text-left rounded px-1 border-l-2 transition-all text-[9px] leading-none overflow-hidden py-px', colorClass)}>
+        <span className="font-semibold truncate block">{rotina.nome}</span>
       </button>
 
       {expanded && (
