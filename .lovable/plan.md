@@ -1,26 +1,27 @@
 
 
-## Reordenar menu lateral
+# Confirmação de Rotinas via WhatsApp com Botões
 
-A ordem proposta faz sentido — operacional primeiro, executivo/admin depois. Sugiro um pequeno ajuste: mover **Comissões** para junto de Vencimentos (são relacionados financeiramente) e **Escala** junto de Rotinas (ambos operacionais de equipe).
+## Status: ✅ Implementado
 
-### Ordem final proposta
+## O que foi feito
 
-1. Dashboard
-2. CRM
-3. Vencimentos
-4. Comissões
-5. Indicações
-6. Tarefas
-7. Rotinas
-8. Escala
-9. Estoque
-10. Executivo *(admin)*
-11. Relatório Vendas *(admin)*
-12. Backups *(admin)*
-13. Usuários *(master admin)*
+### 1. `notify-rotinas-diarias` (atualizado)
+- Agora envia **uma mensagem por rotina** (não mais consolidada) usando `send-button-list` da Z-API
+- Cada mensagem tem 2 botões: "✅ Feito" (`feito_<rotina_id>`) e "❌ Não feito" (`naofeito_<rotina_id>`)
+- Inclui nome da unidade, setor, horário e atividades
 
-### Alteração
+### 2. `rotina-whatsapp-response` (novo)
+- Edge function que recebe o webhook da Z-API quando um botão é clicado
+- Identifica o responsável pelo número de telefone (busca em user_profiles + auth.users)
+- Extrai o `rotina_id` do `buttonId` do payload
+- Insere/atualiza `rotina_execucoes` com `concluida=true/false` e `concluida_por = "Nome (via WhatsApp)"`
+- Envia mensagem de confirmação de volta ao usuário
+- `verify_jwt = false` no config.toml (webhook externo)
 
-**Arquivo:** `src/components/Layout.tsx` — reordenar o array `allNavItems` conforme a sequência acima. Nenhuma outra mudança necessária.
+## Configuração necessária na Z-API
 
+Configure o webhook de recebimento (on-message-received) no painel Z-API para:
+```
+https://zspcdvtdgssabpqrybib.supabase.co/functions/v1/rotina-whatsapp-response
+```
