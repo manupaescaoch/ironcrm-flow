@@ -38,7 +38,7 @@ function parseHour(timeStr: string | null): number | null {
 }
 
 export function CronogramaTab() {
-  const { atividades, isLoading, createAtividade, updateAtividade, deleteAtividade } = useCronogramaAtividades();
+  const { atividades, isLoading, createAtividade, updateAtividade, bulkUpdateAtividades, bulkDeleteAtividades, deleteAtividade } = useCronogramaAtividades();
   const { ativos: funcionarios } = useCronogramaFuncionarios();
   const { data: formularios } = useFormularios();
   const { unidadeId } = useUnidadeFilter();
@@ -47,6 +47,7 @@ export function CronogramaTab() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState<{ atividade: CronogramaAtividade; dayIdx: number } | null>(null);
   const [editingEvent, setEditingEvent] = useState(false);
+  const [bulkConfirm, setBulkConfirm] = useState<{ type: 'edit' | 'delete'; data?: any; siblings: CronogramaAtividade[] } | null>(null);
   const [form, setForm] = useState({
     titulo: '',
     horario: '',
