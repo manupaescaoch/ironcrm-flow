@@ -451,9 +451,12 @@ export type Database = {
           created_by: string | null
           descricao: string | null
           id: string
+          setor: string
           titulo: string
+          turno: string
           unidade_id: string
           updated_at: string
+          whatsapp_grupo: string | null
         }
         Insert: {
           ativo?: boolean
@@ -461,9 +464,12 @@ export type Database = {
           created_by?: string | null
           descricao?: string | null
           id?: string
+          setor?: string
           titulo: string
+          turno?: string
           unidade_id: string
           updated_at?: string
+          whatsapp_grupo?: string | null
         }
         Update: {
           ativo?: boolean
@@ -471,9 +477,12 @@ export type Database = {
           created_by?: string | null
           descricao?: string | null
           id?: string
+          setor?: string
           titulo?: string
+          turno?: string
           unidade_id?: string
           updated_at?: string
+          whatsapp_grupo?: string | null
         }
         Relationships: [
           {

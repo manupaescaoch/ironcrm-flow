@@ -18,6 +18,9 @@ export interface Formulario {
   unidade_id: string;
   titulo: string;
   descricao: string | null;
+  setor: string;
+  turno: string;
+  whatsapp_grupo: string | null;
   ativo: boolean;
   created_by: string | null;
   created_at: string;
@@ -115,12 +118,12 @@ export function useCreateFormulario() {
   const { unidadeAtual } = useUnidade();
 
   return useMutation({
-    mutationFn: async ({ titulo, descricao, campos }: { titulo: string; descricao?: string; campos: FormularioCampo[] }) => {
+    mutationFn: async ({ titulo, descricao, setor, turno, whatsapp_grupo, campos }: { titulo: string; descricao?: string; setor?: string; turno?: string; whatsapp_grupo?: string; campos: FormularioCampo[] }) => {
       if (!unidadeAtual?.id) throw new Error('Unidade não selecionada');
 
       const { data: form, error: formError } = await supabase
         .from('formularios')
-        .insert({ titulo, descricao: descricao || null, unidade_id: unidadeAtual.id })
+        .insert({ titulo, descricao: descricao || null, setor: setor || 'geral', turno: turno || 'integral', whatsapp_grupo: whatsapp_grupo || null, unidade_id: unidadeAtual.id })
         .select()
         .single();
       if (formError) throw formError;
@@ -156,10 +159,10 @@ export function useUpdateFormulario() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, titulo, descricao, ativo, campos }: { id: string; titulo: string; descricao?: string; ativo?: boolean; campos?: FormularioCampo[] }) => {
+    mutationFn: async ({ id, titulo, descricao, setor, turno, whatsapp_grupo, ativo, campos }: { id: string; titulo: string; descricao?: string; setor?: string; turno?: string; whatsapp_grupo?: string; ativo?: boolean; campos?: FormularioCampo[] }) => {
       const { error: formError } = await supabase
         .from('formularios')
-        .update({ titulo, descricao: descricao || null, ...(ativo !== undefined ? { ativo } : {}) })
+        .update({ titulo, descricao: descricao || null, setor: setor || 'geral', turno: turno || 'integral', whatsapp_grupo: whatsapp_grupo || null, ...(ativo !== undefined ? { ativo } : {}) })
         .eq('id', id);
       if (formError) throw formError;
 

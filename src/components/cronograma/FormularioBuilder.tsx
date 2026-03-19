@@ -23,9 +23,27 @@ const TIPOS_CAMPO = [
   { value: 'selecao', label: 'Seleção' },
 ];
 
+const SETORES = [
+  { value: 'geral', label: 'Geral' },
+  { value: 'recepcao', label: 'Recepção' },
+  { value: 'musculacao', label: 'Musculação' },
+  { value: 'limpeza', label: 'Limpeza' },
+];
+
+const TURNOS = [
+  { value: 'integral', label: 'Integral' },
+  { value: 'manha', label: 'Manhã' },
+  { value: 'tarde', label: 'Tarde' },
+  { value: 'noite', label: 'Noite' },
+];
+
 export function FormularioBuilder({ formularioId, onBack }: FormularioBuilderProps) {
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
+  const [setor, setSetor] = useState('geral');
+  const [turno, setTurno] = useState('integral');
+  const [whatsappGrupo, setWhatsappGrupo] = useState('');
+  const [ativo, setAtivo] = useState(true);
   const [campos, setCampos] = useState<FormularioCampo[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -33,13 +51,16 @@ export function FormularioBuilder({ formularioId, onBack }: FormularioBuilderPro
   const updateFormulario = useUpdateFormulario();
   const { data: existingCampos } = useFormularioCampos(formularioId || null);
 
-  // Load existing formulario data
   useEffect(() => {
     if (formularioId) {
       supabase.from('formularios').select('*').eq('id', formularioId).single().then(({ data }) => {
         if (data) {
           setTitulo(data.titulo);
           setDescricao(data.descricao || '');
+          setSetor(data.setor || 'geral');
+          setTurno(data.turno || 'integral');
+          setWhatsappGrupo(data.whatsapp_grupo || '');
+          setAtivo(data.ativo);
         }
       });
     }
@@ -76,9 +97,9 @@ export function FormularioBuilder({ formularioId, onBack }: FormularioBuilderPro
     setLoading(true);
     try {
       if (formularioId) {
-        await updateFormulario.mutateAsync({ id: formularioId, titulo, descricao, campos });
+        await updateFormulario.mutateAsync({ id: formularioId, titulo, descricao, setor, turno, whatsapp_grupo: whatsappGrupo, ativo, campos });
       } else {
-        await createFormulario.mutateAsync({ titulo, descricao, campos });
+        await createFormulario.mutateAsync({ titulo, descricao, setor, turno, whatsapp_grupo: whatsappGrupo, campos });
       }
       onBack();
     } finally {
@@ -110,6 +131,48 @@ export function FormularioBuilder({ formularioId, onBack }: FormularioBuilderPro
             <Label>Descrição</Label>
             <Textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Descrição opcional..." rows={2} />
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Setor</Label>
+              <Select value={setor} onValueChange={setSetor}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SETORES.map(s => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Turno</Label>
+              <Select value={turno} onValueChange={setTurno}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TURNOS.map(t => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label>WhatsApp do Grupo para Respostas</Label>
+            <Input value={whatsappGrupo} onChange={e => setWhatsappGrupo(e.target.value)} placeholder="ID do grupo WhatsApp" />
+            <p className="text-xs text-muted-foreground mt-1">ID do grupo onde as respostas serão enviadas automaticamente</p>
+          </div>
+          {formularioId && (
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <Label>Formulário Ativo</Label>
+                <p className="text-xs text-muted-foreground">Formulários inativos não aparecem para preenchimento</p>
+              </div>
+              <Switch checked={ativo} onCheckedChange={setAtivo} />
+            </div>
+          )}
         </CardContent>
       </Card>
 
