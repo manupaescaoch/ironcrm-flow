@@ -1,27 +1,27 @@
 
 
-# Confirmação de Rotinas via WhatsApp com Botões
+## Adicionar campos Setor, Turno e WhatsApp do Grupo ao cabeçalho do Formulário
 
-## Status: ✅ Implementado
+Baseado no screenshot de referência, o cabeçalho do formulário precisa de 3 campos adicionais: **Setor**, **Turno** e **WhatsApp do Grupo para Respostas**, além de um toggle **Formulário Ativo**.
 
-## O que foi feito
+### Banco de dados
 
-### 1. `notify-rotinas-diarias` (atualizado)
-- Agora envia **uma mensagem por rotina** (não mais consolidada) usando `send-button-list` da Z-API
-- Cada mensagem tem 2 botões: "✅ Feito" (`feito_<rotina_id>`) e "❌ Não feito" (`naofeito_<rotina_id>`)
-- Inclui nome da unidade, setor, horário e atividades
+Migration para adicionar 3 colunas na tabela `formularios`:
+- `setor` (text, default 'geral')
+- `turno` (text, default 'integral')  
+- `whatsapp_grupo` (text, nullable) — ID/número do grupo WhatsApp onde as respostas serão enviadas
 
-### 2. `rotina-whatsapp-response` (novo)
-- Edge function que recebe o webhook da Z-API quando um botão é clicado
-- Identifica o responsável pelo número de telefone (busca em user_profiles + auth.users)
-- Extrai o `rotina_id` do `buttonId` do payload
-- Insere/atualiza `rotina_execucoes` com `concluida=true/false` e `concluida_por = "Nome (via WhatsApp)"`
-- Envia mensagem de confirmação de volta ao usuário
-- `verify_jwt = false` no config.toml (webhook externo)
+### Alterações em código
 
-## Configuração necessária na Z-API
+1. **`src/hooks/useFormulariosData.ts`** — Atualizar interface `Formulario` com os 3 novos campos. Atualizar mutations `useCreateFormulario` e `useUpdateFormulario` para incluir `setor`, `turno` e `whatsapp_grupo`.
 
-Configure o webhook de recebimento (on-message-received) no painel Z-API para:
-```
-https://zspcdvtdgssabpqrybib.supabase.co/functions/v1/rotina-whatsapp-response
-```
+2. **`src/components/cronograma/FormularioBuilder.tsx`** — Expandir o card "Informações" com:
+   - Título e Descrição (já existem)
+   - Linha com **Setor** (select: Recepção, Musculação, Limpeza, Geral) e **Turno** (select: Manhã, Tarde, Noite, Integral)
+   - Campo **WhatsApp do Grupo para Respostas** com helper text "ID do grupo onde as respostas serão enviadas"
+   - Toggle **Formulário Ativo** com descrição "Formulários inativos não aparecem para preenchimento"
+
+### Resultado visual
+
+O cabeçalho do formulário ficará idêntico ao screenshot de referência, com todos os campos de configuração agrupados em um único card antes da seção de campos/perguntas.
+
