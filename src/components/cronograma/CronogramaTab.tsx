@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Clock, Trash2, CalendarDays, Phone, ChevronLeft, ChevronRight, Pencil, X, FileText, User, MessageSquare, List } from 'lucide-react';
@@ -37,7 +38,7 @@ function parseHour(timeStr: string | null): number | null {
 }
 
 export function CronogramaTab() {
-  const { atividades, isLoading, createAtividade, updateAtividade, deleteAtividade } = useCronogramaAtividades();
+  const { atividades, isLoading, createAtividade, updateAtividade, bulkUpdateAtividades, bulkDeleteAtividades, deleteAtividade } = useCronogramaAtividades();
   const { ativos: funcionarios } = useCronogramaFuncionarios();
   const { data: formularios } = useFormularios();
   const { unidadeId } = useUnidadeFilter();
@@ -46,6 +47,7 @@ export function CronogramaTab() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState<{ atividade: CronogramaAtividade; dayIdx: number } | null>(null);
   const [editingEvent, setEditingEvent] = useState(false);
+  const [bulkConfirm, setBulkConfirm] = useState<{ type: 'edit' | 'delete'; data?: any; siblings: CronogramaAtividade[] } | null>(null);
   const [form, setForm] = useState({
     titulo: '',
     horario: '',
@@ -92,6 +94,16 @@ export function CronogramaTab() {
   const nowMinutes = today.getMinutes();
   const todayDayIdx = today.getDay();
   const monthYear = weekDates[3].toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+  // Find sibling activities (same title+horario, different days)
+  const findSiblings = (atv: CronogramaAtividade) => {
+    return atividades.filter(a =>
+      a.id !== atv.id &&
+      a.titulo === atv.titulo &&
+      a.horario === atv.horario &&
+      a.responsavel_id === atv.responsavel_id
+    );
+  };
 
   // Map activities to hour/day grid
   const atividadesByHourDay = useMemo(() => {
@@ -401,7 +413,15 @@ export function CronogramaTab() {
             funcionarios={funcionarios}
             formularios={formularios || []}
             onEdit={() => setEditingEvent(true)}
-            onDelete={() => { deleteAtividade.mutate(selectedEvent.atividade.id); setSelectedEvent(null); }}
+            onDelete={() => {
+              const siblings = findSiblings(selectedEvent.atividade);
+              if (siblings.length > 0) {
+                setBulkConfirm({ type: 'delete', siblings });
+              } else {
+                deleteAtividade.mutate(selectedEvent.atividade.id);
+                setSelectedEvent(null);
+              }
+            }}
             onClose={() => setSelectedEvent(null)}
           />
         )}
@@ -416,19 +436,79 @@ export function CronogramaTab() {
                 funcionarios={funcionarios}
                 formularios={formularios || []}
                 onUpdate={(data) => {
-                  updateAtividade.mutate({ id: selectedEvent.atividade.id, ...data }, {
-                    onSuccess: () => { setEditingEvent(false); setSelectedEvent(null); },
-                  });
+                  const siblings = findSiblings(selectedEvent.atividade);
+                  if (siblings.length > 0) {
+                    setBulkConfirm({ type: 'edit', data, siblings });
+                  } else {
+                    updateAtividade.mutate({ id: selectedEvent.atividade.id, ...data }, {
+                      onSuccess: () => { setEditingEvent(false); setSelectedEvent(null); },
+                    });
+                  }
                 }}
                 onDelete={() => {
-                  deleteAtividade.mutate(selectedEvent.atividade.id);
-                  setEditingEvent(false);
-                  setSelectedEvent(null);
+                  const siblings = findSiblings(selectedEvent.atividade);
+                  if (siblings.length > 0) {
+                    setBulkConfirm({ type: 'delete', siblings });
+                  } else {
+                    deleteAtividade.mutate(selectedEvent.atividade.id);
+                    setEditingEvent(false);
+                    setSelectedEvent(null);
+                  }
                 }}
               />
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Bulk Confirm Dialog */}
+        <AlertDialog open={!!bulkConfirm} onOpenChange={(open) => { if (!open) setBulkConfirm(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {bulkConfirm?.type === 'edit' ? 'Alterar atividades relacionadas?' : 'Excluir atividades relacionadas?'}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {bulkConfirm?.type === 'edit'
+                  ? `Esta atividade existe em ${(bulkConfirm?.siblings.length || 0) + 1} dias da semana. Deseja aplicar as alterações em todos?`
+                  : `Esta atividade existe em ${(bulkConfirm?.siblings.length || 0) + 1} dias da semana. Deseja excluir todas?`}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <Button variant="outline" onClick={() => {
+                if (!selectedEvent) return;
+                if (bulkConfirm?.type === 'edit') {
+                  updateAtividade.mutate({ id: selectedEvent.atividade.id, ...bulkConfirm.data }, {
+                    onSuccess: () => { setEditingEvent(false); setSelectedEvent(null); setBulkConfirm(null); },
+                  });
+                } else {
+                  deleteAtividade.mutate(selectedEvent.atividade.id);
+                  setEditingEvent(false);
+                  setSelectedEvent(null);
+                  setBulkConfirm(null);
+                }
+              }}>
+                Apenas este dia
+              </Button>
+              <AlertDialogAction onClick={() => {
+                if (!selectedEvent || !bulkConfirm) return;
+                const allIds = [selectedEvent.atividade.id, ...bulkConfirm.siblings.map(s => s.id)];
+                if (bulkConfirm.type === 'edit') {
+                  const { dia_semana, ...bulkData } = bulkConfirm.data;
+                  bulkUpdateAtividades.mutate({ ids: allIds, data: bulkData }, {
+                    onSuccess: () => { setEditingEvent(false); setSelectedEvent(null); setBulkConfirm(null); },
+                  });
+                } else {
+                  bulkDeleteAtividades.mutate(allIds, {
+                    onSuccess: () => { setEditingEvent(false); setSelectedEvent(null); setBulkConfirm(null); },
+                  });
+                }
+              }}>
+                {bulkConfirm?.type === 'edit' ? 'Alterar todos' : 'Excluir todos'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
