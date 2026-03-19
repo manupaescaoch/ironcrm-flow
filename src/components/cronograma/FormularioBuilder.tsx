@@ -6,9 +6,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, GripVertical, ArrowLeft, Save } from 'lucide-react';
+import { Plus, Trash2, GripVertical, ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { useCreateFormulario, useUpdateFormulario, useFormularioCampos, FormularioCampo } from '@/hooks/useFormulariosData';
 import { supabase } from '@/integrations/supabase/client';
+
+interface WhatsAppGroup {
+  id: string;
+  name: string;
+}
 
 interface FormularioBuilderProps {
   formularioId?: string | null;
@@ -46,6 +51,9 @@ export function FormularioBuilder({ formularioId, onBack }: FormularioBuilderPro
   const [ativo, setAtivo] = useState(true);
   const [campos, setCampos] = useState<FormularioCampo[]>([]);
   const [loading, setLoading] = useState(false);
+  const [whatsappGroups, setWhatsappGroups] = useState<WhatsAppGroup[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [groupsFailed, setGroupsFailed] = useState(false);
 
   const createFormulario = useCreateFormulario();
   const updateFormulario = useUpdateFormulario();
@@ -77,6 +85,25 @@ export function FormularioBuilder({ formularioId, onBack }: FormularioBuilderPro
       })));
     }
   }, [existingCampos]);
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      setLoadingGroups(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('list-whatsapp-groups');
+        if (error || !Array.isArray(data)) {
+          setGroupsFailed(true);
+        } else {
+          setWhatsappGroups(data);
+        }
+      } catch {
+        setGroupsFailed(true);
+      } finally {
+        setLoadingGroups(false);
+      }
+    };
+    fetchGroups();
+  }, []);
 
   const addCampo = () => {
     setCampos(prev => [...prev, { tipo: 'texto', label: '', opcoes: null, ordem: prev.length, obrigatorio: false }]);
@@ -161,8 +188,29 @@ export function FormularioBuilder({ formularioId, onBack }: FormularioBuilderPro
           </div>
           <div>
             <Label>WhatsApp do Grupo para Respostas</Label>
-            <Input value={whatsappGrupo} onChange={e => setWhatsappGrupo(e.target.value)} placeholder="ID do grupo WhatsApp" />
-            <p className="text-xs text-muted-foreground mt-1">ID do grupo onde as respostas serão enviadas automaticamente</p>
+            {loadingGroups ? (
+              <div className="flex items-center gap-2 h-10 px-3 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Carregando grupos...
+              </div>
+            ) : groupsFailed ? (
+              <>
+                <Input value={whatsappGrupo} onChange={e => setWhatsappGrupo(e.target.value)} placeholder="ID do grupo WhatsApp" />
+                <p className="text-xs text-muted-foreground mt-1">Não foi possível carregar os grupos. Digite o ID manualmente.</p>
+              </>
+            ) : (
+              <Select value={whatsappGrupo} onValueChange={setWhatsappGrupo}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um grupo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {whatsappGroups.map(g => (
+                    <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">Grupo onde as respostas serão enviadas automaticamente</p>
           </div>
           {formularioId && (
             <div className="flex items-center justify-between rounded-lg border p-3">
