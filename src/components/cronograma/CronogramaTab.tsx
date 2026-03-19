@@ -267,6 +267,15 @@ export function CronogramaTab() {
                   </div>
                 )}
               </div>
+              {(form.formulario_id || form.mensagem) && (
+                <WhatsAppPreview
+                  titulo={form.titulo}
+                  horario={form.horario}
+                  responsavelNome={selectedFuncionario?.nome}
+                  formularioTitulo={formularios?.find(f => f.id === form.formulario_id)?.titulo}
+                  mensagem={form.mensagem}
+                />
+              )}
               <Button onClick={handleCreate} disabled={!form.titulo || createAtividade.isPending} className="w-full">
                 {createAtividade.isPending ? 'Salvando...' : 'Criar Atividade'}
               </Button>
