@@ -404,6 +404,7 @@ function AtividadeEditForm({ atividade, funcionarios, formularios, onUpdate, onD
       responsavel_id: editForm.responsavel_id || null,
       formulario_id: editForm.formulario_id || null,
       dia_semana: editForm.dia_semana,
+      mensagem: editForm.mensagem || null,
     });
   };
 
