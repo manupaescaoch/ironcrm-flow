@@ -3,7 +3,7 @@ import { useCronogramaAtividades } from '@/hooks/useCronogramaAtividades';
 import { useCronogramaFuncionarios } from '@/hooks/useCronogramaFuncionarios';
 import { useFormularios } from '@/hooks/useFormulariosData';
 import { useUnidadeFilter } from '@/hooks/useUnidadeFilter';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -22,32 +22,67 @@ export function CronogramaTab() {
   const { data: formularios } = useFormularios();
   const { unidadeId } = useUnidadeFilter();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ titulo: '', horario: '', responsavel_id: '', formulario_id: '', dia_semana: '', mensagem: '' });
+  const [form, setForm] = useState({
+    titulo: '',
+    horario: '',
+    responsavel_id: '',
+    formulario_id: '',
+    dias_semana: [] as string[],
+    mensagem: '',
+  });
 
   const selectedFuncionario = useMemo(() => {
     if (!form.responsavel_id) return null;
-    return funcionarios.find(f => f.id === form.responsavel_id) || null;
+    return funcionarios.find((f) => f.id === form.responsavel_id) || null;
   }, [form.responsavel_id, funcionarios]);
+
+  const toggleDiaSemana = (dia: string) => {
+    setForm((current) => ({
+      ...current,
+      dias_semana: current.dias_semana.includes(dia)
+        ? current.dias_semana.filter((value) => value !== dia)
+        : [...current.dias_semana, dia].sort((a, b) => Number(a) - Number(b)),
+    }));
+  };
 
   const handleCreate = () => {
     if (!form.titulo || !unidadeId) return;
-    createAtividade.mutate({
-      unidade_id: unidadeId,
-      titulo: form.titulo,
-      horario: form.horario || undefined,
-      responsavel_id: form.responsavel_id || undefined,
-      formulario_id: form.formulario_id || undefined,
-      dia_semana: form.dia_semana ? parseInt(form.dia_semana) : undefined,
-    }, {
+
+    const atividadesParaCriar = form.dias_semana.length
+      ? form.dias_semana.map((dia) => ({
+          unidade_id: unidadeId,
+          titulo: form.titulo,
+          horario: form.horario || undefined,
+          responsavel_id: form.responsavel_id || undefined,
+          formulario_id: form.formulario_id || undefined,
+          dia_semana: Number(dia),
+        }))
+      : [{
+          unidade_id: unidadeId,
+          titulo: form.titulo,
+          horario: form.horario || undefined,
+          responsavel_id: form.responsavel_id || undefined,
+          formulario_id: form.formulario_id || undefined,
+          dia_semana: undefined,
+        }];
+
+    createAtividade.mutate(atividadesParaCriar, {
       onSuccess: () => {
         setOpen(false);
-        setForm({ titulo: '', horario: '', responsavel_id: '', formulario_id: '', dia_semana: '', mensagem: '' });
+        setForm({
+          titulo: '',
+          horario: '',
+          responsavel_id: '',
+          formulario_id: '',
+          dias_semana: [],
+          mensagem: '',
+        });
       },
     });
   };
 
   if (isLoading) {
-    return <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-16" />)}</div>;
+    return <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-16" />)}</div>;
   }
 
   return (
@@ -66,40 +101,46 @@ export function CronogramaTab() {
             <div className="space-y-3">
               <div>
                 <Label>Título *</Label>
-                <Input value={form.titulo} onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Ex: Abertura da unidade" />
+                <Input value={form.titulo} onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))} placeholder="Ex: Abertura da unidade" />
               </div>
               <div>
                 <Label>Horário</Label>
-                <Input type="time" value={form.horario} onChange={e => setForm(f => ({ ...f, horario: e.target.value }))} />
+                <Input type="time" value={form.horario} onChange={(e) => setForm((f) => ({ ...f, horario: e.target.value }))} />
               </div>
               <div>
                 <Label>Dia da semana</Label>
-                <div className="flex gap-1.5 mt-1">
-                  {DIAS_SEMANA.map((d, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setForm(f => ({ ...f, dia_semana: f.dia_semana === String(i) ? '' : String(i) }))}
-                      className={`flex-1 py-2 px-1 text-xs font-medium rounded-md border transition-colors ${
-                        form.dia_semana === String(i)
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-background text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground'
-                      }`}
-                    >
-                      {d}
-                    </button>
-                  ))}
+                <div className="mt-1 grid grid-cols-7 gap-1.5">
+                  {DIAS_SEMANA.map((d, i) => {
+                    const isActive = form.dias_semana.includes(String(i));
+
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => toggleDiaSemana(String(i))}
+                        className={`rounded-md border px-1 py-2 text-xs font-medium transition-colors ${
+                          isActive
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        }`}
+                      >
+                        {d}
+                      </button>
+                    );
+                  })}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {form.dia_semana === '' ? 'Todos os dias' : `Apenas ${DIAS_SEMANA[Number(form.dia_semana)]}`}
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {form.dias_semana.length === 0
+                    ? 'Nenhum dia específico selecionado: a atividade valerá para todos os dias.'
+                    : `Será criada para: ${form.dias_semana.map((dia) => DIAS_SEMANA[Number(dia)]).join(', ')}`}
                 </p>
               </div>
               <div>
                 <Label>Responsável</Label>
-                <Select value={form.responsavel_id} onValueChange={v => setForm(f => ({ ...f, responsavel_id: v }))}>
+                <Select value={form.responsavel_id} onValueChange={(v) => setForm((f) => ({ ...f, responsavel_id: v }))}>
                   <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                   <SelectContent>
-                    {funcionarios.map(f => (
+                    {funcionarios.map((f) => (
                       <SelectItem key={f.id} value={f.id}>
                         {f.nome}{f.telefone ? ` — ${f.telefone}` : ''}
                       </SelectItem>
@@ -107,8 +148,8 @@ export function CronogramaTab() {
                   </SelectContent>
                 </Select>
                 {selectedFuncionario && (
-                  <div className="mt-1.5 flex items-center gap-2 text-xs rounded-md bg-muted px-3 py-2">
-                    <Phone className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <div className="mt-1.5 flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs">
+                    <Phone className="w-3.5 h-3.5 text-primary" />
                     <span className="font-medium">{selectedFuncionario.nome}</span>
                     <span className="text-muted-foreground">
                       {selectedFuncionario.telefone
@@ -120,10 +161,10 @@ export function CronogramaTab() {
               </div>
               <div>
                 <Label>Formulário vinculado</Label>
-                <Select value={form.formulario_id} onValueChange={v => setForm(f => ({ ...f, formulario_id: v }))}>
+                <Select value={form.formulario_id} onValueChange={(v) => setForm((f) => ({ ...f, formulario_id: v }))}>
                   <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
                   <SelectContent>
-                    {formularios?.map(f => <SelectItem key={f.id} value={f.id}>{f.titulo}</SelectItem>)}
+                    {formularios?.map((f) => <SelectItem key={f.id} value={f.id}>{f.titulo}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -131,12 +172,12 @@ export function CronogramaTab() {
                 <Label>Mensagem WhatsApp</Label>
                 <Textarea
                   value={form.mensagem}
-                  onChange={e => setForm(f => ({ ...f, mensagem: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, mensagem: e.target.value }))}
                   placeholder="Mensagem que será enviada junto com o link do formulário via WhatsApp..."
                   rows={3}
                   className="resize-none"
                 />
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Texto enviado ao responsável no WhatsApp ao acionar a atividade.
                 </p>
               </div>
@@ -158,7 +199,7 @@ export function CronogramaTab() {
         </Card>
       ) : (
         <div className="space-y-2">
-          {atividades.map(a => (
+          {atividades.map((a) => (
             <Card key={a.id}>
               <CardContent className="py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
