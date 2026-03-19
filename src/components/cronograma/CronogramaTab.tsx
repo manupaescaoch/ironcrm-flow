@@ -95,6 +95,16 @@ export function CronogramaTab() {
   const todayDayIdx = today.getDay();
   const monthYear = weekDates[3].toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
+  // Find sibling activities (same title+horario, different days)
+  const findSiblings = (atv: CronogramaAtividade) => {
+    return atividades.filter(a =>
+      a.id !== atv.id &&
+      a.titulo === atv.titulo &&
+      a.horario === atv.horario &&
+      a.responsavel_id === atv.responsavel_id
+    );
+  };
+
   // Map activities to hour/day grid
   const atividadesByHourDay = useMemo(() => {
     const map: Record<string, CronogramaAtividade[]> = {};
