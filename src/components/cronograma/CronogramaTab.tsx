@@ -346,24 +346,29 @@ export function CronogramaTab() {
         </div>
 
         {/* Detail Popup */}
-        {selectedEvent && (
-          <AtividadeEditPopup
-            atividade={selectedEvent.atividade}
-            date={weekDates[selectedEvent.dayIdx]}
-            funcionarios={funcionarios}
-            formularios={formularios || []}
-            onUpdate={(data) => {
-              updateAtividade.mutate({ id: selectedEvent.atividade.id, ...data }, {
-                onSuccess: () => setSelectedEvent(null),
-              });
-            }}
-            onDelete={() => {
-              deleteAtividade.mutate(selectedEvent.atividade.id);
-              setSelectedEvent(null);
-            }}
-            onClose={() => setSelectedEvent(null)}
-          />
-        )}
+        <Dialog open={!!selectedEvent} onOpenChange={(open) => { if (!open) setSelectedEvent(null); }}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Editar Atividade</DialogTitle>
+            </DialogHeader>
+            {selectedEvent && (
+              <AtividadeEditForm
+                atividade={selectedEvent.atividade}
+                funcionarios={funcionarios}
+                formularios={formularios || []}
+                onUpdate={(data) => {
+                  updateAtividade.mutate({ id: selectedEvent.atividade.id, ...data }, {
+                    onSuccess: () => setSelectedEvent(null),
+                  });
+                }}
+                onDelete={() => {
+                  deleteAtividade.mutate(selectedEvent.atividade.id);
+                  setSelectedEvent(null);
+                }}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
