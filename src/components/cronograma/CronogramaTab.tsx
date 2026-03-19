@@ -104,6 +104,7 @@ export function CronogramaTab() {
                         {f.nome}{f.telefone ? ` — ${f.telefone}` : ''}
                       </SelectItem>
                     ))}
+                  </SelectContent>
                 </Select>
                 {selectedFuncionario && (
                   <div className="mt-1.5 flex items-center gap-2 text-xs rounded-md bg-muted px-3 py-2">
