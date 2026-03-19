@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Clock, Trash2, CalendarDays, Phone, ChevronLeft, ChevronRight, Pencil, X, FileText, User, MessageSquare, List } from 'lucide-react';
@@ -461,20 +460,21 @@ export function CronogramaTab() {
         </Dialog>
 
         {/* Bulk Confirm Dialog */}
-        <AlertDialog open={!!bulkConfirm} onOpenChange={(open) => { if (!open) setBulkConfirm(null); }}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
+        <Dialog open={!!bulkConfirm} onOpenChange={(open) => { if (!open) setBulkConfirm(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
                 {bulkConfirm?.type === 'edit' ? 'Alterar atividades relacionadas?' : 'Excluir atividades relacionadas?'}
-              </AlertDialogTitle>
-              <AlertDialogDescription>
+              </DialogTitle>
+              <DialogDescription>
                 {bulkConfirm?.type === 'edit'
                   ? `Esta atividade existe em ${(bulkConfirm?.siblings.length || 0) + 1} dias da semana. Deseja aplicar as alterações em todos?`
                   : `Esta atividade existe em ${(bulkConfirm?.siblings.length || 0) + 1} dias da semana. Deseja excluir todas?`}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
+                type="button"
                 variant="outline"
                 onClick={() => setBulkConfirm(null)}
                 disabled={updateAtividade.isPending || deleteAtividade.isPending || bulkUpdateAtividades.isPending || bulkDeleteAtividades.isPending}
@@ -482,6 +482,7 @@ export function CronogramaTab() {
                 Cancelar
               </Button>
               <Button
+                type="button"
                 variant="secondary"
                 onClick={async () => {
                   if (!selectedEvent || !bulkConfirm) return;
@@ -493,9 +494,9 @@ export function CronogramaTab() {
                       await deleteAtividade.mutateAsync(selectedEvent.atividade.id);
                     }
 
+                    setBulkConfirm(null);
                     setEditingEvent(false);
                     setSelectedEvent(null);
-                    setBulkConfirm(null);
                   } catch {
                     // toast handled in mutation hook
                   }
@@ -505,6 +506,7 @@ export function CronogramaTab() {
                 Apenas este dia
               </Button>
               <Button
+                type="button"
                 onClick={async () => {
                   if (!selectedEvent || !bulkConfirm) return;
 
@@ -518,9 +520,9 @@ export function CronogramaTab() {
                       await bulkDeleteAtividades.mutateAsync(allIds);
                     }
 
+                    setBulkConfirm(null);
                     setEditingEvent(false);
                     setSelectedEvent(null);
-                    setBulkConfirm(null);
                   } catch {
                     // toast handled in mutation hook
                   }
@@ -529,9 +531,9 @@ export function CronogramaTab() {
               >
                 {bulkConfirm?.type === 'edit' ? 'Alterar todos' : 'Excluir todos'}
               </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
