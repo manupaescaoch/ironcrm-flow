@@ -159,10 +159,10 @@ export function useUpdateFormulario() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, titulo, descricao, ativo, campos }: { id: string; titulo: string; descricao?: string; ativo?: boolean; campos?: FormularioCampo[] }) => {
+    mutationFn: async ({ id, titulo, descricao, setor, turno, whatsapp_grupo, ativo, campos }: { id: string; titulo: string; descricao?: string; setor?: string; turno?: string; whatsapp_grupo?: string; ativo?: boolean; campos?: FormularioCampo[] }) => {
       const { error: formError } = await supabase
         .from('formularios')
-        .update({ titulo, descricao: descricao || null, ...(ativo !== undefined ? { ativo } : {}) })
+        .update({ titulo, descricao: descricao || null, setor: setor || 'geral', turno: turno || 'integral', whatsapp_grupo: whatsapp_grupo || null, ...(ativo !== undefined ? { ativo } : {}) })
         .eq('id', id);
       if (formError) throw formError;
 
