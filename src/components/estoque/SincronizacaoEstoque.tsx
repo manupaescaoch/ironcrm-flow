@@ -172,13 +172,7 @@ export function SincronizacaoEstoque() {
       });
       if (error) throw error;
 
-      // 2. Atualizar estoque manualmente
-      const { error: errUpdate } = await supabase
-        .from('estoque_interno')
-        .update({ quantidade_atual: item.estoque_registrado, updated_at: new Date().toISOString() })
-        .eq('insumo_id', item.insumo_id)
-        .eq('unidade_id', unidadeAtual.id);
-      if (errUpdate) throw errUpdate;
+      // O trigger 'atualizar_estoque_apos_movimentacao' já atualiza estoque_interno automaticamente
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['movimentacoes_todas'] });
