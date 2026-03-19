@@ -247,7 +247,7 @@ function EventDetailPopup({ rotina, atividades, date, canEdit, isAdmin, onEdit, 
   onEdit: () => void; onDelete?: () => void; onClose: () => void;
 }) {
   const popupRef = useRef<HTMLDivElement>(null);
-  const colors = SETOR_COLORS[rotina.setor] || SETOR_COLORS['Geral'];
+  const colors = PRIORIDADE_COLORS[rotina.prioridade] || PRIORIDADE_COLORS['media'];
   const timeLabel = rotina.horario_esperado?.substring(0, 5);
   const dayLabel = formatDayOfWeek(date);
 
