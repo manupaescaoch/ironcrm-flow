@@ -551,3 +551,39 @@ function AtividadeEditForm({ atividade, funcionarios, formularios, onUpdate, onD
     </div>
   );
 }
+
+function WhatsAppPreview({ titulo, horario, responsavelNome, formularioTitulo, mensagem }: {
+  titulo: string;
+  horario: string;
+  responsavelNome?: string;
+  formularioTitulo?: string;
+  mensagem: string;
+}) {
+  const lines: string[] = [];
+  lines.push(`📋 *${titulo || 'Atividade'}*`);
+  if (horario) lines.push(`⏰ Horário: ${horario}`);
+  if (responsavelNome) lines.push(`👤 Responsável: ${responsavelNome}`);
+  if (mensagem) {
+    lines.push('');
+    lines.push(mensagem);
+  }
+  if (formularioTitulo) {
+    lines.push('');
+    lines.push(`📝 Formulário: *${formularioTitulo}*`);
+    lines.push('🔗 https://app.exemplo.com/formulario/...');
+  }
+
+  const preview = lines.join('\n');
+
+  return (
+    <div className="rounded-lg border border-border bg-muted/50 p-3 mt-2">
+      <div className="flex items-center gap-2 mb-2">
+        <Phone className="w-3.5 h-3.5 text-green-600" />
+        <span className="text-xs font-medium text-muted-foreground">Prévia da mensagem WhatsApp</span>
+      </div>
+      <div className="rounded-lg bg-[#dcf8c6] dark:bg-[#025c4c] px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap font-mono text-foreground">
+        {preview}
+      </div>
+    </div>
+  );
+}
