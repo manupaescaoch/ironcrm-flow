@@ -116,7 +116,7 @@ export function CronogramaTab() {
                 </Select>
                 {selectedFuncionario && (
                   <div className="mt-1.5 flex items-center gap-2 text-xs rounded-md bg-muted px-3 py-2">
-                    <Phone className="w-3.5 h-3.5 text-green-600" />
+                    <Phone className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                     <span className="font-medium">{selectedFuncionario.nome}</span>
                     <span className="text-muted-foreground">
                       {selectedFuncionario.telefone
