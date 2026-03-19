@@ -92,12 +92,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Filtrar atividades cujo horário está na janela atual (±7 min para cobrir cron de 15 em 15)
+    // Filtrar atividades cujo horário está na janela atual
     const atividadesNaJanela = atividades.filter(a => {
       if (!a.horario) return false;
       const [hStr, mStr] = a.horario.split(':');
       const aHour = parseInt(hStr, 10);
       const aMinute = parseInt(mStr, 10);
+      if (isForced) {
+        // Quando forçado, enviar todas do horário exato
+        return aHour === currentHour;
+      }
       const aTotalMin = aHour * 60 + aMinute;
       const nowTotalMin = currentHour * 60 + currentMinute;
       // Janela de -2 a +12 minutos (cobre cron a cada 15 min)
