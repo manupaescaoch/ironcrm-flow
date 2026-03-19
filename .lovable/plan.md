@@ -1,31 +1,23 @@
 
 
-## Buscar grupos do WhatsApp via Z-API no FormularioBuilder
+## Problem: Stock Double-Counting
 
-Criar uma edge function que lista os grupos do WhatsApp conectados à instância Z-API e usar essa lista como select no campo "WhatsApp do Grupo para Respostas".
+The stock quantity is being updated **twice** for every movement:
 
-### Edge Function: `list-whatsapp-groups`
+1. **Database trigger** `atualizar_estoque_apos_movimentacao` — fires on INSERT to `movimentacoes_estoque` and updates `estoque_interno.quantidade_atual`
+2. **Frontend code** in `EstoqueInterno.tsx` (lines 469-502) — manually fetches current stock and updates it again
 
-Novo arquivo `supabase/functions/list-whatsapp-groups/index.ts`:
-- Chama a API Z-API: `GET https://api.z-api.io/instances/{INSTANCE}/token/{TOKEN}/chats` (filtrando `isGroup: true`)
-- Retorna array `[{ id, name }]` com ID e nome de cada grupo
-- Requer autenticação (apenas admin)
-- CORS headers padrão
+When you add 1 unit to a stock of 1, the trigger makes it 2, then the frontend reads 2 and adds 1 again making it 3 (or reads the already-updated value). The exact result depends on timing, which explains the jump to 4.
 
-Configurar `verify_jwt = false` no `supabase/config.toml`.
+## Solution
 
-### Alterações no FormularioBuilder
+**Remove the manual stock update from the frontend** (lines 469-501 in `EstoqueInterno.tsx`). Keep only the movement INSERT. The database trigger already handles the stock balance correctly.
 
-- Ao carregar o componente, invocar `supabase.functions.invoke('list-whatsapp-groups')` para buscar a lista de grupos
-- Substituir o `<Input>` do campo "WhatsApp do Grupo" por um `<Select>` com as opções vindas da API
-- Cada opção mostra o nome do grupo e salva o ID do grupo no banco
-- Fallback: se a chamada falhar, manter o input manual como está hoje
+### Changes to `src/pages/EstoqueInterno.tsx`:
 
-### Arquivos alterados
+1. **Simplify `registrarMovimentacaoMutation`**: Remove the entire block that fetches `estoqueExistente` and manually updates `estoque_interno`. The mutation should only insert into `movimentacoes_estoque` — the trigger handles the rest.
 
-| Arquivo | Ação |
-|---|---|
-| `supabase/functions/list-whatsapp-groups/index.ts` | Novo |
-| `supabase/config.toml` | Adicionar `[functions.list-whatsapp-groups]` |
-| `src/components/cronograma/FormularioBuilder.tsx` | Trocar Input por Select com grupos do WhatsApp |
+2. **Same fix for `corrigirMutation`** in `SincronizacaoEstoque.tsx` (line ~148): Remove the manual `estoque_interno` update there too, since the trigger already handles adjustments.
+
+This is a one-line-of-logic fix — the trigger is correct and handles all three types (entrada, retirada, ajuste). The frontend duplication is the bug.
 
