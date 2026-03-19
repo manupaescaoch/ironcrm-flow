@@ -187,7 +187,7 @@ export function RotinasCalendario({ rotinas, atividades, onEdit, onDelete, canEd
                 return (
                   <div key={dayIdx} className={cn('border-r last:border-r-0 p-0.5 relative', isToday && 'bg-primary/[0.02]')}>
                     {items.map(({ rotina }) => {
-                      const colors = SETOR_COLORS[rotina.setor] || SETOR_COLORS['Geral'];
+                      const colors = PRIORIDADE_COLORS[rotina.prioridade] || PRIORIDADE_COLORS['media'];
                       const timeLabel = rotina.horario_esperado?.substring(0, 5);
                       return (
                         <button key={rotina.id} onClick={(e) => handleEventClick(rotina, dayIdx, e)}
