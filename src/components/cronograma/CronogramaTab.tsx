@@ -119,6 +119,7 @@ export function CronogramaTab() {
           responsavel_id: form.responsavel_id || undefined,
           formulario_id: form.formulario_id || undefined,
           dia_semana: Number(dia),
+          mensagem: form.mensagem || undefined,
         }))
       : [{
           unidade_id: unidadeId,
@@ -127,6 +128,7 @@ export function CronogramaTab() {
           responsavel_id: form.responsavel_id || undefined,
           formulario_id: form.formulario_id || undefined,
           dia_semana: undefined,
+          mensagem: form.mensagem || undefined,
         }];
 
     createAtividade.mutate(atividadesParaCriar, {
