@@ -28,6 +28,12 @@ const SETOR_COLORS: Record<string, { bg: string; border: string; dot: string }> 
   'Geral': { bg: 'bg-slate-500/90 text-white', border: 'border-slate-600', dot: 'bg-slate-500' },
 };
 
+const PRIORIDADE_COLORS: Record<string, { bg: string; border: string; dot: string }> = {
+  'alta': { bg: 'bg-red-500/90 text-white', border: 'border-red-600', dot: 'bg-red-500' },
+  'media': { bg: 'bg-amber-500/90 text-white', border: 'border-amber-600', dot: 'bg-amber-500' },
+  'baixa': { bg: 'bg-emerald-500/90 text-white', border: 'border-emerald-600', dot: 'bg-emerald-500' },
+};
+
 function getWeekDates(baseDate: Date): Date[] {
   const start = new Date(baseDate);
   start.setDate(start.getDate() - start.getDay());
