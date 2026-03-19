@@ -161,7 +161,7 @@ export function SincronizacaoEstoque() {
     mutationFn: async (item: Inconsistencia) => {
       if (!unidadeAtual) throw new Error('Nenhuma unidade selecionada');
       
-      // Criar movimentação de ajuste com o valor registrado no estoque
+      // 1. Criar movimentação de ajuste
       const { error } = await supabase.from('movimentacoes_estoque').insert({
         insumo_id: item.insumo_id,
         tipo: 'ajuste',
@@ -171,10 +171,19 @@ export function SincronizacaoEstoque() {
         unidade_id: unidadeAtual.id,
       });
       if (error) throw error;
+
+      // 2. Atualizar estoque manualmente
+      const { error: errUpdate } = await supabase
+        .from('estoque_interno')
+        .update({ quantidade_atual: item.estoque_registrado, updated_at: new Date().toISOString() })
+        .eq('insumo_id', item.insumo_id)
+        .eq('unidade_id', unidadeAtual.id);
+      if (errUpdate) throw errUpdate;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['movimentacoes_todas'] });
       queryClient.invalidateQueries({ queryKey: ['movimentacoes_estoque'] });
+      queryClient.invalidateQueries({ queryKey: ['estoque_interno'] });
       toast({ title: 'Ajuste de correção registrado!' });
     },
     onError: (error: Error) => {
