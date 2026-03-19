@@ -376,12 +376,22 @@ export function CronogramaTab() {
           )}
         </div>
 
-        {/* Detail Popup */}
-        <Dialog open={!!selectedEvent} onOpenChange={(open) => { if (!open) setSelectedEvent(null); }}>
+        {selectedEvent && !editingEvent && (
+          <CronogramaEventPopup
+            atividade={selectedEvent.atividade}
+            date={weekDates[selectedEvent.dayIdx]}
+            funcionarios={funcionarios}
+            formularios={formularios || []}
+            onEdit={() => setEditingEvent(true)}
+            onDelete={() => { deleteAtividade.mutate(selectedEvent.atividade.id); setSelectedEvent(null); }}
+            onClose={() => setSelectedEvent(null)}
+          />
+        )}
+
+        {/* Edit Dialog */}
+        <Dialog open={editingEvent && !!selectedEvent} onOpenChange={(open) => { if (!open) { setEditingEvent(false); setSelectedEvent(null); } }}>
           <DialogContent className="max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Editar Atividade</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>Editar Atividade</DialogTitle></DialogHeader>
             {selectedEvent && (
               <AtividadeEditForm
                 atividade={selectedEvent.atividade}
@@ -389,11 +399,12 @@ export function CronogramaTab() {
                 formularios={formularios || []}
                 onUpdate={(data) => {
                   updateAtividade.mutate({ id: selectedEvent.atividade.id, ...data }, {
-                    onSuccess: () => setSelectedEvent(null),
+                    onSuccess: () => { setEditingEvent(false); setSelectedEvent(null); },
                   });
                 }}
                 onDelete={() => {
                   deleteAtividade.mutate(selectedEvent.atividade.id);
+                  setEditingEvent(false);
                   setSelectedEvent(null);
                 }}
               />
