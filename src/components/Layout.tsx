@@ -24,7 +24,8 @@ import {
   Menu,
   CheckSquare,
   Phone,
-  ClipboardList
+  ClipboardList,
+  FileCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/logo.png';
