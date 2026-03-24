@@ -62,27 +62,25 @@ Deno.serve(async (req) => {
     const user = userData.user;
     console.log(`User ${user.id} (${user.email}) authenticated successfully`);
 
-    // 4. Check if user is ADMIN using has_role function
-    const { data: isAdmin, error: roleErr } = await supabaseAdmin.rpc('has_role', {
-      _user_id: user.id,
-      _role: 'admin',
-    });
-
-    if (roleErr) {
-      console.error('Role check error:', roleErr);
-      return new Response(
-        JSON.stringify({ error: 'Server error', message: 'Erro ao verificar permissões' }), 
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500,
-        }
-      );
+    // 4. Check if user has an allowed role (admin, comercial, coordenador)
+    const allowedRoles = ['admin', 'user', 'coordenador'] as const;
+    let hasAccess = false;
+    
+    for (const role of allowedRoles) {
+      const { data: hasRole } = await supabaseAdmin.rpc('has_role', {
+        _user_id: user.id,
+        _role: role,
+      });
+      if (hasRole) {
+        hasAccess = true;
+        break;
+      }
     }
 
-    if (!isAdmin) {
-      console.log(`User ${user.id} is not an admin, access denied`);
+    if (!hasAccess) {
+      console.log(`User ${user.id} does not have access, denied`);
       return new Response(
-        JSON.stringify({ error: 'Forbidden', message: 'Apenas administradores podem listar usuários' }), 
+        JSON.stringify({ error: 'Forbidden', message: 'Sem permissão para listar usuários' }), 
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 403,
