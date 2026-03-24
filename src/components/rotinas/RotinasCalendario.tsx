@@ -274,7 +274,7 @@ function EventDetailPopup({ rotina, atividades, date, canEdit, isAdmin, onEdit, 
               <Pencil className="w-4 h-4" />
             </Button>
           )}
-          {isAdmin && onDelete && (
+          {canEdit && onDelete && (
             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete}>
               <Trash2 className="w-4 h-4" />
             </Button>
