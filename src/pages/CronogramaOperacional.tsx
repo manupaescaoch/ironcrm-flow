@@ -13,7 +13,7 @@ type View = 'list' | 'builder';
 export default function CronogramaOperacional() {
   const [view, setView] = useState<View>('list');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('cronograma');
 
   const handleCreateNew = () => {
     setEditingId(null);
