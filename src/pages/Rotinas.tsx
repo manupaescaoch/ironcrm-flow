@@ -26,7 +26,7 @@ export default function Rotinas() {
     toggleExecucao, saveAtividades,
   } = useRotinasData();
 
-  const canEdit = isAdmin || userRole === 'coordenador';
+  const canEdit = isAdmin || userRole === 'coordenador' || userRole === 'comercial';
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRotina, setSelectedRotina] = useState<Rotina | null>(null);
