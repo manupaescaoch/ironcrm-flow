@@ -1,37 +1,30 @@
 
 
-## Corrigir Estoque: Trigger com unidade_id Errada
+## Corrigir lista de responsáveis para perfil Comercial
 
-### Problema Identificado
+### Problema
+A tabela `user_unidades` tem RLS que permite SELECT apenas para `user_id = auth.uid()` (ou admin). Quando o hook `useUnidadeUsers` consulta todos os `user_id` da unidade, o comercial só recebe seu próprio registro, resultando numa lista com apenas 1 usuário.
 
-O trigger `atualizar_estoque_apos_movimentacao` cria registros em `estoque_interno` **sem incluir `unidade_id`**, fazendo com que o valor default (Zona Norte) seja usado. Resultado:
+### Solução
 
-- **Itens da Zona Sul** (AGUA MINERAL, FLANELINHA AMARELA) têm estoque registrado na Zona Norte por engano
-- Quando o frontend consulta `estoque_interno` filtrando por `unidade_id = Zona Sul`, encontra 0
-- O Dashboard mostra "Sem Estoque" para itens que na verdade têm saldo
+**1. Migration** — Atualizar a política de SELECT na tabela `user_unidades` para permitir que qualquer usuário autenticado da mesma unidade veja os demais membros:
 
-### Evidência
+```sql
+DROP POLICY IF EXISTS "Users can view own unidades" ON public.user_unidades;
 
-| Insumo | Unidade Real | estoque_interno.unidade_id | quantidade_atual |
-|--------|-------------|---------------------------|-----------------|
-| AGUA MINERAL | Zona Sul | Zona Norte (errado) | 66 |
-| FLANELINHA AMARELA | Zona Sul | Zona Norte (errado) | 37 |
+CREATE POLICY "Users can view unidade members" ON public.user_unidades
+FOR SELECT USING (
+  auth.uid() IS NOT NULL AND (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR unidade_id IN (SELECT get_user_unidades(auth.uid()))
+  )
+);
+```
 
-### Plano de Correção
+Isso permite que qualquer usuário veja os registros de `user_unidades` que pertencem às mesmas unidades que ele, sem expor dados de outras unidades.
 
-**1. Migration — Corrigir trigger + dados existentes**
-
-Atualizar o trigger para:
-- Incluir `unidade_id` no INSERT (usando `NEW.unidade_id` da movimentação)
-- Adicionar `AND unidade_id = NEW.unidade_id` no WHERE do SELECT e UPDATE para segurança
-
-Corrigir dados existentes:
-- UPDATE `estoque_interno` SET `unidade_id` = insumo's `unidade_id` WHERE eles divergem
-
-**2. Nenhuma alteração no frontend** — o código já filtra por `unidade_id` corretamente
+**2. Nenhuma alteração no frontend** — O hook e o modal já estão corretos.
 
 ### Resultado
-- Novos registros de estoque serão criados com a unidade correta
-- Itens ZS voltarão a mostrar o saldo real
-- Status preditivo (Sem Estoque/Crítico/Atenção) será calculado corretamente
+O comercial verá todos os colegas da unidade nos selects de Responsável Principal e Conferência.
 
