@@ -125,16 +125,16 @@ export default function Operacional() {
               <ClipboardList className="w-4 h-4" />
               Rotinas
             </TabsTrigger>
-            <TabsTrigger value="cronograma" className="gap-1.5">
-              <CalendarDays className="w-4 h-4" />
-              Cronograma
-            </TabsTrigger>
-            <TabsTrigger value="dashboard" className="gap-1.5">
-              <LayoutDashboard className="w-4 h-4" />
-              Dashboard
-            </TabsTrigger>
             {isAdmin && (
               <>
+                <TabsTrigger value="cronograma" className="gap-1.5">
+                  <CalendarDays className="w-4 h-4" />
+                  Cronograma
+                </TabsTrigger>
+                <TabsTrigger value="dashboard" className="gap-1.5">
+                  <LayoutDashboard className="w-4 h-4" />
+                  Dashboard
+                </TabsTrigger>
                 <TabsTrigger value="equipe" className="gap-1.5">
                   <Users className="w-4 h-4" />
                   Equipe
