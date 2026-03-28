@@ -24,9 +24,8 @@ import VisaoFinanceiraEstoque from "./pages/VisaoFinanceiraEstoque";
 import DashboardExecutivoEstoque from "./pages/DashboardExecutivoEstoque";
 import RelatorioGastosEstoque from "./pages/RelatorioGastosEstoque";
 import Escala from "./pages/Escala";
-import Rotinas from "./pages/Rotinas";
+import Operacional from "./pages/Operacional";
 import ControleVencimentos from "./pages/ControleVencimentos";
-import CronogramaOperacional from "./pages/CronogramaOperacional";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -272,10 +271,10 @@ const AppRoutes = () => (
       }
     />
     <Route
-      path="/rotinas"
+      path="/operacional"
       element={
         <ProtectedRoute>
-          <Rotinas />
+          <Operacional />
         </ProtectedRoute>
       }
     />
@@ -285,14 +284,6 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <ControleVencimentos />
         </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/cronograma"
-      element={
-        <AdminRoute>
-          <CronogramaOperacional />
-        </AdminRoute>
       }
     />
     <Route path="*" element={<NotFound />} />
