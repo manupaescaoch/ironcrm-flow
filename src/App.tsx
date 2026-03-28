@@ -271,10 +271,10 @@ const AppRoutes = () => (
       }
     />
     <Route
-      path="/rotinas"
+      path="/operacional"
       element={
         <ProtectedRoute>
-          <Rotinas />
+          <Operacional />
         </ProtectedRoute>
       }
     />
@@ -284,14 +284,6 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <ControleVencimentos />
         </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/cronograma"
-      element={
-        <AdminRoute>
-          <CronogramaOperacional />
-        </AdminRoute>
       }
     />
     <Route path="*" element={<NotFound />} />
