@@ -160,8 +160,6 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
         showClickHint
       />
 
-      <AlunosAtivosKPI summary={summary} />
-
       <VencimentosKPI summary={summary} />
     </div>
   );
