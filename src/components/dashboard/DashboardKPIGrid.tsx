@@ -105,7 +105,7 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   const { summary } = useVencimentosData();
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-8">
       <KPICard
         title="Total de Leads"
         value={stats.total}
@@ -159,8 +159,6 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
         activeColor="amber"
         showClickHint
       />
-
-      <AlunosAtivosKPI summary={summary} />
 
       <VencimentosKPI summary={summary} />
     </div>
