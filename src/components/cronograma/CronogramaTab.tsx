@@ -504,6 +504,11 @@ export function CronogramaTab() {
               </div>
             </DialogContent>
           </Dialog>
+          {canEditRotina && (
+            <Button size="sm" variant="outline" onClick={handleNewRotina}>
+              <ClipboardList className="w-4 h-4 mr-1" /> Nova Rotina
+            </Button>
+          )}
         </div>
       </div>
 
