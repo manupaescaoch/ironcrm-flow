@@ -605,7 +605,7 @@ export function CronogramaTab() {
                         selectionMode={selectionMode}
                         isSelected={selectedIds.has(atv.id)}
                         onClick={handleEventClick}
-                        funcionarios={funcionarios}
+                        funcionarios={allResponsaveis}
                       />
                     ))}
                     {rotinaItems.map(({ rotina }) => (
