@@ -1048,16 +1048,13 @@ function AtividadeEditForm({ atividade, funcionarios, unidadeUsers, formularios,
       </div>
       <div>
         <Label>Responsável</Label>
-        <Select value={editForm.responsavel_id} onValueChange={(v) => setEditForm(f => ({ ...f, responsavel_id: v }))}>
-          <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-          <SelectContent>
-            {funcionarios.map((f) => (
-              <SelectItem key={f.id} value={f.id}>
-                {f.nome}{f.telefone ? ` — ${f.telefone}` : ''}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ResponsavelSelect
+          value={editForm.responsavel_id}
+          onValueChange={(v) => setEditForm(f => ({ ...f, responsavel_id: v }))}
+          funcionarios={funcionarios}
+          unidadeUsers={unidadeUsers}
+          placeholder="Selecionar"
+        />
         {selectedFuncionario && (
           <div className="mt-1.5 flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs">
             <Phone className="w-3.5 h-3.5 text-primary" />
