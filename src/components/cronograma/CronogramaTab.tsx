@@ -1147,3 +1147,127 @@ function WhatsAppPreview({ titulo, horario, responsavelNome, formularioTitulo, m
     </div>
   );
 }
+
+// ─── Rotina Event Card ────────────────────────────────────────
+function RotinaEventCard({ rotina, dayIdx, onClick, compact }: {
+  rotina: Rotina;
+  dayIdx: number;
+  onClick: (rotina: Rotina, dayIdx: number) => void;
+  compact?: boolean;
+}) {
+  const colors = PRIORIDADE_COLORS[rotina.prioridade] || PRIORIDADE_COLORS['media'];
+  const timeLabel = rotina.horario_esperado?.substring(0, 5);
+
+  return (
+    <button
+      onClick={() => onClick(rotina, dayIdx)}
+      className={cn(
+        'w-full text-left rounded-md px-1.5 py-1 border-l-[3px] mb-0.5 text-[11px] leading-tight cursor-pointer hover:opacity-80 transition-opacity overflow-hidden',
+        colors.bg, colors.border
+      )}
+    >
+      {compact ? (
+        <span className="truncate block">{rotina.nome}</span>
+      ) : (
+        <>
+          <span className="font-semibold truncate block">{rotina.nome}</span>
+          {timeLabel && <span className="opacity-80 text-[10px] truncate block">{timeLabel}</span>}
+        </>
+      )}
+    </button>
+  );
+}
+
+// ─── Rotina Detail Popup ──────────────────────────────────────
+function RotinaDetailPopup({ rotina, atividades, date, canEdit, onEdit, onDelete, onClose }: {
+  rotina: Rotina;
+  atividades: RotinaAtividade[];
+  date: Date;
+  canEdit: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  const popupRef = useRef<HTMLDivElement>(null);
+  const colors = PRIORIDADE_COLORS[rotina.prioridade] || PRIORIDADE_COLORS['media'];
+  const timeLabel = rotina.horario_esperado?.substring(0, 5);
+  const dayLabel = date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40" />
+      <div ref={popupRef}
+        className="fixed z-50 bg-popover border rounded-xl shadow-xl w-[360px] max-w-[90vw] overflow-hidden animate-in fade-in-0 zoom-in-95"
+        style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+        <div className="flex items-center justify-end gap-1 px-3 pt-3">
+          {canEdit && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
+              <Pencil className="w-4 h-4" />
+            </Button>
+          )}
+          {canEdit && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete}>
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+        <div className="px-5 pb-5 space-y-3">
+          <div className="flex items-start gap-3">
+            <div className={cn('w-4 h-4 rounded-sm mt-1 shrink-0', colors.dot)} />
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold leading-tight">{rotina.nome}</h3>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">Rotina</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground capitalize mt-0.5">
+                {dayLabel}
+                {timeLabel && ` · ${timeLabel}`}
+              </p>
+            </div>
+          </div>
+          {rotina.descricao && (
+            <div className="flex items-start gap-3">
+              <List className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+              <p className="text-sm text-muted-foreground">{rotina.descricao}</p>
+            </div>
+          )}
+          {rotina.responsavel_principal && (
+            <div className="flex items-center gap-3">
+              <User className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm">{rotina.responsavel_principal}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+            <Badge variant="secondary" className="text-xs">{rotina.setor}</Badge>
+          </div>
+          {atividades.length > 0 && (
+            <div className="border-t pt-3 space-y-1.5">
+              <span className="text-xs font-medium text-muted-foreground">Atividades ({atividades.length})</span>
+              {atividades.map(at => (
+                <div key={at.id} className="text-sm flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 shrink-0" />
+                  {at.titulo}
+                  {at.responsavel && <span className="text-xs text-muted-foreground ml-auto">{at.responsavel}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
