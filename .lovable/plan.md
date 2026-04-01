@@ -1,62 +1,34 @@
 
 
-## Unificação: Rotinas + Cronograma Operacional
+## Importar Escala por Imagem (PNG/JPEG)
 
-### Situação Atual
+### Objetivo
+Adicionar um botão "Importar Imagem" na página Escala que permite ao usuário fazer upload de uma foto (PNG/JPEG) de uma tabela de escala. A imagem será processada por IA (Gemini 2.5 Flash via Lovable AI) para extrair os dados da tabela, e o resultado será exibido na mesma tela de preview que o importar texto já usa.
 
-| Aspecto | Rotinas | Cronograma |
-|---------|---------|------------|
-| **Foco** | Checklists por setor | Mensagens para funcionários |
-| **Tabelas** | `rotinas`, `rotina_atividades`, `rotina_execucoes` | `cronograma_atividades`, `cronograma_funcionarios`, `cronograma_envios`, `formularios` |
-| **Automação** | WhatsApp 13h com botões ✅/❌ | Disparo a cada 15min por pg_cron |
-| **Calendário** | Semanal por frequência (diária/semanal/mensal) | Semanal por dia da semana |
-| **Responsável** | Por setor + responsável principal | Por funcionário individual |
-| **Formulários** | Não tem | Formulários dinâmicos públicos |
-| **Acesso** | Admin, Coordenador, Comercial | Apenas Admin |
-| **Menu** | Separados na sidebar | Separados na sidebar |
+### Mudanças
 
-### Proposta de Unificação
+1. **Criar `src/components/escala/ImportarImagemModal.tsx`**
+   - Modal com seleção de mês, ano e unidade padrão (igual ao ImportarTextoModal)
+   - Input de arquivo aceitando `.png, .jpeg, .jpg`
+   - Preview da imagem selecionada
+   - Ao clicar "Processar", envia a imagem para uma edge function que usa Gemini 2.5 Flash para extrair os dados da tabela
+   - Recebe o JSON estruturado e exibe na mesma tabela de preview (igual ao fluxo de texto)
+   - Permite remover registros e importar para o banco
 
-Manter **uma única página** chamada **"Operacional"** com as seguintes abas:
+2. **Criar edge function `supabase/functions/parse-escala-image/index.ts`**
+   - Recebe a imagem em base64 + unidade padrão
+   - Envia para Gemini 2.5 Flash com prompt instruindo a extrair: final_de_semana, treinador, recepcao, servicos_gerais, seguranca
+   - Retorna JSON com array de registros parsed
 
-```text
-┌─────────────────────────────────────────────────┐
-│  📋 Operacional                                 │
-│  Gestão de rotinas, cronograma e formulários    │
-├─────────────┬───────────┬──────────┬────────────┤
-│ Calendário  │ Dashboard │ Equipe   │ Formulários│
-└─────────────┴───────────┴──────────┴────────────┘
-```
+3. **Atualizar `src/pages/Escala.tsx`**
+   - Adicionar botão "Importar Imagem" (ícone `ImagePlus`) ao lado do "Importar Texto"
+   - Importar e renderizar o novo modal
 
-**Aba Calendário** — Grade semanal unificada mostrando:
-- Rotinas (coloridas por setor/prioridade, como hoje)
-- Atividades do cronograma (coloridas diferente, com ícone de mensagem)
-- Popup de detalhe com ações específicas de cada tipo
+### Fluxo do Usuário
+1. Clica "Importar Imagem" → Seleciona mês/ano/unidade → Faz upload da foto
+2. Clica "Processar" → IA extrai dados → Preview na tabela
+3. Revisa, remove linhas indesejadas → Clica "Importar"
 
-**Aba Dashboard** — KPIs combinados:
-- KPIs de rotinas (execução, pendentes)
-- KPIs de envios (enviados, respondidos, taxa)
-
-**Aba Equipe** — Tab de funcionários existente (do Cronograma)
-
-**Aba Formulários** — Builder + lista de formulários (do Cronograma)
-
-### Mudanças Técnicas
-
-1. **Nova página `Operacional.tsx`** substituindo `Rotinas.tsx` e `CronogramaOperacional.tsx`
-2. **Calendário unificado** que renderiza eventos de ambas as tabelas na mesma grade
-3. **Rota única** `/operacional` no lugar de `/rotinas` e `/cronograma`
-4. **Sidebar** com um único item "Operacional" (acessível para admin, coordenador, comercial)
-5. **Sem mudanças no banco** — as tabelas continuam separadas, apenas a UI é unificada
-6. **Modais separados** — criar/editar rotina usa o modal atual, criar/editar atividade do cronograma usa o modal atual
-
-### O que NÃO muda
-- Tabelas e RLS permanecem intactas
-- Automações WhatsApp (13h rotinas + 15min cronograma) continuam independentes
-- Formulários públicos `/formulario/:id` não são afetados
-- Lógica de execução e envios permanece igual
-
-### Consideração
-
-Esta unificação é **apenas visual/navegação**. A lógica de negócio permanece separada porque os dois módulos têm fluxos diferentes (checklist por setor vs. mensagem individual). A vantagem é simplificar a navegação e dar uma visão consolidada do que acontece operacionalmente na unidade.
+### Modelo de IA
+Gemini 2.5 Flash (suportado por Lovable AI, sem necessidade de API key do usuário).
 
