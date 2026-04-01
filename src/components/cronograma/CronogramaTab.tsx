@@ -573,6 +573,7 @@ export function CronogramaTab() {
               </div>
               {weekDates.map((date, dayIdx) => {
                 const items = atividadesByHourDay[`${hour}-${dayIdx}`] || [];
+                const rotinaItems = rotinasByHourDay[`${hour}-${dayIdx}`] || [];
                 const isToday = date.toISOString().split('T')[0] === todayStr;
                 return (
                   <div key={dayIdx} className={cn('border-r last:border-r-0 p-0.5 relative overflow-hidden', isToday && 'bg-primary/[0.02]')}>
@@ -586,6 +587,9 @@ export function CronogramaTab() {
                         onClick={handleEventClick}
                         funcionarios={funcionarios}
                       />
+                    ))}
+                    {rotinaItems.map(({ rotina }) => (
+                      <RotinaEventCard key={rotina.id} rotina={rotina} dayIdx={dayIdx} onClick={handleRotinaEventClick} />
                     ))}
                   </div>
                 );
