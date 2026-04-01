@@ -974,9 +974,10 @@ function CronogramaEventPopup({ atividade, date, funcionarios, formularios, onEd
 }
 
 // ─── Single Edit Form ─────────────────────────────────────────
-function AtividadeEditForm({ atividade, funcionarios, formularios, onUpdate, onDelete }: {
+function AtividadeEditForm({ atividade, funcionarios, unidadeUsers, formularios, onUpdate, onDelete }: {
   atividade: CronogramaAtividade;
   funcionarios: Array<{ id: string; nome: string; telefone: string | null }>;
+  unidadeUsers: Array<{ id: string; name: string; email: string }>;
   formularios: Array<{ id: string; titulo: string }>;
   onUpdate: (data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; dia_semana?: number | null; mensagem?: string | null }) => void;
   onDelete: () => void;
@@ -995,8 +996,12 @@ function AtividadeEditForm({ atividade, funcionarios, formularios, onUpdate, onD
 
   const selectedFuncionario = useMemo(() => {
     if (!editForm.responsavel_id) return null;
-    return funcionarios.find((f) => f.id === editForm.responsavel_id) || null;
-  }, [editForm.responsavel_id, funcionarios]);
+    const func = funcionarios.find((f) => f.id === editForm.responsavel_id);
+    if (func) return func;
+    const user = unidadeUsers.find((u) => u.id === editForm.responsavel_id);
+    if (user) return { id: user.id, nome: user.name, telefone: null } as { id: string; nome: string; telefone: string | null };
+    return null;
+  }, [editForm.responsavel_id, funcionarios, unidadeUsers]);
 
   const handleSave = () => {
     onUpdate({
