@@ -530,8 +530,8 @@ export function CronogramaTab() {
           })}
         </div>
 
-        {/* Activities without time */}
-        {atividadesSemHorario.length > 0 && (
+        {/* Items without time (activities + rotinas) */}
+        {(atividadesSemHorario.length > 0 || rotinasWithoutTime.length > 0) && (
           <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b bg-muted/10">
             <div className="p-1 text-[10px] text-muted-foreground text-right pr-2 border-r flex items-center justify-end">
               <Clock className="w-3 h-3" />
@@ -540,6 +540,7 @@ export function CronogramaTab() {
               const items = atividadesSemHorario.filter(a =>
                 a.dia_semana === null || a.dia_semana === dayIdx
               );
+              const dayRotinas = rotinasWithoutTime.filter(r => rotinaAppliesOnDay(r, DAY_KEYS[dayIdx]));
               return (
                 <div key={dayIdx} className="border-r last:border-r-0 p-0.5 min-h-[40px] overflow-hidden">
                   {items.map(atv => (
@@ -553,6 +554,9 @@ export function CronogramaTab() {
                       funcionarios={funcionarios}
                       compact
                     />
+                  ))}
+                  {dayRotinas.map(r => (
+                    <RotinaEventCard key={r.id} rotina={r} dayIdx={dayIdx} onClick={handleRotinaEventClick} compact />
                   ))}
                 </div>
               );
