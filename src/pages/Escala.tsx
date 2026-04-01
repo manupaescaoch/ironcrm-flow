@@ -41,11 +41,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Edit, Trash2, Copy, Clock, Calendar, FileDown, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, Copy, Clock, Calendar, FileDown, FileText, ImagePlus } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ImportarTextoModal } from '@/components/escala/ImportarTextoModal';
+import { ImportarImagemModal } from '@/components/escala/ImportarImagemModal';
 
 interface Escala {
   id: string;
