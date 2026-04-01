@@ -1168,6 +1168,38 @@ export type Database = {
           },
         ]
       }
+      rotina_notificacoes: {
+        Row: {
+          data_envio: string
+          enviado_em: string | null
+          id: string
+          rotina_id: string
+          status: string | null
+        }
+        Insert: {
+          data_envio: string
+          enviado_em?: string | null
+          id?: string
+          rotina_id: string
+          status?: string | null
+        }
+        Update: {
+          data_envio?: string
+          enviado_em?: string | null
+          id?: string
+          rotina_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotina_notificacoes_rotina_id_fkey"
+            columns: ["rotina_id"]
+            isOneToOne: false
+            referencedRelation: "rotinas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rotinas: {
         Row: {
           arquivada: boolean
