@@ -86,7 +86,11 @@ export function CronogramaTab() {
   const [deleteRotinaTarget, setDeleteRotinaTarget] = useState<Rotina | null>(null);
   const [selectedRotinaEvent, setSelectedRotinaEvent] = useState<{ rotina: Rotina; dayIdx: number } | null>(null);
 
-  // Selection state
+  const [open, setOpen] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [selectedEvent, setSelectedEvent] = useState<{ atividade: CronogramaAtividade; dayIdx: number } | null>(null);
+  const [editingEvent, setEditingEvent] = useState(false);
+
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
