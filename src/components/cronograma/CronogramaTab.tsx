@@ -44,16 +44,47 @@ function parseHour(timeStr: string | null): number | null {
   return isNaN(h) ? null : h;
 }
 
+const DAY_KEYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+
+const PRIORIDADE_COLORS: Record<string, { bg: string; border: string; dot: string }> = {
+  'alta': { bg: 'bg-red-500/90 text-white', border: 'border-red-600', dot: 'bg-red-500' },
+  'media': { bg: 'bg-amber-500/90 text-white', border: 'border-amber-600', dot: 'bg-amber-500' },
+  'baixa': { bg: 'bg-emerald-500/90 text-white', border: 'border-emerald-600', dot: 'bg-emerald-500' },
+};
+
+function rotinaAppliesOnDay(rotina: Rotina, dayKey: string): boolean {
+  const freq = rotina.frequencia;
+  if (freq === 'diaria') return true;
+  if (freq === 'unica') return true;
+  if (freq.startsWith('semanal:')) {
+    const dias = freq.split(':')[1].split(',');
+    return dias.includes(dayKey);
+  }
+  return true;
+}
+
 export function CronogramaTab() {
   const { atividades, isLoading, createAtividade, updateAtividade, bulkUpdateAtividades, bulkDeleteAtividades, deleteAtividade } = useCronogramaAtividades();
   const { ativos: funcionarios } = useCronogramaFuncionarios();
   const { data: formularios } = useFormularios();
   const { unidadeId } = useUnidadeFilter();
+  const { isAdmin, userRole } = useAuth();
 
-  const [open, setOpen] = useState(false);
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [selectedEvent, setSelectedEvent] = useState<{ atividade: CronogramaAtividade; dayIdx: number } | null>(null);
-  const [editingEvent, setEditingEvent] = useState(false);
+  // Rotinas data
+  const {
+    rotinas, atividades: rotinaAtividades, execucoes, loading: rotinasLoading,
+    createRotina, updateRotina, deleteRotina: deleteRotinaFn, duplicateRotina,
+    toggleExecucao, saveAtividades: saveRotinaAtividades,
+  } = useRotinasData();
+
+  const canEditRotina = isAdmin || userRole === 'coordenador' || userRole === 'comercial';
+
+  // Rotina modal state
+  const [rotinaModalOpen, setRotinaModalOpen] = useState(false);
+  const [selectedRotina, setSelectedRotina] = useState<Rotina | null>(null);
+  const [savingRotina, setSavingRotina] = useState(false);
+  const [deleteRotinaTarget, setDeleteRotinaTarget] = useState<Rotina | null>(null);
+  const [selectedRotinaEvent, setSelectedRotinaEvent] = useState<{ rotina: Rotina; dayIdx: number } | null>(null);
 
   // Selection state
   const [selectionMode, setSelectionMode] = useState(false);
