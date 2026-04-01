@@ -3,6 +3,7 @@ import { useCronogramaAtividades } from '@/hooks/useCronogramaAtividades';
 import { useCronogramaFuncionarios } from '@/hooks/useCronogramaFuncionarios';
 import { useFormularios } from '@/hooks/useFormulariosData';
 import { useUnidadeFilter } from '@/hooks/useUnidadeFilter';
+import { useUnidadeUsers } from '@/hooks/useUnidadeUsers';
 import { useRotinasData, Rotina, RotinaAtividade } from '@/hooks/useRotinasData';
 import { useAuth } from '@/contexts/AuthContext';
 import { RotinaModal } from '@/components/rotinas/RotinaModal';
@@ -10,10 +11,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
