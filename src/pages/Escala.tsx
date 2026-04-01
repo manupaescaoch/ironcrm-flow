@@ -405,6 +405,10 @@ const EscalaPage = () => {
             </Button>
             {canEditEscala && (
               <>
+                <Button variant="outline" onClick={() => setImportarImagemOpen(true)}>
+                  <ImagePlus className="w-4 h-4 mr-2" />
+                  Importar Imagem
+                </Button>
                 <Button variant="outline" onClick={() => setImportarTextoOpen(true)}>
                   <FileText className="w-4 h-4 mr-2" />
                   Importar Texto
