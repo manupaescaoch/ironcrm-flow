@@ -112,8 +112,12 @@ export function CronogramaTab() {
 
   const selectedFuncionario = useMemo(() => {
     if (!form.responsavel_id) return null;
-    return funcionarios.find((f) => f.id === form.responsavel_id) || null;
-  }, [form.responsavel_id, funcionarios]);
+    const func = funcionarios.find((f) => f.id === form.responsavel_id);
+    if (func) return func;
+    const user = unidadeUsers.find((u) => u.id === form.responsavel_id);
+    if (user) return { id: user.id, nome: user.name, telefone: null } as { id: string; nome: string; telefone: string | null };
+    return null;
+  }, [form.responsavel_id, funcionarios, unidadeUsers]);
 
   // Brasília time helper
   const getBrasiliaDate = () => {
