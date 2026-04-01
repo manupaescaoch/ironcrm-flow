@@ -666,6 +666,7 @@ export function CronogramaTab() {
               <AtividadeEditForm
                 atividade={selectedEvent.atividade}
                 funcionarios={funcionarios}
+                unidadeUsers={unidadeUsers}
                 formularios={formularios || []}
                 onUpdate={(data) => {
                   updateAtividade.mutate({ id: selectedEvent.atividade.id, ...data }, {
