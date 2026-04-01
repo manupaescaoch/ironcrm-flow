@@ -1284,3 +1284,44 @@ function RotinaDetailPopup({ rotina, atividades, date, canEdit, onEdit, onDelete
     </>
   );
 }
+
+// ─── Responsável Select (grouped) ────────────────────────────
+function ResponsavelSelect({ value, onValueChange, funcionarios, unidadeUsers, placeholder }: {
+  value: string;
+  onValueChange: (v: string) => void;
+  funcionarios: Array<{ id: string; nome: string; telefone: string | null }>;
+  unidadeUsers: Array<{ id: string; name: string; email: string }>;
+  placeholder: string;
+}) {
+  // Filter out unidadeUsers that are already in funcionarios (by name match to avoid duplicates)
+  const funcIds = new Set(funcionarios.map(f => f.id));
+  const filteredUsers = unidadeUsers.filter(u => !funcIds.has(u.id));
+
+  return (
+    <Select value={value} onValueChange={onValueChange}>
+      <SelectTrigger><SelectValue placeholder={placeholder} /></SelectTrigger>
+      <SelectContent>
+        {funcionarios.length > 0 && (
+          <SelectGroup>
+            <SelectLabel>Equipe</SelectLabel>
+            {funcionarios.map((f) => (
+              <SelectItem key={f.id} value={f.id}>
+                {f.nome}{f.telefone ? ` — ${f.telefone}` : ''}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        )}
+        {filteredUsers.length > 0 && (
+          <SelectGroup>
+            <SelectLabel>Usuários</SelectLabel>
+            {filteredUsers.map((u) => (
+              <SelectItem key={u.id} value={u.id}>
+                {u.name}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        )}
+      </SelectContent>
+    </Select>
+  );
+}
