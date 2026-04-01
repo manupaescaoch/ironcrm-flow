@@ -814,8 +814,9 @@ function EventCard({ atv, dayIdx, selectionMode, isSelected, onClick, funcionari
 }
 
 // ─── Bulk Edit Form ───────────────────────────────────────────
-function BulkEditForm({ funcionarios, formularios, onSave, isPending }: {
+function BulkEditForm({ funcionarios, unidadeUsers, formularios, onSave, isPending }: {
   funcionarios: Array<{ id: string; nome: string; telefone: string | null }>;
+  unidadeUsers: Array<{ id: string; name: string; email: string }>;
   formularios: Array<{ id: string; titulo: string }>;
   onSave: (data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; mensagem?: string | null }) => void;
   isPending: boolean;
@@ -851,16 +852,13 @@ function BulkEditForm({ funcionarios, formularios, onSave, isPending }: {
       </div>
       <div>
         <Label>Responsável</Label>
-        <Select value={editForm.responsavel_id} onValueChange={(v) => setEditForm(f => ({ ...f, responsavel_id: v }))}>
-          <SelectTrigger><SelectValue placeholder="Manter atual" /></SelectTrigger>
-          <SelectContent>
-            {funcionarios.map((f) => (
-              <SelectItem key={f.id} value={f.id}>
-                {f.nome}{f.telefone ? ` — ${f.telefone}` : ''}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ResponsavelSelect
+          value={editForm.responsavel_id}
+          onValueChange={(v) => setEditForm(f => ({ ...f, responsavel_id: v }))}
+          funcionarios={funcionarios}
+          unidadeUsers={unidadeUsers}
+          placeholder="Manter atual"
+        />
       </div>
       <div>
         <Label>Formulário</Label>
