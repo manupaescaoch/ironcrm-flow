@@ -697,6 +697,7 @@ export function CronogramaTab() {
             </DialogHeader>
             <BulkEditForm
               funcionarios={funcionarios}
+              unidadeUsers={unidadeUsers}
               formularios={formularios || []}
               onSave={async (data) => {
                 const ids = Array.from(selectedIds);
