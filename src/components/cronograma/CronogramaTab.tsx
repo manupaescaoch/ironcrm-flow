@@ -618,6 +618,19 @@ export function CronogramaTab() {
           )}
         </div>
 
+        {/* Rotina Detail Popup */}
+        {selectedRotinaEvent && (
+          <RotinaDetailPopup
+            rotina={selectedRotinaEvent.rotina}
+            atividades={rotinaAtividades.filter(a => a.rotina_id === selectedRotinaEvent.rotina.id)}
+            date={weekDates[selectedRotinaEvent.dayIdx]}
+            canEdit={canEditRotina}
+            onEdit={() => { handleEditRotina(selectedRotinaEvent.rotina); setSelectedRotinaEvent(null); }}
+            onDelete={() => { setDeleteRotinaTarget(selectedRotinaEvent.rotina); setSelectedRotinaEvent(null); }}
+            onClose={() => setSelectedRotinaEvent(null)}
+          />
+        )}
+
         {/* Event detail popup (only in non-selection mode) */}
         {selectedEvent && !editingEvent && !selectionMode && (
           <CronogramaEventPopup
