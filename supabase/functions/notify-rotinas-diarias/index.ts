@@ -13,39 +13,57 @@ function normalizePhone(phone: string): string {
   return normalized;
 }
 
-function shouldSendToday(frequencia: string): boolean {
+/** Retorna hora Brasília atual */
+function getBrasiliaTime() {
   const now = new Date();
-  // Convert to Brasília time (UTC-3)
-  const brasiliaOffset = -3 * 60;
-  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
-  const brasiliaDate = new Date(utcMs + brasiliaOffset * 60000);
-  const dayOfWeek = brasiliaDate.getDay(); // 0=Sun, 1=Mon...6=Sat
+  const brasiliaStr = now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
+  const brasilia = new Date(brasiliaStr);
+  return {
+    hour: brasilia.getHours(),
+    minute: brasilia.getMinutes(),
+    dayOfWeek: brasilia.getDay(), // 0=Dom, 1=Seg, ..., 6=Sab
+    dateStr: brasilia.toISOString().split('T')[0],
+  };
+}
 
-  switch (frequencia) {
-    case 'diaria':
-      return true;
-    case 'seg_a_sex':
-      return dayOfWeek >= 1 && dayOfWeek <= 5;
-    case 'seg_a_sab':
-      return dayOfWeek >= 1 && dayOfWeek <= 6;
-    case 'semanal_seg':
-      return dayOfWeek === 1;
-    case 'semanal_ter':
-      return dayOfWeek === 2;
-    case 'semanal_qua':
-      return dayOfWeek === 3;
-    case 'semanal_qui':
-      return dayOfWeek === 4;
-    case 'semanal_sex':
-      return dayOfWeek === 5;
-    case 'semanal_sab':
-      return dayOfWeek === 6;
-    case 'semanal_dom':
-      return dayOfWeek === 0;
-    default:
-      // For unknown frequencies, default to sending
-      return true;
+const DAY_MAP: Record<string, number> = {
+  dom: 0, seg: 1, ter: 2, qua: 3, qui: 4, sex: 5, sab: 6,
+};
+
+/**
+ * Verifica se a rotina deve ser enviada hoje baseado na frequência.
+ * Formatos suportados:
+ *   - "diaria"
+ *   - "seg_a_sex"
+ *   - "seg_a_sab"
+ *   - "semanal:seg,ter,qua,qui,sex"
+ *   - "semanal_seg", "semanal_ter", etc.
+ */
+function shouldSendToday(frequencia: string, dayOfWeek: number): boolean {
+  if (!frequencia) return true;
+
+  const freq = frequencia.toLowerCase().trim();
+
+  if (freq === 'diaria') return true;
+
+  if (freq === 'seg_a_sex') return dayOfWeek >= 1 && dayOfWeek <= 5;
+
+  if (freq === 'seg_a_sab') return dayOfWeek >= 1 && dayOfWeek <= 6;
+
+  // Formato "semanal:seg,ter,qua,qui,sex"
+  if (freq.startsWith('semanal:')) {
+    const dias = freq.replace('semanal:', '').split(',').map(d => d.trim());
+    return dias.some(d => DAY_MAP[d] === dayOfWeek);
   }
+
+  // Formato legado "semanal_seg", "semanal_ter", etc.
+  if (freq.startsWith('semanal_')) {
+    const dia = freq.replace('semanal_', '');
+    return DAY_MAP[dia] === dayOfWeek;
+  }
+
+  // Desconhecido — enviar por segurança
+  return true;
 }
 
 Deno.serve(async (req) => {
@@ -70,9 +88,22 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const today = new Date().toISOString().split('T')[0];
-    console.log(`[notify-rotinas] Buscando rotinas ativas para hoje: ${today}`);
+    // Aceitar force_hour para disparo manual
+    let body: any = {};
+    try { body = await req.json(); } catch { /* sem body */ }
 
+    const brasilia = getBrasiliaTime();
+    const forceHour = body?.force_hour;
+    const forceMinute = body?.force_minute ?? 0;
+    const currentHour = forceHour !== undefined ? forceHour : brasilia.hour;
+    const currentMinute = forceHour !== undefined ? forceMinute : brasilia.minute;
+    const dayOfWeek = brasilia.dayOfWeek;
+    const todayStr = brasilia.dateStr;
+    const isForced = forceHour !== undefined;
+
+    console.log(`[notify-rotinas] Hora Brasília: ${currentHour}:${String(currentMinute).padStart(2, '0')}, dia semana: ${dayOfWeek}, data: ${todayStr}${isForced ? ' (FORÇADO)' : ''}`);
+
+    // Buscar rotinas ativas e não arquivadas
     const { data: rotinas, error: rotinasError } = await supabase
       .from('rotinas')
       .select('id, nome, descricao, setor, responsavel_principal, horario_esperado, unidade_id, frequencia')
@@ -95,46 +126,70 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Filter by frequency / day-of-week
-    const eligibleRotinas = rotinas.filter(r => shouldSendToday(r.frequencia));
-    const skippedByFrequency = rotinas.length - eligibleRotinas.length;
-    console.log(`[notify-rotinas] Total: ${rotinas.length}, Elegíveis hoje: ${eligibleRotinas.length}, Ignoradas por frequência: ${skippedByFrequency}`);
+    // 1. Filtrar por frequência / dia da semana
+    const eligibleByDay = rotinas.filter(r => shouldSendToday(r.frequencia, dayOfWeek));
+    console.log(`[notify-rotinas] Total: ${rotinas.length}, Elegíveis pelo dia: ${eligibleByDay.length}`);
 
-    if (eligibleRotinas.length === 0) {
+    // 2. Filtrar por janela de horário (-2 a +12 min)
+    const eligibleByTime = eligibleByDay.filter(r => {
+      if (!r.horario_esperado) return false;
+      const [hStr, mStr] = r.horario_esperado.split(':');
+      const rHour = parseInt(hStr, 10);
+      const rMinute = parseInt(mStr, 10);
+
+      if (isForced) {
+        return rHour === currentHour;
+      }
+
+      const rTotalMin = rHour * 60 + rMinute;
+      const nowTotalMin = currentHour * 60 + currentMinute;
+      return rTotalMin >= nowTotalMin - 2 && rTotalMin <= nowTotalMin + 12;
+    });
+
+    console.log(`[notify-rotinas] Na janela de horário: ${eligibleByTime.length}`);
+
+    if (eligibleByTime.length === 0) {
       return new Response(
-        JSON.stringify({ success: true, sent: 0, skipped_frequency: skippedByFrequency, message: 'Nenhuma rotina elegível hoje' }),
+        JSON.stringify({ success: true, sent: 0, message: 'Nenhuma rotina na janela atual' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check which are already completed today
-    const rotinaIds = eligibleRotinas.map(r => r.id);
+    const rotinaIds = eligibleByTime.map(r => r.id);
+
+    // 3. Verificar já notificadas hoje (rotina_notificacoes)
+    const { data: notificacoesHoje } = await supabase
+      .from('rotina_notificacoes')
+      .select('rotina_id')
+      .in('rotina_id', rotinaIds)
+      .eq('data_envio', todayStr);
+
+    const jaNotificadas = new Set((notificacoesHoje || []).map(n => n.rotina_id));
+
+    // 4. Verificar já concluídas hoje (rotina_execucoes)
     const { data: execucoes } = await supabase
       .from('rotina_execucoes')
-      .select('rotina_id, concluida')
-      .eq('data_execucao', today)
-      .eq('concluida', true)
-      .in('rotina_id', rotinaIds);
+      .select('rotina_id')
+      .in('rotina_id', rotinaIds)
+      .eq('data_execucao', todayStr)
+      .eq('concluida', true);
 
-    const rotinasConcluidas = new Set((execucoes || []).map(e => e.rotina_id));
+    const jaConcluidas = new Set((execucoes || []).map(e => e.rotina_id));
 
-    // Fetch activities
+    // 5. Buscar atividades, unidades e perfis de telefone
     const { data: atividades } = await supabase
       .from('rotina_atividades')
       .select('rotina_id, titulo, responsavel, horario')
       .in('rotina_id', rotinaIds)
       .order('ordem');
 
-    // Fetch unit names
-    const unidadeIds = [...new Set(eligibleRotinas.map(r => r.unidade_id))];
+    const unidadeIds = [...new Set(eligibleByTime.map(r => r.unidade_id))];
     const { data: unidades } = await supabase
       .from('unidades')
       .select('id, nome')
       .in('id', unidadeIds);
-
     const unidadeMap = new Map((unidades || []).map(u => [u.id, u.nome]));
 
-    // Fetch user phone profiles
     const { data: userProfiles } = await supabase
       .from('user_profiles')
       .select('telefone, user_id')
@@ -155,21 +210,28 @@ Deno.serve(async (req) => {
       return profile?.telefone || null;
     }
 
-    // Send one message per eligible rotina
+    // 6. Enviar mensagens
     let sentCount = 0;
+    let skippedNotificada = 0;
     let skippedConcluida = 0;
     const errors: string[] = [];
 
-    for (const rotina of eligibleRotinas) {
-      if (rotinasConcluidas.has(rotina.id)) {
+    for (const rotina of eligibleByTime) {
+      if (jaNotificadas.has(rotina.id)) {
+        skippedNotificada++;
+        console.log(`[notify-rotinas] Já notificada hoje: ${rotina.nome}`);
+        continue;
+      }
+      if (jaConcluidas.has(rotina.id)) {
         skippedConcluida++;
-        console.log(`[notify-rotinas] Ignorada (já concluída): ${rotina.nome}`);
+        console.log(`[notify-rotinas] Já concluída hoje: ${rotina.nome}`);
         continue;
       }
 
       const responsavel = rotina.responsavel_principal;
       if (!responsavel) {
-        console.log(`[notify-rotinas] Ignorada (sem responsável): ${rotina.nome}`);
+        console.log(`[notify-rotinas] Sem responsável: ${rotina.nome}`);
+        errors.push(`Sem responsável: ${rotina.nome}`);
         continue;
       }
 
@@ -234,28 +296,37 @@ Deno.serve(async (req) => {
 
         if (zapiResponse.ok) {
           sentCount++;
-          console.log(`[notify-rotinas] ✅ Enviado para ${responsavel}:`, zapiResult);
+          console.log(`[notify-rotinas] ✅ Enviado: ${rotina.nome}`, zapiResult);
+
+          // Registrar na tabela de rastreio
+          await supabase.from('rotina_notificacoes').insert({
+            rotina_id: rotina.id,
+            data_envio: todayStr,
+            status: 'enviado',
+          });
         } else {
-          console.error(`[notify-rotinas] ❌ Erro Zapi para ${responsavel}:`, zapiResult);
+          console.error(`[notify-rotinas] ❌ Erro Zapi: ${rotina.nome}`, zapiResult);
           errors.push(`Erro Zapi: ${responsavel} - ${rotina.nome}`);
         }
       } catch (err) {
-        console.error(`[notify-rotinas] ❌ Erro ao enviar para ${responsavel}:`, err);
+        console.error(`[notify-rotinas] ❌ Erro envio: ${rotina.nome}`, err);
         errors.push(`Erro envio: ${responsavel} - ${rotina.nome}`);
       }
     }
 
-    console.log(`[notify-rotinas] Concluído: ${sentCount} enviado(s), ${skippedConcluida} já concluída(s), ${skippedByFrequency} fora da frequência, ${errors.length} erro(s)`);
+    console.log(`[notify-rotinas] Concluído: ${sentCount} enviado(s), ${skippedNotificada} já notificada(s), ${skippedConcluida} já concluída(s), ${errors.length} erro(s)`);
 
     return new Response(
       JSON.stringify({
         success: true,
         sent: sentCount,
-        skipped_frequency: skippedByFrequency,
+        skipped_notificada: skippedNotificada,
         skipped_concluida: skippedConcluida,
         errors,
         total_rotinas: rotinas.length,
-        eligible: eligibleRotinas.length,
+        eligible_day: eligibleByDay.length,
+        eligible_time: eligibleByTime.length,
+        hora_brasilia: `${currentHour}:${String(currentMinute).padStart(2, '0')}`,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
