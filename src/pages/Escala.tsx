@@ -779,6 +779,14 @@ const EscalaPage = () => {
           unidades={unidades.map(u => ({ ...u, slug: u.nome.toLowerCase().replace(/\s+/g, '-') }))}
           onSuccess={fetchEscalas}
         />
+
+        {/* Importar Imagem Modal */}
+        <ImportarImagemModal
+          open={importarImagemOpen}
+          onOpenChange={setImportarImagemOpen}
+          unidades={unidades.map(u => ({ ...u, slug: u.nome.toLowerCase().replace(/\s+/g, '-') }))}
+          onSuccess={fetchEscalas}
+        />
       </div>
     </Layout>
   );
