@@ -656,7 +656,7 @@ export function CronogramaTab() {
           <CronogramaEventPopup
             atividade={selectedEvent.atividade}
             date={weekDates[selectedEvent.dayIdx]}
-            funcionarios={funcionarios}
+            funcionarios={allResponsaveis}
             formularios={formularios || []}
             onEdit={() => setEditingEvent(true)}
             onDelete={() => {
