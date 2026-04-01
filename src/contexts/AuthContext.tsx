@@ -121,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const canAccessComissoes = userRole === 'admin';
   const canAccessRelatorio = userRole === 'admin';
   const canAccessAdminUsers = userRole === 'admin';
-  const canEditEscala = userRole === 'admin' || userRole === 'coordenador';
+  const canEditEscala = userRole === 'admin' || userRole === 'coordenador' || userRole === 'comercial';
 
   // Check if user can edit a lead
   // Admin can edit any lead
