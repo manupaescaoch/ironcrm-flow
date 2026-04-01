@@ -70,6 +70,7 @@ export function CronogramaTab() {
   const { ativos: funcionarios } = useCronogramaFuncionarios();
   const { data: formularios } = useFormularios();
   const { unidadeId } = useUnidadeFilter();
+  const { users: unidadeUsers } = useUnidadeUsers();
   const { isAdmin, userRole } = useAuth();
 
   // Rotinas data
