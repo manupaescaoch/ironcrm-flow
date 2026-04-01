@@ -119,6 +119,15 @@ export function CronogramaTab() {
     return null;
   }, [form.responsavel_id, funcionarios, unidadeUsers]);
 
+  // Combined list for name resolution in EventCard/Popup
+  const allResponsaveis = useMemo(() => {
+    const funcIds = new Set(funcionarios.map(f => f.id));
+    const fromUsers = unidadeUsers
+      .filter(u => !funcIds.has(u.id))
+      .map(u => ({ id: u.id, nome: u.name, telefone: null as string | null }));
+    return [...funcionarios, ...fromUsers];
+  }, [funcionarios, unidadeUsers]);
+
   // Brasília time helper
   const getBrasiliaDate = () => {
     const now = new Date();
