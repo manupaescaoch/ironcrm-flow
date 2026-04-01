@@ -105,6 +105,7 @@ const EscalaPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [importarTextoOpen, setImportarTextoOpen] = useState(false);
+  const [importarImagemOpen, setImportarImagemOpen] = useState(false);
   const [editingEscala, setEditingEscala] = useState<Escala | null>(null);
   const [deletingEscala, setDeletingEscala] = useState<Escala | null>(null);
   
