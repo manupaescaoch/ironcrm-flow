@@ -41,11 +41,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Edit, Trash2, Copy, Clock, Calendar, FileDown, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, Copy, Clock, Calendar, FileDown, FileText, ImagePlus } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ImportarTextoModal } from '@/components/escala/ImportarTextoModal';
+import { ImportarImagemModal } from '@/components/escala/ImportarImagemModal';
 
 interface Escala {
   id: string;
@@ -104,6 +105,7 @@ const EscalaPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [importarTextoOpen, setImportarTextoOpen] = useState(false);
+  const [importarImagemOpen, setImportarImagemOpen] = useState(false);
   const [editingEscala, setEditingEscala] = useState<Escala | null>(null);
   const [deletingEscala, setDeletingEscala] = useState<Escala | null>(null);
   
@@ -403,6 +405,10 @@ const EscalaPage = () => {
             </Button>
             {canEditEscala && (
               <>
+                <Button variant="outline" onClick={() => setImportarImagemOpen(true)}>
+                  <ImagePlus className="w-4 h-4 mr-2" />
+                  Importar Imagem
+                </Button>
                 <Button variant="outline" onClick={() => setImportarTextoOpen(true)}>
                   <FileText className="w-4 h-4 mr-2" />
                   Importar Texto
@@ -770,6 +776,14 @@ const EscalaPage = () => {
         <ImportarTextoModal
           open={importarTextoOpen}
           onOpenChange={setImportarTextoOpen}
+          unidades={unidades.map(u => ({ ...u, slug: u.nome.toLowerCase().replace(/\s+/g, '-') }))}
+          onSuccess={fetchEscalas}
+        />
+
+        {/* Importar Imagem Modal */}
+        <ImportarImagemModal
+          open={importarImagemOpen}
+          onOpenChange={setImportarImagemOpen}
           unidades={unidades.map(u => ({ ...u, slug: u.nome.toLowerCase().replace(/\s+/g, '-') }))}
           onSuccess={fetchEscalas}
         />
