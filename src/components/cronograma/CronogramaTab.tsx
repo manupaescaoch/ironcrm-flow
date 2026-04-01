@@ -394,10 +394,22 @@ export function CronogramaTab() {
               </Button>
             </>
           )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm"><Plus className="w-4 h-4 mr-1" /> Novo</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setOpen(true)}>
+                <CalendarDays className="w-4 h-4 mr-2" /> Nova Atividade
+              </DropdownMenuItem>
+              {canEditRotina && (
+                <DropdownMenuItem onClick={handleNewRotina}>
+                  <ClipboardList className="w-4 h-4 mr-2" /> Nova Rotina
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm"><Plus className="w-4 h-4 mr-1" /> Nova Atividade</Button>
-            </DialogTrigger>
             <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>Nova Atividade</DialogTitle></DialogHeader>
               <div className="space-y-3">
@@ -438,16 +450,13 @@ export function CronogramaTab() {
                 </div>
                 <div>
                   <Label>Responsável</Label>
-                  <Select value={form.responsavel_id} onValueChange={(v) => setForm((f) => ({ ...f, responsavel_id: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                    <SelectContent>
-                      {funcionarios.map((f) => (
-                        <SelectItem key={f.id} value={f.id}>
-                          {f.nome}{f.telefone ? ` — ${f.telefone}` : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ResponsavelSelect
+                    value={form.responsavel_id}
+                    onValueChange={(v) => setForm((f) => ({ ...f, responsavel_id: v }))}
+                    funcionarios={funcionarios}
+                    unidadeUsers={unidadeUsers}
+                    placeholder="Selecionar"
+                  />
                   {selectedFuncionario && (
                     <div className="mt-1.5 flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs">
                       <Phone className="w-3.5 h-3.5 text-primary" />
@@ -511,11 +520,6 @@ export function CronogramaTab() {
               </div>
             </DialogContent>
           </Dialog>
-          {canEditRotina && (
-            <Button size="sm" variant="outline" onClick={handleNewRotina}>
-              <ClipboardList className="w-4 h-4 mr-1" /> Nova Rotina
-            </Button>
-          )}
         </div>
       </div>
 
