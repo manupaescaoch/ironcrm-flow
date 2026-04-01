@@ -179,6 +179,71 @@ export function CronogramaTab() {
   const atividadesSemHorario = useMemo(() =>
     atividades.filter(a => !a.horario), [atividades]);
 
+  // Map rotinas to hour/day grid
+  const activeRotinas = useMemo(() =>
+    rotinas.filter(r => r.ativo && !r.arquivada), [rotinas]);
+
+  const rotinasByHourDay = useMemo(() => {
+    const map: Record<string, Array<{ rotina: Rotina; rotinaAtividades: RotinaAtividade[] }>> = {};
+    for (const rotina of activeRotinas) {
+      const hour = parseHour(rotina.horario_esperado);
+      if (hour === null) continue;
+      for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+        if (!rotinaAppliesOnDay(rotina, DAY_KEYS[dayIdx])) continue;
+        const key = `${hour}-${dayIdx}`;
+        if (!map[key]) map[key] = [];
+        map[key].push({ rotina, rotinaAtividades: rotinaAtividades.filter(a => a.rotina_id === rotina.id) });
+      }
+    }
+    return map;
+  }, [activeRotinas, rotinaAtividades]);
+
+  const rotinasWithoutTime = useMemo(() =>
+    activeRotinas.filter(r => !r.horario_esperado), [activeRotinas]);
+
+  // Rotina handlers
+  const handleNewRotina = () => { setSelectedRotina(null); setRotinaModalOpen(true); };
+  const handleEditRotina = useCallback((r: Rotina) => { setSelectedRotina(r); setRotinaModalOpen(true); }, []);
+  const handleDeleteRotinaConfirm = useCallback(async () => {
+    if (!deleteRotinaTarget) return;
+    await deleteRotinaFn(deleteRotinaTarget.id);
+    setDeleteRotinaTarget(null);
+  }, [deleteRotinaTarget, deleteRotinaFn]);
+
+  const handleSaveRotina = async (data: any, atividadesForm: any[]) => {
+    setSavingRotina(true);
+    try {
+      if (selectedRotina) {
+        const updated = await updateRotina(selectedRotina.id, data);
+        if (!updated) return false;
+        const saved = await saveRotinaAtividades(selectedRotina.id, atividadesForm.map(a => ({
+          titulo: a.titulo.toUpperCase(),
+          responsavel: a.responsavel?.toUpperCase() || null,
+          horario: a.horario || null,
+          observacao: a.observacao || null,
+        })));
+        return !!saved;
+      }
+      const created = await createRotina(data, atividadesForm.map(a => ({
+        titulo: a.titulo.toUpperCase(),
+        responsavel: a.responsavel?.toUpperCase() || null,
+        horario: a.horario || null,
+        observacao: a.observacao || null,
+      })));
+      return !!created;
+    } finally {
+      setSavingRotina(false);
+    }
+  };
+
+  const selectedRotinaAtividades = selectedRotina
+    ? rotinaAtividades.filter(a => a.rotina_id === selectedRotina.id)
+    : [];
+
+  const handleRotinaEventClick = (rotina: Rotina, dayIdx: number) => {
+    setSelectedRotinaEvent({ rotina, dayIdx });
+  };
+
   // Clear selection when changing weeks
   useEffect(() => {
     setSelectedIds(new Set());
