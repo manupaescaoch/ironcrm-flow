@@ -13,6 +13,41 @@ function normalizePhone(phone: string): string {
   return normalized;
 }
 
+function shouldSendToday(frequencia: string): boolean {
+  const now = new Date();
+  // Convert to Brasília time (UTC-3)
+  const brasiliaOffset = -3 * 60;
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+  const brasiliaDate = new Date(utcMs + brasiliaOffset * 60000);
+  const dayOfWeek = brasiliaDate.getDay(); // 0=Sun, 1=Mon...6=Sat
+
+  switch (frequencia) {
+    case 'diaria':
+      return true;
+    case 'seg_a_sex':
+      return dayOfWeek >= 1 && dayOfWeek <= 5;
+    case 'seg_a_sab':
+      return dayOfWeek >= 1 && dayOfWeek <= 6;
+    case 'semanal_seg':
+      return dayOfWeek === 1;
+    case 'semanal_ter':
+      return dayOfWeek === 2;
+    case 'semanal_qua':
+      return dayOfWeek === 3;
+    case 'semanal_qui':
+      return dayOfWeek === 4;
+    case 'semanal_sex':
+      return dayOfWeek === 5;
+    case 'semanal_sab':
+      return dayOfWeek === 6;
+    case 'semanal_dom':
+      return dayOfWeek === 0;
+    default:
+      // For unknown frequencies, default to sending
+      return true;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -60,8 +95,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Buscar execuções de hoje para saber quais já foram concluídas
-    const rotinaIds = rotinas.map(r => r.id);
+    // Filter by frequency / day-of-week
+    const eligibleRotinas = rotinas.filter(r => shouldSendToday(r.frequencia));
+    const skippedByFrequency = rotinas.length - eligibleRotinas.length;
+    console.log(`[notify-rotinas] Total: ${rotinas.length}, Elegíveis hoje: ${eligibleRotinas.length}, Ignoradas por frequência: ${skippedByFrequency}`);
+
+    if (eligibleRotinas.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, sent: 0, skipped_frequency: skippedByFrequency, message: 'Nenhuma rotina elegível hoje' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check which are already completed today
+    const rotinaIds = eligibleRotinas.map(r => r.id);
     const { data: execucoes } = await supabase
       .from('rotina_execucoes')
       .select('rotina_id, concluida')
@@ -71,15 +118,15 @@ Deno.serve(async (req) => {
 
     const rotinasConcluidas = new Set((execucoes || []).map(e => e.rotina_id));
 
-    // Buscar atividades de cada rotina
+    // Fetch activities
     const { data: atividades } = await supabase
       .from('rotina_atividades')
       .select('rotina_id, titulo, responsavel, horario')
       .in('rotina_id', rotinaIds)
       .order('ordem');
 
-    // Buscar nomes das unidades
-    const unidadeIds = [...new Set(rotinas.map(r => r.unidade_id))];
+    // Fetch unit names
+    const unidadeIds = [...new Set(eligibleRotinas.map(r => r.unidade_id))];
     const { data: unidades } = await supabase
       .from('unidades')
       .select('id, nome')
@@ -87,36 +134,44 @@ Deno.serve(async (req) => {
 
     const unidadeMap = new Map((unidades || []).map(u => [u.id, u.nome]));
 
-    // Buscar perfis de telefone
+    // Fetch user phone profiles
     const { data: userProfiles } = await supabase
       .from('user_profiles')
       .select('telefone, user_id')
       .not('telefone', 'is', null)
       .neq('telefone', '');
 
-    // Buscar auth users para match por nome
     const { data: authData } = await supabase.auth.admin.listUsers();
     const authUsers = authData?.users || [];
 
     function findPhoneByName(name: string): string | null {
+      const normalizedName = name.toUpperCase().trim();
       const user = authUsers.find(u => {
-        const userName = u.user_metadata?.full_name || u.user_metadata?.name || '';
-        return userName.toUpperCase() === name.toUpperCase().trim();
+        const userName = (u.user_metadata?.full_name || u.user_metadata?.name || '').toUpperCase().trim();
+        return userName === normalizedName;
       });
       if (!user) return null;
       const profile = userProfiles?.find(p => p.user_id === user.id);
       return profile?.telefone || null;
     }
 
-    // Enviar uma mensagem POR ROTINA com botões
+    // Send one message per eligible rotina
     let sentCount = 0;
+    let skippedConcluida = 0;
     const errors: string[] = [];
 
-    for (const rotina of rotinas) {
-      if (rotinasConcluidas.has(rotina.id)) continue;
+    for (const rotina of eligibleRotinas) {
+      if (rotinasConcluidas.has(rotina.id)) {
+        skippedConcluida++;
+        console.log(`[notify-rotinas] Ignorada (já concluída): ${rotina.nome}`);
+        continue;
+      }
 
       const responsavel = rotina.responsavel_principal;
-      if (!responsavel) continue;
+      if (!responsavel) {
+        console.log(`[notify-rotinas] Ignorada (sem responsável): ${rotina.nome}`);
+        continue;
+      }
 
       const phone = findPhoneByName(responsavel);
       if (!phone) {
@@ -128,7 +183,6 @@ Deno.serve(async (req) => {
       const normalizedPhone = normalizePhone(phone);
       const unidadeNome = unidadeMap.get(rotina.unidade_id) || 'Unidade';
 
-      // Montar mensagem da rotina
       const rotinaAtividades = (atividades || [])
         .filter(a => a.rotina_id === rotina.id)
         .map(a => {
@@ -153,7 +207,7 @@ Deno.serve(async (req) => {
 
       message += `\nClique abaixo para confirmar:`;
 
-      console.log(`[notify-rotinas] Enviando botões para ${responsavel} (${normalizedPhone}): ${rotina.nome}`);
+      console.log(`[notify-rotinas] Enviando para ${responsavel} (${normalizedPhone}): ${rotina.nome}`);
 
       const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-button-list`;
 
@@ -191,10 +245,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[notify-rotinas] Concluído: ${sentCount} enviado(s), ${errors.length} erro(s)`);
+    console.log(`[notify-rotinas] Concluído: ${sentCount} enviado(s), ${skippedConcluida} já concluída(s), ${skippedByFrequency} fora da frequência, ${errors.length} erro(s)`);
 
     return new Response(
-      JSON.stringify({ success: true, sent: sentCount, errors, total_rotinas: rotinas.length }),
+      JSON.stringify({
+        success: true,
+        sent: sentCount,
+        skipped_frequency: skippedByFrequency,
+        skipped_concluida: skippedConcluida,
+        errors,
+        total_rotinas: rotinas.length,
+        eligible: eligibleRotinas.length,
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
