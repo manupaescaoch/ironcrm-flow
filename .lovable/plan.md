@@ -1,48 +1,30 @@
 
 
-## Unificar Rotinas no Cronograma e Remover Página Rotinas
+## Unificar Botões e Expandir Lista de Responsáveis
 
-### Situação Atual
-- A página **Operacional** tem 5 abas: Rotinas, Cronograma, Dashboard, Equipe, Formulários
-- Rotinas usa seu próprio calendário semanal (`RotinasCalendario`) com grade horária 05h–23h
-- Cronograma usa `CronogramaTab` com grade horária idêntica (05h–23h)
-- Ambos mostram eventos semanais baseados em dia/horário — lógica muito similar
-- Existe `src/pages/Rotinas.tsx` standalone (não roteado no App, mas o arquivo existe)
+### O que muda
 
-### Plano
+**1. Remover botão separado "Nova Rotina" — unificar em um único botão "+" com dropdown**
+- Substituir os dois botões ("Nova Atividade" + "Nova Rotina") por um único botão `+` com DropdownMenu contendo duas opções: "Nova Atividade" e "Nova Rotina"
+- Alternativa mais simples (como no screenshot): manter visual similar ao "Nova Atividade" como botão principal, e "Nova Rotina" como opção secundária no mesmo dropdown
 
-**1. Mostrar rotinas dentro do CronogramaTab**
-- No `CronogramaTab`, além de buscar `cronograma_atividades`, também buscar rotinas ativas via `useRotinasData`
-- Converter rotinas para o mesmo formato visual do grid: mapear `frequencia` (`semanal:seg,ter,qua,qui,sex`) para `dia_semana` (0-6) e `horario_esperado` para slot de hora
-- Renderizar rotinas no grid com cor diferenciada por setor (usando as mesmas cores do `RotinasCalendario`: azul=Coordenação, verde=Limpeza, laranja=Recepção, etc.)
-- Ao clicar numa rotina no grid, abrir popup com detalhes e botão para editar (abrindo `RotinaModal`)
-- Manter as ações de CRUD de rotinas (criar, editar, duplicar, arquivar, excluir) acessíveis via o modal
-
-**2. Adicionar botão "Nova Rotina" ao header do Cronograma**
-- Junto ao botão "Nova Atividade", adicionar botão "Nova Rotina" que abre o `RotinaModal`
-- KPIs de rotinas e filtros podem ir para a aba Dashboard ou serem integrados no header
-
-**3. Remover a aba "Rotinas" do Operacional**
-- Remover o tab `rotinas` da página `Operacional.tsx`
-- Aba padrão passa a ser `cronograma`
-- Remover imports dos componentes exclusivos da aba rotinas (KPIGrid, Filters, Lista, Kanban, Calendário) do `Operacional.tsx`
-
-**4. Excluir `src/pages/Rotinas.tsx`**
-- Deletar o arquivo standalone
-
-**5. Mover KPIs de Rotinas para o Dashboard do Operacional**
-- O `CronogramaDashboard` passa a incluir os KPIs de execução de rotinas (total, concluídas, pendentes)
-
-### Detalhes Técnicos
-- Frequência `semanal:seg,ter,qua,qui,sex` → mapeamento: `seg=1, ter=2, qua=3, qui=4, sex=5, sab=6, dom=0`
-- Frequência `diaria` → aparece em todos os 7 dias
-- Rotinas sem `horario_esperado` ficam na seção "sem horário" do grid
-- Rotinas renderizadas com badge visual "Rotina" para diferenciar de atividades do cronograma
-- Componentes de rotinas (`src/components/rotinas/*`) continuam existindo — só mudam onde são consumidos
+**2. Expandir lista de Responsáveis para incluir usuários da unidade + funcionários da equipe**
+- No modal "Nova Atividade", o dropdown de Responsável atualmente só mostra `funcionarios` (tabela `cronograma_funcionarios`)
+- Adicionar `useUnidadeUsers()` ao `CronogramaTab` para buscar também os usuários do sistema vinculados à unidade
+- Renderizar as duas listas no Select agrupadas:
+  - **Grupo "Equipe"**: funcionários da tabela `cronograma_funcionarios` (com telefone)
+  - **Grupo "Usuários"**: usuários do sistema da unidade (via `useUnidadeUsers`)
+- Aplicar a mesma lógica no modal de edição de atividades
 
 ### Arquivos Alterados
-- `src/components/cronograma/CronogramaTab.tsx` — integrar rotinas no grid
-- `src/pages/Operacional.tsx` — remover aba Rotinas, default para cronograma
-- `src/components/cronograma/CronogramaDashboard.tsx` — incluir KPIs de rotinas
-- `src/pages/Rotinas.tsx` — deletar
+- `src/components/cronograma/CronogramaTab.tsx`:
+  - Importar `useUnidadeUsers`
+  - Adicionar DropdownMenu no header (substituindo os 2 botões)
+  - No Select de Responsável (criação e edição): renderizar ambos os grupos com `SelectGroup` + `SelectLabel`
+
+### Detalhes Técnicos
+- Usar `SelectGroup` e `SelectLabel` do shadcn/ui para separar visualmente "Equipe" e "Usuários" no dropdown
+- Para usuários do sistema, o `value` será o `user.id` (mantendo compatibilidade com `responsavel_id`)
+- Para funcionários, continua usando `funcionario.id`
+- O preview de WhatsApp busca nome em ambas as listas
 
