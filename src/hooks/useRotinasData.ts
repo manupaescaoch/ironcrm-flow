@@ -5,10 +5,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/utils/errorMessages';
 
-async function sendRotinaWhatsApp(responsavel: string, rotinaNome: string, rotinaDescricao: string | null, unidadeNome: string, creatorName: string) {
-  if (!responsavel) return;
+async function sendRotinaWhatsApp(responsavel: string, rotinaNome: string, rotinaDescricao: string | null, unidadeNome: string, creatorName: string): Promise<{ success: boolean; reason?: string }> {
+  if (!responsavel) return { success: false, reason: 'no_responsavel' };
   try {
-    await supabase.functions.invoke('send-task-whatsapp', {
+    const { data, error } = await supabase.functions.invoke('send-task-whatsapp', {
       body: {
         responsavel_name: responsavel,
         task_title: rotinaNome,
@@ -18,8 +18,18 @@ async function sendRotinaWhatsApp(responsavel: string, rotinaNome: string, rotin
         unidade_nome: unidadeNome,
       },
     });
+    if (error) {
+      console.error('Erro ao enviar WhatsApp da rotina:', error);
+      return { success: false, reason: 'invoke_error' };
+    }
+    if (data && data.success === false) {
+      console.warn('WhatsApp não enviado:', data.reason);
+      return { success: false, reason: data.reason || 'unknown' };
+    }
+    return { success: true };
   } catch (err) {
     console.error('Erro ao enviar WhatsApp da rotina:', err);
+    return { success: false, reason: 'exception' };
   }
 }
 
@@ -151,16 +161,26 @@ export function useRotinasData() {
     toast({ title: 'Rotina criada com sucesso' });
 
     if (data.responsavel_principal && unidadeAtual?.nome) {
-      sendRotinaWhatsApp(data.responsavel_principal, data.nome, data.descricao, unidadeAtual.nome, userName || 'Sistema');
+      const result = await sendRotinaWhatsApp(data.responsavel_principal, data.nome, data.descricao, unidadeAtual.nome, userName || 'Sistema');
+      if (!result.success) {
+        const reasonMap: Record<string, string> = {
+          user_not_found: `Usuário "${data.responsavel_principal}" não encontrado no sistema`,
+          no_phone_registered: `Telefone não cadastrado para "${data.responsavel_principal}"`,
+        };
+        toast({ title: 'WhatsApp não enviado', description: reasonMap[result.reason || ''] || 'Erro ao enviar notificação', variant: 'destructive' });
+      }
     }
 
     const notified = new Set<string>([data.responsavel_principal || '']);
-    newAtividades.forEach(a => {
+    for (const a of newAtividades) {
       if (a.responsavel && !notified.has(a.responsavel) && unidadeAtual?.nome) {
-        sendRotinaWhatsApp(a.responsavel, data.nome, data.descricao, unidadeAtual.nome, userName || 'Sistema');
+        const result = await sendRotinaWhatsApp(a.responsavel, data.nome, data.descricao, unidadeAtual.nome, userName || 'Sistema');
+        if (!result.success && result.reason === 'no_phone_registered') {
+          toast({ title: 'WhatsApp não enviado', description: `Telefone não cadastrado para "${a.responsavel}"`, variant: 'destructive' });
+        }
         notified.add(a.responsavel);
       }
-    });
+    }
 
     await fetchData();
     return rotina;
