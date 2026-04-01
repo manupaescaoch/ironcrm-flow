@@ -725,6 +725,34 @@ export function CronogramaTab() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Rotina Modal */}
+      <RotinaModal
+        open={rotinaModalOpen}
+        onOpenChange={setRotinaModalOpen}
+        rotina={selectedRotina}
+        existingAtividades={selectedRotinaAtividades}
+        onSave={handleSaveRotina}
+        saving={savingRotina}
+      />
+
+      {/* Delete Rotina Dialog */}
+      <AlertDialog open={!!deleteRotinaTarget} onOpenChange={(open) => !open && setDeleteRotinaTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir rotina?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A rotina "{deleteRotinaTarget?.nome}" e todas as suas atividades e execuções serão excluídas permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteRotinaConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
