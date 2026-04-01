@@ -3,6 +3,7 @@ import { useCronogramaAtividades } from '@/hooks/useCronogramaAtividades';
 import { useCronogramaFuncionarios } from '@/hooks/useCronogramaFuncionarios';
 import { useFormularios } from '@/hooks/useFormulariosData';
 import { useUnidadeFilter } from '@/hooks/useUnidadeFilter';
+import { useUnidadeUsers } from '@/hooks/useUnidadeUsers';
 import { useRotinasData, Rotina, RotinaAtividade } from '@/hooks/useRotinasData';
 import { useAuth } from '@/contexts/AuthContext';
 import { RotinaModal } from '@/components/rotinas/RotinaModal';
@@ -10,10 +11,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -68,6 +70,7 @@ export function CronogramaTab() {
   const { ativos: funcionarios } = useCronogramaFuncionarios();
   const { data: formularios } = useFormularios();
   const { unidadeId } = useUnidadeFilter();
+  const { users: unidadeUsers } = useUnidadeUsers();
   const { isAdmin, userRole } = useAuth();
 
   // Rotinas data
@@ -109,8 +112,21 @@ export function CronogramaTab() {
 
   const selectedFuncionario = useMemo(() => {
     if (!form.responsavel_id) return null;
-    return funcionarios.find((f) => f.id === form.responsavel_id) || null;
-  }, [form.responsavel_id, funcionarios]);
+    const func = funcionarios.find((f) => f.id === form.responsavel_id);
+    if (func) return func;
+    const user = unidadeUsers.find((u) => u.id === form.responsavel_id);
+    if (user) return { id: user.id, nome: user.name, telefone: null } as { id: string; nome: string; telefone: string | null };
+    return null;
+  }, [form.responsavel_id, funcionarios, unidadeUsers]);
+
+  // Combined list for name resolution in EventCard/Popup
+  const allResponsaveis = useMemo(() => {
+    const funcIds = new Set(funcionarios.map(f => f.id));
+    const fromUsers = unidadeUsers
+      .filter(u => !funcIds.has(u.id))
+      .map(u => ({ id: u.id, nome: u.name, telefone: null as string | null }));
+    return [...funcionarios, ...fromUsers];
+  }, [funcionarios, unidadeUsers]);
 
   // Brasília time helper
   const getBrasiliaDate = () => {
@@ -387,10 +403,22 @@ export function CronogramaTab() {
               </Button>
             </>
           )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm"><Plus className="w-4 h-4 mr-1" /> Novo</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setOpen(true)}>
+                <CalendarDays className="w-4 h-4 mr-2" /> Nova Atividade
+              </DropdownMenuItem>
+              {canEditRotina && (
+                <DropdownMenuItem onClick={handleNewRotina}>
+                  <ClipboardList className="w-4 h-4 mr-2" /> Nova Rotina
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm"><Plus className="w-4 h-4 mr-1" /> Nova Atividade</Button>
-            </DialogTrigger>
             <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>Nova Atividade</DialogTitle></DialogHeader>
               <div className="space-y-3">
@@ -431,16 +459,13 @@ export function CronogramaTab() {
                 </div>
                 <div>
                   <Label>Responsável</Label>
-                  <Select value={form.responsavel_id} onValueChange={(v) => setForm((f) => ({ ...f, responsavel_id: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                    <SelectContent>
-                      {funcionarios.map((f) => (
-                        <SelectItem key={f.id} value={f.id}>
-                          {f.nome}{f.telefone ? ` — ${f.telefone}` : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ResponsavelSelect
+                    value={form.responsavel_id}
+                    onValueChange={(v) => setForm((f) => ({ ...f, responsavel_id: v }))}
+                    funcionarios={funcionarios}
+                    unidadeUsers={unidadeUsers}
+                    placeholder="Selecionar"
+                  />
                   {selectedFuncionario && (
                     <div className="mt-1.5 flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs">
                       <Phone className="w-3.5 h-3.5 text-primary" />
@@ -504,11 +529,6 @@ export function CronogramaTab() {
               </div>
             </DialogContent>
           </Dialog>
-          {canEditRotina && (
-            <Button size="sm" variant="outline" onClick={handleNewRotina}>
-              <ClipboardList className="w-4 h-4 mr-1" /> Nova Rotina
-            </Button>
-          )}
         </div>
       </div>
 
@@ -551,7 +571,7 @@ export function CronogramaTab() {
                       selectionMode={selectionMode}
                       isSelected={selectedIds.has(atv.id)}
                       onClick={handleEventClick}
-                      funcionarios={funcionarios}
+                      funcionarios={allResponsaveis}
                       compact
                     />
                   ))}
@@ -585,7 +605,7 @@ export function CronogramaTab() {
                         selectionMode={selectionMode}
                         isSelected={selectedIds.has(atv.id)}
                         onClick={handleEventClick}
-                        funcionarios={funcionarios}
+                        funcionarios={allResponsaveis}
                       />
                     ))}
                     {rotinaItems.map(({ rotina }) => (
@@ -636,7 +656,7 @@ export function CronogramaTab() {
           <CronogramaEventPopup
             atividade={selectedEvent.atividade}
             date={weekDates[selectedEvent.dayIdx]}
-            funcionarios={funcionarios}
+            funcionarios={allResponsaveis}
             formularios={formularios || []}
             onEdit={() => setEditingEvent(true)}
             onDelete={() => {
@@ -655,6 +675,7 @@ export function CronogramaTab() {
               <AtividadeEditForm
                 atividade={selectedEvent.atividade}
                 funcionarios={funcionarios}
+                unidadeUsers={unidadeUsers}
                 formularios={formularios || []}
                 onUpdate={(data) => {
                   updateAtividade.mutate({ id: selectedEvent.atividade.id, ...data }, {
@@ -685,6 +706,7 @@ export function CronogramaTab() {
             </DialogHeader>
             <BulkEditForm
               funcionarios={funcionarios}
+              unidadeUsers={unidadeUsers}
               formularios={formularios || []}
               onSave={async (data) => {
                 const ids = Array.from(selectedIds);
@@ -801,8 +823,9 @@ function EventCard({ atv, dayIdx, selectionMode, isSelected, onClick, funcionari
 }
 
 // ─── Bulk Edit Form ───────────────────────────────────────────
-function BulkEditForm({ funcionarios, formularios, onSave, isPending }: {
+function BulkEditForm({ funcionarios, unidadeUsers, formularios, onSave, isPending }: {
   funcionarios: Array<{ id: string; nome: string; telefone: string | null }>;
+  unidadeUsers: Array<{ id: string; name: string; email: string }>;
   formularios: Array<{ id: string; titulo: string }>;
   onSave: (data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; mensagem?: string | null }) => void;
   isPending: boolean;
@@ -838,16 +861,13 @@ function BulkEditForm({ funcionarios, formularios, onSave, isPending }: {
       </div>
       <div>
         <Label>Responsável</Label>
-        <Select value={editForm.responsavel_id} onValueChange={(v) => setEditForm(f => ({ ...f, responsavel_id: v }))}>
-          <SelectTrigger><SelectValue placeholder="Manter atual" /></SelectTrigger>
-          <SelectContent>
-            {funcionarios.map((f) => (
-              <SelectItem key={f.id} value={f.id}>
-                {f.nome}{f.telefone ? ` — ${f.telefone}` : ''}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ResponsavelSelect
+          value={editForm.responsavel_id}
+          onValueChange={(v) => setEditForm(f => ({ ...f, responsavel_id: v }))}
+          funcionarios={funcionarios}
+          unidadeUsers={unidadeUsers}
+          placeholder="Manter atual"
+        />
       </div>
       <div>
         <Label>Formulário</Label>
@@ -963,9 +983,10 @@ function CronogramaEventPopup({ atividade, date, funcionarios, formularios, onEd
 }
 
 // ─── Single Edit Form ─────────────────────────────────────────
-function AtividadeEditForm({ atividade, funcionarios, formularios, onUpdate, onDelete }: {
+function AtividadeEditForm({ atividade, funcionarios, unidadeUsers, formularios, onUpdate, onDelete }: {
   atividade: CronogramaAtividade;
   funcionarios: Array<{ id: string; nome: string; telefone: string | null }>;
+  unidadeUsers: Array<{ id: string; name: string; email: string }>;
   formularios: Array<{ id: string; titulo: string }>;
   onUpdate: (data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; dia_semana?: number | null; mensagem?: string | null }) => void;
   onDelete: () => void;
@@ -984,8 +1005,12 @@ function AtividadeEditForm({ atividade, funcionarios, formularios, onUpdate, onD
 
   const selectedFuncionario = useMemo(() => {
     if (!editForm.responsavel_id) return null;
-    return funcionarios.find((f) => f.id === editForm.responsavel_id) || null;
-  }, [editForm.responsavel_id, funcionarios]);
+    const func = funcionarios.find((f) => f.id === editForm.responsavel_id);
+    if (func) return func;
+    const user = unidadeUsers.find((u) => u.id === editForm.responsavel_id);
+    if (user) return { id: user.id, nome: user.name, telefone: null } as { id: string; nome: string; telefone: string | null };
+    return null;
+  }, [editForm.responsavel_id, funcionarios, unidadeUsers]);
 
   const handleSave = () => {
     onUpdate({
@@ -1032,16 +1057,13 @@ function AtividadeEditForm({ atividade, funcionarios, formularios, onUpdate, onD
       </div>
       <div>
         <Label>Responsável</Label>
-        <Select value={editForm.responsavel_id} onValueChange={(v) => setEditForm(f => ({ ...f, responsavel_id: v }))}>
-          <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-          <SelectContent>
-            {funcionarios.map((f) => (
-              <SelectItem key={f.id} value={f.id}>
-                {f.nome}{f.telefone ? ` — ${f.telefone}` : ''}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ResponsavelSelect
+          value={editForm.responsavel_id}
+          onValueChange={(v) => setEditForm(f => ({ ...f, responsavel_id: v }))}
+          funcionarios={funcionarios}
+          unidadeUsers={unidadeUsers}
+          placeholder="Selecionar"
+        />
         {selectedFuncionario && (
           <div className="mt-1.5 flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs">
             <Phone className="w-3.5 h-3.5 text-primary" />
@@ -1269,5 +1291,46 @@ function RotinaDetailPopup({ rotina, atividades, date, canEdit, onEdit, onDelete
         </div>
       </div>
     </>
+  );
+}
+
+// ─── Responsável Select (grouped) ────────────────────────────
+function ResponsavelSelect({ value, onValueChange, funcionarios, unidadeUsers, placeholder }: {
+  value: string;
+  onValueChange: (v: string) => void;
+  funcionarios: Array<{ id: string; nome: string; telefone: string | null }>;
+  unidadeUsers: Array<{ id: string; name: string; email: string }>;
+  placeholder: string;
+}) {
+  // Filter out unidadeUsers that are already in funcionarios (by name match to avoid duplicates)
+  const funcIds = new Set(funcionarios.map(f => f.id));
+  const filteredUsers = unidadeUsers.filter(u => !funcIds.has(u.id));
+
+  return (
+    <Select value={value} onValueChange={onValueChange}>
+      <SelectTrigger><SelectValue placeholder={placeholder} /></SelectTrigger>
+      <SelectContent>
+        {funcionarios.length > 0 && (
+          <SelectGroup>
+            <SelectLabel>Equipe</SelectLabel>
+            {funcionarios.map((f) => (
+              <SelectItem key={f.id} value={f.id}>
+                {f.nome}{f.telefone ? ` — ${f.telefone}` : ''}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        )}
+        {filteredUsers.length > 0 && (
+          <SelectGroup>
+            <SelectLabel>Usuários</SelectLabel>
+            {filteredUsers.map((u) => (
+              <SelectItem key={u.id} value={u.id}>
+                {u.name}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        )}
+      </SelectContent>
+    </Select>
   );
 }
