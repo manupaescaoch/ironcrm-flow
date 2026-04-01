@@ -1,8 +1,11 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useCronogramaAtividades } from '@/hooks/useCronogramaAtividades';
 import { useCronogramaFuncionarios } from '@/hooks/useCronogramaFuncionarios';
 import { useFormularios } from '@/hooks/useFormulariosData';
 import { useUnidadeFilter } from '@/hooks/useUnidadeFilter';
+import { useRotinasData, Rotina, RotinaAtividade } from '@/hooks/useRotinasData';
+import { useAuth } from '@/contexts/AuthContext';
+import { RotinaModal } from '@/components/rotinas/RotinaModal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,8 +13,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
-import { Plus, Clock, Trash2, CalendarDays, Phone, ChevronLeft, ChevronRight, Pencil, X, FileText, User, MessageSquare, CheckSquare, Square, CheckCheck } from 'lucide-react';
+import { Plus, Clock, Trash2, CalendarDays, Phone, ChevronLeft, ChevronRight, Pencil, X, FileText, User, MessageSquare, CheckSquare, Square, CheckCheck, ClipboardList, List } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { CronogramaAtividade } from '@/hooks/useCronogramaAtividades';
@@ -36,18 +44,53 @@ function parseHour(timeStr: string | null): number | null {
   return isNaN(h) ? null : h;
 }
 
+const DAY_KEYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+
+const PRIORIDADE_COLORS: Record<string, { bg: string; border: string; dot: string }> = {
+  'alta': { bg: 'bg-red-500/90 text-white', border: 'border-red-600', dot: 'bg-red-500' },
+  'media': { bg: 'bg-amber-500/90 text-white', border: 'border-amber-600', dot: 'bg-amber-500' },
+  'baixa': { bg: 'bg-emerald-500/90 text-white', border: 'border-emerald-600', dot: 'bg-emerald-500' },
+};
+
+function rotinaAppliesOnDay(rotina: Rotina, dayKey: string): boolean {
+  const freq = rotina.frequencia;
+  if (freq === 'diaria') return true;
+  if (freq === 'unica') return true;
+  if (freq.startsWith('semanal:')) {
+    const dias = freq.split(':')[1].split(',');
+    return dias.includes(dayKey);
+  }
+  return true;
+}
+
 export function CronogramaTab() {
   const { atividades, isLoading, createAtividade, updateAtividade, bulkUpdateAtividades, bulkDeleteAtividades, deleteAtividade } = useCronogramaAtividades();
   const { ativos: funcionarios } = useCronogramaFuncionarios();
   const { data: formularios } = useFormularios();
   const { unidadeId } = useUnidadeFilter();
+  const { isAdmin, userRole } = useAuth();
+
+  // Rotinas data
+  const {
+    rotinas, atividades: rotinaAtividades, execucoes, loading: rotinasLoading,
+    createRotina, updateRotina, deleteRotina: deleteRotinaFn, duplicateRotina,
+    toggleExecucao, saveAtividades: saveRotinaAtividades,
+  } = useRotinasData();
+
+  const canEditRotina = isAdmin || userRole === 'coordenador' || userRole === 'comercial';
+
+  // Rotina modal state
+  const [rotinaModalOpen, setRotinaModalOpen] = useState(false);
+  const [selectedRotina, setSelectedRotina] = useState<Rotina | null>(null);
+  const [savingRotina, setSavingRotina] = useState(false);
+  const [deleteRotinaTarget, setDeleteRotinaTarget] = useState<Rotina | null>(null);
+  const [selectedRotinaEvent, setSelectedRotinaEvent] = useState<{ rotina: Rotina; dayIdx: number } | null>(null);
 
   const [open, setOpen] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState<{ atividade: CronogramaAtividade; dayIdx: number } | null>(null);
   const [editingEvent, setEditingEvent] = useState(false);
 
-  // Selection state
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
@@ -135,6 +178,71 @@ export function CronogramaTab() {
 
   const atividadesSemHorario = useMemo(() =>
     atividades.filter(a => !a.horario), [atividades]);
+
+  // Map rotinas to hour/day grid
+  const activeRotinas = useMemo(() =>
+    rotinas.filter(r => r.ativo && !r.arquivada), [rotinas]);
+
+  const rotinasByHourDay = useMemo(() => {
+    const map: Record<string, Array<{ rotina: Rotina; rotinaAtividades: RotinaAtividade[] }>> = {};
+    for (const rotina of activeRotinas) {
+      const hour = parseHour(rotina.horario_esperado);
+      if (hour === null) continue;
+      for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+        if (!rotinaAppliesOnDay(rotina, DAY_KEYS[dayIdx])) continue;
+        const key = `${hour}-${dayIdx}`;
+        if (!map[key]) map[key] = [];
+        map[key].push({ rotina, rotinaAtividades: rotinaAtividades.filter(a => a.rotina_id === rotina.id) });
+      }
+    }
+    return map;
+  }, [activeRotinas, rotinaAtividades]);
+
+  const rotinasWithoutTime = useMemo(() =>
+    activeRotinas.filter(r => !r.horario_esperado), [activeRotinas]);
+
+  // Rotina handlers
+  const handleNewRotina = () => { setSelectedRotina(null); setRotinaModalOpen(true); };
+  const handleEditRotina = useCallback((r: Rotina) => { setSelectedRotina(r); setRotinaModalOpen(true); }, []);
+  const handleDeleteRotinaConfirm = useCallback(async () => {
+    if (!deleteRotinaTarget) return;
+    await deleteRotinaFn(deleteRotinaTarget.id);
+    setDeleteRotinaTarget(null);
+  }, [deleteRotinaTarget, deleteRotinaFn]);
+
+  const handleSaveRotina = async (data: any, atividadesForm: any[]) => {
+    setSavingRotina(true);
+    try {
+      if (selectedRotina) {
+        const updated = await updateRotina(selectedRotina.id, data);
+        if (!updated) return false;
+        const saved = await saveRotinaAtividades(selectedRotina.id, atividadesForm.map(a => ({
+          titulo: a.titulo.toUpperCase(),
+          responsavel: a.responsavel?.toUpperCase() || null,
+          horario: a.horario || null,
+          observacao: a.observacao || null,
+        })));
+        return !!saved;
+      }
+      const created = await createRotina(data, atividadesForm.map(a => ({
+        titulo: a.titulo.toUpperCase(),
+        responsavel: a.responsavel?.toUpperCase() || null,
+        horario: a.horario || null,
+        observacao: a.observacao || null,
+      })));
+      return !!created;
+    } finally {
+      setSavingRotina(false);
+    }
+  };
+
+  const selectedRotinaAtividades = selectedRotina
+    ? rotinaAtividades.filter(a => a.rotina_id === selectedRotina.id)
+    : [];
+
+  const handleRotinaEventClick = (rotina: Rotina, dayIdx: number) => {
+    setSelectedRotinaEvent({ rotina, dayIdx });
+  };
 
   // Clear selection when changing weeks
   useEffect(() => {
@@ -396,6 +504,11 @@ export function CronogramaTab() {
               </div>
             </DialogContent>
           </Dialog>
+          {canEditRotina && (
+            <Button size="sm" variant="outline" onClick={handleNewRotina}>
+              <ClipboardList className="w-4 h-4 mr-1" /> Nova Rotina
+            </Button>
+          )}
         </div>
       </div>
 
@@ -417,8 +530,8 @@ export function CronogramaTab() {
           })}
         </div>
 
-        {/* Activities without time */}
-        {atividadesSemHorario.length > 0 && (
+        {/* Items without time (activities + rotinas) */}
+        {(atividadesSemHorario.length > 0 || rotinasWithoutTime.length > 0) && (
           <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b bg-muted/10">
             <div className="p-1 text-[10px] text-muted-foreground text-right pr-2 border-r flex items-center justify-end">
               <Clock className="w-3 h-3" />
@@ -427,6 +540,7 @@ export function CronogramaTab() {
               const items = atividadesSemHorario.filter(a =>
                 a.dia_semana === null || a.dia_semana === dayIdx
               );
+              const dayRotinas = rotinasWithoutTime.filter(r => rotinaAppliesOnDay(r, DAY_KEYS[dayIdx]));
               return (
                 <div key={dayIdx} className="border-r last:border-r-0 p-0.5 min-h-[40px] overflow-hidden">
                   {items.map(atv => (
@@ -440,6 +554,9 @@ export function CronogramaTab() {
                       funcionarios={funcionarios}
                       compact
                     />
+                  ))}
+                  {dayRotinas.map(r => (
+                    <RotinaEventCard key={r.id} rotina={r} dayIdx={dayIdx} onClick={handleRotinaEventClick} compact />
                   ))}
                 </div>
               );
@@ -456,6 +573,7 @@ export function CronogramaTab() {
               </div>
               {weekDates.map((date, dayIdx) => {
                 const items = atividadesByHourDay[`${hour}-${dayIdx}`] || [];
+                const rotinaItems = rotinasByHourDay[`${hour}-${dayIdx}`] || [];
                 const isToday = date.toISOString().split('T')[0] === todayStr;
                 return (
                   <div key={dayIdx} className={cn('border-r last:border-r-0 p-0.5 relative overflow-hidden', isToday && 'bg-primary/[0.02]')}>
@@ -469,6 +587,9 @@ export function CronogramaTab() {
                         onClick={handleEventClick}
                         funcionarios={funcionarios}
                       />
+                    ))}
+                    {rotinaItems.map(({ rotina }) => (
+                      <RotinaEventCard key={rotina.id} rotina={rotina} dayIdx={dayIdx} onClick={handleRotinaEventClick} />
                     ))}
                   </div>
                 );
@@ -496,6 +617,19 @@ export function CronogramaTab() {
             </div>
           )}
         </div>
+
+        {/* Rotina Detail Popup */}
+        {selectedRotinaEvent && (
+          <RotinaDetailPopup
+            rotina={selectedRotinaEvent.rotina}
+            atividades={rotinaAtividades.filter(a => a.rotina_id === selectedRotinaEvent.rotina.id)}
+            date={weekDates[selectedRotinaEvent.dayIdx]}
+            canEdit={canEditRotina}
+            onEdit={() => { handleEditRotina(selectedRotinaEvent.rotina); setSelectedRotinaEvent(null); }}
+            onDelete={() => { setDeleteRotinaTarget(selectedRotinaEvent.rotina); setSelectedRotinaEvent(null); }}
+            onClose={() => setSelectedRotinaEvent(null)}
+          />
+        )}
 
         {/* Event detail popup (only in non-selection mode) */}
         {selectedEvent && !editingEvent && !selectionMode && (
@@ -591,6 +725,34 @@ export function CronogramaTab() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Rotina Modal */}
+      <RotinaModal
+        open={rotinaModalOpen}
+        onOpenChange={setRotinaModalOpen}
+        rotina={selectedRotina}
+        existingAtividades={selectedRotinaAtividades}
+        onSave={handleSaveRotina}
+        saving={savingRotina}
+      />
+
+      {/* Delete Rotina Dialog */}
+      <AlertDialog open={!!deleteRotinaTarget} onOpenChange={(open) => !open && setDeleteRotinaTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir rotina?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A rotina "{deleteRotinaTarget?.nome}" e todas as suas atividades e execuções serão excluídas permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteRotinaConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -983,5 +1145,129 @@ function WhatsAppPreview({ titulo, horario, responsavelNome, formularioTitulo, m
         {preview}
       </div>
     </div>
+  );
+}
+
+// ─── Rotina Event Card ────────────────────────────────────────
+function RotinaEventCard({ rotina, dayIdx, onClick, compact }: {
+  rotina: Rotina;
+  dayIdx: number;
+  onClick: (rotina: Rotina, dayIdx: number) => void;
+  compact?: boolean;
+}) {
+  const colors = PRIORIDADE_COLORS[rotina.prioridade] || PRIORIDADE_COLORS['media'];
+  const timeLabel = rotina.horario_esperado?.substring(0, 5);
+
+  return (
+    <button
+      onClick={() => onClick(rotina, dayIdx)}
+      className={cn(
+        'w-full text-left rounded-md px-1.5 py-1 border-l-[3px] mb-0.5 text-[11px] leading-tight cursor-pointer hover:opacity-80 transition-opacity overflow-hidden',
+        colors.bg, colors.border
+      )}
+    >
+      {compact ? (
+        <span className="truncate block">{rotina.nome}</span>
+      ) : (
+        <>
+          <span className="font-semibold truncate block">{rotina.nome}</span>
+          {timeLabel && <span className="opacity-80 text-[10px] truncate block">{timeLabel}</span>}
+        </>
+      )}
+    </button>
+  );
+}
+
+// ─── Rotina Detail Popup ──────────────────────────────────────
+function RotinaDetailPopup({ rotina, atividades, date, canEdit, onEdit, onDelete, onClose }: {
+  rotina: Rotina;
+  atividades: RotinaAtividade[];
+  date: Date;
+  canEdit: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  const popupRef = useRef<HTMLDivElement>(null);
+  const colors = PRIORIDADE_COLORS[rotina.prioridade] || PRIORIDADE_COLORS['media'];
+  const timeLabel = rotina.horario_esperado?.substring(0, 5);
+  const dayLabel = date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40" />
+      <div ref={popupRef}
+        className="fixed z-50 bg-popover border rounded-xl shadow-xl w-[360px] max-w-[90vw] overflow-hidden animate-in fade-in-0 zoom-in-95"
+        style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+        <div className="flex items-center justify-end gap-1 px-3 pt-3">
+          {canEdit && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
+              <Pencil className="w-4 h-4" />
+            </Button>
+          )}
+          {canEdit && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete}>
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+        <div className="px-5 pb-5 space-y-3">
+          <div className="flex items-start gap-3">
+            <div className={cn('w-4 h-4 rounded-sm mt-1 shrink-0', colors.dot)} />
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold leading-tight">{rotina.nome}</h3>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">Rotina</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground capitalize mt-0.5">
+                {dayLabel}
+                {timeLabel && ` · ${timeLabel}`}
+              </p>
+            </div>
+          </div>
+          {rotina.descricao && (
+            <div className="flex items-start gap-3">
+              <List className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+              <p className="text-sm text-muted-foreground">{rotina.descricao}</p>
+            </div>
+          )}
+          {rotina.responsavel_principal && (
+            <div className="flex items-center gap-3">
+              <User className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm">{rotina.responsavel_principal}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+            <Badge variant="secondary" className="text-xs">{rotina.setor}</Badge>
+          </div>
+          {atividades.length > 0 && (
+            <div className="border-t pt-3 space-y-1.5">
+              <span className="text-xs font-medium text-muted-foreground">Atividades ({atividades.length})</span>
+              {atividades.map(at => (
+                <div key={at.id} className="text-sm flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 shrink-0" />
+                  {at.titulo}
+                  {at.responsavel && <span className="text-xs text-muted-foreground ml-auto">{at.responsavel}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
