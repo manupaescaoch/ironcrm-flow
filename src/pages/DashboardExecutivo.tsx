@@ -185,178 +185,274 @@ export default function DashboardExecutivo() {
   const exportPDF = () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    let yPos = 20;
+    const margin = 14;
+    let y = 15;
 
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Dashboard Executivo', pageWidth / 2, yPos, { align: 'center' });
-    yPos += 8;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    const unidadeLabel = unidadeAtual ? ` | ${unidadeAtual.nome}` : '';
-    doc.text(`Período: ${formatExecutivoDate(dataInicio)} a ${formatExecutivoDate(dataFim)}${unidadeLabel}`, pageWidth / 2, yPos, { align: 'center' });
-    yPos += 15;
+    const primaryColor: [number, number, number] = [37, 99, 235];
+    const greenColor: [number, number, number] = [22, 163, 74];
+    const amberColor: [number, number, number] = [217, 119, 6];
 
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Resumo Geral', 14, yPos);
-    yPos += 8;
+    // Helper: section title
+    const sectionTitle = (title: string) => {
+      if (y > 260) { doc.addPage(); y = 15; }
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...primaryColor);
+      doc.text(title, margin, y);
+      y += 2;
+      doc.setDrawColor(...primaryColor);
+      doc.setLineWidth(0.5);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 7;
+      doc.setTextColor(0, 0, 0);
+    };
+
+    // Helper: KPI box
+    const drawKPIBox = (x: number, yPos: number, w: number, h: number, label: string, value: string, color: [number, number, number] = [0, 0, 0]) => {
+      doc.setDrawColor(200, 200, 200);
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(x, yPos, w, h, 2, 2, 'FD');
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 100, 100);
+      doc.text(label, x + w / 2, yPos + 10, { align: 'center' });
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...color);
+      doc.text(value, x + w / 2, yPos + 20, { align: 'center' });
+      doc.setTextColor(0, 0, 0);
+    };
+
+    const formatCurr = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
     const cpl = investimentoMarketing > 0 && topCards.leadsDoMes > 0 
-      ? investimentoMarketing / topCards.leadsDoMes 
-      : null;
+      ? investimentoMarketing / topCards.leadsDoMes : null;
     const cpa = investimentoMarketing > 0 && topCards.matriculas > 0 
-      ? investimentoMarketing / topCards.matriculas 
-      : null;
+      ? investimentoMarketing / topCards.matriculas : null;
 
-    autoTable(doc, {
-      startY: yPos,
-      head: [['Métrica', 'Valor']],
-      body: [
-        ['Leads do Mês', topCards.leadsDoMes.toString()],
-        ['Agendamentos', topCards.agendamentos.toString()],
-        ['Comparecimentos', topCards.comparecimentos.toString()],
-        ['Matrículas', topCards.matriculas.toString()],
-        ['Faturamento', formatExecutivoCurrency(topCards.faturamentoTotal)],
-        ['Taxa Lead → Atendimento', `${topCards.taxaLeadAtendimento.toFixed(1)}%`],
-        ['Taxa Atendimento → Aluno', `${topCards.taxaConversao.toFixed(1)}%`],
-        ['CPL (Custo por Lead)', cpl ? formatExecutivoCurrency(cpl) : 'N/A'],
-        ['CPA (Custo por Aquisição)', cpa ? formatExecutivoCurrency(cpa) : 'N/A'],
-        ['Ticket Médio', formatExecutivoCurrency(topCards.ticketMedio)],
-        ['LTV (8 meses)', formatExecutivoCurrency(topCards.ltv)],
-      ],
-      theme: 'striped',
-      headStyles: { fillColor: [37, 99, 235] },
-    });
-
-    yPos = (doc as any).lastAutoTable.finalY + 15;
-
-    doc.setFontSize(12);
+    // ==================== HEADER ====================
+    doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    doc.text('Funil Executivo', 14, yPos);
-    yPos += 8;
+    doc.setTextColor(...primaryColor);
+    doc.text('Dashboard Executivo', pageWidth / 2, y, { align: 'center' });
+    y += 6;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    const unidadeLabel = unidadeAtual ? ` — ${unidadeAtual.nome}` : '';
+    doc.text(`${formatExecutivoDate(dataInicio)} a ${formatExecutivoDate(dataFim)}${unidadeLabel}`, pageWidth / 2, y, { align: 'center' });
+    y += 10;
+    doc.setTextColor(0, 0, 0);
 
+    // ==================== KPI ROW 1: Volume ====================
+    const kpiW = (pageWidth - 2 * margin - 4 * 3) / 5;
+    const kpiH = 26;
+    const row1Data = [
+      { label: 'Leads do Mês', value: topCards.leadsDoMes.toString() },
+      { label: 'Agendamentos', value: topCards.agendamentos.toString() },
+      { label: 'Comparecimentos', value: topCards.comparecimentos.toString() },
+      { label: 'Matrículas', value: topCards.matriculas.toString(), color: greenColor },
+      { label: 'Faturamento', value: formatCurr(topCards.faturamentoTotal), color: greenColor },
+    ];
+    row1Data.forEach((item, i) => {
+      drawKPIBox(margin + i * (kpiW + 3), y, kpiW, kpiH, item.label, item.value, (item as any).color);
+    });
+    y += kpiH + 4;
+
+    // ==================== KPI ROW 2: Conversão & Custo ====================
+    const kpi2W = (pageWidth - 2 * margin - 5 * 3) / 6;
+    const row2Data = [
+      { label: 'Lead → Atend.', value: `${topCards.taxaLeadAtendimento.toFixed(1)}%` },
+      { label: 'Atend. → Aluno', value: `${topCards.taxaConversao.toFixed(1)}%` },
+      { label: 'CPL', value: cpl ? formatCurr(cpl) : '-', color: amberColor },
+      { label: 'CPA', value: cpa ? formatCurr(cpa) : '-', color: [239, 68, 68] as [number, number, number] },
+      { label: 'Ticket Médio', value: formatCurr(topCards.ticketMedio) },
+      { label: 'LTV (8m)', value: formatCurr(topCards.ltv) },
+    ];
+    row2Data.forEach((item, i) => {
+      drawKPIBox(margin + i * (kpi2W + 3), y, kpi2W, kpiH, item.label, item.value, (item as any).color);
+    });
+    y += kpiH + 10;
+
+    // ==================== FUNIL EXECUTIVO ====================
+    sectionTitle('Funil Executivo');
     autoTable(doc, {
-      startY: yPos,
+      startY: y,
       head: [['Etapa', 'Quantidade', 'Conversão']],
       body: funilExecutivo.map(item => [
         item.etapa,
-        item.quantidade,
+        item.quantidade.toString(),
         item.conversao !== null ? `${item.conversao.toFixed(1)}%` : '-'
       ]),
-      theme: 'striped',
-      headStyles: { fillColor: [37, 99, 235] },
+      theme: 'grid',
+      headStyles: { fillColor: primaryColor, fontSize: 9 },
+      bodyStyles: { fontSize: 9 },
+      margin: { left: margin, right: margin },
+      columnStyles: { 1: { halign: 'center' }, 2: { halign: 'center' } },
     });
+    y = (doc as any).lastAutoTable.finalY + 10;
 
-    yPos = (doc as any).lastAutoTable.finalY + 15;
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Conversão por Origem', 14, yPos);
-    yPos += 8;
-
+    // ==================== CONVERSÃO POR ORIGEM ====================
+    sectionTitle('Conversão por Origem');
     autoTable(doc, {
-      startY: yPos,
+      startY: y,
       head: [['Origem', 'Leads', 'Matrículas', 'Conversão']],
       body: origemData.map(item => [
         item.origem,
-        item.leads,
-        item.matriculas,
+        item.leads.toString(),
+        item.matriculas.toString(),
         `${item.conversao.toFixed(1)}%`
       ]),
-      theme: 'striped',
-      headStyles: { fillColor: [37, 99, 235] },
+      theme: 'grid',
+      headStyles: { fillColor: primaryColor, fontSize: 9 },
+      bodyStyles: { fontSize: 9 },
+      margin: { left: margin, right: margin },
+      columnStyles: { 1: { halign: 'center' }, 2: { halign: 'center' }, 3: { halign: 'center' } },
     });
+    y = (doc as any).lastAutoTable.finalY + 10;
 
-    doc.addPage();
-    yPos = 20;
+    // ==================== AGENDA & PRESENÇA ====================
+    sectionTitle('Agenda & Presença (No-Show)');
+    // Summary boxes
+    const sumW = (pageWidth - 2 * margin - 2 * 4) / 3;
+    drawKPIBox(margin, y, sumW, 22, 'Média No-Show', `${agendaPresenca.mediaNoShow.toFixed(1)}%`, amberColor);
+    drawKPIBox(margin + sumW + 4, y, sumW, 22, 'Melhor Dia', agendaPresenca.melhorDia ? formatExecutivoDate(agendaPresenca.melhorDia.data) : '-', greenColor);
+    drawKPIBox(margin + 2 * (sumW + 4), y, sumW, 22, 'Pior Dia', agendaPresenca.piorDia ? formatExecutivoDate(agendaPresenca.piorDia.data) : '-', [239, 68, 68]);
+    y += 28;
 
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Performance por Cadastrador', 14, yPos);
-    yPos += 8;
+    if (agendaPresenca.rows.length > 0) {
+      autoTable(doc, {
+        startY: y,
+        head: [['Data', 'Agendados', 'Compareceram', 'No-Show (%)']],
+        body: agendaPresenca.rows.slice(0, 15).map(row => [
+          formatExecutivoDate(row.data),
+          row.agendados.toString(),
+          row.compareceram.toString(),
+          `${row.noShow.toFixed(1)}%`
+        ]),
+        theme: 'grid',
+        headStyles: { fillColor: primaryColor, fontSize: 9 },
+        bodyStyles: { fontSize: 8 },
+        margin: { left: margin, right: margin },
+        columnStyles: { 1: { halign: 'center' }, 2: { halign: 'center' }, 3: { halign: 'center' } },
+      });
+      y = (doc as any).lastAutoTable.finalY + 10;
+    }
 
+    // ==================== PERFORMANCE CADASTRADOR ====================
+    if (y > 220) { doc.addPage(); y = 15; }
+    sectionTitle('Performance por Cadastrador');
     autoTable(doc, {
-      startY: yPos,
+      startY: y,
       head: [['Cadastrador', 'Leads', 'Agendamentos', 'Matrículas', 'Conversão']],
-      body: performanceCadastrador.map(item => [
-        item.cadastrador,
-        item.leads,
-        item.agendamentos,
-        item.matriculas,
+      body: performanceCadastrador.map((item, i) => [
+        `${i === 0 && item.matriculas > 0 ? '🏆 ' : ''}${item.cadastrador}`,
+        item.leads.toString(),
+        item.agendamentos.toString(),
+        item.matriculas.toString(),
         `${item.conversao.toFixed(1)}%`
       ]),
-      theme: 'striped',
-      headStyles: { fillColor: [37, 99, 235] },
+      theme: 'grid',
+      headStyles: { fillColor: primaryColor, fontSize: 9 },
+      bodyStyles: { fontSize: 9 },
+      margin: { left: margin, right: margin },
+      columnStyles: { 1: { halign: 'center' }, 2: { halign: 'center' }, 3: { halign: 'center' }, 4: { halign: 'center' } },
     });
+    y = (doc as any).lastAutoTable.finalY + 10;
 
-    yPos = (doc as any).lastAutoTable.finalY + 15;
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Performance por Fechador', 14, yPos);
-    yPos += 8;
-
+    // ==================== PERFORMANCE FECHADOR ====================
+    if (y > 220) { doc.addPage(); y = 15; }
+    sectionTitle('Performance por Fechador');
     autoTable(doc, {
-      startY: yPos,
+      startY: y,
       head: [['Fechador', 'Comparecimentos', 'Matrículas', 'Conversão', 'Valor Total']],
-      body: performanceFechador.map(item => [
-        item.fechador,
-        item.comparecimentos,
-        item.matriculas,
+      body: performanceFechador.map((item, i) => [
+        `${i === 0 && item.matriculas > 0 ? '🏆 ' : ''}${item.fechador}`,
+        item.comparecimentos.toString(),
+        item.matriculas.toString(),
         `${item.conversao.toFixed(1)}%`,
-        formatExecutivoCurrency(item.valorTotal)
+        formatCurr(item.valorTotal)
       ]),
-      theme: 'striped',
-      headStyles: { fillColor: [37, 99, 235] },
+      theme: 'grid',
+      headStyles: { fillColor: primaryColor, fontSize: 9 },
+      bodyStyles: { fontSize: 9 },
+      margin: { left: margin, right: margin },
+      columnStyles: { 1: { halign: 'center' }, 2: { halign: 'center' }, 3: { halign: 'center' }, 4: { halign: 'right' } },
     });
+    y = (doc as any).lastAutoTable.finalY + 10;
 
-    yPos = (doc as any).lastAutoTable.finalY + 15;
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Performance dos Treinadores', 14, yPos);
-    yPos += 8;
-
+    // ==================== PERFORMANCE TREINADORES ====================
+    if (y > 220) { doc.addPage(); y = 15; }
+    sectionTitle('Performance dos Treinadores');
     autoTable(doc, {
-      startY: yPos,
+      startY: y,
       head: [['Treinador', 'Aulas', 'Matrículas', 'Conversão', 'Bônus/Aluno', 'Bônus Total']],
-      body: performanceTreinadores.map(item => [
-        item.treinador,
-        item.aulas,
-        item.matriculas,
+      body: performanceTreinadores.map((item, i) => [
+        `${i === 0 && item.matriculas > 0 ? '🏆 ' : ''}${item.treinador}`,
+        item.aulas.toString(),
+        item.matriculas.toString(),
         `${item.conversao.toFixed(1)}%`,
-        formatExecutivoCurrency(item.bonusPorAluno),
-        formatExecutivoCurrency(item.bonusTotal)
+        formatCurr(item.bonusPorAluno),
+        formatCurr(item.bonusTotal)
       ]),
-      theme: 'striped',
-      headStyles: { fillColor: [37, 99, 235] },
+      theme: 'grid',
+      headStyles: { fillColor: primaryColor, fontSize: 9 },
+      bodyStyles: { fontSize: 9 },
+      margin: { left: margin, right: margin },
+      columnStyles: { 1: { halign: 'center' }, 2: { halign: 'center' }, 3: { halign: 'center' }, 4: { halign: 'center' }, 5: { halign: 'right' } },
     });
+    y = (doc as any).lastAutoTable.finalY + 6;
 
-    yPos = (doc as any).lastAutoTable.finalY + 15;
+    // Bonus rules
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(120, 120, 120);
+    doc.text('Regras de Bônus: 1-4 matrículas: R$20/aluno | 5-7: R$25/aluno | 8-10: R$30/aluno | 11+: R$40/aluno', margin, y + 4);
+    y += 12;
 
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Resumo Final do Mês', 14, yPos);
-    yPos += 8;
+    // ==================== RESUMO FINAL ====================
+    if (y > 220) { doc.addPage(); y = 15; }
+    sectionTitle('Resumo Final do Mês');
 
-    autoTable(doc, {
-      startY: yPos,
-      head: [['Métrica', 'Valor']],
-      body: [
-        ['Total de Leads', resumoFinal.totalLeads],
-        ['Total Agendamentos', resumoFinal.totalAgendamentos],
-        ['Total Comparecimentos', resumoFinal.totalComparecimentos],
-        ['Total Matrículas', resumoFinal.totalMatriculas],
-        ['Conversão Geral', `${resumoFinal.conversaoGeral.toFixed(1)}%`],
-        ['Média No-Show', `${resumoFinal.mediaNoShow.toFixed(1)}%`],
-        ['Melhor Cadastrador', resumoFinal.melhorCadastrador],
-        ['Melhor Fechador', resumoFinal.melhorFechador],
-        ['Melhor Treinador', resumoFinal.melhorTreinador],
-      ],
-      theme: 'striped',
-      headStyles: { fillColor: [37, 99, 235] },
+    const resW = (pageWidth - 2 * margin - 3 * 3) / 4;
+    const resH = 26;
+    const resumoRow1 = [
+      { label: 'Total de Leads', value: resumoFinal.totalLeads.toString() },
+      { label: 'Total Agendamentos', value: resumoFinal.totalAgendamentos.toString() },
+      { label: 'Total Comparecimentos', value: resumoFinal.totalComparecimentos.toString() },
+      { label: 'Total Matrículas', value: resumoFinal.totalMatriculas.toString(), color: greenColor },
+    ];
+    resumoRow1.forEach((item, i) => {
+      drawKPIBox(margin + i * (resW + 3), y, resW, resH, item.label, item.value, (item as any).color);
     });
+    y += resH + 4;
+
+    const resumoRow2 = [
+      { label: 'Conversão Geral', value: `${resumoFinal.conversaoGeral.toFixed(1)}%` },
+      { label: 'Média No-Show', value: `${resumoFinal.mediaNoShow.toFixed(1)}%`, color: amberColor },
+      { label: 'Melhor Cadastrador', value: resumoFinal.melhorCadastrador },
+      { label: 'Melhor Fechador', value: resumoFinal.melhorFechador },
+    ];
+    resumoRow2.forEach((item, i) => {
+      drawKPIBox(margin + i * (resW + 3), y, resW, resH, item.label, item.value, (item as any).color);
+    });
+    y += resH + 4;
+
+    // Melhor treinador centered
+    const trW = (pageWidth - 2 * margin) / 2;
+    drawKPIBox(pageWidth / 2 - trW / 2, y, trW, resH, 'Melhor Treinador', resumoFinal.melhorTreinador);
+    y += resH + 8;
+
+    // Footer
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(150, 150, 150);
+    const totalPages = doc.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, margin, doc.internal.pageSize.getHeight() - 8);
+      doc.text(`Página ${p}/${totalPages}`, pageWidth - margin, doc.internal.pageSize.getHeight() - 8, { align: 'right' });
+    }
 
     doc.save(`dashboard-executivo-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     toast({ title: 'PDF exportado com sucesso!' });
