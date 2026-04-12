@@ -4,13 +4,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Loader2, Filter, FileDown, Save, Check } from 'lucide-react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths, subDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 // Hooks
 import { useExecutivoData } from '@/hooks/useExecutivoData';
@@ -29,9 +38,40 @@ import { EvolucaoCPLCPAChart } from '@/components/executivo/EvolucaoCPLCPAChart'
 // Utils
 import { formatExecutivoDate, formatExecutivoCurrency } from '@/utils/executivoMappers';
 
+type PeriodPreset = 'currentMonth' | 'lastMonth' | 'last7days' | 'last30days' | 'custom';
+
+const periodOptions: { value: PeriodPreset; label: string }[] = [
+  { value: 'currentMonth', label: 'Mês Atual' },
+  { value: 'lastMonth', label: 'Mês Anterior' },
+  { value: 'last7days', label: 'Últimos 7 dias' },
+  { value: 'last30days', label: 'Últimos 30 dias' },
+  { value: 'custom', label: 'Período Customizado' },
+];
+
+function getPresetDates(preset: PeriodPreset): { start: string; end: string } {
+  const today = new Date();
+  switch (preset) {
+    case 'currentMonth':
+      return { start: format(startOfMonth(today), 'yyyy-MM-dd'), end: format(endOfMonth(today), 'yyyy-MM-dd') };
+    case 'lastMonth': {
+      const last = subMonths(today, 1);
+      return { start: format(startOfMonth(last), 'yyyy-MM-dd'), end: format(endOfMonth(last), 'yyyy-MM-dd') };
+    }
+    case 'last7days':
+      return { start: format(subDays(today, 7), 'yyyy-MM-dd'), end: format(today, 'yyyy-MM-dd') };
+    case 'last30days':
+      return { start: format(subDays(today, 30), 'yyyy-MM-dd'), end: format(today, 'yyyy-MM-dd') };
+    default:
+      return { start: format(startOfMonth(today), 'yyyy-MM-dd'), end: format(endOfMonth(today), 'yyyy-MM-dd') };
+  }
+}
+
 export default function DashboardExecutivo() {
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
+  
+  // Period preset
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>('currentMonth');
   
   // Date filters
   const [dataInicio, setDataInicio] = useState<string>(
@@ -46,6 +86,16 @@ export default function DashboardExecutivo() {
   const [investimentoSalvo, setInvestimentoSalvo] = useState<number>(0);
   const [salvandoInvestimento, setSalvandoInvestimento] = useState(false);
   const [investimentoId, setInvestimentoId] = useState<string | null>(null);
+
+  // Handle preset change
+  const handlePresetChange = (preset: PeriodPreset) => {
+    setPeriodPreset(preset);
+    if (preset !== 'custom') {
+      const { start, end } = getPresetDates(preset);
+      setDataInicio(start);
+      setDataFim(end);
+    }
+  };
 
   // Data fetching
   const { leads, interacoes, loading, fetchData } = useExecutivoData();
@@ -92,7 +142,6 @@ export default function DashboardExecutivo() {
     setSalvandoInvestimento(true);
     try {
       if (investimentoId) {
-        // Update existing
         const { error } = await supabase
           .from('investimentos_marketing')
           .update({ valor: investimentoMarketing })
@@ -100,7 +149,6 @@ export default function DashboardExecutivo() {
         
         if (error) throw error;
       } else {
-        // Insert new
         const { data, error } = await supabase
           .from('investimentos_marketing')
           .insert({
@@ -139,23 +187,21 @@ export default function DashboardExecutivo() {
     const pageWidth = doc.internal.pageSize.getWidth();
     let yPos = 20;
 
-    // Title
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     doc.text('Dashboard Executivo', pageWidth / 2, yPos, { align: 'center' });
     yPos += 8;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Período: ${formatExecutivoDate(dataInicio)} a ${formatExecutivoDate(dataFim)}`, pageWidth / 2, yPos, { align: 'center' });
+    const unidadeLabel = unidadeAtual ? ` | ${unidadeAtual.nome}` : '';
+    doc.text(`Período: ${formatExecutivoDate(dataInicio)} a ${formatExecutivoDate(dataFim)}${unidadeLabel}`, pageWidth / 2, yPos, { align: 'center' });
     yPos += 15;
 
-    // Top Cards Summary
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Resumo Geral', 14, yPos);
     yPos += 8;
 
-    // Calculate CPL/CPA for PDF
     const cpl = investimentoMarketing > 0 && topCards.leadsDoMes > 0 
       ? investimentoMarketing / topCards.leadsDoMes 
       : null;
@@ -185,7 +231,6 @@ export default function DashboardExecutivo() {
 
     yPos = (doc as any).lastAutoTable.finalY + 15;
 
-    // Funil Executivo
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Funil Executivo', 14, yPos);
@@ -205,7 +250,6 @@ export default function DashboardExecutivo() {
 
     yPos = (doc as any).lastAutoTable.finalY + 15;
 
-    // Origem dos Leads
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Conversão por Origem', 14, yPos);
@@ -224,11 +268,9 @@ export default function DashboardExecutivo() {
       headStyles: { fillColor: [37, 99, 235] },
     });
 
-    // New page for more content
     doc.addPage();
     yPos = 20;
 
-    // Performance por Cadastrador
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Performance por Cadastrador', 14, yPos);
@@ -250,7 +292,6 @@ export default function DashboardExecutivo() {
 
     yPos = (doc as any).lastAutoTable.finalY + 15;
 
-    // Performance por Fechador
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Performance por Fechador', 14, yPos);
@@ -272,7 +313,6 @@ export default function DashboardExecutivo() {
 
     yPos = (doc as any).lastAutoTable.finalY + 15;
 
-    // Performance Treinadores
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Performance dos Treinadores', 14, yPos);
@@ -295,7 +335,6 @@ export default function DashboardExecutivo() {
 
     yPos = (doc as any).lastAutoTable.finalY + 15;
 
-    // Resumo Final
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Resumo Final do Mês', 14, yPos);
@@ -319,7 +358,6 @@ export default function DashboardExecutivo() {
       headStyles: { fillColor: [37, 99, 235] },
     });
 
-    // Save
     doc.save(`dashboard-executivo-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     toast({ title: 'PDF exportado com sucesso!' });
   };
@@ -327,10 +365,17 @@ export default function DashboardExecutivo() {
   return (
     <Layout>
       <div className="p-8 space-y-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Dashboard Executivo</h1>
-            <p className="text-sm text-muted-foreground">Pipeline de Aulas Experimentais</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-3xl font-bold">Dashboard Executivo</h1>
+              <p className="text-sm text-muted-foreground">Pipeline de Aulas Experimentais</p>
+            </div>
+            {unidadeAtual && (
+              <Badge variant="outline" className="text-sm font-medium px-3 py-1 bg-primary/10 text-primary border-primary/20">
+                {unidadeAtual.nome}
+              </Badge>
+            )}
           </div>
           <Button onClick={exportPDF} disabled={loading}>
             <FileDown className="w-4 h-4 mr-2" />
@@ -346,15 +391,36 @@ export default function DashboardExecutivo() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl">
+            <div className="flex flex-wrap items-end gap-4">
               <div className="space-y-2">
-                <Label>Data Início</Label>
-                <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+                <Label>Período</Label>
+                <Select value={periodPreset} onValueChange={(v) => handlePresetChange(v as PeriodPreset)}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {periodOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Data Fim</Label>
-                <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
-              </div>
+
+              {periodPreset === 'custom' && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Data Início</Label>
+                    <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Data Fim</Label>
+                    <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+                  </div>
+                </>
+              )}
+
               <div className="space-y-2">
                 <Label>Investimento Marketing (R$)</Label>
                 <div className="flex gap-2">
@@ -363,7 +429,7 @@ export default function DashboardExecutivo() {
                     placeholder="Ex: 5000" 
                     value={investimentoMarketing || ''} 
                     onChange={(e) => setInvestimentoMarketing(Number(e.target.value) || 0)}
-                    className="flex-1"
+                    className="w-[150px]"
                   />
                   <Button 
                     variant={investimentoMarketing !== investimentoSalvo ? "default" : "outline"}
@@ -392,31 +458,14 @@ export default function DashboardExecutivo() {
           </div>
         ) : (
           <>
-            {/* 1. TOP CARDS */}
             <ExecutivoKPIGrid topCards={topCards} investimentoMarketing={investimentoMarketing} />
-
-            {/* 2. EVOLUÇÃO CPL/CPA */}
             <EvolucaoCPLCPAChart />
-
-            {/* 3. FUNIL EXECUTIVO */}
             <FunilExecutivoCard funilData={funilExecutivo} />
-
-            {/* 4. ORIGEM DOS LEADS */}
             <OrigemLeadsCards origemData={origemData} />
-
-            {/* 5. AGENDA & PRESENÇA */}
             <AgendaPresencaCard agendaPresenca={agendaPresenca} />
-
-            {/* 6. PERFORMANCE POR CADASTRADOR */}
             <PerformanceCadastradorCard data={performanceCadastrador} />
-
-            {/* 7. PERFORMANCE POR FECHADOR */}
             <PerformanceFechadorCard data={performanceFechador} />
-
-            {/* 8. PERFORMANCE TREINADORES */}
             <TreinadorPerformanceCard data={performanceTreinadores} />
-
-            {/* 9. RESUMO FINAL */}
             <ResumoFinalCard resumo={resumoFinal} />
           </>
         )}
