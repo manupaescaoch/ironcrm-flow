@@ -11,12 +11,13 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const authHeader = req.headers.get('Authorization');
 
-    const token = req.headers.get('Authorization')?.replace('Bearer ', '');
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    const token = authHeader?.replace('Bearer ', '');
 
     if (!token) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -45,6 +46,14 @@ Deno.serve(async (req) => {
         status: 403,
       });
     }
+
+    const adminScopedSupabase = createClient(supabaseUrl, serviceRoleKey, {
+      global: {
+        headers: {
+          Authorization: authHeader!,
+        },
+      },
+    });
 
     const { userId } = await req.json();
 
@@ -100,7 +109,9 @@ Deno.serve(async (req) => {
     ];
 
     for (const { table, column } of nullifyOperations) {
-      const { error: cleanupErr } = await supabase
+      const cleanupClient = table === 'leads' ? adminScopedSupabase : supabase;
+
+      const { error: cleanupErr } = await cleanupClient
         .from(table)
         .update({ [column]: null })
         .eq(column, userId);
