@@ -737,6 +737,7 @@ export default function AdminUsers() {
                 Nenhum usuário encontrado
               </p>
             ) : (
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -746,8 +747,7 @@ export default function AdminUsers() {
                     <TableHead>Unidades</TableHead>
                     <TableHead>Role Atual</TableHead>
                     <TableHead>Alterar Role</TableHead>
-                    <TableHead>Criado em</TableHead>
-                    <TableHead className="w-24">Ações</TableHead>
+                    <TableHead className="w-16">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
