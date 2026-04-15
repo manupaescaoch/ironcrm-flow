@@ -6,19 +6,16 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // 1. Create Supabase client with SERVICE_ROLE_KEY
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // 2. Get token from header
     const token = req.headers.get('Authorization')?.replace('Bearer ', '');
 
     if (!token) {
@@ -28,39 +25,27 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3. Validate logged user
     const { data: { user }, error: userErr } = await supabase.auth.getUser(token);
 
     if (userErr || !user) {
-      console.error('Auth error:', userErr);
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
       });
     }
 
-    // 4. Check if user is ADMIN using has_role function
     const { data: isAdmin, error: roleErr } = await supabase.rpc('has_role', {
       _user_id: user.id,
       _role: 'admin',
     });
 
-    if (roleErr) {
-      console.error('Role check error:', roleErr);
-      return new Response(JSON.stringify({ error: 'Error checking permissions' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      });
-    }
-
-    if (!isAdmin) {
+    if (roleErr || !isAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 403,
       });
     }
 
-    // 5. Parse request body
     const { userId } = await req.json();
 
     if (!userId) {
@@ -70,7 +55,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 6. Prevent self-deletion
     if (userId === user.id) {
       return new Response(JSON.stringify({ error: 'Cannot delete your own account' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -80,19 +64,34 @@ Deno.serve(async (req) => {
 
     console.log(`Admin ${user.id} (${user.email}) deleting user ${userId}...`);
 
-    // 7. Delete user
+    // Clean up related data before deleting the user
+    const cleanupTables = [
+      { table: 'user_roles', column: 'user_id' },
+      { table: 'user_unidades', column: 'user_id' },
+      { table: 'user_profiles', column: 'user_id' },
+      { table: 'task_notifications', column: 'user_id' },
+    ];
+
+    for (const { table, column } of cleanupTables) {
+      const { error: cleanupErr } = await supabase
+        .from(table)
+        .delete()
+        .eq(column, userId);
+      
+      if (cleanupErr) {
+        console.log(`Warning: cleanup ${table} failed:`, cleanupErr.message);
+      }
+    }
+
+    // Now delete the auth user
     const { error } = await supabase.auth.admin.deleteUser(userId);
 
     if (error) {
-      // If user not found, it means it was already deleted - treat as success
       if (error.message === 'User not found' || (error as any).code === 'user_not_found') {
-        console.log(`User ${userId} was already deleted or not found - treating as success`);
+        console.log(`User ${userId} already deleted`);
         return new Response(
           JSON.stringify({ success: true, message: 'User already deleted' }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
-          }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         );
       }
       console.error('Error deleting user:', error);
@@ -103,20 +102,14 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   } catch (e: unknown) {
     const errorMessage = e instanceof Error ? e.message : 'Internal server error';
     console.error('Error in delete-user function:', errorMessage);
     return new Response(
       JSON.stringify({ error: errorMessage }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });
