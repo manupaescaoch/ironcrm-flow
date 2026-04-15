@@ -833,9 +833,6 @@ export default function AdminUsers() {
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDate(user.created_at)}
-                      </TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
