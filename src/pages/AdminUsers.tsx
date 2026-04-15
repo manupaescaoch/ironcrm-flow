@@ -737,95 +737,71 @@ export default function AdminUsers() {
                 Nenhum usuário encontrado
               </p>
             ) : (
-              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Email</TableHead>
+                    <TableHead>Usuário</TableHead>
                     <TableHead>Telefone</TableHead>
-                    <TableHead>Unidades</TableHead>
-                    <TableHead>Role Atual</TableHead>
-                    <TableHead>Alterar Role</TableHead>
-                    <TableHead className="w-16">Ações</TableHead>
+                    <TableHead>Unidade</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {users.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className={user.name ? 'font-medium uppercase' : 'text-muted-foreground italic'}>
-                            {user.name?.toUpperCase() || 'Sem nome'}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => handleEditName(user)}
-                            title="Editar nome"
-                          >
-                            <Pencil className="w-3 h-3" />
-                          </Button>
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1">
+                            <span className={user.name ? 'font-medium uppercase text-sm' : 'text-muted-foreground italic text-sm'}>
+                              {user.name?.toUpperCase() || 'Sem nome'}
+                            </span>
+                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleEditName(user)} title="Editar nome">
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                            {currentUser?.id === user.id && (
+                              <Badge variant="outline" className="text-[10px] px-1 py-0">Você</Badge>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground">{user.email}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium">
-                        {user.email}
-                        {currentUser?.id === user.id && (
-                          <Badge variant="outline" className="ml-2 text-xs">Você</Badge>
-                        )}
-                      </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">
-                            {user.telefone || '-'}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => handleEditPhone(user)}
-                            title="Editar telefone"
-                          >
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm text-muted-foreground">{user.telefone || '-'}</span>
+                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleEditPhone(user)} title="Editar telefone">
                             <Pencil className="w-3 h-3" />
                           </Button>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground max-w-32 truncate" title={getUnidadeNames(user.unidade_ids)}>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground truncate max-w-24" title={getUnidadeNames(user.unidade_ids)}>
                             {getUnidadeNames(user.unidade_ids)}
                           </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => handleEditUnidades(user)}
-                            title="Editar unidades"
-                          >
+                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleEditUnidades(user)} title="Editar unidades">
                             <Building2 className="w-3 h-3" />
                           </Button>
                         </div>
                       </TableCell>
-                      <TableCell>{getRoleBadge(user.role)}</TableCell>
                       <TableCell>
                         <Select
                           value={user.role || ''}
                           onValueChange={(value) => handleRoleChange(user.id, value)}
                           disabled={updatingUserId === user.id}
                         >
-                          <SelectTrigger className="w-40">
+                          <SelectTrigger className="w-32 h-8 text-xs">
                             {updatingUserId === user.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <Loader2 className="w-3 h-3 animate-spin" />
                             ) : (
-                              <SelectValue placeholder="Selecionar role" />
+                              <SelectValue placeholder="Role" />
                             )}
                           </SelectTrigger>
                           <SelectContent>
                             {roleOptions.map((option) => (
                               <SelectItem key={option.value} value={option.value}>
                                 <span className="flex items-center gap-2">
-                                  <option.icon className="w-4 h-4" />
+                                  <option.icon className="w-3 h-3" />
                                   {option.label}
                                 </span>
                               </SelectItem>
@@ -837,7 +813,7 @@ export default function AdminUsers() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
                           onClick={() => setUserToDelete(user)}
                           disabled={!canDeleteUser(user.id) || deletingUserId === user.id}
                           title={!canDeleteUser(user.id) ? 'Você não pode excluir seu próprio usuário' : 'Excluir usuário'}
@@ -853,7 +829,6 @@ export default function AdminUsers() {
                   ))}
                 </TableBody>
               </Table>
-              </div>
             )}
           </CardContent>
         </Card>
