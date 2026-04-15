@@ -64,22 +64,49 @@ Deno.serve(async (req) => {
 
     console.log(`Admin ${user.id} (${user.email}) deleting user ${userId}...`);
 
-    // Clean up related data before deleting the user
-    const cleanupTables = [
+    // Clean up direct ownership records before deleting the auth user
+    const deleteOperations = [
       { table: 'user_roles', column: 'user_id' },
       { table: 'user_unidades', column: 'user_id' },
       { table: 'user_profiles', column: 'user_id' },
       { table: 'task_notifications', column: 'user_id' },
     ];
 
-    for (const { table, column } of cleanupTables) {
+    for (const { table, column } of deleteOperations) {
       const { error: cleanupErr } = await supabase
         .from(table)
         .delete()
         .eq(column, userId);
-      
+
       if (cleanupErr) {
-        console.log(`Warning: cleanup ${table} failed:`, cleanupErr.message);
+        console.log(`Warning: delete cleanup on ${table}.${column} failed:`, cleanupErr.message);
+      }
+    }
+
+    // Preserve historical data while removing auth-user references that can block deletion
+    const nullifyOperations = [
+      { table: 'task_comments', column: 'user_id' },
+      { table: 'task_history', column: 'user_id' },
+      { table: 'leads', column: 'created_by' },
+      { table: 'leads', column: 'user_id' },
+      { table: 'interacoes', column: 'created_by' },
+      { table: 'tasks', column: 'created_by' },
+      { table: 'escala', column: 'created_by' },
+      { table: 'formularios', column: 'created_by' },
+      { table: 'investimentos_marketing', column: 'created_by' },
+      { table: 'movimentacoes_estoque', column: 'created_by' },
+      { table: 'relatorio_gerencial_zn', column: 'created_by' },
+      { table: 'rotinas', column: 'created_by' },
+    ];
+
+    for (const { table, column } of nullifyOperations) {
+      const { error: cleanupErr } = await supabase
+        .from(table)
+        .update({ [column]: null })
+        .eq(column, userId);
+
+      if (cleanupErr) {
+        console.log(`Warning: nullify cleanup on ${table}.${column} failed:`, cleanupErr.message);
       }
     }
 
