@@ -264,10 +264,8 @@ Deno.serve(async (req) => {
       message += `\n`;
 
       if (rotinaAtividades.length > 0) {
-        message += rotinaAtividades.join('\n') + '\n';
+        message += rotinaAtividades.join('\n');
       }
-
-      message += `\n✅ Marque como concluída no sistema CRM após executar.`;
 
       console.log(`[notify-rotinas] Enviando para ${responsavel} (${normalizedPhone}): ${rotina.nome}`);
 
