@@ -21,10 +21,11 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-import { Plus, Clock, Trash2, CalendarDays, Phone, ChevronLeft, ChevronRight, Pencil, X, FileText, User, MessageSquare, CheckSquare, Square, CheckCheck, ClipboardList, List } from 'lucide-react';
+import { Plus, Clock, Trash2, CalendarDays, Phone, ChevronLeft, ChevronRight, Pencil, X, FileText, User, MessageSquare, CheckSquare, Square, CheckCheck, ClipboardList, List, Copy } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { CronogramaAtividade } from '@/hooks/useCronogramaAtividades';
+import { ReplicarCronogramaModal } from './ReplicarCronogramaModal';
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const DAY_LABELS = ['DOM.', 'SEG.', 'TER.', 'QUA.', 'QUI.', 'SEX.', 'SÁB.'];
@@ -90,6 +91,7 @@ export function CronogramaTab() {
   const [selectedRotinaEvent, setSelectedRotinaEvent] = useState<{ rotina: Rotina; dayIdx: number } | null>(null);
 
   const [open, setOpen] = useState(false);
+  const [replicarOpen, setReplicarOpen] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState<{ atividade: CronogramaAtividade; dayIdx: number } | null>(null);
   const [editingEvent, setEditingEvent] = useState(false);
@@ -416,8 +418,12 @@ export function CronogramaTab() {
                   <ClipboardList className="w-4 h-4 mr-2" /> Nova Rotina
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem onClick={() => setReplicarOpen(true)}>
+                <Copy className="w-4 h-4 mr-2" /> Replicar de Outra Unidade
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <ReplicarCronogramaModal open={replicarOpen} onOpenChange={setReplicarOpen} />
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>Nova Atividade</DialogTitle></DialogHeader>
