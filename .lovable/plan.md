@@ -1,30 +1,34 @@
 
 
-## Unificar Botões e Expandir Lista de Responsáveis
+## Diagnóstico
 
-### O que muda
+A unidade **Iron Zona Sul** tem apenas **1 tipo de atividade cadastrado** no Cronograma Operacional: "ENCERRAMENTO DE TURNO – ESTAGIÁRIO LÍDER", às 11h, 17h e 23h, e essas mensagens **estão sendo enviadas normalmente** (último envio: hoje 02:00 UTC = 23h Brasília ontem para Mari Yoshinari; ontem 14h/20h UTC para Felipe e Jon).
 
-**1. Remover botão separado "Nova Rotina" — unificar em um único botão "+" com dropdown**
-- Substituir os dois botões ("Nova Atividade" + "Nova Rotina") por um único botão `+` com DropdownMenu contendo duas opções: "Nova Atividade" e "Nova Rotina"
-- Alternativa mais simples (como no screenshot): manter visual similar ao "Nova Atividade" como botão principal, e "Nova Rotina" como opção secundária no mesmo dropdown
+**Não existe nenhuma outra atividade cadastrada na Zona Sul** — por isso "as atividades não estão indo aos responsáveis": elas simplesmente não foram criadas no sistema para a Zona Sul.
 
-**2. Expandir lista de Responsáveis para incluir usuários da unidade + funcionários da equipe**
-- No modal "Nova Atividade", o dropdown de Responsável atualmente só mostra `funcionarios` (tabela `cronograma_funcionarios`)
-- Adicionar `useUnidadeUsers()` ao `CronogramaTab` para buscar também os usuários do sistema vinculados à unidade
-- Renderizar as duas listas no Select agrupadas:
-  - **Grupo "Equipe"**: funcionários da tabela `cronograma_funcionarios` (com telefone)
-  - **Grupo "Usuários"**: usuários do sistema da unidade (via `useUnidadeUsers`)
-- Aplicar a mesma lógica no modal de edição de atividades
+### Comparação:
+- **Zona Sul**: apenas 1 título de atividade ("ENCERRAMENTO DE TURNO") cadastrado, e essa funciona.
+- Outras unidades (Zona Norte) provavelmente têm cronograma completo (abertura, limpeza, conferências, etc.) e por isso recebem várias mensagens.
 
-### Arquivos Alterados
-- `src/components/cronograma/CronogramaTab.tsx`:
-  - Importar `useUnidadeUsers`
-  - Adicionar DropdownMenu no header (substituindo os 2 botões)
-  - No Select de Responsável (criação e edição): renderizar ambos os grupos com `SelectGroup` + `SelectLabel`
+### Causas possíveis:
+1. As atividades da Zona Sul **nunca foram cadastradas** na aba "Cronograma" do módulo Operacional.
+2. Foram cadastradas mas estão **inativas** (verifiquei: só existem cópias inativas duplicadas do mesmo "Encerramento de Turno").
+3. Falta replicar/copiar o cronograma da Zona Norte para Zona Sul.
 
-### Detalhes Técnicos
-- Usar `SelectGroup` e `SelectLabel` do shadcn/ui para separar visualmente "Equipe" e "Usuários" no dropdown
-- Para usuários do sistema, o `value` será o `user.id` (mantendo compatibilidade com `responsavel_id`)
-- Para funcionários, continua usando `funcionario.id`
-- O preview de WhatsApp busca nome em ambas as listas
+## Plano de Ação
+
+1. **Confirmar com você** se a expectativa era ter mais atividades além do "Encerramento de Turno" na Zona Sul.
+2. Se sim, implementar uma das opções:
+   - **Opção A**: Criar uma função "Replicar Cronograma de Outra Unidade" no módulo Operacional, permitindo copiar todas as atividades ativas da Zona Norte para a Zona Sul (com escolha de responsáveis equivalentes).
+   - **Opção B**: Cadastrar manualmente as atividades faltantes na aba Cronograma → Nova Atividade, selecionando a Zona Sul no seletor de unidade.
+3. Validar que após o cadastro o cron job (`*/15 * * * *`) entrega as mensagens nos horários corretos.
+
+### Verificação técnica realizada:
+- Cron job ativo (a cada 15 min) ✅
+- Edge function `send-cronograma-messages` rodando sem erros ✅
+- Logs mostram entregas bem-sucedidas para Felipe, Jon e Mari ✅
+- Telefones dos responsáveis preenchidos ✅
+- RLS e responsáveis com `cronograma_funcionarios.id` válidos ✅
+
+**Confirme**: você quer (A) replicar o cronograma da Zona Norte para a Zona Sul automaticamente, ou (B) cadastrar manualmente quais atividades você espera ter na Zona Sul?
 
