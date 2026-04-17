@@ -267,11 +267,11 @@ Deno.serve(async (req) => {
         message += rotinaAtividades.join('\n') + '\n';
       }
 
-      message += `\nClique abaixo para confirmar:`;
+      message += `\n✅ Marque como concluída no sistema CRM após executar.`;
 
       console.log(`[notify-rotinas] Enviando para ${responsavel} (${normalizedPhone}): ${rotina.nome}`);
 
-      const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-button-list`;
+      const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
 
       try {
         const zapiResponse = await fetch(zapiUrl, {
@@ -283,34 +283,41 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             phone: normalizedPhone,
             message,
-            buttonList: {
-              buttons: [
-                { id: `feito_${rotina.id}`, label: '✅ Feito' },
-                { id: `naofeito_${rotina.id}`, label: '❌ Não feito' },
-              ],
-            },
           }),
         });
 
-        const zapiResult = await zapiResponse.json();
+        const zapiResult = await zapiResponse.json().catch(() => ({}));
+
+        console.log(`[notify-rotinas] Z-API status=${zapiResponse.status} para ${rotina.nome}:`, JSON.stringify(zapiResult));
 
         if (zapiResponse.ok) {
           sentCount++;
-          console.log(`[notify-rotinas] ✅ Enviado: ${rotina.nome}`, zapiResult);
+          console.log(`[notify-rotinas] ✅ Enviado: ${rotina.nome}`);
 
-          // Registrar na tabela de rastreio
           await supabase.from('rotina_notificacoes').insert({
             rotina_id: rotina.id,
             data_envio: todayStr,
             status: 'enviado',
           });
         } else {
-          console.error(`[notify-rotinas] ❌ Erro Zapi: ${rotina.nome}`, zapiResult);
-          errors.push(`Erro Zapi: ${responsavel} - ${rotina.nome}`);
+          console.error(`[notify-rotinas] ❌ Erro Zapi (${zapiResponse.status}): ${rotina.nome}`, zapiResult);
+          errors.push(`Erro Zapi (${zapiResponse.status}): ${responsavel} - ${rotina.nome}`);
+
+          await supabase.from('rotina_notificacoes').insert({
+            rotina_id: rotina.id,
+            data_envio: todayStr,
+            status: 'falhou',
+          });
         }
       } catch (err) {
         console.error(`[notify-rotinas] ❌ Erro envio: ${rotina.nome}`, err);
         errors.push(`Erro envio: ${responsavel} - ${rotina.nome}`);
+
+        await supabase.from('rotina_notificacoes').insert({
+          rotina_id: rotina.id,
+          data_envio: todayStr,
+          status: 'falhou',
+        });
       }
     }
 
