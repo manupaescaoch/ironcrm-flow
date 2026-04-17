@@ -418,8 +418,12 @@ export function CronogramaTab() {
                   <ClipboardList className="w-4 h-4 mr-2" /> Nova Rotina
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem onClick={() => setReplicarOpen(true)}>
+                <Copy className="w-4 h-4 mr-2" /> Replicar de Outra Unidade
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <ReplicarCronogramaModal open={replicarOpen} onOpenChange={setReplicarOpen} />
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>Nova Atividade</DialogTitle></DialogHeader>
