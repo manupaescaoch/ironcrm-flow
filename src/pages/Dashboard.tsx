@@ -23,7 +23,7 @@ import { ExperimentaisDetailSection } from '@/components/dashboard/Experimentais
 import { MatriculasDetailSection } from '@/components/dashboard/MatriculasDetailSection';
 import { SyncIndicator } from '@/components/dashboard/SyncIndicator';
 import { useDashboardData } from '@/hooks/useDashboardData';
-import { addDays } from 'date-fns';
+import { addDays, subDays, startOfDay, endOfDay } from 'date-fns';
 export default function Dashboard() {
   const { user, isAdmin } = useAuth();
   const { unidadeAtual, loading: unidadeLoading } = useUnidade();
@@ -286,8 +286,8 @@ export default function Dashboard() {
                 onClick={() => {
                   setPeriodType('last7days');
                   const today = new Date();
-                  setStartDate(addDays(today, -7));
-                  setEndDate(today);
+                  setStartDate(startOfDay(subDays(today, 6)));
+                  setEndDate(endOfDay(today));
                 }}
               >
                 Últimos 7 dias
