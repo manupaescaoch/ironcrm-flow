@@ -98,10 +98,11 @@ async function calcularUnidade(
 
   const cpl = totalLeads > 0 ? investimento / totalLeads : 0
   const cpa = matriculas > 0 ? investimento / matriculas : 0
-  const conversao = totalLeads > 0 ? (matriculas / totalLeads) * 100 : 0
-  const ltv8m = matriculas > 0 ? (faturamento / matriculas) * 8 : 0
+  const leadAtend = totalLeads > 0 ? (comparecimentos / totalLeads) * 100 : 0
+  const atendAluno = comparecimentos > 0 ? (matriculas / comparecimentos) * 100 : 0
+  const ticket = matriculas > 0 ? faturamento / matriculas : 0
 
-  return { totalLeads, agendamentos, comparecimentos, matriculas, faturamento, cpl, cpa, conversao, ltv8m }
+  return { totalLeads, agendamentos, comparecimentos, matriculas, faturamento, cpl, cpa, leadAtend, atendAluno, ticket }
 }
 
 Deno.serve(async (req) => {
@@ -116,7 +117,6 @@ Deno.serve(async (req) => {
     const body = (await req.json()) as ZapiWebhook
     console.log('Webhook recebido', JSON.stringify(body))
 
-    // Ignorar mensagens enviadas por nós, status, etc.
     if (body.fromMe || body.isStatusReply) {
       return new Response(JSON.stringify({ ok: true, ignored: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -131,7 +131,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Buscar pendência ativa
     const { data: pendente } = await supabase
       .from('resumo_semanal_pendentes')
       .select('*')
@@ -149,7 +148,6 @@ Deno.serve(async (req) => {
 
     const { semana_inicio: inicio, semana_fim: fim } = pendente
 
-    // Contagem de leads para divisão proporcional
     const { count: leadsZnCount } = await supabase
       .from('leads')
       .select('id', { count: 'exact', head: true })
@@ -171,38 +169,51 @@ Deno.serve(async (req) => {
     const zn = await calcularUnidade(supabase, ZN_ID, inicio, fim, inv.zn)
     const zs = await calcularUnidade(supabase, ZS_ID, inicio, fim, inv.zs)
 
+    const totalInvestido = inv.zn + inv.zs
+    const totalLeads = zn.totalLeads + zs.totalLeads
+    const totalMatriculas = zn.matriculas + zs.matriculas
+    const cplGeral = totalLeads > 0 ? totalInvestido / totalLeads : 0
+    const cpaGeral = totalMatriculas > 0 ? totalInvestido / totalMatriculas : 0
+    const conversaoGeral = totalLeads > 0 ? (totalMatriculas / totalLeads) * 100 : 0
+
     const fmtDate = (s: string) => {
       const [y, m, d] = s.split('-')
       return `${d}/${m}`
     }
 
     const msg =
-`📊 Resumo Semanal IRON
-Período: ${fmtDate(inicio)} a ${fmtDate(fim)}
+`📊 *RESUMO SEMANAL CRM*
+*Período: ${fmtDate(inicio)} a ${fmtDate(fim)}*
 
-🔵 Zona Norte
-Investimento: R$ ${fmtBRL(inv.zn)}
+*ZN — Zona Norte*
 Leads: ${zn.totalLeads}
-Agendamentos: ${zn.agendamentos}
 Comparecimentos: ${zn.comparecimentos}
 Matrículas: ${zn.matriculas}
 Faturamento: R$ ${fmtBRL(zn.faturamento)}
+Lead → Atend.: ${fmtPct(zn.leadAtend)}
+Atend. → Aluno: ${fmtPct(zn.atendAluno)}
 CPL: R$ ${fmtBRL(zn.cpl)}
 CPA: R$ ${fmtBRL(zn.cpa)}
-Conversão: ${fmtPct(zn.conversao)}
-LTV 8m: ${fmtLTV(zn.ltv8m)}
+Ticket Médio: R$ ${fmtBRL(zn.ticket)}
 
-🟢 Zona Sul
-Investimento: R$ ${fmtBRL(inv.zs)}
+*ZS — Zona Sul*
 Leads: ${zs.totalLeads}
-Agendamentos: ${zs.agendamentos}
 Comparecimentos: ${zs.comparecimentos}
 Matrículas: ${zs.matriculas}
 Faturamento: R$ ${fmtBRL(zs.faturamento)}
+Lead → Atend.: ${fmtPct(zs.leadAtend)}
+Atend. → Aluno: ${fmtPct(zs.atendAluno)}
 CPL: R$ ${fmtBRL(zs.cpl)}
 CPA: R$ ${fmtBRL(zs.cpa)}
-Conversão: ${fmtPct(zs.conversao)}
-LTV 8m: ${fmtLTV(zs.ltv8m)}`
+Ticket Médio: R$ ${fmtBRL(zs.ticket)}
+
+*CONSOLIDADO*
+Total Investido: R$ ${fmtBRL(totalInvestido)}
+Total Leads: ${totalLeads}
+Total Matrículas: ${totalMatriculas}
+CPL Geral: R$ ${fmtBRL(cplGeral)}
+CPA Geral: R$ ${fmtBRL(cpaGeral)}
+Conversão Geral: ${fmtPct(conversaoGeral)}`
 
     // Enviar resposta
     const instanceId = Deno.env.get('ZAPI_INSTANCE_ID')!
