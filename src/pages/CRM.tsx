@@ -1096,7 +1096,7 @@ export default function CRM() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
@@ -1137,6 +1137,28 @@ export default function CRM() {
                 <div>
                   <p className="text-2xl font-bold text-red-600">{kpis.perdidos}</p>
                   <p className="text-xs text-muted-foreground">Perdidos</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <CalendarCheck className="w-5 h-5 text-sky-500" />
+                <div>
+                  <p className="text-2xl font-bold text-sky-600">{experimentaisAgendadasPeriodo}</p>
+                  <p className="text-xs text-muted-foreground">Exp. Agendadas</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-purple-500" />
+                <div>
+                  <p className="text-2xl font-bold text-purple-600">{experimentaisRealizadasPeriodo}</p>
+                  <p className="text-xs text-muted-foreground">Exp. Realizadas</p>
                 </div>
               </div>
             </CardContent>
@@ -1241,7 +1263,7 @@ export default function CRM() {
                       <TableRow 
                         key={lead.id} 
                         className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => window.location.href = `/lead/${lead.id}`}
+                        onClick={() => navigate(`/lead/${lead.id}`)}
                       >
                         <TableCell className="font-medium">{lead.nome?.toUpperCase()}</TableCell>
                         <TableCell><WhatsAppLink phone={lead.telefone} /></TableCell>
