@@ -122,13 +122,15 @@ Deno.serve(async (req) => {
       if (!lead.telefone) { errors.push(`Sem telefone: ${lead.nome}`); continue; }
 
       const nome = firstName(lead.nome);
-      const message = `${nome}, e aí? Como foi o treino hoje?
+      const message = `Oi ${nome}! Tudo bem?
 
-Me fala com sinceridade o que achou da estrutura, do atendimento, do espaço.
+Como foi sua experiência hoje na Iron?
 
-E se tiver interesse em continuar treinando aqui na IRON, me fala também. Te explico como funciona sem enrolação.
+Queria saber, com sinceridade, o que você achou da nossa estrutura, do atendimento e do ambiente.
 
-Equipe IRON`;
+E caso faça sentido para você continuar treinando com a gente, me avisa por aqui que eu te explico os planos e como funciona. Se tiver qualquer outra dúvida, estamos à disposição!
+
+Equipe Iron 💙`;
 
       const phone = normalizePhone(lead.telefone);
 
