@@ -79,7 +79,8 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
     const hora = horaEvento ? horaEvento.slice(0, 5) : '';
     
     const tipoTexto = isAvaliacao ? 'avaliação física' : 'aula experimental';
-    const message = `Olá, ${item.lead.nome}!
+    const message = isAvaliacao
+      ? `Olá, ${item.lead.nome}!
 
 Sua ${tipoTexto} está confirmada para:
 📅 ${dataFormatada}
@@ -91,7 +92,20 @@ Estamos empolgados para te conhecer e te proporcionar uma experiência incrível
 
 Nos vemos em breve! 💪
 
-Equipe IRON CLUB`;
+Equipe IRON CLUB`
+      : `Oi, ${item.lead.nome}! Tudo certo.
+
+Sua aula experimental está confirmada:
+
+📅 ${dataFormatada}
+
+⏰ ${hora}
+
+Chega com 10 minutos de antecedência e roupa de treino.
+
+Confirma aqui que você vem.
+
+Equipe IRON`;
     
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
