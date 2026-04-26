@@ -642,6 +642,7 @@ export type Database = {
           data_vencimento: string | null
           descricao: string | null
           fechou_matricula: boolean | null
+          feedback_pos_aula_enviado_em: string | null
           hora_avaliacao: string | null
           hora_experimental: string | null
           id: string
@@ -679,6 +680,7 @@ export type Database = {
           data_vencimento?: string | null
           descricao?: string | null
           fechou_matricula?: boolean | null
+          feedback_pos_aula_enviado_em?: string | null
           hora_avaliacao?: string | null
           hora_experimental?: string | null
           id?: string
@@ -716,6 +718,7 @@ export type Database = {
           data_vencimento?: string | null
           descricao?: string | null
           fechou_matricula?: boolean | null
+          feedback_pos_aula_enviado_em?: string | null
           hora_avaliacao?: string | null
           hora_experimental?: string | null
           id?: string
