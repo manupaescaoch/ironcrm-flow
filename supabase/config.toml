@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.rotina-whatsapp-response]
 verify_jwt = false
+
+[functions.notify-resumo-semanal-pergunta]
+verify_jwt = false
+
+[functions.resumo-semanal-webhook-resposta]
+verify_jwt = false
