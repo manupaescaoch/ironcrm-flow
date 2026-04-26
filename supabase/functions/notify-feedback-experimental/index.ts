@@ -121,6 +121,31 @@ Deno.serve(async (req) => {
       }
       if (!lead.telefone) { errors.push(`Sem telefone: ${lead.nome}`); continue; }
 
+      // Re-check em tempo real: se virou matrícula entre o filtro e o envio, abortar
+      const { data: freshLead } = await supabase
+        .from('leads')
+        .select('is_matriculado, status_funil, ativo')
+        .eq('id', lead.id)
+        .maybeSingle();
+      if (!freshLead || !freshLead.ativo || freshLead.is_matriculado || freshLead.status_funil === 'convertido' || freshLead.status_funil === 'perdido') {
+        console.log(`[feedback] ⛔ lead virou matrícula/perdido/inativo antes do envio: ${lead.nome}`);
+        await supabase.from('interacoes').update({ feedback_pos_aula_enviado_em: new Date().toISOString() }).eq('id', inter.id);
+        continue;
+      }
+
+      // Verificar se existe matrícula registrada na tabela interacoes
+      const { data: matricula } = await supabase
+        .from('interacoes')
+        .select('id')
+        .eq('lead_id', lead.id)
+        .eq('fechou_matricula', true)
+        .maybeSingle();
+      if (matricula) {
+        console.log(`[feedback] ⛔ lead já tem matrícula registrada: ${lead.nome}`);
+        await supabase.from('interacoes').update({ feedback_pos_aula_enviado_em: new Date().toISOString() }).eq('id', inter.id);
+        continue;
+      }
+
       const nome = firstName(lead.nome);
       const message = `Oi ${nome}! Tudo bem?
 
