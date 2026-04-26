@@ -1066,6 +1066,51 @@ export type Database = {
           },
         ]
       }
+      resumo_semanal_pendentes: {
+        Row: {
+          created_at: string
+          enviado_em: string
+          id: string
+          respondido_em: string | null
+          resposta_raw: string | null
+          semana_fim: string
+          semana_inicio: string
+          status: string
+          telefone: string
+          updated_at: string
+          valor_zn: number | null
+          valor_zs: number | null
+        }
+        Insert: {
+          created_at?: string
+          enviado_em?: string
+          id?: string
+          respondido_em?: string | null
+          resposta_raw?: string | null
+          semana_fim: string
+          semana_inicio: string
+          status?: string
+          telefone: string
+          updated_at?: string
+          valor_zn?: number | null
+          valor_zs?: number | null
+        }
+        Update: {
+          created_at?: string
+          enviado_em?: string
+          id?: string
+          respondido_em?: string | null
+          resposta_raw?: string | null
+          semana_fim?: string
+          semana_inicio?: string
+          status?: string
+          telefone?: string
+          updated_at?: string
+          valor_zn?: number | null
+          valor_zs?: number | null
+        }
+        Relationships: []
+      }
       rotina_atividades: {
         Row: {
           created_at: string
