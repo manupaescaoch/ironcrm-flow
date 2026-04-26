@@ -303,6 +303,57 @@ export default function CRM() {
     }
   }, [unidadeAtual, unidadeLoading, fetchLeads]);
 
+  // Persist filters in sessionStorage so they survive navigating to lead detail and back
+  useEffect(() => {
+    const snapshot: SavedFilters = {
+      search,
+      filterOrigem,
+      filterCadastradoPor,
+      filterStatus,
+      periodType,
+      startDate: startDate ? startDate.toISOString() : undefined,
+      endDate: endDate ? endDate.toISOString() : undefined,
+    };
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    } catch {
+      /* ignore quota errors */
+    }
+  }, [search, filterOrigem, filterCadastradoPor, filterStatus, periodType, startDate, endDate]);
+
+  // Fetch experimental KPIs (agendadas / realizadas) for the selected period
+  useEffect(() => {
+    if (!unidadeAtual) return;
+    let cancelled = false;
+
+    (async () => {
+      let query = supabase
+        .from('interacoes')
+        .select('lead_id, agendou_experimental, compareceu, data_experimental')
+        .eq('unidade_id', unidadeAtual.id)
+        .not('data_experimental', 'is', null);
+
+      if (startDate) query = query.gte('data_experimental', format(startDate, 'yyyy-MM-dd'));
+      if (endDate) query = query.lte('data_experimental', format(endDate, 'yyyy-MM-dd'));
+
+      const { data, error } = await query;
+      if (cancelled || error || !data) return;
+
+      const agendadas = new Set<string>();
+      const realizadas = new Set<string>();
+      for (const row of data as Array<{ lead_id: string; agendou_experimental: boolean | null; compareceu: boolean | null }>) {
+        if (row.agendou_experimental) agendadas.add(row.lead_id);
+        if (row.compareceu) realizadas.add(row.lead_id);
+      }
+      setExperimentaisAgendadasPeriodo(agendadas.size);
+      setExperimentaisRealizadasPeriodo(realizadas.size);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [unidadeAtual, startDate, endDate]);
+
   const uniqueOrigens = useMemo(() => {
     const origens = leads.map(l => l.origem).filter(Boolean) as string[];
     return [...new Set(origens)];
