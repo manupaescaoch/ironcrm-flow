@@ -30,12 +30,16 @@ function isoDate(d: Date): string {
 }
 
 function getWeekRange(ref: Date): { sunday: Date; saturday: Date } {
+  // Sempre retorna a semana COMPLETA mais recente (domingo a sábado).
+  // Se ref for sábado: usa o próprio sábado como fim.
+  // Caso contrário: usa o sábado anterior.
   const d = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
   const dow = d.getDay(); // 0=Dom, 6=Sab
-  const sunday = new Date(d);
-  sunday.setDate(d.getDate() - dow);
-  const saturday = new Date(sunday);
-  saturday.setDate(sunday.getDate() + 6);
+  const daysBackToSaturday = dow === 6 ? 0 : dow + 1;
+  const saturday = new Date(d);
+  saturday.setDate(d.getDate() - daysBackToSaturday);
+  const sunday = new Date(saturday);
+  sunday.setDate(saturday.getDate() - 6);
   return { sunday, saturday };
 }
 
