@@ -7,16 +7,14 @@ const corsHeaders = {
 
 const TARGET_PHONE = '5581996392285'
 
-function getPreviousWeekRange(now: Date) {
-  // Semana ANTERIOR completa: domingo a sábado, terminando no último sábado.
-  // Se rodar no sábado, considera o sábado atual como fim do período.
+function getCurrentWeekRange(now: Date) {
+  // Semana ATUAL: domingo a sábado. Se rodar no sábado às 10h, fim = sábado de hoje.
   const brt = new Date(now.getTime() - 3 * 60 * 60 * 1000)
   const dow = brt.getUTCDay() // 0 = dom, 6 = sab
-  const daysBackToSaturday = dow === 6 ? 0 : dow + 1
-  const end = new Date(brt)
-  end.setUTCDate(brt.getUTCDate() - daysBackToSaturday)
-  const start = new Date(end)
-  start.setUTCDate(end.getUTCDate() - 6)
+  const start = new Date(brt)
+  start.setUTCDate(brt.getUTCDate() - dow) // volta até o domingo
+  const end = new Date(start)
+  end.setUTCDate(start.getUTCDate() + 6) // sábado
   const fmt = (d: Date) => d.toISOString().slice(0, 10)
   return { inicio: fmt(start), fim: fmt(end) }
 }
@@ -30,7 +28,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    const { inicio, fim } = getPreviousWeekRange(new Date())
+    const { inicio, fim } = getCurrentWeekRange(new Date())
 
     // Marcar pendências antigas como expiradas
     await supabase
