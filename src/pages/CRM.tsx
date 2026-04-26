@@ -50,7 +50,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/utils/errorMessages';
 import { Plus, Search, Eye, Trash2, Loader2, Pencil, Filter, Upload, FileSpreadsheet, Users, TrendingUp, UserCheck, UserX, CalendarIcon, CalendarCheck, CheckCircle } from 'lucide-react';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths, subDays, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import { z } from 'zod';
@@ -178,7 +178,7 @@ interface SavedFilters {
   filterOrigem?: string;
   filterCadastradoPor?: string;
   filterStatus?: string;
-  periodType?: 'all' | 'currentMonth' | 'lastMonth' | 'custom';
+  periodType?: 'all' | 'last7days' | 'currentMonth' | 'lastMonth' | 'custom';
   startDate?: string;
   endDate?: string;
 }
@@ -209,7 +209,7 @@ export default function CRM() {
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
 
   // Date filter state (restored from sessionStorage)
-  const [periodType, setPeriodType] = useState<'all' | 'currentMonth' | 'lastMonth' | 'custom'>(
+  const [periodType, setPeriodType] = useState<'all' | 'last7days' | 'currentMonth' | 'lastMonth' | 'custom'>(
     _saved.periodType ?? 'all'
   );
   const [startDate, setStartDate] = useState<Date | undefined>(
@@ -259,6 +259,10 @@ export default function CRM() {
     const now = new Date();
     
     switch (value) {
+      case 'last7days':
+        setStartDate(startOfDay(subDays(now, 6)));
+        setEndDate(endOfDay(now));
+        break;
       case 'currentMonth':
         setStartDate(startOfMonth(now));
         setEndDate(endOfMonth(now));
@@ -839,6 +843,7 @@ export default function CRM() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todo período</SelectItem>
+                <SelectItem value="last7days">Últimos 7 dias</SelectItem>
                 <SelectItem value="currentMonth">Mês atual</SelectItem>
                 <SelectItem value="lastMonth">Mês passado</SelectItem>
                 <SelectItem value="custom">Personalizado</SelectItem>
