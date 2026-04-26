@@ -7,15 +7,16 @@ const corsHeaders = {
 
 const TARGET_PHONE = '5581996392285'
 
-function getCurrentWeekRange(now: Date) {
-  // Semana domingo a sábado contendo a data atual.
-  // Considerando fuso BRT (UTC-3): converter
+function getPreviousWeekRange(now: Date) {
+  // Semana ANTERIOR completa: domingo a sábado, terminando no último sábado.
+  // Se rodar no sábado, considera o sábado atual como fim do período.
   const brt = new Date(now.getTime() - 3 * 60 * 60 * 1000)
   const dow = brt.getUTCDay() // 0 = dom, 6 = sab
-  const start = new Date(brt)
-  start.setUTCDate(brt.getUTCDate() - dow)
-  const end = new Date(start)
-  end.setUTCDate(start.getUTCDate() + 6)
+  const daysBackToSaturday = dow === 6 ? 0 : dow + 1
+  const end = new Date(brt)
+  end.setUTCDate(brt.getUTCDate() - daysBackToSaturday)
+  const start = new Date(end)
+  start.setUTCDate(end.getUTCDate() - 6)
   const fmt = (d: Date) => d.toISOString().slice(0, 10)
   return { inicio: fmt(start), fim: fmt(end) }
 }
