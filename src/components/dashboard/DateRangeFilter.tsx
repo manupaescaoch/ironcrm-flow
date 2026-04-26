@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { format, subDays, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -56,8 +56,8 @@ export function DateRangeFilter({
         onEndDateChange(today);
         break;
       case 'last7days':
-        onStartDateChange(subDays(today, 7));
-        onEndDateChange(today);
+        onStartDateChange(startOfDay(subDays(today, 6)));
+        onEndDateChange(endOfDay(today));
         break;
       case 'currentMonth':
         onStartDateChange(startOfMonth(today));
