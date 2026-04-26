@@ -57,7 +57,7 @@ export function useDashboardData(
     
     setLoading(true);
     await Promise.all([
-      statsHook.fetchStats(),
+      statsHook.fetchStats(start, end),
       statsHook.fetchPeriodStats(start, end),
       statsHook.fetchWeeklyStats(),
       eventosHook.fetchEventos(start, end),
