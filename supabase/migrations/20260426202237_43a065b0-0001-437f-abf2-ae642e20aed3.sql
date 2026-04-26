@@ -1,0 +1,2 @@
+ALTER TABLE public.interacoes ADD COLUMN IF NOT EXISTS feedback_pos_aula_enviado_em TIMESTAMP WITH TIME ZONE;
+CREATE INDEX IF NOT EXISTS idx_interacoes_feedback_pendente ON public.interacoes (data_experimental) WHERE compareceu = true AND feedback_pos_aula_enviado_em IS NULL;
