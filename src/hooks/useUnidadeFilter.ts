@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from 'react';
 import { useUnidade } from '@/contexts/UnidadeContext';
-import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 
 /**
  * Hook to help with unidade filtering in queries

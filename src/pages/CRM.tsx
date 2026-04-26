@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,7 +48,7 @@ import { useUnidade } from '@/contexts/UnidadeContext';
 import { Lead, StatusFunil, PlanoEscolhido } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/utils/errorMessages';
-import { Plus, Search, Eye, Trash2, Loader2, Pencil, Filter, Upload, FileSpreadsheet, Users, TrendingUp, UserCheck, UserX, CalendarIcon } from 'lucide-react';
+import { Plus, Search, Eye, Trash2, Loader2, Pencil, Filter, Upload, FileSpreadsheet, Users, TrendingUp, UserCheck, UserX, CalendarIcon, CalendarCheck, CheckCircle } from 'lucide-react';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -171,24 +171,58 @@ interface CSVRow {
 
 const REQUIRED_COLUMNS = ['nome_completo', 'telefone', 'origem', 'atendido_por', 'status_funil', 'data_cadastro'];
 
+const STORAGE_KEY = 'crm:filters:v1';
+
+interface SavedFilters {
+  search?: string;
+  filterOrigem?: string;
+  filterCadastradoPor?: string;
+  filterStatus?: string;
+  periodType?: 'all' | 'currentMonth' | 'lastMonth' | 'custom';
+  startDate?: string;
+  endDate?: string;
+}
+
+const loadSavedFilters = (): SavedFilters => {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as SavedFilters) : {};
+  } catch {
+    return {};
+  }
+};
+
 export default function CRM() {
   const { user } = useAuth();
   const { unidadeAtual, loading: unidadeLoading } = useUnidade();
+  const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [filterOrigem, setFilterOrigem] = useState<string>('all');
-  const [filterCadastradoPor, setFilterCadastradoPor] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+
+  const _saved = loadSavedFilters();
+  const [search, setSearch] = useState<string>(_saved.search ?? '');
+  const [filterOrigem, setFilterOrigem] = useState<string>(_saved.filterOrigem ?? 'all');
+  const [filterCadastradoPor, setFilterCadastradoPor] = useState<string>(_saved.filterCadastradoPor ?? 'all');
+  const [filterStatus, setFilterStatus] = useState<string>(_saved.filterStatus ?? 'all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
-  
-  // Date filter state
-  const [periodType, setPeriodType] = useState<'all' | 'currentMonth' | 'lastMonth' | 'custom'>('all');
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-  
+
+  // Date filter state (restored from sessionStorage)
+  const [periodType, setPeriodType] = useState<'all' | 'currentMonth' | 'lastMonth' | 'custom'>(
+    _saved.periodType ?? 'all'
+  );
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    _saved.startDate ? new Date(_saved.startDate) : undefined
+  );
+  const [endDate, setEndDate] = useState<Date | undefined>(
+    _saved.endDate ? new Date(_saved.endDate) : undefined
+  );
+
+  // Interações no período (para KPIs de experimentais agendadas/realizadas)
+  const [experimentaisAgendadasPeriodo, setExperimentaisAgendadasPeriodo] = useState(0);
+  const [experimentaisRealizadasPeriodo, setExperimentaisRealizadasPeriodo] = useState(0);
+
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -268,6 +302,57 @@ export default function CRM() {
       fetchLeads();
     }
   }, [unidadeAtual, unidadeLoading, fetchLeads]);
+
+  // Persist filters in sessionStorage so they survive navigating to lead detail and back
+  useEffect(() => {
+    const snapshot: SavedFilters = {
+      search,
+      filterOrigem,
+      filterCadastradoPor,
+      filterStatus,
+      periodType,
+      startDate: startDate ? startDate.toISOString() : undefined,
+      endDate: endDate ? endDate.toISOString() : undefined,
+    };
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    } catch {
+      /* ignore quota errors */
+    }
+  }, [search, filterOrigem, filterCadastradoPor, filterStatus, periodType, startDate, endDate]);
+
+  // Fetch experimental KPIs (agendadas / realizadas) for the selected period
+  useEffect(() => {
+    if (!unidadeAtual) return;
+    let cancelled = false;
+
+    (async () => {
+      let query = supabase
+        .from('interacoes')
+        .select('lead_id, agendou_experimental, compareceu, data_experimental')
+        .eq('unidade_id', unidadeAtual.id)
+        .not('data_experimental', 'is', null);
+
+      if (startDate) query = query.gte('data_experimental', format(startDate, 'yyyy-MM-dd'));
+      if (endDate) query = query.lte('data_experimental', format(endDate, 'yyyy-MM-dd'));
+
+      const { data, error } = await query;
+      if (cancelled || error || !data) return;
+
+      const agendadas = new Set<string>();
+      const realizadas = new Set<string>();
+      for (const row of data as Array<{ lead_id: string; agendou_experimental: boolean | null; compareceu: boolean | null }>) {
+        if (row.agendou_experimental) agendadas.add(row.lead_id);
+        if (row.compareceu) realizadas.add(row.lead_id);
+      }
+      setExperimentaisAgendadasPeriodo(agendadas.size);
+      setExperimentaisRealizadasPeriodo(realizadas.size);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [unidadeAtual, startDate, endDate]);
 
   const uniqueOrigens = useMemo(() => {
     const origens = leads.map(l => l.origem).filter(Boolean) as string[];
@@ -1011,7 +1096,7 @@ export default function CRM() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
@@ -1052,6 +1137,28 @@ export default function CRM() {
                 <div>
                   <p className="text-2xl font-bold text-red-600">{kpis.perdidos}</p>
                   <p className="text-xs text-muted-foreground">Perdidos</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <CalendarCheck className="w-5 h-5 text-sky-500" />
+                <div>
+                  <p className="text-2xl font-bold text-sky-600">{experimentaisAgendadasPeriodo}</p>
+                  <p className="text-xs text-muted-foreground">Exp. Agendadas</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-purple-500" />
+                <div>
+                  <p className="text-2xl font-bold text-purple-600">{experimentaisRealizadasPeriodo}</p>
+                  <p className="text-xs text-muted-foreground">Exp. Realizadas</p>
                 </div>
               </div>
             </CardContent>
@@ -1156,7 +1263,7 @@ export default function CRM() {
                       <TableRow 
                         key={lead.id} 
                         className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => window.location.href = `/lead/${lead.id}`}
+                        onClick={() => navigate(`/lead/${lead.id}`)}
                       >
                         <TableCell className="font-medium">{lead.nome?.toUpperCase()}</TableCell>
                         <TableCell><WhatsAppLink phone={lead.telefone} /></TableCell>
