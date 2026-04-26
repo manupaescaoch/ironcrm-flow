@@ -7,14 +7,16 @@ const corsHeaders = {
 
 const TARGET_PHONE = '5581996392285'
 
-function getCurrentWeekRange(now: Date) {
-  // Semana ATUAL: domingo a sábado. Se rodar no sábado às 10h, fim = sábado de hoje.
+function getPreviousWeekRange(now: Date) {
+  // Semana ANTERIOR completa: domingo a sábado, terminando no último sábado.
+  // Se rodar no sábado, considera o sábado anterior como fim do período.
   const brt = new Date(now.getTime() - 3 * 60 * 60 * 1000)
   const dow = brt.getUTCDay() // 0 = dom, 6 = sab
-  const start = new Date(brt)
-  start.setUTCDate(brt.getUTCDate() - dow) // volta até o domingo
-  const end = new Date(start)
-  end.setUTCDate(start.getUTCDate() + 6) // sábado
+  const daysBackToSaturday = dow === 6 ? 7 : dow + 1
+  const end = new Date(brt)
+  end.setUTCDate(brt.getUTCDate() - daysBackToSaturday)
+  const start = new Date(end)
+  start.setUTCDate(end.getUTCDate() - 6)
   const fmt = (d: Date) => d.toISOString().slice(0, 10)
   return { inicio: fmt(start), fim: fmt(end) }
 }
