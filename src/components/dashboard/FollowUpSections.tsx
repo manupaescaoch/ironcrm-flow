@@ -56,35 +56,30 @@ const NOT_INTERESTED_REASONS = [
 ];
 
 const FOLLOW_UP_MESSAGES: Record<string, (nome: string) => string> = {
-  'D+1': (nome) => `Oi, ${nome}! Bom dia 😊
+  'D+1': (nome) => `Oi, ${nome}! Como foi o corpo hoje depois do treino de ontem?
 
-Passando pra saber como você acordou hoje depois do treino de ontem 💪
-Sentiu o corpo?
+Primeira sessão sempre dá aquela sensação de que o músculo acordou.
 
-Quando a gente fala de acompanhamento de perto, é justamente pra evitar de ficar perdido no treino.
+Se quiser continuar treinando com estrutura e acompanhamento, me fala. Te explico como funciona aqui na IRON em 2 minutos.`,
+  'D+7': (nome) => `${nome}, faz uma semana desde sua experimental aqui na IRON.
 
-Se fizer sentido pra você, posso te explicar com calma como funciona pra seguir treinando com a gente na IRON.`,
-  'D+7': (nome) => `Oi ${nome}! Tudo bem? 😊
+Voltou a treinar? Em outro lugar ou parou por enquanto?
 
-Já faz uma semana desde sua aula experimental na IRON! Como você está?
+Pergunto porque dependendo da sua situação, posso te mostrar uma opção que faz mais sentido pro seu momento agora.`,
+  'D+15': (nome) => `${nome}, passando de forma direta:
 
-Estava pensando em você e queria saber se surgiu alguma dúvida sobre os treinos ou nossos planos.
+Você veio, treinou, sentiu na prática como é a estrutura da IRON.
 
-Posso te ajudar com alguma informação? 💪`,
-  'D+15': (nome) => `Olá ${nome}! 👋
+Esse mês ainda tem condição de entrada diferenciada. Se você tiver considerando, agora é o momento certo pra bater o martelo.
 
-Já faz 15 dias desde sua visita na IRON! Queria saber como você está.
+Quer saber os valores?`,
+  'D+30': (nome) => `${nome}, último contato da minha parte.
 
-Temos algumas condições especiais esse mês que podem te interessar!
+Faz 30 dias desde sua experimental. Se ainda não tomou uma decisão, provavelmente ainda tem alguma dúvida ou travamento.
 
-Quer que eu te explique? 🎯`,
-  'D+30': (nome) => `Oi ${nome}! 😊
+Me fala o que tá segurando. Às vezes é simples de resolver.
 
-Faz um mês desde que você conheceu a IRON! 
-
-As portas continuam abertas para você. Que tal remarcar uma visita para conhecer as novidades?
-
-Me avisa se tiver interesse! 🚀`,
+As portas da IRON estão abertas, mas não vou ficar insistindo infinitamente. Decisão é sua.`,
 };
 
 export function FollowUpSections({ 
