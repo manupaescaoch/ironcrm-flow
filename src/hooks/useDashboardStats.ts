@@ -10,7 +10,7 @@ interface UseDashboardStatsReturn {
   periodStats: PeriodStats;
   experimentaisSemanaCount: number;
   loading: boolean;
-  fetchStats: () => Promise<void>;
+  fetchStats: (startDate?: Date, endDate?: Date) => Promise<void>;
   fetchPeriodStats: (startDate: Date, endDate: Date) => Promise<void>;
   fetchWeeklyStats: () => Promise<void>;
 }
@@ -23,16 +23,26 @@ export function useDashboardStats(): UseDashboardStatsReturn {
   const [experimentaisSemanaCount, setExperimentaisSemanaCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  const fetchStats = useCallback(async () => {
+  const fetchStats = useCallback(async (startDate?: Date, endDate?: Date) => {
     if (!unidadeAtual) return;
     
     setLoading(true);
     try {
-      const { data: leads } = await supabase
+      let query = supabase
         .from('leads')
         .select('*')
         .eq('ativo', true)
         .eq('unidade_id', unidadeAtual.id);
+
+      if (startDate && endDate) {
+        const startStr = format(startDate, 'yyyy-MM-dd');
+        const endStr = format(endDate, 'yyyy-MM-dd');
+        query = query
+          .gte('created_at', `${startStr}T00:00:00`)
+          .lte('created_at', `${endStr}T23:59:59`);
+      }
+
+      const { data: leads } = await query;
 
       if (leads) {
         const typedLeads = leads as unknown as Lead[];
