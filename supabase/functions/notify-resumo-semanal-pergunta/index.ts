@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    const { inicio, fim } = getCurrentWeekRange(new Date())
+    const { inicio, fim } = getPreviousWeekRange(new Date())
 
     // Marcar pendências antigas como expiradas
     await supabase
