@@ -171,24 +171,58 @@ interface CSVRow {
 
 const REQUIRED_COLUMNS = ['nome_completo', 'telefone', 'origem', 'atendido_por', 'status_funil', 'data_cadastro'];
 
+const STORAGE_KEY = 'crm:filters:v1';
+
+interface SavedFilters {
+  search?: string;
+  filterOrigem?: string;
+  filterCadastradoPor?: string;
+  filterStatus?: string;
+  periodType?: 'all' | 'currentMonth' | 'lastMonth' | 'custom';
+  startDate?: string;
+  endDate?: string;
+}
+
+const loadSavedFilters = (): SavedFilters => {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as SavedFilters) : {};
+  } catch {
+    return {};
+  }
+};
+
 export default function CRM() {
   const { user } = useAuth();
   const { unidadeAtual, loading: unidadeLoading } = useUnidade();
+  const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [filterOrigem, setFilterOrigem] = useState<string>('all');
-  const [filterCadastradoPor, setFilterCadastradoPor] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+
+  const _saved = loadSavedFilters();
+  const [search, setSearch] = useState<string>(_saved.search ?? '');
+  const [filterOrigem, setFilterOrigem] = useState<string>(_saved.filterOrigem ?? 'all');
+  const [filterCadastradoPor, setFilterCadastradoPor] = useState<string>(_saved.filterCadastradoPor ?? 'all');
+  const [filterStatus, setFilterStatus] = useState<string>(_saved.filterStatus ?? 'all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
-  
-  // Date filter state
-  const [periodType, setPeriodType] = useState<'all' | 'currentMonth' | 'lastMonth' | 'custom'>('all');
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-  
+
+  // Date filter state (restored from sessionStorage)
+  const [periodType, setPeriodType] = useState<'all' | 'currentMonth' | 'lastMonth' | 'custom'>(
+    _saved.periodType ?? 'all'
+  );
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    _saved.startDate ? new Date(_saved.startDate) : undefined
+  );
+  const [endDate, setEndDate] = useState<Date | undefined>(
+    _saved.endDate ? new Date(_saved.endDate) : undefined
+  );
+
+  // Interações no período (para KPIs de experimentais agendadas/realizadas)
+  const [experimentaisAgendadasPeriodo, setExperimentaisAgendadasPeriodo] = useState(0);
+  const [experimentaisRealizadasPeriodo, setExperimentaisRealizadasPeriodo] = useState(0);
+
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
