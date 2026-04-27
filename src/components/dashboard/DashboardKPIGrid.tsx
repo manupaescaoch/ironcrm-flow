@@ -135,7 +135,7 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
       />
 
       <KPICard
-        title="Conversão D0"
+        title="Fechamento no Dia"
         value={`${taxaConversaoMesmoDia}%`}
         icon={Zap}
         iconColor="text-pink-500"
