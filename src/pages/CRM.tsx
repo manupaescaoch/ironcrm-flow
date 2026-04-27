@@ -1260,19 +1260,58 @@ export default function CRM() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filtrar por status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os status</SelectItem>
-                  {statusOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="justify-between font-normal">
+                    <span className="truncate">
+                      {filterStatus.length === 0
+                        ? 'Todos os status'
+                        : filterStatus.length === 1
+                        ? statusOptions.find((o) => o.value === filterStatus[0])?.label ?? filterStatus[0]
+                        : `${filterStatus.length} status selecionados`}
+                    </span>
+                    <Filter className="w-4 h-4 ml-2 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-2 bg-popover" align="start">
+                  <div className="flex items-center justify-between px-2 py-1 mb-1">
+                    <span className="text-xs text-muted-foreground">Filtrar status</span>
+                    {filterStatus.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs"
+                        onClick={() => setFilterStatus([])}
+                      >
+                        Limpar
+                      </Button>
+                    )}
+                  </div>
+                  <div className="space-y-1 max-h-64 overflow-y-auto">
+                    {statusOptions.map((opt) => {
+                      const checked = filterStatus.includes(opt.value);
+                      return (
+                        <label
+                          key={opt.value}
+                          className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => {
+                              setFilterStatus((prev) =>
+                                v
+                                  ? [...prev, opt.value]
+                                  : prev.filter((s) => s !== opt.value)
+                              );
+                            }}
+                          />
+                          <span>{opt.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
           </CardHeader>
           <CardContent>
