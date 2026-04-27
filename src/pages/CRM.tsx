@@ -795,7 +795,7 @@ export default function CRM() {
         lead.telefone?.includes(search);
       const matchesOrigem = filterOrigem === 'all' || lead.origem === filterOrigem;
       const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
-      const matchesStatus = filterStatus === 'all' || lead.status_funil === filterStatus;
+      const matchesStatus = filterStatus.length === 0 || filterStatus.includes(lead.status_funil);
       
       // Date filter
       let matchesDate = true;
