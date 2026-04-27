@@ -32,6 +32,7 @@ const AlunosAtivosKPI = memo(function AlunosAtivosKPI({ summary }: { summary: Ve
 
   return (
     <KPICard
+      variant="dashboard"
       title="Alunos Ativos"
       value={alunosAtivos}
       icon={UserCheck}
@@ -39,7 +40,6 @@ const AlunosAtivosKPI = memo(function AlunosAtivosKPI({ summary }: { summary: Ve
       valueColor="text-green-600"
       subtitle={`${emDia} em dia, ${precisamAtencao} em atenção`}
       onClick={handleClick}
-      showClickHint
     />
   );
 });
