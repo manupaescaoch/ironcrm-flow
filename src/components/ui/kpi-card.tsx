@@ -232,7 +232,10 @@ export const KPICard = memo(function KPICard({
             <div className={iconBgClass}>
               <Icon className={cn('w-5 h-5', resolvedIconColor)} />
             </div>
-            <p className="text-xs font-medium text-muted-foreground leading-tight min-w-0 flex-1 break-words">
+            <p
+              lang="pt-BR"
+              className="text-xs font-medium text-muted-foreground leading-tight min-w-0 flex-1 hyphens-auto [word-break:normal] [overflow-wrap:break-word]"
+            >
               {title}
             </p>
           </div>
