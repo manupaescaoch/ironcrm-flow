@@ -32,6 +32,7 @@ const AlunosAtivosKPI = memo(function AlunosAtivosKPI({ summary }: { summary: Ve
 
   return (
     <KPICard
+      variant="dashboard"
       title="Alunos Ativos"
       value={alunosAtivos}
       icon={UserCheck}
@@ -39,7 +40,6 @@ const AlunosAtivosKPI = memo(function AlunosAtivosKPI({ summary }: { summary: Ve
       valueColor="text-green-600"
       subtitle={`${emDia} em dia, ${precisamAtencao} em atenção`}
       onClick={handleClick}
-      showClickHint
     />
   );
 });
@@ -77,6 +77,7 @@ const VencimentosKPI = memo(function VencimentosKPI({ summary }: { summary: Venc
 
   return (
     <KPICard
+      variant="dashboard"
       title="Planos Vencendo"
       value={urgentCount + attentionCount}
       icon={AlertTriangle}
@@ -84,7 +85,6 @@ const VencimentosKPI = memo(function VencimentosKPI({ summary }: { summary: Venc
       valueColor={colorClasses[color].value}
       subtitle={subtitle}
       onClick={handleClick}
-      showClickHint
     />
   );
 });
@@ -109,72 +109,87 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
     : 0;
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      <KPICard
-        title="Total de Leads"
-        value={stats.total}
-        icon={Users}
-      />
+    <div className="space-y-4 mb-8">
+      {/* Linha 1 — Funil principal (6 KPIs) */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <KPICard
+          variant="dashboard"
+          title="Total de Leads"
+          value={stats.total}
+          icon={Users}
+          iconColor="text-blue-500"
+          valueColor="text-foreground"
+          subtitle="Todos os tempos"
+        />
 
-      <KPICard
-        title="Aulas Agendadas"
-        value={periodStats.experimentaisPeriodo}
-        icon={CalendarCheck}
-        iconColor="text-sky-500"
-        valueColor="text-sky-600"
-        subtitle="No período"
-      />
+        <KPICard
+          variant="dashboard"
+          title="Aulas Agendadas"
+          value={periodStats.experimentaisPeriodo}
+          icon={CalendarCheck}
+          iconColor="text-sky-500"
+          valueColor="text-sky-600"
+          subtitle="No período"
+        />
 
-      <KPICard
-        title="Experimentais da Semana"
-        value={experimentaisSemanaCount}
-        icon={Calendar}
-        iconColor="text-purple-500"
-        valueColor="text-purple-600"
-        onClick={onExperimentaisClick}
-        isActive={showExperimentaisSection}
-        activeColor="purple"
-        showClickHint
-      />
+        <KPICard
+          variant="dashboard"
+          title="Experimentais da Semana"
+          value={experimentaisSemanaCount}
+          icon={Calendar}
+          iconColor="text-purple-500"
+          valueColor="text-purple-600"
+          subtitle="Esta semana"
+          onClick={onExperimentaisClick}
+          isActive={showExperimentaisSection}
+          activeColor="purple"
+        />
 
-      <KPICard
-        title="Comparecimentos"
-        value={periodStats.comparecimentosPeriodo}
-        icon={CheckCircle2}
-        iconColor="text-emerald-500"
-        valueColor="text-emerald-600"
-        subtitle="Compareceram à experimental"
-      />
+        <KPICard
+          variant="dashboard"
+          title="Comparecimentos"
+          value={periodStats.comparecimentosPeriodo}
+          icon={CheckCircle2}
+          iconColor="text-emerald-500"
+          valueColor="text-emerald-600"
+          subtitle="Compareceram à experimental"
+        />
 
-      <KPICard
-        title="Fechamento no Dia"
-        value={`${taxaConversaoMesmoDia}%`}
-        icon={Zap}
-        iconColor="text-pink-500"
-        valueColor="text-pink-600"
-        subtitle={`${periodStats.conversaoMesmoDia} fechou no mesmo dia`}
-      />
+        <KPICard
+          variant="dashboard"
+          title="Fechamento no Dia"
+          value={`${taxaConversaoMesmoDia}%`}
+          icon={Zap}
+          iconColor="text-pink-500"
+          valueColor="text-pink-600"
+          subtitle={`${periodStats.conversaoMesmoDia} fechou no mesmo dia`}
+        />
 
-      <KPICard
-        title="Matrículas no Período"
-        value={periodStats.matriculasPeriodo}
-        icon={Award}
-        iconColor="text-amber-500"
-        valueColor="text-amber-600"
-        onClick={onMatriculasClick}
-        isActive={showMatriculasSection}
-        activeColor="amber"
-        showClickHint
-      />
+        <KPICard
+          variant="dashboard"
+          title="Matrículas no Período"
+          value={periodStats.matriculasPeriodo}
+          icon={Award}
+          iconColor="text-amber-500"
+          valueColor="text-amber-600"
+          subtitle="Período selecionado"
+          onClick={onMatriculasClick}
+          isActive={showMatriculasSection}
+          activeColor="amber"
+        />
+      </div>
 
-      <FollowUpKPI
-        pendingCount={followUpPendingCount}
-        d1Count={followUpD1Count}
-        onClick={onFollowUpClick}
-        isActive={showFollowUpSection}
-      />
+      {/* Linha 2 — Operacional / Retenção (2 KPIs) */}
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <FollowUpKPI
+          pendingCount={followUpPendingCount}
+          d1Count={followUpD1Count}
+          onClick={onFollowUpClick}
+          isActive={showFollowUpSection}
+        />
 
-      <VencimentosKPI summary={summary} />
+        <VencimentosKPI summary={summary} />
+      </div>
     </div>
   );
 });
