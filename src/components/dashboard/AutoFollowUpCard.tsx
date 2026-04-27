@@ -44,27 +44,41 @@ interface AutoFollowUpCardProps {
 
 // Mensagens prontas por estágio
 const FOLLOW_UP_MESSAGES: Record<string, string> = {
-  'D+1': `Oi, {{nome}}! Bom dia 😊
+  'D+1': `Oi, {{nome}}! Tudo bem?
 
-Passando pra saber como você acordou hoje depois do treino de ontem 💪
-Sentiu o corpo?
+Passando pra saber da experiência com a gente ontem! Como foi o treino? Faz toda a diferença ter um acompanhamento de verdade, né?
 
-Quando a gente fala de acompanhamento de perto, é justamente pra evoluir com segurança e constância, sem ficar perdido no treino.
+Espero que tenha curtido a experiência aqui na IRON. Se fizer sentido pra você continuar treinando com a gente, me chama por aqui que te explico os planos.
 
-Se fizer sentido pra você, posso te explicar com calma como funciona pra seguir treinando com a gente na IRON.`,
+Qualquer dúvida, estamos à disposição!`,
 
-  'D+7': `Oi, {{nome}}! Tudo certo?
-Passando pra saber o que achou da experiência na Iron 😊
-Ficou alguma dúvida ou algo que você queira ajustar antes de decidir?`,
+  'D+7': `Oi, {{nome}}! Tudo bem?
 
-  'D+15': `{{nome}}, tudo bem?
-Só passando pra alinhar contigo: ainda faz sentido pra você treinar com a gente na Iron?
-Se quiser, consigo te explicar novamente os planos e ver o que encaixa melhor na tua rotina.`,
+Passando pra saber se ficou alguma dúvida depois da sua experiência aqui na IRON.
 
-  'D+30': `Oi, {{nome}}!
-Esse é meu último contato pra não ficar te incomodando 😊
-Se ainda tiver interesse em treinar na Iron, é só me avisar que te explico tudo rapidinho.
-Se não for o momento, sem problema nenhum.`,
+Muitas vezes a pessoa curte a experiência, mas acaba deixando a decisão para depois por conta da rotina corrida...
+
+Se tiver sido o seu caso, me fala. Podemos concluir sua matrícula por aqui mesmo.
+
+Como trabalhamos com limite de alunos por horário, fico à disposição pra tirar qualquer dúvida e te ajudar a decidir, sem deixar você perder a oportunidade de entrar nesse momento.`,
+
+  'D+15': `Oi, {{nome}}! Tudo bem?
+
+Passando por aqui porque já faz alguns dias desde sua experiência na IRON.
+
+Quando a pessoa conhece a estrutura, gosta do treino e mesmo assim deixa pra depois, normalmente é por algum detalhe que ficou em aberto.
+
+Como trabalhamos com limite de alunos matriculados, prefiro te chamar antes de encerrar seu atendimento por aqui.
+
+Se a IRON ainda fizer sentido pra você, me fala. Posso te ajudar a tirar qualquer dúvida e ver o melhor caminho pra você começar.`,
+
+  'D+30': `Oi, {{nome}}! Tudo bem?
+
+Passando só pra fazer um último contato depois da sua experimental aqui na IRON.
+
+Se em algum momento você quiser voltar a treinar com mais acompanhamento, estrutura e uma experiência mais exclusiva, vai ser um prazer receber você por aqui.
+
+As portas seguem abertas.`,
 };
 
 const NOT_INTERESTED_REASONS = [
