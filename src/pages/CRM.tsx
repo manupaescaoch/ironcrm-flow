@@ -914,6 +914,10 @@ export default function CRM() {
                 </Popover>
               </>
             )}
+            <Button variant="outline" onClick={handleExportLeads}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar
+            </Button>
             <Dialog open={importDialogOpen} onOpenChange={(open) => {
               setImportDialogOpen(open);
               if (!open) resetImportDialog();
