@@ -108,6 +108,14 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
     ? Math.round((periodStats.conversaoMesmoDia / periodStats.comparecimentosPeriodo) * 100)
     : 0;
 
+  const naoCompareceram = Math.max(
+    0,
+    periodStats.experimentaisPeriodo - periodStats.comparecimentosPeriodo
+  );
+  const taxaComparecimento = periodStats.experimentaisPeriodo > 0
+    ? Math.round((periodStats.comparecimentosPeriodo / periodStats.experimentaisPeriodo) * 100)
+    : 0;
+
   return (
     <div className="space-y-4 mb-8">
       {/* Linha 1 — Funil principal (6 KPIs) */}
