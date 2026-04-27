@@ -424,14 +424,28 @@ Aguardamos você! 💪`;
                     />
                     <span className="text-sm">Marcar Presença</span>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onReagendar(item)}
-                  >
-                    <RefreshCw className="w-4 h-4 mr-1" />
-                    Reagendar
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="sm" variant="outline">
+                        <RefreshCw className="w-4 h-4 mr-1" />
+                        Ações
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onReagendar(item)}>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Reagendar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleNaoCompareceu(item)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <UserX className="w-4 h-4 mr-2" />
+                        Não Compareceu
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             ))}
