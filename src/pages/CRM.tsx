@@ -823,6 +823,33 @@ export default function CRM() {
     return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
   };
 
+  const handleExportLeads = useCallback(() => {
+    if (filteredLeads.length === 0) {
+      toast({ title: 'Nenhum lead para exportar', variant: 'destructive' });
+      return;
+    }
+
+    const rows = filteredLeads.map((lead) => ({
+      Nome: lead.nome,
+      Numero: lead.telefone || '',
+      Status: statusLabels[lead.status_funil] || lead.status_funil,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{ wch: 40 }, { wch: 20 }, { wch: 25 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Leads');
+
+    const periodoLabel =
+      startDate && endDate
+        ? `${format(startDate, 'yyyy-MM-dd')}_${format(endDate, 'yyyy-MM-dd')}`
+        : 'todos';
+    XLSX.writeFile(wb, `leads_${periodoLabel}.xlsx`);
+
+    toast({ title: `${rows.length} leads exportados` });
+  }, [filteredLeads, startDate, endDate, toast]);
+
+
   return (
     <Layout>
       <div className="p-8">
