@@ -627,6 +627,7 @@ export type Database = {
           agendou_experimental: boolean | null
           atendido_por: string | null
           atendido_por_tipo: string | null
+          boas_vindas_enviada_em: string | null
           cadastrado_por: string | null
           comissao_cadastrador: number | null
           comissao_comercial: number | null
@@ -665,6 +666,7 @@ export type Database = {
           agendou_experimental?: boolean | null
           atendido_por?: string | null
           atendido_por_tipo?: string | null
+          boas_vindas_enviada_em?: string | null
           cadastrado_por?: string | null
           comissao_cadastrador?: number | null
           comissao_comercial?: number | null
@@ -703,6 +705,7 @@ export type Database = {
           agendou_experimental?: boolean | null
           atendido_por?: string | null
           atendido_por_tipo?: string | null
+          boas_vindas_enviada_em?: string | null
           cadastrado_por?: string | null
           comissao_cadastrador?: number | null
           comissao_comercial?: number | null
