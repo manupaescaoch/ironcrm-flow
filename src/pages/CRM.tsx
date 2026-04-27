@@ -204,7 +204,12 @@ export default function CRM() {
   const [search, setSearch] = useState<string>(_saved.search ?? '');
   const [filterOrigem, setFilterOrigem] = useState<string>(_saved.filterOrigem ?? 'all');
   const [filterCadastradoPor, setFilterCadastradoPor] = useState<string>(_saved.filterCadastradoPor ?? 'all');
-  const [filterStatus, setFilterStatus] = useState<string>(_saved.filterStatus ?? 'all');
+  const [filterStatus, setFilterStatus] = useState<string[]>(() => {
+    const v = _saved.filterStatus;
+    if (Array.isArray(v)) return v;
+    if (typeof v === 'string' && v && v !== 'all') return [v];
+    return [];
+  });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
