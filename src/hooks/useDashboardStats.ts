@@ -66,13 +66,16 @@ export function useDashboardStats(): UseDashboardStatsReturn {
     // Fetch experimental count for period - counting unique leads only
     const { data: experimentaisData } = await supabase
       .from('interacoes')
-      .select('lead_id')
+      .select('lead_id, compareceu')
       .eq('agendou_experimental', true)
       .eq('unidade_id', unidadeAtual.id)
       .gte('data_experimental', startDateStr)
       .lte('data_experimental', endDateStr);
 
     const leadsUnicosExperimentais = new Set(experimentaisData?.map(e => e.lead_id) || []);
+    const leadsUnicosComparecimentos = new Set(
+      experimentaisData?.filter(e => e.compareceu === true).map(e => e.lead_id) || []
+    );
 
     // Fetch matriculas count for period - counting unique leads only
     const { data: matriculasData } = await supabase
@@ -87,6 +90,7 @@ export function useDashboardStats(): UseDashboardStatsReturn {
 
     setPeriodStats({
       experimentaisPeriodo: leadsUnicosExperimentais.size,
+      comparecimentosPeriodo: leadsUnicosComparecimentos.size,
       matriculasPeriodo: leadsUnicosMatriculados.size,
     });
   }, [unidadeAtual]);
