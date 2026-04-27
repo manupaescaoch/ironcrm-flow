@@ -1,23 +1,13 @@
-## Ajuste
+## Remover KPI "Leads Novos" do Dashboard
 
-Mudar a lógica de cálculo do período no `notify-resumo-semanal-crm` para sempre considerar a **semana anterior** (domingo a sábado) em relação à data de execução.
+Como o filtro de status já permite visualizar leads novos, vamos remover o card redundante do grid de KPIs.
 
-## Comportamento
+### Alteração
 
-- Quando rodar no sábado às 18h → envia o resumo da semana que acabou de terminar (domingo passado a sábado atual).
-- Quando rodar em qualquer outro dia (testes ou disparo manual) → também usa a semana anterior completa.
+**Arquivo**: `src/components/dashboard/DashboardKPIGrid.tsx`
 
-## Cálculo
+- Remover o `<KPICard>` "Leads Novos" (ícone `UserPlus`).
+- Remover o import `UserPlus` do `lucide-react`.
+- Ajustar o grid de `xl:grid-cols-7` para `xl:grid-cols-6`, mantendo o alinhamento com os 6 KPIs restantes (Total de Leads, Aulas Agendadas, Follow-ups, Experimentais da Semana, Matrículas no Período, Planos Vencendo).
 
-```
-sábado = data_execução - (dia_da_semana + 1)
-domingo = sábado - 6 dias
-```
-
-Exemplo: hoje é domingo 26/04 → sábado anterior = 25/04, domingo anterior = 19/04 → período **19/04 a 25/04**.
-
-## Arquivo
-
-- `supabase/functions/notify-resumo-semanal-crm/index.ts` — função `getWeekRange()` ajustada.
-
-Após aplicar, redeploy + teste em dry-run para confirmar o período antes de enviar.
+Nenhuma outra mudança é necessária — o `stats.novos` continua sendo calculado em `useDashboardStats` (não vou mexer nisso, pois pode ser útil em outros pontos e não causa custo extra).

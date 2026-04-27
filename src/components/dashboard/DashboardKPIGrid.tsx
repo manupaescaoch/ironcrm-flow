@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Users, UserPlus, CalendarCheck, Calendar, Award, AlertTriangle, UserCheck } from 'lucide-react';
+import { Users, CalendarCheck, Calendar, Award, AlertTriangle, UserCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { KPICard } from '@/components/ui/kpi-card';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
@@ -105,19 +105,11 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   const { summary } = useVencimentosData();
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
       <KPICard
         title="Total de Leads"
         value={stats.total}
         icon={Users}
-      />
-
-      <KPICard
-        title="Leads Novos"
-        value={stats.novos}
-        icon={UserPlus}
-        iconColor="text-blue-500"
-        valueColor="text-blue-600"
       />
 
       <KPICard
