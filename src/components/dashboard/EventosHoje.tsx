@@ -246,6 +246,36 @@ Aguardamos você! 💪`;
     }
   };
 
+  const handleNaoCompareceu = async (item: EventoItem) => {
+    setLoading(prev => ({ ...prev, [item.interacao.id]: true }));
+    try {
+      if (item.tipoEvento === 'experimental') {
+        const { error } = await supabase
+          .from('interacoes')
+          .update({ compareceu: false })
+          .eq('id', item.interacao.id);
+        if (error) throw error;
+        // Atualiza status do lead para perdido por falta
+        await supabase
+          .from('leads')
+          .update({ status_funil: 'perdido' })
+          .eq('id', item.lead.id);
+      } else {
+        const { error } = await supabase
+          .from('interacoes')
+          .update({ status_avaliacao: 'faltou' })
+          .eq('id', item.interacao.id);
+        if (error) throw error;
+      }
+      toast({ title: 'Marcado como não compareceu' });
+      onRefresh();
+    } catch (error) {
+      toast({ title: 'Erro ao atualizar', description: getErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setLoading(prev => ({ ...prev, [item.interacao.id]: false }));
+    }
+  };
+
   return (
     <>
     <AlertDialog open={!!followUpDialogItem} onOpenChange={(open) => !open && setFollowUpDialogItem(null)}>
