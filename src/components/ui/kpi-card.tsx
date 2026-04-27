@@ -18,7 +18,7 @@ export interface KPICardProps {
   onClick?: () => void;
   isActive?: boolean;
   activeColor?: string;
-  variant?: 'default' | 'compact' | 'highlight' | 'detailed';
+  variant?: 'default' | 'compact' | 'highlight' | 'detailed' | 'dashboard';
   showClickHint?: boolean;
   className?: string;
   variacao?: KPIVariacao | null;
