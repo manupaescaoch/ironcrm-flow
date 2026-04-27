@@ -104,7 +104,6 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
 }: DashboardKPIGridProps) {
   const { summary } = useVencimentosData();
 
-  return (
   const taxaConversaoMesmoDia = periodStats.comparecimentosPeriodo > 0
     ? Math.round((periodStats.conversaoMesmoDia / periodStats.comparecimentosPeriodo) * 100)
     : 0;
