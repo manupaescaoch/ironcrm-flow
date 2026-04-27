@@ -196,6 +196,58 @@ export const KPICard = memo(function KPICard({
     );
   }
 
+  // Dashboard variant - large card with icon top-left bg, title aside, big value, subtitle bottom
+  if (variant === 'dashboard') {
+    // Map icon color to bg tint
+    const iconBgClass = cn(
+      'w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0',
+      resolvedIconColor.includes('sky') && 'bg-sky-100 dark:bg-sky-950/40',
+      resolvedIconColor.includes('blue') && 'bg-blue-100 dark:bg-blue-950/40',
+      resolvedIconColor.includes('purple') && 'bg-purple-100 dark:bg-purple-950/40',
+      resolvedIconColor.includes('emerald') && 'bg-emerald-100 dark:bg-emerald-950/40',
+      resolvedIconColor.includes('green') && 'bg-green-100 dark:bg-green-950/40',
+      resolvedIconColor.includes('amber') && 'bg-amber-100 dark:bg-amber-950/40',
+      resolvedIconColor.includes('orange') && 'bg-orange-100 dark:bg-orange-950/40',
+      resolvedIconColor.includes('pink') && 'bg-pink-100 dark:bg-pink-950/40',
+      resolvedIconColor.includes('rose') && 'bg-rose-100 dark:bg-rose-950/40',
+      resolvedIconColor.includes('red') && 'bg-red-100 dark:bg-red-950/40',
+      resolvedIconColor.includes('yellow') && 'bg-yellow-100 dark:bg-yellow-950/40',
+      resolvedIconColor.includes('teal') && 'bg-teal-100 dark:bg-teal-950/40',
+      resolvedIconColor.includes('cyan') && 'bg-cyan-100 dark:bg-cyan-950/40',
+      !/(sky|blue|purple|emerald|green|amber|orange|pink|rose|red|yellow|teal|cyan)/.test(resolvedIconColor) && 'bg-muted',
+    );
+
+    return (
+      <Card
+        className={cn(
+          'border shadow-sm rounded-2xl',
+          isClickable && `cursor-pointer transition-all hover:shadow-md ${hoverClass}`,
+          isActive && activeRingClass,
+          className
+        )}
+        onClick={onClick}
+      >
+        <CardContent className="p-5">
+          <div className="flex items-start gap-3 mb-3">
+            <div className={iconBgClass}>
+              <Icon className={cn('w-6 h-6', resolvedIconColor)} />
+            </div>
+            <p className="text-sm font-medium text-muted-foreground leading-tight pt-1">
+              {title}
+            </p>
+          </div>
+          <p className={cn('text-4xl font-bold leading-none mb-2', resolvedValueColor)}>
+            {value}
+          </p>
+          {subtitle && (
+            <p className="text-xs text-muted-foreground">{subtitle}</p>
+          )}
+          {VariacaoDisplay}
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Default variant
   return (
     <Card 
