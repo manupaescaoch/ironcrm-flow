@@ -14,7 +14,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Calendar, Clock, Save, RefreshCw, MessageCircle, Activity, User } from 'lucide-react';
+import { Calendar, Clock, Save, RefreshCw, MessageCircle, Activity, User, ChevronDown, UserX } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/utils/errorMessages';
@@ -240,6 +246,36 @@ Aguardamos você! 💪`;
     }
   };
 
+  const handleNaoCompareceu = async (item: EventoItem) => {
+    setLoading(prev => ({ ...prev, [item.interacao.id]: true }));
+    try {
+      if (item.tipoEvento === 'experimental') {
+        const { error } = await supabase
+          .from('interacoes')
+          .update({ compareceu: false })
+          .eq('id', item.interacao.id);
+        if (error) throw error;
+        // Atualiza status do lead para perdido por falta
+        await supabase
+          .from('leads')
+          .update({ status_funil: 'perdido' })
+          .eq('id', item.lead.id);
+      } else {
+        const { error } = await supabase
+          .from('interacoes')
+          .update({ status_avaliacao: 'faltou' })
+          .eq('id', item.interacao.id);
+        if (error) throw error;
+      }
+      toast({ title: 'Marcado como não compareceu' });
+      onRefresh();
+    } catch (error) {
+      toast({ title: 'Erro ao atualizar', description: getErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setLoading(prev => ({ ...prev, [item.interacao.id]: false }));
+    }
+  };
+
   return (
     <>
     <AlertDialog open={!!followUpDialogItem} onOpenChange={(open) => !open && setFollowUpDialogItem(null)}>
@@ -388,14 +424,28 @@ Aguardamos você! 💪`;
                     />
                     <span className="text-sm">Marcar Presença</span>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onReagendar(item)}
-                  >
-                    <RefreshCw className="w-4 h-4 mr-1" />
-                    Reagendar
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="sm" variant="outline">
+                        <RefreshCw className="w-4 h-4 mr-1" />
+                        Ações
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onReagendar(item)}>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Reagendar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleNaoCompareceu(item)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <UserX className="w-4 h-4 mr-2" />
+                        Não Compareceu
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             ))}
