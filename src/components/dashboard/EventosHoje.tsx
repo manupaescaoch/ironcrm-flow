@@ -340,8 +340,23 @@ Aguardamos você! 💪`;
                     <User className="w-4 h-4 text-muted-foreground" />
                     <Input
                       placeholder="Nome do treinador"
-                      value={treinadores[item.interacao.id] || item.interacao.treinador_experimental || ''}
-                      onChange={(e) => setTreinadores(prev => ({ ...prev, [item.interacao.id]: e.target.value }))}
+                      value={treinadores[item.interacao.id] ?? item.interacao.treinador_experimental ?? ''}
+                      onChange={(e) => setTreinadores(prev => ({ ...prev, [item.interacao.id]: e.target.value.toUpperCase() }))}
+                      onBlur={async (e) => {
+                        const value = e.target.value.trim().toUpperCase();
+                        if (value && value !== (item.interacao.treinador_experimental || '')) {
+                          const { error } = await supabase
+                            .from('interacoes')
+                            .update({ treinador_experimental: value })
+                            .eq('id', item.interacao.id);
+                          if (error) {
+                            toast({ title: 'Erro ao salvar treinador', description: getErrorMessage(error), variant: 'destructive' });
+                          } else {
+                            toast({ title: 'Treinador salvo!' });
+                            onRefresh();
+                          }
+                        }
+                      }}
                       className="h-8 w-[160px] text-sm"
                       list={`treinadores-${item.interacao.id}`}
                     />
