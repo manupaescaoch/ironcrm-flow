@@ -209,14 +209,9 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
           subtitle="No período"
         />
 
-        <KPICard
-          variant="dashboard"
-          title="Taxa de Comparecimento"
-          value={`${taxaComparecimento}%`}
-          icon={PieChart}
-          iconColor="text-teal-500"
-          valueColor="text-teal-600"
-          subtitle={`${periodStats.comparecimentosPeriodo} de ${periodStats.experimentaisPeriodo}`}
+        <TaxaComparecimentoKPI
+          comparecimentos={periodStats.comparecimentosPeriodo}
+          agendados={periodStats.experimentaisPeriodo}
         />
       </div>
     </div>
