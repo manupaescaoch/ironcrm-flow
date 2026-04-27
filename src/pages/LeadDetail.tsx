@@ -150,6 +150,7 @@ export default function LeadDetail() {
   const [saving, setSaving] = useState(false);
   const [savingInteracao, setSavingInteracao] = useState(false);
   const [lead, setLead] = useState<Lead | null>(null);
+  const [originalLead, setOriginalLead] = useState<Lead | null>(null);
   const [interacoes, setInteracoes] = useState<Interacao[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
