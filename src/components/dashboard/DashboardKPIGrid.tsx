@@ -134,6 +134,15 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
         subtitle="Compareceram à experimental"
       />
 
+      <KPICard
+        title="Conversão D0"
+        value={`${taxaConversaoMesmoDia}%`}
+        icon={Zap}
+        iconColor="text-pink-500"
+        valueColor="text-pink-600"
+        subtitle={`${periodStats.conversaoMesmoDia} fechou no mesmo dia`}
+      />
+
       <FollowUpKPI
         pendingCount={followUpPendingCount}
         d1Count={followUpD1Count}
