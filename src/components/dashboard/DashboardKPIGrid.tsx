@@ -3,6 +3,7 @@ import { Users, CalendarCheck, Calendar, Award, AlertTriangle, UserCheck, CheckC
 import { useNavigate } from 'react-router-dom';
 import { KPICard } from '@/components/ui/kpi-card';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
+import { TaxaComparecimentoKPI } from '@/components/dashboard/TaxaComparecimentoKPI';
 import { Stats, PeriodStats } from '@/components/dashboard/constants';
 import { useVencimentosData, VencimentosSummary } from '@/hooks/useVencimentosData';
 
