@@ -187,7 +187,7 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
         />
       </div>
 
-      {/* Linha 2 — Operacional / Retenção (2 KPIs) */}
+      {/* Linha 2 — Operacional / Retenção */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <FollowUpKPI
           pendingCount={followUpPendingCount}
@@ -197,6 +197,26 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
         />
 
         <VencimentosKPI summary={summary} />
+
+        <KPICard
+          variant="dashboard"
+          title="Não Compareceram"
+          value={naoCompareceram}
+          icon={UserX}
+          iconColor="text-blue-500"
+          valueColor="text-blue-600"
+          subtitle="No período"
+        />
+
+        <KPICard
+          variant="dashboard"
+          title="Taxa de Comparecimento"
+          value={`${taxaComparecimento}%`}
+          icon={PieChart}
+          iconColor="text-teal-500"
+          valueColor="text-teal-600"
+          subtitle={`${periodStats.comparecimentosPeriodo} de ${periodStats.experimentaisPeriodo}`}
+        />
       </div>
     </div>
   );
