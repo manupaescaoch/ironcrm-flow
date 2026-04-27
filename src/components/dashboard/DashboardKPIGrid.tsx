@@ -3,6 +3,7 @@ import { Users, CalendarCheck, Calendar, Award, AlertTriangle, UserCheck, CheckC
 import { useNavigate } from 'react-router-dom';
 import { KPICard } from '@/components/ui/kpi-card';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
+import { TaxaComparecimentoKPI } from '@/components/dashboard/TaxaComparecimentoKPI';
 import { Stats, PeriodStats } from '@/components/dashboard/constants';
 import { useVencimentosData, VencimentosSummary } from '@/hooks/useVencimentosData';
 
@@ -208,14 +209,9 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
           subtitle="No período"
         />
 
-        <KPICard
-          variant="dashboard"
-          title="Taxa de Comparecimento"
-          value={`${taxaComparecimento}%`}
-          icon={PieChart}
-          iconColor="text-teal-500"
-          valueColor="text-teal-600"
-          subtitle={`${periodStats.comparecimentosPeriodo} de ${periodStats.experimentaisPeriodo}`}
+        <TaxaComparecimentoKPI
+          comparecimentos={periodStats.comparecimentosPeriodo}
+          agendados={periodStats.experimentaisPeriodo}
         />
       </div>
     </div>
