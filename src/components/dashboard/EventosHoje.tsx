@@ -342,27 +342,40 @@ Aguardamos você! 💪`;
                       placeholder="Nome do treinador"
                       value={treinadores[item.interacao.id] ?? item.interacao.treinador_experimental ?? ''}
                       onChange={(e) => setTreinadores(prev => ({ ...prev, [item.interacao.id]: e.target.value.toUpperCase() }))}
-                      onBlur={async (e) => {
-                        const value = e.target.value.trim().toUpperCase();
-                        if (value && value !== (item.interacao.treinador_experimental || '')) {
-                          const { error } = await supabase
-                            .from('interacoes')
-                            .update({ treinador_experimental: value })
-                            .eq('id', item.interacao.id);
-                          if (error) {
-                            toast({ title: 'Erro ao salvar treinador', description: getErrorMessage(error), variant: 'destructive' });
-                          } else {
-                            toast({ title: 'Treinador salvo!' });
-                            onRefresh();
-                          }
-                        }
-                      }}
                       className="h-8 w-[160px] text-sm"
                       list={`treinadores-${item.interacao.id}`}
                     />
                     <datalist id={`treinadores-${item.interacao.id}`}>
                       {TREINADORES.map((t) => (
                         <option key={t} value={t} />
+                      ))}
+                    </datalist>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={loading[`treinador-${item.interacao.id}`]}
+                      onClick={async () => {
+                        const value = (treinadores[item.interacao.id] ?? item.interacao.treinador_experimental ?? '').trim().toUpperCase();
+                        if (!value) {
+                          toast({ title: 'Informe o nome do treinador', variant: 'destructive' });
+                          return;
+                        }
+                        setLoading(prev => ({ ...prev, [`treinador-${item.interacao.id}`]: true }));
+                        const { error } = await supabase
+                          .from('interacoes')
+                          .update({ treinador_experimental: value })
+                          .eq('id', item.interacao.id);
+                        if (error) {
+                          toast({ title: 'Erro ao salvar treinador', description: getErrorMessage(error), variant: 'destructive' });
+                        } else {
+                          toast({ title: 'Treinador salvo!' });
+                          onRefresh();
+                        }
+                        setLoading(prev => ({ ...prev, [`treinador-${item.interacao.id}`]: false }));
+                      }}
+                    >
+                      <Save className="w-4 h-4" />
+                    </Button>
                       ))}
                     </datalist>
                   </div>
