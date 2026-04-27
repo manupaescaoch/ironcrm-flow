@@ -200,7 +200,7 @@ export const KPICard = memo(function KPICard({
   if (variant === 'dashboard') {
     // Map icon color to bg tint
     const iconBgClass = cn(
-      'w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0',
+      'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
       resolvedIconColor.includes('sky') && 'bg-sky-100 dark:bg-sky-950/40',
       resolvedIconColor.includes('blue') && 'bg-blue-100 dark:bg-blue-950/40',
       resolvedIconColor.includes('purple') && 'bg-purple-100 dark:bg-purple-950/40',
@@ -227,20 +227,20 @@ export const KPICard = memo(function KPICard({
         )}
         onClick={onClick}
       >
-        <CardContent className="p-5">
-          <div className="flex items-start gap-3 mb-3">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2.5 mb-3">
             <div className={iconBgClass}>
-              <Icon className={cn('w-6 h-6', resolvedIconColor)} />
+              <Icon className={cn('w-5 h-5', resolvedIconColor)} />
             </div>
-            <p className="text-sm font-medium text-muted-foreground leading-tight pt-1">
+            <p className="text-xs font-medium text-muted-foreground leading-tight min-w-0 flex-1 break-words">
               {title}
             </p>
           </div>
-          <p className={cn('text-4xl font-bold leading-none mb-2', resolvedValueColor)}>
+          <p className={cn('text-3xl font-bold leading-none mb-2 truncate', resolvedValueColor)}>
             {value}
           </p>
           {subtitle && (
-            <p className="text-xs text-muted-foreground">{subtitle}</p>
+            <p className="text-xs text-muted-foreground leading-snug line-clamp-2">{subtitle}</p>
           )}
           {VariacaoDisplay}
         </CardContent>
