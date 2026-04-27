@@ -150,6 +150,7 @@ export default function LeadDetail() {
   const [saving, setSaving] = useState(false);
   const [savingInteracao, setSavingInteracao] = useState(false);
   const [lead, setLead] = useState<Lead | null>(null);
+  const [originalLead, setOriginalLead] = useState<Lead | null>(null);
   const [interacoes, setInteracoes] = useState<Interacao[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -208,6 +209,7 @@ export default function LeadDetail() {
       return;
     }
     setLead(data as unknown as Lead);
+    setOriginalLead(data as unknown as Lead);
     setLoading(false);
   };
 
@@ -232,18 +234,40 @@ export default function LeadDetail() {
     if (!lead) return;
     setSaving(true);
 
+    // Build a diff: only send fields that actually changed vs the loaded state.
+    // This avoids the "Operação não permitida" error from the DB trigger when
+    // non-admin/non-owner users save the form (the trigger compares IS DISTINCT FROM).
+    const candidateFields = {
+      nome: lead.nome,
+      email: lead.email,
+      telefone: lead.telefone,
+      origem: lead.origem,
+      status_funil: lead.status_funil,
+      cadastrado_por: lead.cadastrado_por,
+      data_aula_experimental: lead.data_aula_experimental,
+      observacoes: lead.observacoes,
+    } as Record<string, any>;
+
+    const changedFields: Record<string, any> = {};
+    if (originalLead) {
+      for (const key of Object.keys(candidateFields)) {
+        const oldVal = (originalLead as any)[key] ?? null;
+        const newVal = candidateFields[key] ?? null;
+        if (oldVal !== newVal) changedFields[key] = candidateFields[key];
+      }
+    } else {
+      Object.assign(changedFields, candidateFields);
+    }
+
+    if (Object.keys(changedFields).length === 0) {
+      setSaving(false);
+      toast({ title: 'Nenhuma alteração para salvar' });
+      return;
+    }
+
     const { error } = await supabase
       .from('leads')
-      .update({
-        nome: lead.nome,
-        email: lead.email,
-        telefone: lead.telefone,
-        origem: lead.origem,
-        status_funil: lead.status_funil,
-        cadastrado_por: lead.cadastrado_por,
-        data_aula_experimental: lead.data_aula_experimental,
-        observacoes: lead.observacoes,
-      })
+      .update(changedFields)
       .eq('id', id);
 
     setSaving(false);
@@ -251,6 +275,7 @@ export default function LeadDetail() {
     if (error) {
       toast({ title: 'Erro ao salvar', description: getErrorMessage(error), variant: 'destructive' });
     } else {
+      setOriginalLead(lead);
       toast({ title: 'Lead atualizado!' });
     }
   };
