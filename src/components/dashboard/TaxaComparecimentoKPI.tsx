@@ -28,7 +28,10 @@ export const TaxaComparecimentoKPI = memo(function TaxaComparecimentoKPI({
           <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-teal-100 dark:bg-teal-950/40">
             <PieIcon className="w-5 h-5 text-teal-500" />
           </div>
-          <p className="text-xs font-medium text-muted-foreground leading-tight min-w-0 flex-1 break-words">
+          <p
+            lang="pt-BR"
+            className="text-xs font-medium text-muted-foreground leading-tight min-w-0 flex-1 hyphens-auto [word-break:normal] [overflow-wrap:break-word]"
+          >
             Taxa de Comparecimento
           </p>
         </div>
