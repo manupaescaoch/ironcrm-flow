@@ -423,11 +423,17 @@ export default function LeadDetail() {
       return;
     }
 
-    // Update lead status
-    const { error: leadError } = await supabase
-      .from('leads')
-      .update({ status_funil: newStatus })
-      .eq('id', id);
+    // Update lead status (skip if status is already the target — trigger update_lead_status_on_matricula
+    // may have already set it to 'convertido', and re-updating with the same value would trip the
+    // enforce_leads_update_permissions trigger for non-owner users)
+    let leadError: any = null;
+    if (lead?.status_funil !== newStatus) {
+      const { error } = await supabase
+        .from('leads')
+        .update({ status_funil: newStatus })
+        .eq('id', id);
+      leadError = error;
+    }
 
     if (leadError) {
       toast({ title: 'Erro ao atualizar status do lead', description: getErrorMessage(leadError), variant: 'destructive' });
