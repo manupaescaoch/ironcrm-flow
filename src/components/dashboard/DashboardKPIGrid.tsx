@@ -156,7 +156,7 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
 
         <KPICard
           variant="dashboard"
-          title="Comparecimentos"
+          title={"Compareci\u00ADmentos"}
           value={periodStats.comparecimentosPeriodo}
           icon={CheckCircle2}
           iconColor="text-emerald-500"
