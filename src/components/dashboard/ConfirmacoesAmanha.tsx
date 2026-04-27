@@ -98,12 +98,11 @@ Equipe IRON CLUB`
 Sua aula experimental está confirmada:
 
 📅 ${dataFormatada}
+🕙 ${hora}
 
-⏰ ${hora}
+Por gentileza, chegar com 10 minutos de antecedência.
 
-Chega com 10 minutos de antecedência e roupa de treino.
-
-Confirma aqui que você vem.
+Podemos confirmar sua reserva?
 
 Equipe IRON`;
     
