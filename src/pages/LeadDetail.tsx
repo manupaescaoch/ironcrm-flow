@@ -209,6 +209,7 @@ export default function LeadDetail() {
       return;
     }
     setLead(data as unknown as Lead);
+    setOriginalLead(data as unknown as Lead);
     setLoading(false);
   };
 
