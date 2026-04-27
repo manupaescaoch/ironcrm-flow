@@ -48,7 +48,7 @@ import { useUnidade } from '@/contexts/UnidadeContext';
 import { Lead, StatusFunil, PlanoEscolhido } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/utils/errorMessages';
-import { Plus, Search, Eye, Trash2, Loader2, Pencil, Filter, Upload, FileSpreadsheet, Users, TrendingUp, UserCheck, UserX, CalendarIcon, CalendarCheck, CheckCircle } from 'lucide-react';
+import { Plus, Search, Eye, Trash2, Loader2, Pencil, Filter, Upload, FileSpreadsheet, Users, TrendingUp, UserCheck, UserX, CalendarIcon, CalendarCheck, CheckCircle, Download } from 'lucide-react';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format, startOfMonth, endOfMonth, subMonths, subDays, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -823,6 +823,33 @@ export default function CRM() {
     return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
   };
 
+  const handleExportLeads = useCallback(() => {
+    if (filteredLeads.length === 0) {
+      toast({ title: 'Nenhum lead para exportar', variant: 'destructive' });
+      return;
+    }
+
+    const rows = filteredLeads.map((lead) => ({
+      Nome: lead.nome,
+      Numero: lead.telefone || '',
+      Status: statusLabels[lead.status_funil] || lead.status_funil,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{ wch: 40 }, { wch: 20 }, { wch: 25 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Leads');
+
+    const periodoLabel =
+      startDate && endDate
+        ? `${format(startDate, 'yyyy-MM-dd')}_${format(endDate, 'yyyy-MM-dd')}`
+        : 'todos';
+    XLSX.writeFile(wb, `leads_${periodoLabel}.xlsx`);
+
+    toast({ title: `${rows.length} leads exportados` });
+  }, [filteredLeads, startDate, endDate, toast]);
+
+
   return (
     <Layout>
       <div className="p-8">
@@ -887,6 +914,10 @@ export default function CRM() {
                 </Popover>
               </>
             )}
+            <Button variant="outline" onClick={handleExportLeads}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar
+            </Button>
             <Dialog open={importDialogOpen} onOpenChange={(open) => {
               setImportDialogOpen(open);
               if (!open) resetImportDialog();
