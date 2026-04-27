@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Users, CalendarCheck, Calendar, Award, AlertTriangle, UserCheck, CheckCircle2, Zap } from 'lucide-react';
+import { Users, CalendarCheck, Calendar, Award, AlertTriangle, UserCheck, CheckCircle2, Zap, UserX, PieChart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { KPICard } from '@/components/ui/kpi-card';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
@@ -108,6 +108,14 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
     ? Math.round((periodStats.conversaoMesmoDia / periodStats.comparecimentosPeriodo) * 100)
     : 0;
 
+  const naoCompareceram = Math.max(
+    0,
+    periodStats.experimentaisPeriodo - periodStats.comparecimentosPeriodo
+  );
+  const taxaComparecimento = periodStats.experimentaisPeriodo > 0
+    ? Math.round((periodStats.comparecimentosPeriodo / periodStats.experimentaisPeriodo) * 100)
+    : 0;
+
   return (
     <div className="space-y-4 mb-8">
       {/* Linha 1 — Funil principal (6 KPIs) */}
@@ -179,7 +187,7 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
         />
       </div>
 
-      {/* Linha 2 — Operacional / Retenção (2 KPIs) */}
+      {/* Linha 2 — Operacional / Retenção */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <FollowUpKPI
           pendingCount={followUpPendingCount}
@@ -189,6 +197,26 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
         />
 
         <VencimentosKPI summary={summary} />
+
+        <KPICard
+          variant="dashboard"
+          title="Não Compareceram"
+          value={naoCompareceram}
+          icon={UserX}
+          iconColor="text-blue-500"
+          valueColor="text-blue-600"
+          subtitle="No período"
+        />
+
+        <KPICard
+          variant="dashboard"
+          title="Taxa de Comparecimento"
+          value={`${taxaComparecimento}%`}
+          icon={PieChart}
+          iconColor="text-teal-500"
+          valueColor="text-teal-600"
+          subtitle={`${periodStats.comparecimentosPeriodo} de ${periodStats.experimentaisPeriodo}`}
+        />
       </div>
     </div>
   );
