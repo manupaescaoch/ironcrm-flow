@@ -178,7 +178,7 @@ interface SavedFilters {
   search?: string;
   filterOrigem?: string;
   filterCadastradoPor?: string;
-  filterStatus?: string;
+  filterStatus?: string | string[];
   periodType?: 'all' | 'last7days' | 'currentMonth' | 'lastMonth' | 'custom';
   startDate?: string;
   endDate?: string;
