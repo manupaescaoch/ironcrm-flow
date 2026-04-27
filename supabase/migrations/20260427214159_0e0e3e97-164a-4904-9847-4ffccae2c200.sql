@@ -1,0 +1,1 @@
+ALTER TABLE public.interacoes ADD COLUMN IF NOT EXISTS boas_vindas_enviada_em TIMESTAMPTZ;
