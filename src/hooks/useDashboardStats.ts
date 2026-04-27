@@ -19,7 +19,7 @@ export function useDashboardStats(): UseDashboardStatsReturn {
   const { unidadeAtual } = useUnidade();
   
   const [stats, setStats] = useState<Stats>({ total: 0, novos: 0, aulasAgendadas: 0 });
-  const [periodStats, setPeriodStats] = useState<PeriodStats>({ experimentaisPeriodo: 0, matriculasPeriodo: 0 });
+  const [periodStats, setPeriodStats] = useState<PeriodStats>({ experimentaisPeriodo: 0, comparecimentosPeriodo: 0, matriculasPeriodo: 0 });
   const [experimentaisSemanaCount, setExperimentaisSemanaCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
