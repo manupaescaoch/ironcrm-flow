@@ -376,8 +376,6 @@ Aguardamos você! 💪`;
                     >
                       <Save className="w-4 h-4" />
                     </Button>
-                      ))}
-                    </datalist>
                   </div>
                 )}
 
