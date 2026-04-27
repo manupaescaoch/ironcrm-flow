@@ -77,6 +77,7 @@ const VencimentosKPI = memo(function VencimentosKPI({ summary }: { summary: Venc
 
   return (
     <KPICard
+      variant="dashboard"
       title="Planos Vencendo"
       value={urgentCount + attentionCount}
       icon={AlertTriangle}
@@ -84,7 +85,6 @@ const VencimentosKPI = memo(function VencimentosKPI({ summary }: { summary: Venc
       valueColor={colorClasses[color].value}
       subtitle={subtitle}
       onClick={handleClick}
-      showClickHint
     />
   );
 });
