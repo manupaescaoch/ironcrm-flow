@@ -87,19 +87,15 @@ Deno.serve(async (req) => {
       if (!lead.telefone) { errors.push(`Sem telefone: ${lead.nome}`); continue; }
 
       const nome = firstName(lead.nome);
-      const message = `Olá, ${nome}! Seja muito bem-vindo(a) à família IRON! 💙
+      const message = `Oi, ${nome}! Tudo bem?
 
-Estamos muito felizes em ter você com a gente. Sua jornada de transformação começa agora, e nossa equipe está pronta para te apoiar em cada treino.
+Fiquei sabendo que você fez sua matrícula na Iron. Seja muito bem-vindo(a)! 💙
 
-Algumas dicas importantes para começar com o pé direito:
+A partir de agora, nossa equipe vai te acompanhar de perto pra você viver a experiência Iron da melhor forma possível.
 
-✅ Chegue com 10 minutos de antecedência nos seus treinos
-✅ Traga sempre uma toalha e garrafa d'água
-✅ Qualquer dúvida sobre planos, horários ou treinos, é só chamar aqui
+E mesmo depois da matrícula, continuo por aqui à disposição.
 
-Conte com a gente para alcançar seus objetivos. Vamos juntos! 💪
-
-Equipe IRON`;
+Qualquer dúvida, ajuste ou necessidade, pode me chamar.`;
 
       const phone = normalizePhone(lead.telefone);
 
