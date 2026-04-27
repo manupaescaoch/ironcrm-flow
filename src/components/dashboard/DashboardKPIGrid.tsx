@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Users, CalendarCheck, Calendar, Award, AlertTriangle, UserCheck } from 'lucide-react';
+import { Users, CalendarCheck, Calendar, Award, AlertTriangle, UserCheck, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { KPICard } from '@/components/ui/kpi-card';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
