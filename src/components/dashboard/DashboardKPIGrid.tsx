@@ -126,6 +126,18 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
       />
 
       <KPICard
+        title="Experimentais da Semana"
+        value={experimentaisSemanaCount}
+        icon={Calendar}
+        iconColor="text-purple-500"
+        valueColor="text-purple-600"
+        onClick={onExperimentaisClick}
+        isActive={showExperimentaisSection}
+        activeColor="purple"
+        showClickHint
+      />
+
+      <KPICard
         title="Comparecimentos"
         value={periodStats.comparecimentosPeriodo}
         icon={CheckCircle2}
@@ -143,25 +155,6 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
         subtitle={`${periodStats.conversaoMesmoDia} fechou no mesmo dia`}
       />
 
-      <FollowUpKPI
-        pendingCount={followUpPendingCount}
-        d1Count={followUpD1Count}
-        onClick={onFollowUpClick}
-        isActive={showFollowUpSection}
-      />
-
-      <KPICard
-        title="Experimentais da Semana"
-        value={experimentaisSemanaCount}
-        icon={Calendar}
-        iconColor="text-purple-500"
-        valueColor="text-purple-600"
-        onClick={onExperimentaisClick}
-        isActive={showExperimentaisSection}
-        activeColor="purple"
-        showClickHint
-      />
-
       <KPICard
         title="Matrículas no Período"
         value={periodStats.matriculasPeriodo}
@@ -172,6 +165,13 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
         isActive={showMatriculasSection}
         activeColor="amber"
         showClickHint
+      />
+
+      <FollowUpKPI
+        pendingCount={followUpPendingCount}
+        d1Count={followUpD1Count}
+        onClick={onFollowUpClick}
+        isActive={showFollowUpSection}
       />
 
       <VencimentosKPI summary={summary} />
