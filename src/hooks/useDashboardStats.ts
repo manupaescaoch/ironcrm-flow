@@ -19,7 +19,7 @@ export function useDashboardStats(): UseDashboardStatsReturn {
   const { unidadeAtual } = useUnidade();
   
   const [stats, setStats] = useState<Stats>({ total: 0, novos: 0, aulasAgendadas: 0 });
-  const [periodStats, setPeriodStats] = useState<PeriodStats>({ experimentaisPeriodo: 0, comparecimentosPeriodo: 0, matriculasPeriodo: 0 });
+  const [periodStats, setPeriodStats] = useState<PeriodStats>({ experimentaisPeriodo: 0, comparecimentosPeriodo: 0, matriculasPeriodo: 0, conversaoMesmoDia: 0 });
   const [experimentaisSemanaCount, setExperimentaisSemanaCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
@@ -66,7 +66,7 @@ export function useDashboardStats(): UseDashboardStatsReturn {
     // Fetch experimental count for period - counting unique leads only
     const { data: experimentaisData } = await supabase
       .from('interacoes')
-      .select('lead_id, compareceu')
+      .select('lead_id, compareceu, data_experimental')
       .eq('agendou_experimental', true)
       .eq('unidade_id', unidadeAtual.id)
       .gte('data_experimental', startDateStr)
@@ -77,10 +77,16 @@ export function useDashboardStats(): UseDashboardStatsReturn {
       experimentaisData?.filter(e => e.compareceu === true).map(e => e.lead_id) || []
     );
 
+    // Map: lead_id -> data_experimental (do lead que compareceu)
+    const dataExperimentalPorLead = new Map<string, string>();
+    experimentaisData?.filter(e => e.compareceu === true && e.data_experimental).forEach(e => {
+      dataExperimentalPorLead.set(e.lead_id, e.data_experimental as string);
+    });
+
     // Fetch matriculas count for period - counting unique leads only
     const { data: matriculasData } = await supabase
       .from('interacoes')
-      .select('lead_id')
+      .select('lead_id, data_fechamento')
       .eq('fechou_matricula', true)
       .eq('unidade_id', unidadeAtual.id)
       .gte('data_fechamento', startDateStr)
@@ -88,10 +94,20 @@ export function useDashboardStats(): UseDashboardStatsReturn {
 
     const leadsUnicosMatriculados = new Set(matriculasData?.map(m => m.lead_id) || []);
 
+    // Conversão no mesmo dia: leads cuja data_fechamento === data_experimental (compareceu)
+    const leadsConversaoMesmoDia = new Set<string>();
+    matriculasData?.forEach(m => {
+      const dataExp = dataExperimentalPorLead.get(m.lead_id);
+      if (dataExp && m.data_fechamento === dataExp) {
+        leadsConversaoMesmoDia.add(m.lead_id);
+      }
+    });
+
     setPeriodStats({
       experimentaisPeriodo: leadsUnicosExperimentais.size,
       comparecimentosPeriodo: leadsUnicosComparecimentos.size,
       matriculasPeriodo: leadsUnicosMatriculados.size,
+      conversaoMesmoDia: leadsConversaoMesmoDia.size,
     });
   }, [unidadeAtual]);
 

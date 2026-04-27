@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Users, CalendarCheck, Calendar, Award, AlertTriangle, UserCheck, CheckCircle2 } from 'lucide-react';
+import { Users, CalendarCheck, Calendar, Award, AlertTriangle, UserCheck, CheckCircle2, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { KPICard } from '@/components/ui/kpi-card';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
@@ -104,8 +104,12 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
 }: DashboardKPIGridProps) {
   const { summary } = useVencimentosData();
 
+  const taxaConversaoMesmoDia = periodStats.comparecimentosPeriodo > 0
+    ? Math.round((periodStats.conversaoMesmoDia / periodStats.comparecimentosPeriodo) * 100)
+    : 0;
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8 gap-4 mb-8">
       <KPICard
         title="Total de Leads"
         value={stats.total}
@@ -128,6 +132,15 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
         iconColor="text-emerald-500"
         valueColor="text-emerald-600"
         subtitle="Compareceram à experimental"
+      />
+
+      <KPICard
+        title="Conversão D0"
+        value={`${taxaConversaoMesmoDia}%`}
+        icon={Zap}
+        iconColor="text-pink-500"
+        valueColor="text-pink-600"
+        subtitle={`${periodStats.conversaoMesmoDia} fechou no mesmo dia`}
       />
 
       <FollowUpKPI
