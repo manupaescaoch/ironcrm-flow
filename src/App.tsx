@@ -233,25 +233,25 @@ const AppRoutes = () => (
     <Route
       path="/estoque/financeiro"
       element={
-        <AdminRoute>
+        <ProtectedRoute>
           <VisaoFinanceiraEstoque />
-        </AdminRoute>
+        </ProtectedRoute>
       }
     />
     <Route
       path="/estoque/dashboard"
       element={
-        <AdminRoute>
+        <ProtectedRoute>
           <DashboardExecutivoEstoque />
-        </AdminRoute>
+        </ProtectedRoute>
       }
     />
     <Route
       path="/estoque/gastos"
       element={
-        <AdminRoute>
+        <ProtectedRoute>
           <RelatorioGastosEstoque />
-        </AdminRoute>
+        </ProtectedRoute>
       }
     />
     <Route

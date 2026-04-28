@@ -35,9 +35,9 @@ interface NavItem {
 
 const allNavItems: NavItem[] = [
   { page: 'insumos', path: '/estoque', label: 'Insumos', icon: Package },
-  { page: 'dashboard', path: '/estoque/dashboard', label: 'Dashboard', icon: BarChart3, adminOnly: true },
-  { page: 'financeiro', path: '/estoque/financeiro', label: 'Financeiro', icon: DollarSign, adminOnly: true },
-  { page: 'gastos', path: '/estoque/gastos', label: 'Gastos', icon: FileText, adminOnly: true },
+  { page: 'dashboard', path: '/estoque/dashboard', label: 'Dashboard', icon: BarChart3 },
+  { page: 'financeiro', path: '/estoque/financeiro', label: 'Financeiro', icon: DollarSign },
+  { page: 'gastos', path: '/estoque/gastos', label: 'Gastos', icon: FileText },
   { page: 'compras', path: '/estoque/previsao-compras', label: 'Compras', icon: ShoppingCart },
   { page: 'consumo', path: '/estoque/relatorio-consumo', label: 'Consumo', icon: TrendingUp },
 ];
