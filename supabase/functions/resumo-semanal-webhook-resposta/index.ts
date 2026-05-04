@@ -18,39 +18,18 @@ interface ZapiWebhook {
   type?: string
 }
 
-function parseInvestimento(text: string, leadsZn: number, leadsZs: number): { zn: number; zs: number } {
-  const t = text.toLowerCase().replace(/\./g, '').replace(/,/g, '.')
-  // Buscar ZN/ZS explicitamente
-  const znMatch = t.match(/zn[^\d]*(\d+(?:\.\d+)?)/)
-  const zsMatch = t.match(/zs[^\d]*(\d+(?:\.\d+)?)/)
-  if (znMatch && zsMatch) {
-    return { zn: parseFloat(znMatch[1]), zs: parseFloat(zsMatch[1]) }
-  }
-  // Caso contrário, primeiro número = total
-  const numMatch = t.match(/(\d+(?:\.\d+)?)/)
-  const total = numMatch ? parseFloat(numMatch[1]) : 0
-  const totalLeads = leadsZn + leadsZs
-  if (totalLeads === 0) return { zn: total / 2, zs: total / 2 }
-  return {
-    zn: (total * leadsZn) / totalLeads,
-    zs: (total * leadsZs) / totalLeads,
-  }
-}
-
-function fmtBRL(v: number) {
-  return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-function fmtLTV(v: number) {
-  if (v >= 1000) {
-    const k = v / 1000
-    return `R$ ${k.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).replace('.', ',')}k`
-  }
-  return `R$ ${fmtBRL(v)}`
-}
-
 function fmtPct(v: number) {
   return `${v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
+}
+
+function normalizeOrigem(o: string | null | undefined): string {
+  if (!o) return 'OUTROS'
+  const s = o.toString().toUpperCase().trim()
+  if (s.includes('INSTAGRAM')) return 'INSTAGRAM'
+  if (s.includes('INDICA')) return 'INDICAÇÃO'
+  if (s.includes('PRESENC') || s.includes('VISITA')) return 'VISITA PRESENCIAL'
+  if (s.includes('TRÁFEGO') || s.includes('TRAFEGO') || s.includes('PAGO')) return 'TRÁFEGO PAGO'
+  return 'OUTROS'
 }
 
 async function calcularUnidade(
@@ -58,12 +37,11 @@ async function calcularUnidade(
   unidadeId: string,
   inicio: string,
   fim: string,
-  investimento: number
 ) {
   // Leads criados na semana
   const { data: leads } = await supabase
     .from('leads')
-    .select('id, created_at')
+    .select('id, created_at, origem')
     .eq('unidade_id', unidadeId)
     .eq('ativo', true)
     .gte('created_at', `${inicio}T00:00:00`)
@@ -71,10 +49,23 @@ async function calcularUnidade(
 
   const totalLeads = leads?.length ?? 0
 
-  // Interações da semana (agendamentos, comparecimentos, matrículas)
+  // Origem dos leads
+  const origens: Record<string, number> = {
+    'INSTAGRAM': 0,
+    'INDICAÇÃO': 0,
+    'VISITA PRESENCIAL': 0,
+    'TRÁFEGO PAGO': 0,
+    'OUTROS': 0,
+  }
+  for (const l of leads ?? []) {
+    const o = normalizeOrigem(l.origem)
+    origens[o] = (origens[o] ?? 0) + 1
+  }
+
+  // Interações da semana
   const { data: inters } = await supabase
     .from('interacoes')
-    .select('id, lead_id, agendou_experimental, compareceu, fechou_matricula, valor_plano, data_experimental, data_fechamento, data_interacao')
+    .select('id, lead_id, agendou_experimental, compareceu, fechou_matricula, data_experimental, data_fechamento, data_interacao, created_at')
     .eq('unidade_id', unidadeId)
 
   const inInterval = (dStr: string | null) => {
@@ -86,24 +77,53 @@ async function calcularUnidade(
   let agendamentos = 0
   let comparecimentos = 0
   let matriculas = 0
-  let faturamento = 0
+  let fechamentoNoDia = 0 // matrículas onde data_fechamento == data_experimental (mesmo dia da experimental)
 
   for (const i of inters ?? []) {
     if (i.agendou_experimental && inInterval(i.data_experimental ?? i.data_interacao)) agendamentos++
     if (i.compareceu && inInterval(i.data_experimental ?? i.data_interacao)) comparecimentos++
     if (i.fechou_matricula && inInterval(i.data_fechamento ?? i.data_interacao)) {
       matriculas++
-      faturamento += Number(i.valor_plano ?? 0)
+      // Fechamento no dia: data_fechamento igual à data_experimental
+      if (i.data_fechamento && i.data_experimental && i.data_fechamento.slice(0, 10) === i.data_experimental.slice(0, 10)) {
+        fechamentoNoDia++
+      }
     }
   }
 
-  const cpl = totalLeads > 0 ? investimento / totalLeads : 0
-  const cpa = matriculas > 0 ? investimento / matriculas : 0
-  const leadAtend = totalLeads > 0 ? (comparecimentos / totalLeads) * 100 : 0
-  const atendAluno = comparecimentos > 0 ? (matriculas / comparecimentos) * 100 : 0
-  const ticket = matriculas > 0 ? faturamento / matriculas : 0
+  const conversao = totalLeads > 0 ? (matriculas / totalLeads) * 100 : 0
+  const taxaComparecimento = agendamentos > 0 ? (comparecimentos / agendamentos) * 100 : 0
+  const pctFechamentoDia = comparecimentos > 0 ? (fechamentoNoDia / comparecimentos) * 100 : 0
 
-  return { totalLeads, agendamentos, comparecimentos, matriculas, faturamento, cpl, cpa, leadAtend, atendAluno, ticket }
+  return {
+    totalLeads,
+    agendamentos,
+    comparecimentos,
+    matriculas,
+    fechamentoNoDia,
+    pctFechamentoDia,
+    conversao,
+    taxaComparecimento,
+    origens,
+  }
+}
+
+function blocoUnidade(nome: string, sigla: string, u: any) {
+  return `*${sigla} — ${nome}*
+Leads qualificados: ${u.totalLeads}
+Aulas agendadas: ${u.agendamentos}
+Comparecimentos: ${u.comparecimentos}
+Matrículas / convertidos: ${u.matriculas}
+Fechamento no dia: ${u.fechamentoNoDia} (${fmtPct(u.pctFechamentoDia)})
+Conversão: ${fmtPct(u.conversao)}
+Taxa de comparecimento: ${fmtPct(u.taxaComparecimento)}
+
+Origem dos leads:
+- Instagram: ${u.origens['INSTAGRAM']}
+- Indicação: ${u.origens['INDICAÇÃO']}
+- Visita Presencial: ${u.origens['VISITA PRESENCIAL']}
+- Tráfego Pago: ${u.origens['TRÁFEGO PAGO']}
+- Outros: ${u.origens['OUTROS']}`
 }
 
 Deno.serve(async (req) => {
@@ -149,72 +169,42 @@ Deno.serve(async (req) => {
 
     const { semana_inicio: inicio, semana_fim: fim } = pendente
 
-    const { count: leadsZnCount } = await supabase
-      .from('leads')
-      .select('id', { count: 'exact', head: true })
-      .eq('unidade_id', ZN_ID)
-      .eq('ativo', true)
-      .gte('created_at', `${inicio}T00:00:00`)
-      .lte('created_at', `${fim}T23:59:59`)
+    const zn = await calcularUnidade(supabase, ZN_ID, inicio, fim)
+    const zs = await calcularUnidade(supabase, ZS_ID, inicio, fim)
 
-    const { count: leadsZsCount } = await supabase
-      .from('leads')
-      .select('id', { count: 'exact', head: true })
-      .eq('unidade_id', ZS_ID)
-      .eq('ativo', true)
-      .gte('created_at', `${inicio}T00:00:00`)
-      .lte('created_at', `${fim}T23:59:59`)
-
-    const inv = parseInvestimento(text, leadsZnCount ?? 0, leadsZsCount ?? 0)
-
-    const zn = await calcularUnidade(supabase, ZN_ID, inicio, fim, inv.zn)
-    const zs = await calcularUnidade(supabase, ZS_ID, inicio, fim, inv.zs)
-
-    const totalInvestido = inv.zn + inv.zs
     const totalLeads = zn.totalLeads + zs.totalLeads
-    const totalMatriculas = zn.matriculas + zs.matriculas
-    const cplGeral = totalLeads > 0 ? totalInvestido / totalLeads : 0
-    const cpaGeral = totalMatriculas > 0 ? totalInvestido / totalMatriculas : 0
-    const conversaoGeral = totalLeads > 0 ? (totalMatriculas / totalLeads) * 100 : 0
+    const totalAgend = zn.agendamentos + zs.agendamentos
+    const totalComp = zn.comparecimentos + zs.comparecimentos
+    const totalMatr = zn.matriculas + zs.matriculas
+    const totalFechDia = zn.fechamentoNoDia + zs.fechamentoNoDia
+    const conversaoGeral = totalLeads > 0 ? (totalMatr / totalLeads) * 100 : 0
+    const taxaCompGeral = totalAgend > 0 ? (totalComp / totalAgend) * 100 : 0
+    const pctFechDiaGeral = totalComp > 0 ? (totalFechDia / totalComp) * 100 : 0
 
     const fmtDate = (s: string) => {
       const [y, m, d] = s.split('-')
       return `${d}/${m}`
     }
 
-    const msg =
-`📊 *RESUMO SEMANAL CRM*
+    const msg = `📊 *RESUMO SEMANAL CRM*
 *Período: ${fmtDate(inicio)} a ${fmtDate(fim)}*
 
-*ZN — Zona Norte*
-Leads: ${zn.totalLeads}
-Comparecimentos: ${zn.comparecimentos}
-Matrículas: ${zn.matriculas}
-Faturamento: R$ ${fmtBRL(zn.faturamento)}
-Lead → Atend.: ${fmtPct(zn.leadAtend)}
-Atend. → Aluno: ${fmtPct(zn.atendAluno)}
-CPL: R$ ${fmtBRL(zn.cpl)}
-CPA: R$ ${fmtBRL(zn.cpa)}
-Ticket Médio: R$ ${fmtBRL(zn.ticket)}
+${blocoUnidade('Zona Norte', 'ZN', zn)}
 
-*ZS — Zona Sul*
-Leads: ${zs.totalLeads}
-Comparecimentos: ${zs.comparecimentos}
-Matrículas: ${zs.matriculas}
-Faturamento: R$ ${fmtBRL(zs.faturamento)}
-Lead → Atend.: ${fmtPct(zs.leadAtend)}
-Atend. → Aluno: ${fmtPct(zs.atendAluno)}
-CPL: R$ ${fmtBRL(zs.cpl)}
-CPA: R$ ${fmtBRL(zs.cpa)}
-Ticket Médio: R$ ${fmtBRL(zs.ticket)}
+———
+
+${blocoUnidade('Zona Sul', 'ZS', zs)}
+
+———
 
 *CONSOLIDADO*
-Total Investido: R$ ${fmtBRL(totalInvestido)}
-Total Leads: ${totalLeads}
-Total Matrículas: ${totalMatriculas}
-CPL Geral: R$ ${fmtBRL(cplGeral)}
-CPA Geral: R$ ${fmtBRL(cpaGeral)}
-Conversão Geral: ${fmtPct(conversaoGeral)}`
+Total de leads qualificados: ${totalLeads}
+Total de aulas agendadas: ${totalAgend}
+Total de comparecimentos: ${totalComp}
+Total de matrículas / convertidos: ${totalMatr}
+Fechamento no dia: ${totalFechDia} (${fmtPct(pctFechDiaGeral)})
+Conversão geral: ${fmtPct(conversaoGeral)}
+Taxa geral de comparecimento: ${fmtPct(taxaCompGeral)}`
 
     // Enviar resposta
     const instanceId = Deno.env.get('ZAPI_INSTANCE_ID')!
@@ -237,8 +227,6 @@ Conversão Geral: ${fmtPct(conversaoGeral)}`
       .from('resumo_semanal_pendentes')
       .update({
         status: 'respondido',
-        valor_zn: inv.zn,
-        valor_zs: inv.zs,
         resposta_raw: text,
         respondido_em: new Date().toISOString(),
       })
