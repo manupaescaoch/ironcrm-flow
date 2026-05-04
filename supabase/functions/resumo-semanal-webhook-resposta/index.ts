@@ -5,7 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const TARGET_PHONE = '5581996392285'
+const TARGET_PHONE = '5581996392285' // de quem recebemos a resposta
+const RESUMO_PHONE = '5581999095748' // para quem enviamos o resumo
 const ZN_ID = 'b4df0ba8-7fa8-4f28-8924-d5ce6a9b50c6'
 const ZS_ID = 'f3d048da-31d7-48df-b1f1-7e2a809c9a9a'
 
