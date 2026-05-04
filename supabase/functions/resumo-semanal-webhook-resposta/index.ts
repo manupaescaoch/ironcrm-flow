@@ -226,7 +226,7 @@ Conversão Geral: ${fmtPct(conversaoGeral)}`
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify({ phone: TARGET_PHONE, message: msg }),
+        body: JSON.stringify({ phone: RESUMO_PHONE, message: msg }),
       }
     )
     const zapiBody = await zapiRes.text()
