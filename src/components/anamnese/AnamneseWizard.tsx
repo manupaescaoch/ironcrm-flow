@@ -86,8 +86,8 @@ const horarioOpcoes = [
   { v: 'Noite', e: '🌙', hint: '18h - 22h' },
 ];
 
-export function AnamneseWizard({ initial, onComplete, onBackToIntro }: AnamneseWizardProps) {
-  const [step, setStep] = useState(1);
+export function AnamneseWizard({ initial, onComplete, onBackToIntro, skipNome }: AnamneseWizardProps) {
+  const [step, setStep] = useState(skipNome ? 2 : 1);
   const [r, setR] = useState<AnamneseRespostas>(initial);
 
   const upd = <K extends keyof AnamneseRespostas>(k: K, v: AnamneseRespostas[K]) =>
