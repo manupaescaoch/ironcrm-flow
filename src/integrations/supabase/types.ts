@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      anamneses_experimental: {
+        Row: {
+          condicao_saude_descricao: string | null
+          created_at: string
+          dias_semana: string | null
+          frequencia_atual: string | null
+          historico: string | null
+          id: string
+          lead_id: string
+          lesao_descricao: string | null
+          nome: string | null
+          objetivo: string | null
+          observacoes: string | null
+          obstaculo: string | null
+          preenchido_por: string | null
+          preferencia_horario: string[] | null
+          tem_condicao_saude: boolean | null
+          tem_lesao: boolean | null
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          condicao_saude_descricao?: string | null
+          created_at?: string
+          dias_semana?: string | null
+          frequencia_atual?: string | null
+          historico?: string | null
+          id?: string
+          lead_id: string
+          lesao_descricao?: string | null
+          nome?: string | null
+          objetivo?: string | null
+          observacoes?: string | null
+          obstaculo?: string | null
+          preenchido_por?: string | null
+          preferencia_horario?: string[] | null
+          tem_condicao_saude?: boolean | null
+          tem_lesao?: boolean | null
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          condicao_saude_descricao?: string | null
+          created_at?: string
+          dias_semana?: string | null
+          frequencia_atual?: string | null
+          historico?: string | null
+          id?: string
+          lead_id?: string
+          lesao_descricao?: string | null
+          nome?: string | null
+          objetivo?: string | null
+          observacoes?: string | null
+          obstaculo?: string | null
+          preenchido_por?: string | null
+          preferencia_horario?: string[] | null
+          tem_condicao_saude?: boolean | null
+          tem_lesao?: boolean | null
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cronograma_atividades: {
         Row: {
           ativo: boolean
