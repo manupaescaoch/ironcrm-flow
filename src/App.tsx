@@ -160,6 +160,14 @@ const AppRoutes = () => (
       }
     />
     <Route
+      path="/lead/:id/anamnese"
+      element={
+        <ProtectedRoute>
+          <AnamneseExperimental />
+        </ProtectedRoute>
+      }
+    />
+    <Route
       path="/kanban"
       element={
         <ProtectedRoute>
