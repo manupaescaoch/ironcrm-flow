@@ -27,6 +27,7 @@ import Escala from "./pages/Escala";
 import Operacional from "./pages/Operacional";
 import ControleVencimentos from "./pages/ControleVencimentos";
 import AnamneseExperimental from "./pages/AnamneseExperimental";
+import AnamnesePublica from "./pages/AnamnesePublica";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
