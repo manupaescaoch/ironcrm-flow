@@ -42,6 +42,7 @@ import { useConversionScore } from '@/hooks/useConversionScore';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InteractionTimeline } from '@/components/lead/InteractionTimeline';
 import { MotivosPerdaModal } from '@/components/lead/MotivosPerdaModal';
+import { AnamneseSection } from '@/components/lead/AnamneseSection';
 
 const statusOptions: { value: StatusFunil; label: string }[] = [
   { value: 'novo', label: 'Novo' },
