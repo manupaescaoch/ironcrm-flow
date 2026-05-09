@@ -85,29 +85,39 @@ export function AnamneseSection({ leadId }: AnamneseSectionProps) {
             </Badge>
           )}
         </CardTitle>
-        <Button
-          size="sm"
-          onClick={() => navigate(`/lead/${leadId}/anamnese`)}
-          className="bg-anamnese-royal text-anamnese-royal-foreground hover:bg-anamnese-royal-dark"
-        >
-          {anamnese ? (
-            <>
-              <Pencil className="mr-2 h-4 w-4" />
-              Editar Anamnese
-            </>
-          ) : (
-            <>
-              <Plus className="mr-2 h-4 w-4" />
-              Responder Anamnese
-            </>
-          )}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="outline" onClick={copyLink}>
+            <Copy className="mr-2 h-4 w-4" />
+            Copiar link público
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => navigate(`/lead/${leadId}/anamnese`)}
+            className="bg-anamnese-royal text-anamnese-royal-foreground hover:bg-anamnese-royal-dark"
+          >
+            {anamnese ? (
+              <>
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </>
+            ) : (
+              <>
+                <Plus className="mr-2 h-4 w-4" />
+                Preencher na recepção
+              </>
+            )}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
+        <div className="mb-4 flex items-center gap-2 rounded-md border bg-muted/40 p-3 text-xs">
+          <ExternalLink className="h-3.5 w-3.5 shrink-0 text-anamnese-royal" />
+          <span className="break-all font-mono text-muted-foreground">{publicUrl}</span>
+        </div>
         {!anamnese ? (
           <p className="text-sm text-muted-foreground">
-            Nenhuma anamnese registrada. Toque em "Responder Anamnese" para preencher no celular da
-            recepção.
+            Envie o link acima para o lead responder pelo próprio celular, ou use "Preencher na
+            recepção" para fazer no aparelho do CRM.
           </p>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
