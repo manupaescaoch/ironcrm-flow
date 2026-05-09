@@ -48,7 +48,7 @@ export function AnamneseSection({ leadId }: AnamneseSectionProps) {
   const [anamnese, setAnamnese] = useState<Anamnese | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const publicUrl = `${window.location.origin}/anamnese-publica/${leadId}`;
+  const publicUrl = `${window.location.origin}/anamnese`;
 
   const copyLink = async () => {
     try {
