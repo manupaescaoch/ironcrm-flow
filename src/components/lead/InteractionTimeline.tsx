@@ -229,6 +229,18 @@ export function InteractionTimeline({ interacoes, onInteractionClick }: Interact
                       </span>
                     </div>
                   )}
+                  {int.treinador_experimental && (
+                    <div>
+                      <span className="text-muted-foreground">Treinador (Experimental): </span>
+                      <span className="font-medium">{int.treinador_experimental}</span>
+                    </div>
+                  )}
+                  {int.compareceu === true && (
+                    <div>
+                      <span className="text-muted-foreground">Presença: </span>
+                      <span className="font-medium text-green-600">✓ Compareceu</span>
+                    </div>
+                  )}
                   {int.treinador_responsavel && (
                     <div>
                       <span className="text-muted-foreground">Treinador: </span>

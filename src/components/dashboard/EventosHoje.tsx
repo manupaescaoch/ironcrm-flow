@@ -93,6 +93,14 @@ export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps)
         return;
       }
 
+      // Always persist trainer name on the lead when attendance is confirmed
+      if (checked && treinadorSelecionado) {
+        await supabase
+          .from('leads')
+          .update({ treinador_experimental: treinadorSelecionado } as any)
+          .eq('id', item.lead.id);
+      }
+
       // If marking as attended and hasn't closed matricula, update lead status to follow_up
       if (checked && !item.interacao.fechou_matricula) {
         const { error: leadError } = await supabase
