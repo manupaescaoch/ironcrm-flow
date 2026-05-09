@@ -38,6 +38,7 @@ interface AnamneseWizardProps {
   initial: AnamneseRespostas;
   onComplete: (respostas: AnamneseRespostas) => void;
   onBackToIntro: () => void;
+  skipNome?: boolean;
 }
 
 const TOTAL = 10;
