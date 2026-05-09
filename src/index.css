@@ -129,4 +129,12 @@ All colors MUST be HSL.
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  .font-display-condensed {
+    font-family: 'Barlow Condensed', 'Oswald', system-ui, -apple-system, sans-serif;
+    font-stretch: condensed;
+    letter-spacing: -0.01em;
+  }
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
 }
