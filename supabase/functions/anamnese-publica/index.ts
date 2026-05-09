@@ -49,18 +49,18 @@ Deno.serve(async (req) => {
         (l) => (l.telefone ?? "").replace(/\D/g, "") === telefoneNorm,
       );
 
-      let leadId: string;
-      let unidadeId: string;
+      let foundLeadId: string;
+      let foundUnidadeId: string;
 
       if (lead) {
-        leadId = lead.id;
-        unidadeId = lead.unidade_id;
+        foundLeadId = lead.id;
+        foundUnidadeId = lead.unidade_id;
         // Se estiver inativo, reativa
         if (!lead.ativo) {
           await supabase
             .from("leads")
             .update({ ativo: true })
-            .eq("id", leadId);
+            .eq("id", foundLeadId);
         }
       } else {
         // Cria novo lead — unidade default da coluna (Iron Zona Norte)
@@ -76,13 +76,13 @@ Deno.serve(async (req) => {
           .select("id, unidade_id")
           .single();
         if (cErr || !novo) return json({ error: cErr?.message ?? "Falha ao criar lead" }, 500);
-        leadId = novo.id;
-        unidadeId = novo.unidade_id;
+        foundLeadId = novo.id;
+        foundUnidadeId = novo.unidade_id;
       }
 
       const payload = {
-        lead_id: leadId,
-        unidade_id: unidadeId,
+        lead_id: foundLeadId,
+        unidade_id: foundUnidadeId,
         nome,
         objetivo: respostas.objetivo || null,
         historico: respostas.historico || null,
@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
         .invoke("notify-anamnese-experimental", { body: { anamnese_id: saved.id } })
         .catch((e) => console.warn("[anamnese-publica] notify falhou", e));
 
-      return json({ ok: true, lead_id: leadId, created: !lead });
+      return json({ ok: true, lead_id: foundLeadId, created: !lead });
     }
 
     if (!leadId) {
