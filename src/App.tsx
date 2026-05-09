@@ -26,6 +26,7 @@ import RelatorioGastosEstoque from "./pages/RelatorioGastosEstoque";
 import Escala from "./pages/Escala";
 import Operacional from "./pages/Operacional";
 import ControleVencimentos from "./pages/ControleVencimentos";
+import AnamneseExperimental from "./pages/AnamneseExperimental";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -155,6 +156,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <LeadDetail />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/lead/:id/anamnese"
+      element={
+        <ProtectedRoute>
+          <AnamneseExperimental />
         </ProtectedRoute>
       }
     />

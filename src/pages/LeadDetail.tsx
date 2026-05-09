@@ -42,6 +42,7 @@ import { useConversionScore } from '@/hooks/useConversionScore';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InteractionTimeline } from '@/components/lead/InteractionTimeline';
 import { MotivosPerdaModal } from '@/components/lead/MotivosPerdaModal';
+import { AnamneseSection } from '@/components/lead/AnamneseSection';
 
 const statusOptions: { value: StatusFunil; label: string }[] = [
   { value: 'novo', label: 'Novo' },
@@ -594,6 +595,10 @@ export default function LeadDetail() {
               <p className="font-semibold">{formatDate(lead.created_at)}</p>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="mb-8">
+          <AnamneseSection leadId={lead.id} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

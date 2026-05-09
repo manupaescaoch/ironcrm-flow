@@ -51,6 +51,19 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 5% 95%;
     --sidebar-border: 240 8% 18%;
     --sidebar-ring: 225 100% 50%;
+
+    /* Anamnese - identidade visual premium do questionário */
+    --anamnese-royal: 225 85% 35%;
+    --anamnese-royal-dark: 225 85% 28%;
+    --anamnese-royal-foreground: 0 0% 100%;
+    --anamnese-bg: 220 14% 96%;
+    --anamnese-card: 0 0% 100%;
+    --anamnese-card-foreground: 222 25% 12%;
+    --anamnese-muted-foreground: 220 9% 46%;
+    --anamnese-category: 225 85% 45%;
+    --anamnese-border: 220 13% 88%;
+    --anamnese-border-selected: 225 85% 35%;
+    --anamnese-emoji-bg: 220 14% 94%;
   }
 
   .dark {
@@ -115,5 +128,13 @@ All colors MUST be HSL.
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+  .font-display-condensed {
+    font-family: 'Barlow Condensed', 'Oswald', system-ui, -apple-system, sans-serif;
+    font-stretch: condensed;
+    letter-spacing: -0.01em;
+  }
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 }
