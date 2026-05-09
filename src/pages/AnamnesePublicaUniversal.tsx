@@ -114,7 +114,9 @@ export default function AnamnesePublicaUniversal() {
             respostas: { ...respostas, nome },
           },
         });
-        if (error || !data?.ok) throw new Error(data?.error ?? 'Falha ao salvar');
+        console.log('[anamnese] resposta:', { data, error });
+        if (error) throw new Error(error.message ?? 'Erro de conexão');
+        if (!data?.ok) throw new Error(data?.error ?? 'Resposta inválida do servidor');
         toast({
           title: 'Anamnese enviada!',
           description: 'Obrigado, suas respostas foram registradas.',
