@@ -28,6 +28,7 @@ import Operacional from "./pages/Operacional";
 import ControleVencimentos from "./pages/ControleVencimentos";
 import AnamneseExperimental from "./pages/AnamneseExperimental";
 import AnamnesePublica from "./pages/AnamnesePublica";
+import AnamnesePublicaUniversal from "./pages/AnamnesePublicaUniversal";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
