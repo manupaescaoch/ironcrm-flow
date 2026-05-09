@@ -879,6 +879,7 @@ export type Database = {
           plano_escolhido: string | null
           status_funil: string
           telefone: string | null
+          treinador_experimental: string | null
           unidade_id: string
           updated_at: string
           user_id: string | null
@@ -905,6 +906,7 @@ export type Database = {
           plano_escolhido?: string | null
           status_funil?: string
           telefone?: string | null
+          treinador_experimental?: string | null
           unidade_id?: string
           updated_at?: string
           user_id?: string | null
@@ -931,6 +933,7 @@ export type Database = {
           plano_escolhido?: string | null
           status_funil?: string
           telefone?: string | null
+          treinador_experimental?: string | null
           unidade_id?: string
           updated_at?: string
           user_id?: string | null
