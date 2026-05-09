@@ -48,7 +48,7 @@ export function AnamneseSection({ leadId }: AnamneseSectionProps) {
   const [anamnese, setAnamnese] = useState<Anamnese | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const publicUrl = `${window.location.origin}/anamnese-publica/${leadId}`;
+  const publicUrl = `${window.location.origin}/anamnese`;
 
   const copyLink = async () => {
     try {
@@ -88,7 +88,7 @@ export function AnamneseSection({ leadId }: AnamneseSectionProps) {
         <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" variant="outline" onClick={copyLink}>
             <Copy className="mr-2 h-4 w-4" />
-            Copiar link público
+            Copiar link da anamnese
           </Button>
           <Button
             size="sm"
