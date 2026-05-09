@@ -98,13 +98,25 @@ ${fmt(a.observacoes)}
 
 📌 Anamnese preenchida pela recepção no momento da chegada do lead.`;
 
-    const grupo = Deno.env.get('WHATSAPP_GRUPO_ANAMNESE');
+    // Seleciona o grupo de WhatsApp conforme a unidade do lead
+    const nomeUnidade = (unidade?.nome ?? '').toUpperCase();
+    const isZS = nomeUnidade.includes('SUL');
+    const isZN = nomeUnidade.includes('NORTE');
+
+    const grupo =
+      (isZS && Deno.env.get('WHATSAPP_GRUPO_ANAMNESE_ZS')) ||
+      (isZN && Deno.env.get('WHATSAPP_GRUPO_ANAMNESE_ZN')) ||
+      Deno.env.get('WHATSAPP_GRUPO_ANAMNESE'); // fallback legado
+
     if (!grupo) {
-      console.log('[anamnese] WHATSAPP_GRUPO_ANAMNESE não configurado — pulando envio.');
+      console.log('[anamnese] grupo WhatsApp não configurado para a unidade — pulando envio.', {
+        unidade: unidade?.nome,
+      });
       return new Response(JSON.stringify({ ok: true, sent: false, reason: 'no_group' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
 
     const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
     const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
