@@ -38,6 +38,7 @@ interface AnamneseWizardProps {
   initial: AnamneseRespostas;
   onComplete: (respostas: AnamneseRespostas) => void;
   onBackToIntro: () => void;
+  skipNome?: boolean;
 }
 
 const TOTAL = 10;
@@ -85,15 +86,15 @@ const horarioOpcoes = [
   { v: 'Noite', e: '🌙', hint: '18h - 22h' },
 ];
 
-export function AnamneseWizard({ initial, onComplete, onBackToIntro }: AnamneseWizardProps) {
-  const [step, setStep] = useState(1);
+export function AnamneseWizard({ initial, onComplete, onBackToIntro, skipNome }: AnamneseWizardProps) {
+  const [step, setStep] = useState(skipNome ? 2 : 1);
   const [r, setR] = useState<AnamneseRespostas>(initial);
 
   const upd = <K extends keyof AnamneseRespostas>(k: K, v: AnamneseRespostas[K]) =>
     setR((prev) => ({ ...prev, [k]: v }));
 
   const next = () => setStep((s) => Math.min(TOTAL + 1, s + 1));
-  const back = () => (step === 1 ? onBackToIntro() : setStep((s) => s - 1));
+  const back = () => (step <= (skipNome ? 2 : 1) ? onBackToIntro() : setStep((s) => s - 1));
 
   // Quando passa de etapa 10 → finaliza
   if (step > TOTAL) {

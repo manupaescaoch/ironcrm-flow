@@ -93,6 +93,7 @@ export default function AnamnesePublicaUniversal() {
     return (
       <AnamneseWizard
         initial={{ ...respostas, nome }}
+        skipNome
         onComplete={(final) => {
           setRespostas(final);
           setStage('final');
