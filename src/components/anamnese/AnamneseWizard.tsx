@@ -94,7 +94,7 @@ export function AnamneseWizard({ initial, onComplete, onBackToIntro, skipNome }:
     setR((prev) => ({ ...prev, [k]: v }));
 
   const next = () => setStep((s) => Math.min(TOTAL + 1, s + 1));
-  const back = () => (step === 1 ? onBackToIntro() : setStep((s) => s - 1));
+  const back = () => (step <= (skipNome ? 2 : 1) ? onBackToIntro() : setStep((s) => s - 1));
 
   // Quando passa de etapa 10 → finaliza
   if (step > TOTAL) {
