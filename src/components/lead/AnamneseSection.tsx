@@ -44,8 +44,20 @@ function fmtBoolDescricao(b: boolean | null, descr: string | null) {
 
 export function AnamneseSection({ leadId }: AnamneseSectionProps) {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [anamnese, setAnamnese] = useState<Anamnese | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const publicUrl = `${window.location.origin}/anamnese-publica/${leadId}`;
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      toast({ title: 'Link copiado!', description: 'Envie ao lead via WhatsApp.' });
+    } catch {
+      toast({ title: 'Não foi possível copiar', description: publicUrl, variant: 'destructive' });
+    }
+  };
 
   useEffect(() => {
     (async () => {
