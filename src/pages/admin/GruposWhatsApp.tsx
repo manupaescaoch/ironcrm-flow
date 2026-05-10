@@ -39,6 +39,7 @@ export default function GruposWhatsApp() {
   const [testingKey, setTestingKey] = useState<string | null>(null);
   const [groups, setGroups] = useState<ZapiGroup[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     if (!isAdmin) return;
