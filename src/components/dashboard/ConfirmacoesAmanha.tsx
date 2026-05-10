@@ -206,30 +206,9 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Input
-                      placeholder="Obs. rápida"
-                      value={observations[item.interacao.id] || item.interacao.descricao || ''}
-                      onChange={(e) => setObservations(prev => ({ ...prev, [item.interacao.id]: e.target.value }))}
-                      onBlur={() => handleSaveObs(item)}
-                      className="flex-1 h-8 text-sm"
-                    />
-                    <Button size="sm" variant="ghost" onClick={() => handleSaveObs(item)} disabled={loading[`obs-${item.interacao.id}`]}>
-                      <Save className="w-4 h-4" />
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={item.interacao.confirmado || false}
-                        onCheckedChange={(checked) => handleConfirmar(item, checked)}
-                        disabled={loading[item.interacao.id]}
-                      />
-                      <span className="text-sm">Confirmar Presença</span>
-                    </div>
-                    <Button size="sm" variant="outline" onClick={() => onReagendar(item)}>
-                      <RefreshCw className="w-4 h-4 mr-1" />
+                  <div className="flex items-center justify-end">
+                    <Button size="sm" variant="ghost" onClick={() => onReagendar(item)} className="h-7 text-xs text-muted-foreground hover:text-foreground">
+                      <RefreshCw className="w-3.5 h-3.5 mr-1" />
                       Reagendar
                     </Button>
                   </div>
