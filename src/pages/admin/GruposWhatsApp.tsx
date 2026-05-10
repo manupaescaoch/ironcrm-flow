@@ -188,12 +188,34 @@ export default function GruposWhatsApp() {
                     <div className="font-semibold text-sm">{l.unidade}</div>
                     <div>
                       <Label className="text-xs text-muted-foreground">ID do grupo</Label>
-                      <Input
-                        value={l.grupo_id}
-                        onChange={(e) => updateLinha(idx, { grupo_id: e.target.value.trim() })}
-                        placeholder="120363xxxxxxxxxxx@g.us"
-                        className="font-mono text-sm h-9"
-                      />
+                      <div className="flex gap-1">
+                        <Input
+                          value={l.grupo_id}
+                          onChange={(e) => updateLinha(idx, { grupo_id: e.target.value.trim() })}
+                          placeholder="120363xxxxxxxxxxx@g.us"
+                          className="font-mono text-sm h-9 flex-1"
+                        />
+                        {groups.length > 0 && (
+                          <Select
+                            value={l.grupo_id || undefined}
+                            onValueChange={(v) => {
+                              const g = groups.find((x) => x.phone === v);
+                              updateLinha(idx, { grupo_id: v, grupo_nome: l.grupo_nome || g?.name || '' });
+                            }}
+                          >
+                            <SelectTrigger className="h-9 w-[140px] shrink-0">
+                              <SelectValue placeholder="Selecionar..." />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-72 overflow-y-auto">
+                              {groups.map((g) => (
+                                <SelectItem key={g.phone} value={g.phone}>
+                                  <span className="truncate">{g.name || g.phone}</span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Apelido (opcional)</Label>
