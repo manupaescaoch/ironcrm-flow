@@ -330,6 +330,12 @@ export default function EncerramentoHorario() {
       });
       setSaving(false);
       if (error) { toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' }); return; }
+      await notifyFormularioGrupo({
+        formulario_key: 'coordenador_horario',
+        unidade: r.unidade,
+        titulo: 'Encerramento — Coordenador de Horário',
+        items,
+      });
       setStage('done');
     };
 
