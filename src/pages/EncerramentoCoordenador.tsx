@@ -488,6 +488,12 @@ export default function EncerramentoCoordenador() {
       });
       setSaving(false);
       if (error) { toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' }); return; }
+      await notifyFormularioGrupo({
+        formulario_key: 'coordenador_unidade',
+        unidade: r.unidade,
+        titulo: 'Encerramento — Coordenador de Unidade',
+        items,
+      });
       setStage('done');
     };
 
