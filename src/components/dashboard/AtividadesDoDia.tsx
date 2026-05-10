@@ -32,6 +32,7 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
   const { unidadeAtual } = useUnidade();
   const [stats, setStats] = useState<AtividadesStats>({
     experimentaisHoje: 0,
+    confirmacoesEnviadas: 0,
     anamnesesRespondidas: 0,
     anamnesesPendentes: 0,
     followUpsEnviados: 0,
@@ -49,7 +50,7 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
       const startTs = `${today}T00:00:00`;
       const endTs = `${today}T23:59:59`;
 
-      const [expRes, anamRespRes, leadsExpRes, anamLeadIdsRes, fuEnvRes, fuAgRes] = await Promise.all([
+      const [expRes, anamRespRes, leadsExpRes, anamLeadIdsRes, fuEnvRes, fuAgRes, conf24Res, conf2Res] = await Promise.all([
         supabase
           .from('interacoes')
           .select('lead_id', { count: 'exact', head: true })
@@ -85,14 +86,31 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
           .eq('unidade_id', unidadeAtual.id)
           .eq('status', 'pendente')
           .gte('data_prevista', startTs),
+        supabase
+          .from('leads')
+          .select('id')
+          .eq('unidade_id', unidadeAtual.id)
+          .gte('confirmacao_24h_enviada_em', startTs)
+          .lte('confirmacao_24h_enviada_em', endTs),
+        supabase
+          .from('leads')
+          .select('id')
+          .eq('unidade_id', unidadeAtual.id)
+          .gte('confirmacao_2h_enviada_em', startTs)
+          .lte('confirmacao_2h_enviada_em', endTs),
       ]);
 
       const leadsComAnamnese = new Set((anamLeadIdsRes.data || []).map((a: any) => a.lead_id));
       const pendentes = (leadsExpRes.data || []).filter((l: any) => !leadsComAnamnese.has(l.id)).length;
 
+      const confSet = new Set<string>();
+      (conf24Res.data || []).forEach((l: any) => confSet.add(l.id));
+      (conf2Res.data || []).forEach((l: any) => confSet.add(l.id));
+
       if (cancelled) return;
       setStats({
         experimentaisHoje: expRes.count ?? 0,
+        confirmacoesEnviadas: confSet.size,
         anamnesesRespondidas: anamRespRes.count ?? 0,
         anamnesesPendentes: pendentes,
         followUpsEnviados: fuEnvRes.count ?? 0,
