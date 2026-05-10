@@ -116,10 +116,11 @@ Deno.serve(async (req) => {
       const phone = normalizePhone(lead.telefone || '');
       if (!phone) continue;
 
-      // Janela 24h: entre 23h45 (1425min) e 24h15 (1455min)
-      const dentro24h = diffMin >= 1425 && diffMin <= 1455;
-      // Janela 2h: entre 1h45 (105min) e 2h15 (135min)
-      const dentro2h = diffMin >= 105 && diffMin <= 135;
+      // Janela 24h: a qualquer momento entre 2h15 antes e 24h15 antes da aula
+      // (cobre leads cadastrados em cima da hora que perderiam a janela estreita)
+      const dentro24h = diffMin > 135 && diffMin <= 1455;
+      // Janela 2h: entre o início da aula e 2h15 antes
+      const dentro2h = diffMin > 0 && diffMin <= 135;
 
       // 24h
       if (dentro24h && !lead.confirmacao_24h_enviada_em) {
