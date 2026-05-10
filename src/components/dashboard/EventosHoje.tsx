@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Calendar, Clock, Save, RefreshCw, MessageCircle, Activity, User, ChevronDown, UserX } from 'lucide-react';
+import { Calendar, Clock, Save, RefreshCw, MessageCircle, Activity, User, ChevronDown, UserX, FileText, BellRing } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,6 +65,32 @@ export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps)
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [treinadores, setTreinadores] = useState<Record<string, string>>({});
   const [followUpDialogItem, setFollowUpDialogItem] = useState<EventoItem | null>(null);
+  const [anamneseMap, setAnamneseMap] = useState<Record<string, boolean>>({});
+  const [lembreteMap, setLembreteMap] = useState<Record<string, { at: string | null; tipo: '24h' | '2h' } | null>>({});
+
+  useEffect(() => {
+    const leadIds = Array.from(new Set(items.filter(i => i.tipoEvento === 'experimental').map(i => i.lead.id)));
+    if (leadIds.length === 0) {
+      setAnamneseMap({});
+      setLembreteMap({});
+      return;
+    }
+    (async () => {
+      const [anamRes, leadsRes] = await Promise.all([
+        supabase.from('anamneses_experimental').select('lead_id').in('lead_id', leadIds),
+        supabase.from('leads').select('id, confirmacao_24h_enviada_em, confirmacao_2h_enviada_em').in('id', leadIds),
+      ]);
+      const am: Record<string, boolean> = {};
+      anamRes.data?.forEach((r: any) => { am[r.lead_id] = true; });
+      setAnamneseMap(am);
+      const lm: Record<string, { at: string | null; tipo: '24h' | '2h' } | null> = {};
+      leadsRes.data?.forEach((r: any) => {
+        if (r.confirmacao_2h_enviada_em) lm[r.id] = { at: r.confirmacao_2h_enviada_em, tipo: '2h' };
+        else if (r.confirmacao_24h_enviada_em) lm[r.id] = { at: r.confirmacao_24h_enviada_em, tipo: '24h' };
+      });
+      setLembreteMap(lm);
+    })();
+  }, [items]);
 
   const handleMarcarPresenca = async (item: EventoItem, checked: boolean) => {
     const treinadorSelecionado = treinadores[item.interacao.id] || item.interacao.treinador_experimental;
@@ -360,6 +386,30 @@ Aguardamos você! 💪`;
                     </Badge>
                   </div>
                 </div>
+
+                {item.tipoEvento === 'experimental' && (() => {
+                  const anamneseOk = !!anamneseMap[item.lead.id];
+                  const lembrete = lembreteMap[item.lead.id];
+                  const lembreteOk = !!lembrete;
+                  return (
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline" className={anamneseOk
+                        ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
+                        : 'bg-zinc-100 text-zinc-600 border-zinc-300'}>
+                        <FileText className="w-3 h-3 mr-1" />
+                        {anamneseOk ? 'Anamnese preenchida' : 'Anamnese pendente'}
+                      </Badge>
+                      <Badge variant="outline" className={lembreteOk
+                        ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
+                        : 'bg-zinc-100 text-zinc-600 border-zinc-300'}>
+                        <BellRing className="w-3 h-3 mr-1" />
+                        {lembreteOk
+                          ? `Lembrete ${lembrete!.tipo} enviado às ${format(new Date(lembrete!.at as string), 'HH:mm', { locale: ptBR })}`
+                          : 'Lembrete pendente'}
+                      </Badge>
+                    </div>
+                  );
+                })()}
 
                 <div className="flex items-center gap-2">
                   <Input
