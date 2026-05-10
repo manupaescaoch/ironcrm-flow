@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const ANAMNESE_URL = 'https://ironcrm-flow.lovable.app/anamnese';
+const ANAMNESE_URL = 'https://ironclub-app.com/anamnese';
 
 function primeiroNomeCapitalizado(nome: string): string {
   const primeiro = (nome || '').trim().split(/\s+/)[0] || '';
