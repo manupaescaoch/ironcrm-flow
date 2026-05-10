@@ -126,6 +126,7 @@ const AppRoutes = () => (
     <Route path="/anamnese" element={<AnamnesePublicaUniversal />} />
     <Route path="/encerramento-turno" element={<EncerramentoTurno />} />
     <Route path="/encerramento-coordenador" element={<EncerramentoCoordenador />} />
+    <Route path="/encerramento-horario" element={<EncerramentoHorario />} />
     <Route path="/anamnese-publica/:id" element={<AnamnesePublica />} />
     <Route path="/" element={<Navigate to="/dashboard" replace />} />
     <Route
