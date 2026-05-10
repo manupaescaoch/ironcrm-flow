@@ -13,6 +13,7 @@ import { EventosHoje, EventoItem } from '@/components/dashboard/EventosHoje';
 import { ConfirmacoesAmanha } from '@/components/dashboard/ConfirmacoesAmanha';
 import { PendenciasDia } from '@/components/dashboard/PendenciasDia';
 import { ExperimentaisSemana } from '@/components/dashboard/ExperimentaisSemana';
+import { AtividadesDoDia } from '@/components/dashboard/AtividadesDoDia';
 import { ReagendarModal } from '@/components/dashboard/ReagendarModal';
 import { FollowUpCard } from '@/components/dashboard/FollowUpCard';
 import { CompactRelatorioFollowUps } from '@/components/dashboard/CompactRelatorioFollowUps';
@@ -239,6 +240,7 @@ export default function Dashboard() {
           </div>
 
           <TabsContent value="diario" className="space-y-6">
+            <AtividadesDoDia onVerRelatorio={handleFollowUpCardClick} />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <EventosHoje
                 items={eventosHoje}
