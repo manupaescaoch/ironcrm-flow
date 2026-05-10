@@ -240,30 +240,35 @@ export default function Dashboard() {
           </div>
 
           <TabsContent value="diario" className="space-y-6">
-            <AtividadesDoDia onVerRelatorio={handleFollowUpCardClick} />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <EventosHoje
-                items={eventosHoje}
-                onRefresh={() => refetchEventos(startDate, endDate)}
-                onReagendar={handleReagendar}
-              />
-              
-              <ConfirmacoesAmanha
-                items={confirmacoesAmanha}
-                onRefresh={() => refetchEventos(startDate, endDate)}
-                onReagendar={handleReagendar}
-              />
-              
-              <PendenciasDia
-                onVerTodas={() => {
-                  setShowFollowUpSection(true);
-                  setTimeout(() => {
-                    followUpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }, 100);
-                }}
-                onVerFollowUps={handleFollowUpCardClick}
-                onVerExperimentais={handleExperimentaisCardClick}
-              />
+              {/* Coluna principal esquerda: Eventos Hoje + Agendamentos Amanhã lado a lado */}
+              <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <EventosHoje
+                  items={eventosHoje}
+                  onRefresh={() => refetchEventos(startDate, endDate)}
+                  onReagendar={handleReagendar}
+                />
+                <ConfirmacoesAmanha
+                  items={confirmacoesAmanha}
+                  onRefresh={() => refetchEventos(startDate, endDate)}
+                  onReagendar={handleReagendar}
+                />
+              </div>
+
+              {/* Coluna lateral direita: Atividades + Pendências empilhados */}
+              <div className="space-y-6">
+                <AtividadesDoDia onVerRelatorio={handleFollowUpCardClick} />
+                <PendenciasDia
+                  onVerTodas={() => {
+                    setShowFollowUpSection(true);
+                    setTimeout(() => {
+                      followUpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                  }}
+                  onVerFollowUps={handleFollowUpCardClick}
+                  onVerExperimentais={handleExperimentaisCardClick}
+                />
+              </div>
             </div>
           </TabsContent>
 
