@@ -861,6 +861,8 @@ export type Database = {
           atendido_por: string | null
           ativo: boolean
           cadastrado_por: string | null
+          confirmacao_24h_enviada_em: string | null
+          confirmacao_2h_enviada_em: string | null
           created_at: string
           created_by: string | null
           data_aula_experimental: string | null
@@ -888,6 +890,8 @@ export type Database = {
           atendido_por?: string | null
           ativo?: boolean
           cadastrado_por?: string | null
+          confirmacao_24h_enviada_em?: string | null
+          confirmacao_2h_enviada_em?: string | null
           created_at?: string
           created_by?: string | null
           data_aula_experimental?: string | null
@@ -915,6 +919,8 @@ export type Database = {
           atendido_por?: string | null
           ativo?: boolean
           cadastrado_por?: string | null
+          confirmacao_24h_enviada_em?: string | null
+          confirmacao_2h_enviada_em?: string | null
           created_at?: string
           created_by?: string | null
           data_aula_experimental?: string | null
