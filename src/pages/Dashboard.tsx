@@ -240,6 +240,7 @@ export default function Dashboard() {
           </div>
 
           <TabsContent value="diario" className="space-y-6">
+            <AtividadesDoDia onVerRelatorio={handleFollowUpCardClick} />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <EventosHoje
                 items={eventosHoje}
