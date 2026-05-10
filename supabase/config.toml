@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.resumo-semanal-webhook-resposta]
 verify_jwt = false
+
+[functions.notify-formulario-encerramento]
+verify_jwt = false

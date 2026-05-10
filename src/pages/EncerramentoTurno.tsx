@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { StepShell } from '@/components/anamnese/StepShell';
 import { OptionCard } from '@/components/anamnese/OptionCard';
 import { cn } from '@/lib/utils';
+import { notifyFormularioGrupo } from '@/lib/notifyFormularioGrupo';
 
 type Stage = 'intro' | 'wizard' | 'review' | 'done';
 
@@ -439,6 +440,12 @@ export default function EncerramentoTurno() {
         toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
         return;
       }
+      await notifyFormularioGrupo({
+        formulario_key: 'estagiario_lider',
+        unidade: r.unidade,
+        titulo: 'Encerramento de Turno — Estagiário Líder',
+        items,
+      });
       setStage('done');
     };
 

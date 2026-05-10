@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { StepShell } from '@/components/anamnese/StepShell';
 import { OptionCard } from '@/components/anamnese/OptionCard';
 import { cn } from '@/lib/utils';
+import { notifyFormularioGrupo } from '@/lib/notifyFormularioGrupo';
 
 type Stage = 'intro' | 'wizard' | 'review' | 'done';
 
@@ -330,6 +331,12 @@ export default function RelatorioDiarioComercial() {
       });
       setSaving(false);
       if (error) { toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' }); return; }
+      await notifyFormularioGrupo({
+        formulario_key: 'relatorio_comercial',
+        unidade: r.unidade,
+        titulo: 'Relatório Diário — Comercial',
+        items,
+      });
       setStage('done');
     };
 

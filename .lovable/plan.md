@@ -1,103 +1,64 @@
-## 🎯 Objetivo
+## Objetivo
 
-Automatizar 2 mensagens de WhatsApp pro aluno antes da aula experimental:
-- **24h antes** — confirmação da aula
-- **2h antes** — lembrete + link da anamnese
+Cada um dos 4 formulários de encerramento envia o resumo da resposta para um grupo de WhatsApp diferente, de acordo com a unidade selecionada (Zona Norte ou Zona Sul). Os IDs dos grupos serão configuráveis em uma tela de admin (sem precisar usar secrets).
 
-Envio direto pro telefone do lead via Z-API, com identificação automática de unidade (ZN/ZS) já garantida pelo `lead.unidade_id`.
+## Formulários cobertos
 
----
+1. Estagiário Líder (`encerramento_turno_respostas`)
+2. Coordenador de Unidade (`encerramento_coordenador_respostas`)
+3. Coordenador de Horário (`encerramento_horario_respostas`)
+4. Relatório Diário Comercial (`relatorio_diario_comercial_respostas`)
 
-## 🗄️ Mudança no banco
+## 1. Banco de dados
 
-Adicionar 2 colunas em `leads` pra controlar envios e evitar duplicidade:
+Nova tabela `formulario_grupos_whatsapp`:
+- `formulario_key` (text) — identificador fixo: `estagiario_lider`, `coordenador_unidade`, `coordenador_horario`, `relatorio_comercial`
+- `unidade` (text) — `ZONA NORTE` ou `ZONA SUL`
+- `grupo_id` (text) — ID do grupo Z-API (ex.: `120363...@g.us`)
+- `grupo_nome` (text, opcional) — rótulo amigável
+- `ativo` (boolean, default true)
+- Índice único em `(formulario_key, unidade)`
+- RLS: só admin lê/edita; ninguém mais.
 
-- `confirmacao_24h_enviada_em` (timestamptz, nullable)
-- `confirmacao_2h_enviada_em` (timestamptz, nullable)
+## 2. Edge function `notify-formulario-encerramento`
 
-Reset automático via trigger sempre que `data_aula_experimental` ou `hora_aula_experimental` mudar (caso reagende, dispara de novo).
+Recebe `{ formulario_key, unidade, titulo, resumo }`:
+1. Busca `grupo_id` na tabela acima usando `formulario_key + unidade`.
+2. Se encontrar e estiver ativo, dispara mensagem via Z-API (`/send-text`) usando `ZAPI_INSTANCE_ID`, `ZAPI_TOKEN`, `ZAPI_CLIENT_TOKEN` (já existem).
+3. Mensagem formatada com cabeçalho do formulário + resumo dos campos preenchidos.
+4. CORS habilitado, sem `verify_jwt` (chamada anônima após submissão pública).
 
----
+## 3. Frontend — submissão dos formulários
 
-## ⚙️ Edge function: `confirmacao-experimental-automatica`
+Em cada uma das 4 páginas (`EncerramentoTurno`, `EncerramentoCoordenador`, `EncerramentoHorario`, `RelatorioDiarioComercial`), após o `insert` bem-sucedido:
+- Construir um `resumo` em texto (mesmo conteúdo da tela de "Resumo" já existente — só os campos preenchidos).
+- Chamar `supabase.functions.invoke('notify-formulario-encerramento', { body: { formulario_key, unidade, titulo, resumo } })`.
+- Falha no envio não bloqueia o sucesso da submissão (apenas log).
 
-**Lógica única, executa a cada 15 min:**
+## 4. Tela de admin
 
-Para cada lead onde:
-- `ativo = true`
-- `is_matriculado = false`
-- `status_funil` ∉ ('convertido', 'perdido')
-- `telefone` preenchido
-- `data_aula_experimental` + `hora_aula_experimental` definidos
+Nova página `/configuracoes/grupos-whatsapp` (admin only), também acessível via aba/seção em **Operacional → Formulários**.
 
-Calcula `momento_aula = data + hora` (timezone BRT) e:
+Layout: tabela 4×2 (4 formulários × 2 unidades), com input para o ID do grupo e switch de ativo. Inclui:
+- Botão "Listar grupos" que reaproveita a edge function existente `list-whatsapp-groups` para ajudar a copiar o ID correto.
+- Botão "Testar envio" por linha — chama a edge function com um resumo de teste para validar.
+- Salvamento via `upsert` na tabela `formulario_grupos_whatsapp`.
 
-| Janela | Condição | Ação |
-|---|---|---|
-| **24h** | `momento_aula` entre **23h45 e 24h15** à frente de agora **E** `confirmacao_24h_enviada_em` IS NULL | Envia texto 24h |
-| **2h** | `momento_aula` entre **1h45 e 2h15** à frente de agora **E** `confirmacao_2h_enviada_em` IS NULL | Envia texto 2h |
+## 5. Card no Operacional
 
-Após envio bem-sucedido, marca o timestamp correspondente. Janela de 30 min cobre o cron de 15 min com folga.
+Adicionar atalho discreto no topo da aba Formulários: "Configurar grupos WhatsApp" → abre a tela de admin (visível apenas para admin).
 
-**Templates** (substituem `{nome}`, `{data}`, `{hora}`):
+## Detalhes técnicos
 
-```
-[24h]
-Oi, {nome}! Tudo certo, sua experimental está confirmada! 🔵
+- Padrão Z-API segue `notify-anamnese-experimental` (mesmas envs).
+- `formulario_key` é constante hard-coded em cada página, não vem do banco.
+- A edge function não falha se o grupo não estiver configurado — apenas retorna `{ skipped: true }`.
+- Mensagem inclui data/hora local, nome do respondente, unidade e bullet list dos campos.
 
-📅 {data} ⏰ {hora}
+## Arquivos afetados
 
-Chega 15 minutinhos antes, tá? Assim a gente te apresenta como funciona a Iron e já preenche sua ficha antes de começar.
-
-Qualquer imprevisto é só me chamar aqui. A gente se vê em breve! 💪
-
-Equipe Iron
-```
-
-```
-[2h]
-Oi, {nome}! Daqui a pouco é hora do treino. 💪
-
-Queremos te conhecer melhor! Preenche essa ficha rapidinho antes de vir assim a gente garante a melhor experiência pra você aqui na Iron. 😊
-
-👉 https://ironcrm-flow.lovable.app/anamnese
-
-Te esperamos às {hora}. Qualquer imprevisto é só me chamar aqui. 🔵
-
-Equipe Iron
-```
-
-Formato: `{nome}` = primeiro nome (UPPERCASE → Title Case), `{data}` = `dd/MM`, `{hora}` = `HH:mm`.
-
----
-
-## ⏱️ Cron
-
-Job `confirmacao-experimental-cron` no `pg_cron`:
-- Frequência: **a cada 15 min**, das **06h às 22h BRT** (`*/15 9-1 * * *` em UTC = 06h–22h BRT)
-- Todos os dias (inclui fim de semana, já que aulas experimentais podem cair em sábado)
-- Chama a edge function via `net.http_post`
-
----
-
-## 🛡️ Salvaguardas
-
-- **Idempotência**: timestamps em `leads` impedem reenvio.
-- **Reagendamento**: trigger reseta os timestamps quando data/hora muda → dispara confirmação nova.
-- **Sem telefone**: pula sem erro.
-- **Lead matriculado/perdido entre o agendamento e a hora**: não envia.
-- **Z-API única**: usa as mesmas envs `ZAPI_INSTANCE_ID`, `ZAPI_TOKEN`, `ZAPI_CLIENT_TOKEN` já configuradas.
-
----
-
-## 📝 Memória
-
-Salvar `mem://features/confirmacao-experimental-automatica` com regras, templates e janelas, e adicionar no índice.
-
----
-
-## ❓ Confirmar antes de implementar
-
-1. **Janela de envio**: 06h–22h BRT está bom? (Se a aula for às 7h, o lembrete 24h sai no dia anterior à mesma hora; o de 2h sairia às 5h, antes da janela. Posso estender pra 05h ou aceitar que aulas muito cedo só recebam 24h.)
-2. **Fim de semana**: incluir sábado/domingo? (Se houver experimentais nesses dias, sim.)
-3. **Trigger de reset** ao reagendar: ok automatizar? (Recomendo sim — evita "esqueci de avisar" se mudou horário.)
+- Migração: nova tabela + RLS.
+- `supabase/functions/notify-formulario-encerramento/index.ts` (novo).
+- `src/pages/EncerramentoTurno.tsx`, `EncerramentoCoordenador.tsx`, `EncerramentoHorario.tsx`, `RelatorioDiarioComercial.tsx` — chamada à edge function no submit.
+- `src/pages/admin/GruposWhatsApp.tsx` (novo) + rota em `App.tsx`.
+- `src/components/cronograma/FormulariosList.tsx` — link "Configurar grupos" para admin.

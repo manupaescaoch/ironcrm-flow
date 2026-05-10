@@ -5,7 +5,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Edit, Trash2, FileText, Eye, ClipboardCheck, ExternalLink, Copy } from 'lucide-react';
+import { Plus, Edit, Trash2, FileText, Eye, ClipboardCheck, ExternalLink, Copy, MessageCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -18,6 +20,7 @@ interface FormulariosListProps {
 }
 
 export function FormulariosList({ onCreateNew, onEdit, onViewRespostas }: FormulariosListProps) {
+  const { isAdmin } = useAuth();
   const { data: formularios, isLoading } = useFormularios();
   const deleteFormulario = useDeleteFormulario();
   const toggleFormulario = useToggleFormulario();
@@ -64,6 +67,15 @@ export function FormulariosList({ onCreateNew, onEdit, onViewRespostas }: Formul
 
   return (
     <div className="space-y-4">
+      {isAdmin && (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/admin/grupos-whatsapp">
+              <MessageCircle className="w-4 h-4 mr-2" /> Configurar grupos WhatsApp
+            </Link>
+          </Button>
+        </div>
+      )}
       {/* Featured fixed forms */}
       <FixedCard title="Formulário de Encerramento — Estagiário Líder" subtitle="Estagiário Líder · ao final do turno · tablet/celular" url={encerramentoUrl} />
       <FixedCard title="Formulário de Encerramento — Coordenador de Unidade" subtitle="Coordenador de Unidade · ao final do turno · tablet/celular" url={coordenadorUrl} />

@@ -33,6 +33,7 @@ import EncerramentoTurno from "./pages/EncerramentoTurno";
 import EncerramentoCoordenador from "./pages/EncerramentoCoordenador";
 import EncerramentoHorario from "./pages/EncerramentoHorario";
 import RelatorioDiarioComercial from "./pages/RelatorioDiarioComercial";
+import GruposWhatsApp from "./pages/admin/GruposWhatsApp";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -129,6 +130,7 @@ const AppRoutes = () => (
     <Route path="/encerramento-coordenador" element={<EncerramentoCoordenador />} />
     <Route path="/encerramento-horario" element={<EncerramentoHorario />} />
     <Route path="/relatorio-diario-comercial" element={<RelatorioDiarioComercial />} />
+    <Route path="/admin/grupos-whatsapp" element={<ProtectedRoute><GruposWhatsApp /></ProtectedRoute>} />
     <Route path="/anamnese-publica/:id" element={<AnamnesePublica />} />
     <Route path="/" element={<Navigate to="/dashboard" replace />} />
     <Route

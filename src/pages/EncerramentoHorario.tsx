@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { StepShell } from '@/components/anamnese/StepShell';
 import { OptionCard } from '@/components/anamnese/OptionCard';
 import { cn } from '@/lib/utils';
+import { notifyFormularioGrupo } from '@/lib/notifyFormularioGrupo';
 
 type Stage = 'intro' | 'wizard' | 'review' | 'done';
 
@@ -329,6 +330,12 @@ export default function EncerramentoHorario() {
       });
       setSaving(false);
       if (error) { toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' }); return; }
+      await notifyFormularioGrupo({
+        formulario_key: 'coordenador_horario',
+        unidade: r.unidade,
+        titulo: 'Encerramento — Coordenador de Horário',
+        items,
+      });
       setStage('done');
     };
 
