@@ -20,6 +20,7 @@ interface FormulariosListProps {
 }
 
 export function FormulariosList({ onCreateNew, onEdit, onViewRespostas }: FormulariosListProps) {
+  const { isAdmin } = useAuth();
   const { data: formularios, isLoading } = useFormularios();
   const deleteFormulario = useDeleteFormulario();
   const toggleFormulario = useToggleFormulario();
