@@ -51,8 +51,10 @@ export function FormulariosList({ onCreateNew, onEdit, onViewRespostas }: Formul
             <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(encerramentoUrl); toast.success('Link copiado'); }}>
               <Copy className="w-4 h-4 mr-1" /> Copiar link
             </Button>
-            <Button size="sm" onClick={() => window.open(encerramentoUrl, '_blank')}>
-              <ExternalLink className="w-4 h-4 mr-1" /> Abrir
+            <Button size="sm" asChild>
+              <a href={encerramentoUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="w-4 h-4 mr-1" /> Abrir
+              </a>
             </Button>
           </div>
         </CardContent>
