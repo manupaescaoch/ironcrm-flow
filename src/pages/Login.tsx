@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Dumbbell, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { z } from 'zod';
+import ironClubLogo from '@/assets/iron-club-logo.png';
 
 const authSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -57,8 +58,8 @@ export default function Login() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 bg-primary rounded-xl flex items-center justify-center mb-4">
-            <Dumbbell className="w-10 h-10 text-primary-foreground" />
+          <div className="mx-auto w-20 h-20 rounded-xl overflow-hidden mb-4 shadow-md">
+            <img src={ironClubLogo} alt="Iron Club" className="w-full h-full object-cover" />
           </div>
           <CardTitle className="text-2xl font-bold">IRON CLUB</CardTitle>
           <CardDescription>Sistema de CRM para gestão de leads</CardDescription>
