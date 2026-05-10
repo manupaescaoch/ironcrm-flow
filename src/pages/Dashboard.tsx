@@ -13,6 +13,7 @@ import { EventosHoje, EventoItem } from '@/components/dashboard/EventosHoje';
 import { ConfirmacoesAmanha } from '@/components/dashboard/ConfirmacoesAmanha';
 import { PendenciasDia } from '@/components/dashboard/PendenciasDia';
 import { ExperimentaisSemana } from '@/components/dashboard/ExperimentaisSemana';
+import { AtividadesDoDia } from '@/components/dashboard/AtividadesDoDia';
 import { ReagendarModal } from '@/components/dashboard/ReagendarModal';
 import { FollowUpCard } from '@/components/dashboard/FollowUpCard';
 import { CompactRelatorioFollowUps } from '@/components/dashboard/CompactRelatorioFollowUps';
