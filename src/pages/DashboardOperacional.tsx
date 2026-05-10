@@ -15,6 +15,7 @@ import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip as RTooltip, Legend,
 } from 'recharts';
+import { useDashboardOperacionalData } from '@/hooks/useDashboardOperacionalData';
 
 // ============ MOCK DATA ============
 const mock = {
