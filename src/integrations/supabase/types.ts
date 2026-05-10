@@ -260,6 +260,75 @@ export type Database = {
           },
         ]
       }
+      encerramento_turno_respostas: {
+        Row: {
+          clima_equipe: number
+          clima_influencia: string | null
+          created_at: string
+          equipamento_descricao: string | null
+          equipamento_problema: boolean
+          experimentais_realizadas: number
+          faria_diferente: string | null
+          feedback_descricao: string | null
+          id: string
+          manteve_padrao: boolean
+          nome: string
+          observacao_gestao: string | null
+          ocorrencia_descricao: string | null
+          padrao_observacao: string | null
+          precisou_suporte: boolean
+          recebeu_feedback: boolean
+          suporte_descricao: string | null
+          teve_ocorrencia: boolean
+          turno: string
+          unidade: string
+        }
+        Insert: {
+          clima_equipe?: number
+          clima_influencia?: string | null
+          created_at?: string
+          equipamento_descricao?: string | null
+          equipamento_problema?: boolean
+          experimentais_realizadas?: number
+          faria_diferente?: string | null
+          feedback_descricao?: string | null
+          id?: string
+          manteve_padrao?: boolean
+          nome: string
+          observacao_gestao?: string | null
+          ocorrencia_descricao?: string | null
+          padrao_observacao?: string | null
+          precisou_suporte?: boolean
+          recebeu_feedback?: boolean
+          suporte_descricao?: string | null
+          teve_ocorrencia?: boolean
+          turno: string
+          unidade: string
+        }
+        Update: {
+          clima_equipe?: number
+          clima_influencia?: string | null
+          created_at?: string
+          equipamento_descricao?: string | null
+          equipamento_problema?: boolean
+          experimentais_realizadas?: number
+          faria_diferente?: string | null
+          feedback_descricao?: string | null
+          id?: string
+          manteve_padrao?: boolean
+          nome?: string
+          observacao_gestao?: string | null
+          ocorrencia_descricao?: string | null
+          padrao_observacao?: string | null
+          precisou_suporte?: boolean
+          recebeu_feedback?: boolean
+          suporte_descricao?: string | null
+          teve_ocorrencia?: boolean
+          turno?: string
+          unidade?: string
+        }
+        Relationships: []
+      }
       escala: {
         Row: {
           ano: number
