@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 
 interface AtividadesStats {
   experimentaisHoje: number;
+  confirmacoesEnviadas: number;
   anamnesesRespondidas: number;
   anamnesesPendentes: number;
   followUpsEnviados: number;
@@ -20,6 +21,7 @@ interface AtividadesDoDiaProps {
 
 const ITEMS = [
   { key: 'experimentaisHoje', label: 'Experimentais do dia', subtitle: 'aulas experimentais hoje', icon: Dumbbell, color: 'text-primary' },
+  { key: 'confirmacoesEnviadas', label: 'Confirmações experimentais', subtitle: 'lembretes 24h/2h enviados hoje', icon: BellRing, color: 'text-sky-600' },
   { key: 'anamnesesRespondidas', label: 'Anamneses respondidas', subtitle: 'respondidas hoje', icon: ClipboardCheck, color: 'text-green-600' },
   { key: 'anamnesesPendentes', label: 'Anamneses pendentes', subtitle: 'aguardando resposta', icon: ClipboardList, color: 'text-amber-600' },
   { key: 'followUpsEnviados', label: 'Follow-ups enviados', subtitle: 'enviados hoje', icon: Send, color: 'text-blue-600' },
