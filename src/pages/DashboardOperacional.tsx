@@ -373,19 +373,19 @@ export default function DashboardOperacional() {
           {/* === RECEPÇÃO === */}
           <TabsContent value="recepcao" className="space-y-6">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              <KpiCard icon={MessageSquare} label="Leads recebidos" value={mock.recepcao.leadsRecebidos} />
-              <KpiCard icon={Calendar} label="Experimentais" value={mock.recepcao.experimentaisRealizadas} />
-              <KpiCard icon={DollarSign} label="Novos fechados" value={mock.recepcao.novosFechamentos} />
-              <KpiCard icon={Sparkles} label="Renovações" value={mock.recepcao.renovacoes} />
-              <KpiCard icon={UserMinus} label="Cancelamentos" value={mock.recepcao.cancelamentos} accent="#DC2626" />
-              <KpiCard icon={AlertTriangle} label="Inadimplentes" value={mock.recepcao.inadimplentes} accent="#D97706" />
-              <KpiCard icon={TrendingDown} label="Não renovados" value={mock.recepcao.naoRenovados} accent="#D97706" />
+              <KpiCard icon={MessageSquare} label="Leads recebidos" value={m.recepcao.leadsRecebidos} />
+              <KpiCard icon={Calendar} label="Experimentais" value={m.recepcao.experimentaisRealizadas} />
+              <KpiCard icon={DollarSign} label="Novos fechados" value={m.recepcao.novosFechamentos} />
+              <KpiCard icon={Sparkles} label="Renovações" value={m.recepcao.renovacoes} />
+              <KpiCard icon={UserMinus} label="Cancelamentos" value={m.recepcao.cancelamentos} accent="#DC2626" />
+              <KpiCard icon={AlertTriangle} label="Inadimplentes" value={m.recepcao.inadimplentes} accent="#D97706" />
+              <KpiCard icon={TrendingDown} label="Não renovados" value={m.recepcao.naoRenovados} accent="#D97706" />
             </div>
 
             <Card className="bg-white shadow-sm border-0 rounded-xl">
               <CardHeader><CardTitle className="text-base">Atividades realizadas no dia</CardTitle></CardHeader>
               <CardContent className="flex flex-wrap gap-2">
-                {mock.recepcao.atividades.map((a) => (
+                {m.recepcao.atividades.map((a) => (
                   <Badge key={a} className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-50 py-1.5 px-3">
                     <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> {a}
                   </Badge>
@@ -397,7 +397,7 @@ export default function DashboardOperacional() {
               <Card className="bg-white shadow-sm border-0 rounded-xl">
                 <CardHeader><CardTitle className="text-base">Pendências do dia</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
-                  {mock.recepcao.pendencias.map((p, i) => (
+                  {m.recepcao.pendencias.map((p, i) => (
                     <div key={i} className="flex gap-2 text-sm p-3 rounded-lg bg-amber-50 border border-amber-100">
                       <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                       <span className="text-slate-700">{p}</span>
@@ -409,7 +409,7 @@ export default function DashboardOperacional() {
                 <CardHeader><CardTitle className="text-base">Planejamento de amanhã</CardTitle></CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    {mock.recepcao.planejamento.map((p, i) => (
+                    {m.recepcao.planejamento.map((p, i) => (
                       <li key={i} className="flex gap-2 text-sm text-slate-700">
                         <span className="w-1.5 h-1.5 rounded-full mt-2 shrink-0" style={{ background: COR_PRIMARIA }} />
                         {p}
@@ -420,13 +420,13 @@ export default function DashboardOperacional() {
               </Card>
             </div>
 
-            {mock.recepcao.suporte && (
+            {m.recepcao.suporte && (
               <Card className="bg-white shadow-sm border-0 rounded-xl border-l-4" style={{ borderLeftColor: '#DC2626' }}>
                 <CardContent className="p-5 flex gap-3">
                   <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm font-semibold text-red-700">Solicitação de suporte</p>
-                    <p className="text-sm text-slate-700 mt-1">{mock.recepcao.suporte}</p>
+                    <p className="text-sm text-slate-700 mt-1">{m.recepcao.suporte}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -436,7 +436,7 @@ export default function DashboardOperacional() {
           {/* === ESTAGIÁRIO LÍDER === */}
           <TabsContent value="estagiario" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {mock.estagiario.turnos.map((t) => (
+              {m.estagiario.turnos.map((t) => (
                 <Card key={t.nome} className="bg-white shadow-sm border-0 rounded-xl">
                   <CardHeader className="pb-3 flex flex-row items-center justify-between">
                     <CardTitle className="text-base" style={{ color: COR_PRIMARIA }}>{t.nome}</CardTitle>
@@ -511,7 +511,7 @@ export default function DashboardOperacional() {
           {/* === COORDENADOR HORÁRIO === */}
           <TabsContent value="horario" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {mock.coordHorario.turnos.map((t) => (
+              {m.coordHorario.turnos.map((t) => (
                 <Card key={t.nome} className="bg-white shadow-sm border-0 rounded-xl">
                   <CardHeader className="pb-3 flex flex-row items-center justify-between">
                     <CardTitle className="text-base" style={{ color: COR_PRIMARIA }}>{t.nome}</CardTitle>
@@ -596,7 +596,7 @@ export default function DashboardOperacional() {
                 { k: 'proatividade', label: 'Proatividade', icon: Activity },
                 { k: 'notaGeral', label: 'Nota geral', icon: Star },
               ].map(({ k, label, icon: Icon }) => {
-                const val = (mock.coordUnidade.avaliacoes as any)[k] as number;
+                const val = (m.coordUnidade.avaliacoes as any)[k] as number;
                 return (
                   <Card key={k} className="bg-white shadow-sm border-0 rounded-xl">
                     <CardContent className="p-4">
@@ -616,7 +616,7 @@ export default function DashboardOperacional() {
               <Card className="bg-white shadow-sm border-0 rounded-xl">
                 <CardHeader><CardTitle className="text-base">Presença da equipe</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
-                  {mock.coordUnidade.presenca.map((p) => (
+                  {m.coordUnidade.presenca.map((p) => (
                     <div key={p.nome} className="flex items-center justify-between text-sm border-b last:border-0 py-1.5">
                       <span className="text-slate-700">{p.nome}</span>
                       <StatusBadge s={p.status} />
@@ -628,7 +628,7 @@ export default function DashboardOperacional() {
               <Card className="bg-white shadow-sm border-0 rounded-xl">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-base">Padrão Iron</CardTitle>
-                  <YesNoBadge ok={mock.coordUnidade.padraoIron} labelOk="DENTRO DO PADRÃO" labelNo="FORA DO PADRÃO" />
+                  <YesNoBadge ok={m.coordUnidade.padraoIron} labelOk="DENTRO DO PADRÃO" labelNo="FORA DO PADRÃO" />
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-slate-600">A unidade encerrou o turno mantendo todos os critérios da operação Iron Club.</p>
@@ -640,7 +640,7 @@ export default function DashboardOperacional() {
               <Card className="bg-white shadow-sm border-0 rounded-xl">
                 <CardHeader><CardTitle className="text-base text-emerald-700 flex items-center gap-2"><ThumbsUp className="w-4 h-4" /> Destaques positivos</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
-                  {mock.coordUnidade.destaques.positivos.map((d, i) => (
+                  {m.coordUnidade.destaques.positivos.map((d, i) => (
                     <div key={i} className="p-3 rounded-lg bg-emerald-50 border border-emerald-100">
                       <p className="text-sm font-medium text-slate-800">{d.nome}</p>
                       <p className="text-xs text-slate-600 mt-0.5">{d.descricao}</p>
@@ -651,8 +651,8 @@ export default function DashboardOperacional() {
               <Card className="bg-white shadow-sm border-0 rounded-xl">
                 <CardHeader><CardTitle className="text-base text-amber-700 flex items-center gap-2"><ThumbsDown className="w-4 h-4" /> Feedbacks corretivos</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
-                  {mock.coordUnidade.destaques.corretivos.length === 0 && <p className="text-sm text-slate-500">Sem feedbacks corretivos.</p>}
-                  {mock.coordUnidade.destaques.corretivos.map((d, i) => (
+                  {m.coordUnidade.destaques.corretivos.length === 0 && <p className="text-sm text-slate-500">Sem feedbacks corretivos.</p>}
+                  {m.coordUnidade.destaques.corretivos.map((d, i) => (
                     <div key={i} className="p-3 rounded-lg bg-amber-50 border border-amber-100">
                       <p className="text-sm font-medium text-slate-800">{d.nome}</p>
                       <p className="text-xs text-slate-600 mt-0.5">{d.descricao}</p>
@@ -665,7 +665,7 @@ export default function DashboardOperacional() {
             <Card className="bg-white shadow-sm border-0 rounded-xl">
               <CardHeader><CardTitle className="text-base">Ocorrências do dia</CardTitle></CardHeader>
               <CardContent className="space-y-2">
-                {mock.coordUnidade.ocorrencias.map((o, i) => (
+                {m.coordUnidade.ocorrencias.map((o, i) => (
                   <div key={i} className="p-3 rounded-lg border bg-slate-50">
                     <div className="flex flex-wrap gap-1.5 mb-2">
                       <GravidadeBadge g={o.gravidade} />
@@ -682,8 +682,8 @@ export default function DashboardOperacional() {
               <Card className="bg-white shadow-sm border-0 rounded-xl">
                 <CardHeader><CardTitle className="text-base">Reclamações de alunos</CardTitle></CardHeader>
                 <CardContent>
-                  {mock.coordUnidade.reclamacoes.length === 0 && <p className="text-sm text-slate-500">Nenhuma.</p>}
-                  {mock.coordUnidade.reclamacoes.map((r, i) => (
+                  {m.coordUnidade.reclamacoes.length === 0 && <p className="text-sm text-slate-500">Nenhuma.</p>}
+                  {m.coordUnidade.reclamacoes.map((r, i) => (
                     <div key={i} className="text-sm p-2 rounded bg-red-50 border border-red-100 mb-1.5 text-slate-700">{r}</div>
                   ))}
                 </CardContent>
@@ -691,7 +691,7 @@ export default function DashboardOperacional() {
               <Card className="bg-white shadow-sm border-0 rounded-xl">
                 <CardHeader><CardTitle className="text-base">Elogios de alunos</CardTitle></CardHeader>
                 <CardContent>
-                  {mock.coordUnidade.elogios.map((r, i) => (
+                  {m.coordUnidade.elogios.map((r, i) => (
                     <div key={i} className="text-sm p-2 rounded bg-emerald-50 border border-emerald-100 mb-1.5 text-slate-700">{r}</div>
                   ))}
                 </CardContent>
@@ -704,7 +704,7 @@ export default function DashboardOperacional() {
                 <div>
                   <p className="text-xs font-semibold text-slate-700 mb-2">Pontos de atenção para amanhã</p>
                   <ul className="space-y-1.5">
-                    {mock.coordUnidade.fechamento.pontosAtencao.map((p, i) => (
+                    {m.coordUnidade.fechamento.pontosAtencao.map((p, i) => (
                       <li key={i} className="text-sm text-slate-700 flex gap-2">
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
                         {p}
@@ -715,7 +715,7 @@ export default function DashboardOperacional() {
                 <div>
                   <p className="text-xs font-semibold text-slate-700 mb-2">Pendências abertas</p>
                   <ul className="space-y-1.5">
-                    {mock.coordUnidade.fechamento.pendencias.map((p, i) => (
+                    {m.coordUnidade.fechamento.pendencias.map((p, i) => (
                       <li key={i} className="text-sm text-slate-700 flex gap-2">
                         <span className="w-1.5 h-1.5 rounded-full mt-2 shrink-0" style={{ background: COR_PRIMARIA }} />
                         {p}
