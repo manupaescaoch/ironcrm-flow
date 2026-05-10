@@ -440,6 +440,12 @@ export default function EncerramentoTurno() {
         toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
         return;
       }
+      await notifyFormularioGrupo({
+        formulario_key: 'estagiario_lider',
+        unidade: r.unidade,
+        titulo: 'Encerramento de Turno — Estagiário Líder',
+        items,
+      });
       setStage('done');
     };
 
