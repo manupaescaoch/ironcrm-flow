@@ -50,13 +50,11 @@ Quando a pessoa conhece a estrutura, gosta do treino e mesmo assim deixa pra dep
 Como trabalhamos com limite de alunos matriculados, prefiro te chamar antes de encerrar seu atendimento por aqui.
 
 Se a IRON ainda fizer sentido pra você, me fala. Posso te ajudar a tirar qualquer dúvida e ver o melhor caminho pra você começar.`,
-  'D+30': `Oi, {{nome}}! Tudo bem?
+  'D+30': `Oi, {{nome}}!
 
-Passando só pra fazer um último contato depois da sua experimental aqui na IRON.
+Passando pra deixar o contato aberto. Se em algum momento quiser treinar com mais acompanhamento e uma experiência diferente, a Iron está aqui.
 
-Se em algum momento você quiser voltar a treinar com mais acompanhamento, estrutura e uma experiência mais exclusiva, vai ser um prazer receber você por aqui.
-
-As portas seguem abertas.`,
+Qualquer coisa é só chamar. 🤝`,
 };
 
 const NOT_INTERESTED_REASONS = [
