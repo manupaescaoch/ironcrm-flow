@@ -67,6 +67,15 @@ export function FormulariosList({ onCreateNew, onEdit, onViewRespostas }: Formul
 
   return (
     <div className="space-y-4">
+      {isAdmin && (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/admin/grupos-whatsapp">
+              <MessageCircle className="w-4 h-4 mr-2" /> Configurar grupos WhatsApp
+            </Link>
+          </Button>
+        </div>
+      )}
       {/* Featured fixed forms */}
       <FixedCard title="Formulário de Encerramento — Estagiário Líder" subtitle="Estagiário Líder · ao final do turno · tablet/celular" url={encerramentoUrl} />
       <FixedCard title="Formulário de Encerramento — Coordenador de Unidade" subtitle="Coordenador de Unidade · ao final do turno · tablet/celular" url={coordenadorUrl} />
