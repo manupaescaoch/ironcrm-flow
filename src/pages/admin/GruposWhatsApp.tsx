@@ -141,19 +141,34 @@ export default function GruposWhatsApp() {
 
       {groups.length > 0 && (
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Grupos disponíveis ({groups.length})</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Grupos disponíveis ({groups.length})</CardTitle>
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Pesquisar por nome ou ID..."
+              className="h-9 mt-2"
+            />
+          </CardHeader>
           <CardContent className="max-h-56 overflow-auto space-y-1 text-sm">
-            {groups.map((g) => (
-              <div key={g.phone} className="flex justify-between gap-3 border-b py-1">
-                <span className="font-medium truncate">{g.name || '(sem nome)'}</span>
-                <button
-                  className="font-mono text-xs text-blue-600 hover:underline"
-                  onClick={() => { navigator.clipboard.writeText(g.phone); toast.success('ID copiado'); }}
-                >
-                  {g.phone}
-                </button>
-              </div>
-            ))}
+            {(() => {
+              const q = search.trim().toLowerCase();
+              const filtered = q
+                ? groups.filter((g) => (g.name || '').toLowerCase().includes(q) || g.phone.toLowerCase().includes(q))
+                : groups;
+              if (filtered.length === 0) return <div className="text-muted-foreground py-2">Nenhum grupo encontrado.</div>;
+              return filtered.map((g) => (
+                <div key={g.phone} className="flex justify-between gap-3 border-b py-1">
+                  <span className="font-medium truncate">{g.name || '(sem nome)'}</span>
+                  <button
+                    className="font-mono text-xs text-blue-600 hover:underline"
+                    onClick={() => { navigator.clipboard.writeText(g.phone); toast.success('ID copiado'); }}
+                  >
+                    {g.phone}
+                  </button>
+                </div>
+              ));
+            })()}
           </CardContent>
         </Card>
       )}
