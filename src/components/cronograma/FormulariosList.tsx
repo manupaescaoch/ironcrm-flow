@@ -33,6 +33,7 @@ export function FormulariosList({ onCreateNew, onEdit, onViewRespostas }: Formul
   const encerramentoUrl = `${window.location.origin}/encerramento-turno`;
   const coordenadorUrl = `${window.location.origin}/encerramento-coordenador`;
   const horarioUrl = `${window.location.origin}/encerramento-horario`;
+  const comercialUrl = `${window.location.origin}/relatorio-diario-comercial`;
 
   const FixedCard = ({ title, subtitle, url }: { title: string; subtitle: string; url: string }) => (
     <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-white">
