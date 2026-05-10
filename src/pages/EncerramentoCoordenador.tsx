@@ -542,15 +542,13 @@ export default function EncerramentoCoordenador() {
 
   // ========= WIZARD =========
   const total = steps.length;
-  const progress = ((safeStep + 1) / total) * 100;
   return (
     <StepShell
       categoria={current.categoria}
       pergunta={current.pergunta}
       apoio={current.apoio}
-      progress={progress}
-      stepIndex={safeStep}
-      total={total}
+      stepNumber={safeStep + 1}
+      totalSteps={total}
       canContinue={current.canContinue}
       onBack={() => { if (safeStep === 0) setStage('intro'); else setStep((s) => s - 1); }}
       onContinue={() => { if (isLast) setStage('review'); else setStep((s) => s + 1); }}
