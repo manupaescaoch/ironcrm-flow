@@ -260,6 +260,132 @@ export type Database = {
           },
         ]
       }
+      encerramento_coordenador_respostas: {
+        Row: {
+          climatizacao: number | null
+          created_at: string
+          destaque_descricao: string | null
+          destaque_positivo: boolean | null
+          elogio_aluno: boolean | null
+          elogio_descricao: string | null
+          equipamentos_funcionando: number | null
+          faltas_atrasos: string | null
+          feedback_corretivo: boolean | null
+          feedback_descricao: string | null
+          fora_padrao_descricao: string | null
+          funcionou_bem: string | null
+          id: string
+          infraestrutura: number | null
+          limpeza_geral: number | null
+          nome: string
+          nota_geral: number | null
+          ocorrencia_acao: string | null
+          ocorrencia_descricao: string | null
+          ocorrencia_gravidade: string | null
+          ocorrencia_pendencia: string | null
+          ocorrencia_resolvida: boolean | null
+          ocorrencia_tipo: string | null
+          organizacao_espaco: number | null
+          padrao_iron: boolean | null
+          pendencias_abertas: string | null
+          pontos_atencao: string | null
+          postura_atendimento: number | null
+          proatividade: number | null
+          reclamacao_acao: string | null
+          reclamacao_aluno: boolean | null
+          reclamacao_descricao: string | null
+          reclamacao_pendencia: string | null
+          reclamacao_resolvida: boolean | null
+          teve_ocorrencia: boolean | null
+          todos_compareceram: boolean | null
+          turno: string
+          ultimo_turno_dia: boolean
+          unidade: string
+        }
+        Insert: {
+          climatizacao?: number | null
+          created_at?: string
+          destaque_descricao?: string | null
+          destaque_positivo?: boolean | null
+          elogio_aluno?: boolean | null
+          elogio_descricao?: string | null
+          equipamentos_funcionando?: number | null
+          faltas_atrasos?: string | null
+          feedback_corretivo?: boolean | null
+          feedback_descricao?: string | null
+          fora_padrao_descricao?: string | null
+          funcionou_bem?: string | null
+          id?: string
+          infraestrutura?: number | null
+          limpeza_geral?: number | null
+          nome: string
+          nota_geral?: number | null
+          ocorrencia_acao?: string | null
+          ocorrencia_descricao?: string | null
+          ocorrencia_gravidade?: string | null
+          ocorrencia_pendencia?: string | null
+          ocorrencia_resolvida?: boolean | null
+          ocorrencia_tipo?: string | null
+          organizacao_espaco?: number | null
+          padrao_iron?: boolean | null
+          pendencias_abertas?: string | null
+          pontos_atencao?: string | null
+          postura_atendimento?: number | null
+          proatividade?: number | null
+          reclamacao_acao?: string | null
+          reclamacao_aluno?: boolean | null
+          reclamacao_descricao?: string | null
+          reclamacao_pendencia?: string | null
+          reclamacao_resolvida?: boolean | null
+          teve_ocorrencia?: boolean | null
+          todos_compareceram?: boolean | null
+          turno: string
+          ultimo_turno_dia?: boolean
+          unidade: string
+        }
+        Update: {
+          climatizacao?: number | null
+          created_at?: string
+          destaque_descricao?: string | null
+          destaque_positivo?: boolean | null
+          elogio_aluno?: boolean | null
+          elogio_descricao?: string | null
+          equipamentos_funcionando?: number | null
+          faltas_atrasos?: string | null
+          feedback_corretivo?: boolean | null
+          feedback_descricao?: string | null
+          fora_padrao_descricao?: string | null
+          funcionou_bem?: string | null
+          id?: string
+          infraestrutura?: number | null
+          limpeza_geral?: number | null
+          nome?: string
+          nota_geral?: number | null
+          ocorrencia_acao?: string | null
+          ocorrencia_descricao?: string | null
+          ocorrencia_gravidade?: string | null
+          ocorrencia_pendencia?: string | null
+          ocorrencia_resolvida?: boolean | null
+          ocorrencia_tipo?: string | null
+          organizacao_espaco?: number | null
+          padrao_iron?: boolean | null
+          pendencias_abertas?: string | null
+          pontos_atencao?: string | null
+          postura_atendimento?: number | null
+          proatividade?: number | null
+          reclamacao_acao?: string | null
+          reclamacao_aluno?: boolean | null
+          reclamacao_descricao?: string | null
+          reclamacao_pendencia?: string | null
+          reclamacao_resolvida?: boolean | null
+          teve_ocorrencia?: boolean | null
+          todos_compareceram?: boolean | null
+          turno?: string
+          ultimo_turno_dia?: boolean
+          unidade?: string
+        }
+        Relationships: []
+      }
       encerramento_turno_respostas: {
         Row: {
           clima_equipe: number
