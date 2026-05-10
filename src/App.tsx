@@ -29,6 +29,7 @@ import ControleVencimentos from "./pages/ControleVencimentos";
 import AnamneseExperimental from "./pages/AnamneseExperimental";
 import AnamnesePublica from "./pages/AnamnesePublica";
 import AnamnesePublicaUniversal from "./pages/AnamnesePublicaUniversal";
+import EncerramentoTurno from "./pages/EncerramentoTurno";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
