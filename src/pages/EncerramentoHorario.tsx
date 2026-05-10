@@ -117,27 +117,6 @@ export default function EncerramentoHorario() {
         placeholder="EX: PEDRO LIMA" className="h-14 rounded-2xl text-base" />),
     });
 
-    list.push({
-      key: 'data', categoria: 'Identificação', pergunta: 'Data do turno',
-      canContinue: !!r.data,
-      render: () => (
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className={cn(
-              'h-14 w-full justify-start rounded-2xl text-left text-base font-normal',
-              !r.data && 'text-muted-foreground'
-            )}>
-              <CalendarIcon className="mr-2 h-5 w-5" />
-              {r.data ? format(r.data, 'dd/MM/yyyy') : 'Selecionar data'}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar mode="single" selected={r.data ?? undefined} onSelect={(d) => set('data', d ?? null)}
-              initialFocus className={cn('p-3 pointer-events-auto')} />
-          </PopoverContent>
-        </Popover>
-      ),
-    });
 
     list.push({
       key: 'unidade', categoria: 'Identificação', pergunta: 'Qual unidade?',
