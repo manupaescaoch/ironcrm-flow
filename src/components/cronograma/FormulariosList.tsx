@@ -5,7 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Edit, Trash2, FileText, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, FileText, Eye, ClipboardCheck, ExternalLink, Copy } from 'lucide-react';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,8 +30,34 @@ export function FormulariosList({ onCreateNew, onEdit, onViewRespostas }: Formul
     );
   }
 
+  const encerramentoUrl = `${window.location.origin}/encerramento-turno`;
+
   return (
     <div className="space-y-4">
+      {/* Featured fixed form */}
+      <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-white">
+        <CardContent className="py-4 flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
+            <ClipboardCheck className="w-6 h-6" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="font-semibold">Encerramento de Turno</h4>
+              <Badge variant="secondary" className="bg-blue-100 text-blue-700">Fixo</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">Estagiário Líder · preencher ao final do turno · tablet/celular</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(encerramentoUrl); toast.success('Link copiado'); }}>
+              <Copy className="w-4 h-4 mr-1" /> Copiar link
+            </Button>
+            <Button size="sm" onClick={() => window.open(encerramentoUrl, '_blank')}>
+              <ExternalLink className="w-4 h-4 mr-1" /> Abrir
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Formulários</h3>
         <Button onClick={onCreateNew} size="sm">
