@@ -34,6 +34,7 @@ import EncerramentoCoordenador from "./pages/EncerramentoCoordenador";
 import EncerramentoHorario from "./pages/EncerramentoHorario";
 import RelatorioDiarioComercial from "./pages/RelatorioDiarioComercial";
 import GruposWhatsApp from "./pages/admin/GruposWhatsApp";
+import DashboardOperacional from "./pages/DashboardOperacional";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
