@@ -13,7 +13,7 @@ import { Plus, Users, Phone, Edit, Trash2, UserPlus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 
-const SETORES = ['geral', 'recepção', 'limpeza', 'segurança', 'treinador', 'manutenção'];
+const SETORES = ['geral', 'recepção', 'limpeza', 'segurança', 'treinador', 'estagiário líder', 'manutenção'];
 const TURNOS = ['integral', 'manhã', 'tarde', 'noite'];
 
 export function FuncionariosTab() {
