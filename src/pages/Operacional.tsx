@@ -81,18 +81,20 @@ export default function Operacional() {
             <FuncionariosTab />
           </TabsContent>
 
-          {/* Formulários Tab */}
-          <TabsContent value="formularios" className="mt-4">
-            {formView === 'list' ? (
-              <FormulariosList
-                onCreateNew={() => { setEditingFormId(null); setFormView('builder'); }}
-                onEdit={(id) => { setEditingFormId(id); setFormView('builder'); }}
-                onViewRespostas={() => {}}
-              />
-            ) : (
-              <FormularioBuilder formularioId={editingFormId} onBack={() => { setFormView('list'); setEditingFormId(null); }} />
-            )}
-          </TabsContent>
+          {/* Formulários Tab - admin only */}
+          {isAdmin && (
+            <TabsContent value="formularios" className="mt-4">
+              {formView === 'list' ? (
+                <FormulariosList
+                  onCreateNew={() => { setEditingFormId(null); setFormView('builder'); }}
+                  onEdit={(id) => { setEditingFormId(id); setFormView('builder'); }}
+                  onViewRespostas={() => {}}
+                />
+              ) : (
+                <FormularioBuilder formularioId={editingFormId} onBack={() => { setFormView('list'); setEditingFormId(null); }} />
+              )}
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </Layout>
