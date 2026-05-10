@@ -65,7 +65,7 @@ export function FormulariosList({ onCreateNew, onEdit, onViewRespostas }: Formul
     <div className="space-y-4">
       {/* Featured fixed forms */}
       <FixedCard title="Formulário de Encerramento — Estagiário Líder" subtitle="Estagiário Líder · ao final do turno · tablet/celular" url={encerramentoUrl} />
-      <FixedCard title="Formulário de Encerramento — Coordenador" subtitle="Coordenador de Unidade · ao final do turno · tablet/celular" url={coordenadorUrl} />
+      <FixedCard title="Formulário de Encerramento — Coordenador de Unidade" subtitle="Coordenador de Unidade · ao final do turno · tablet/celular" url={coordenadorUrl} />
       <FixedCard title="Formulário de Encerramento — Coordenador de Horário" subtitle="Coordenador de Horário · ao final do turno · tablet/celular" url={horarioUrl} />
 
       <div className="flex items-center justify-between">
