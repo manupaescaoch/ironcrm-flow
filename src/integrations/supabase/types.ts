@@ -732,6 +732,39 @@ export type Database = {
           },
         ]
       }
+      formulario_grupos_whatsapp: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          formulario_key: string
+          grupo_id: string | null
+          grupo_nome: string | null
+          id: string
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          formulario_key: string
+          grupo_id?: string | null
+          grupo_nome?: string | null
+          id?: string
+          unidade: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          formulario_key?: string
+          grupo_id?: string | null
+          grupo_nome?: string | null
+          id?: string
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       formulario_respostas: {
         Row: {
           created_at: string
