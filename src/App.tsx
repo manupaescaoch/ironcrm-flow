@@ -31,6 +31,7 @@ import AnamnesePublica from "./pages/AnamnesePublica";
 import AnamnesePublicaUniversal from "./pages/AnamnesePublicaUniversal";
 import EncerramentoTurno from "./pages/EncerramentoTurno";
 import EncerramentoCoordenador from "./pages/EncerramentoCoordenador";
+import EncerramentoHorario from "./pages/EncerramentoHorario";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -125,6 +126,7 @@ const AppRoutes = () => (
     <Route path="/anamnese" element={<AnamnesePublicaUniversal />} />
     <Route path="/encerramento-turno" element={<EncerramentoTurno />} />
     <Route path="/encerramento-coordenador" element={<EncerramentoCoordenador />} />
+    <Route path="/encerramento-horario" element={<EncerramentoHorario />} />
     <Route path="/anamnese-publica/:id" element={<AnamnesePublica />} />
     <Route path="/" element={<Navigate to="/dashboard" replace />} />
     <Route

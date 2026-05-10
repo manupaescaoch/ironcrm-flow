@@ -386,6 +386,81 @@ export type Database = {
         }
         Relationships: []
       }
+      encerramento_horario_respostas: {
+        Row: {
+          atendimentos_por_treinador: string | null
+          created_at: string
+          data: string
+          destaque_descricao: string | null
+          destaque_positivo: boolean | null
+          experimentais_realizadas: number | null
+          feedback_aluno_descricao: string | null
+          feedback_corretivo: boolean | null
+          feedback_corretivo_descricao: string | null
+          id: string
+          nome: string
+          nota_geral: number | null
+          observacoes: string | null
+          ocorrencia_descricao: string | null
+          pendencia_organizacao: string | null
+          sala_organizada: boolean | null
+          teve_feedback_aluno: boolean | null
+          teve_ocorrencia: boolean | null
+          treinador_faltou: boolean | null
+          treinador_faltou_quem: string | null
+          turno: string
+          unidade: string
+        }
+        Insert: {
+          atendimentos_por_treinador?: string | null
+          created_at?: string
+          data: string
+          destaque_descricao?: string | null
+          destaque_positivo?: boolean | null
+          experimentais_realizadas?: number | null
+          feedback_aluno_descricao?: string | null
+          feedback_corretivo?: boolean | null
+          feedback_corretivo_descricao?: string | null
+          id?: string
+          nome: string
+          nota_geral?: number | null
+          observacoes?: string | null
+          ocorrencia_descricao?: string | null
+          pendencia_organizacao?: string | null
+          sala_organizada?: boolean | null
+          teve_feedback_aluno?: boolean | null
+          teve_ocorrencia?: boolean | null
+          treinador_faltou?: boolean | null
+          treinador_faltou_quem?: string | null
+          turno: string
+          unidade: string
+        }
+        Update: {
+          atendimentos_por_treinador?: string | null
+          created_at?: string
+          data?: string
+          destaque_descricao?: string | null
+          destaque_positivo?: boolean | null
+          experimentais_realizadas?: number | null
+          feedback_aluno_descricao?: string | null
+          feedback_corretivo?: boolean | null
+          feedback_corretivo_descricao?: string | null
+          id?: string
+          nome?: string
+          nota_geral?: number | null
+          observacoes?: string | null
+          ocorrencia_descricao?: string | null
+          pendencia_organizacao?: string | null
+          sala_organizada?: boolean | null
+          teve_feedback_aluno?: boolean | null
+          teve_ocorrencia?: boolean | null
+          treinador_faltou?: boolean | null
+          treinador_faltou_quem?: string | null
+          turno?: string
+          unidade?: string
+        }
+        Relationships: []
+      }
       encerramento_turno_respostas: {
         Row: {
           clima_equipe: number

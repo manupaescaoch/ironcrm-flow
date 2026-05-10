@@ -32,6 +32,7 @@ export function FormulariosList({ onCreateNew, onEdit, onViewRespostas }: Formul
 
   const encerramentoUrl = `${window.location.origin}/encerramento-turno`;
   const coordenadorUrl = `${window.location.origin}/encerramento-coordenador`;
+  const horarioUrl = `${window.location.origin}/encerramento-horario`;
 
   const FixedCard = ({ title, subtitle, url }: { title: string; subtitle: string; url: string }) => (
     <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-white">
@@ -65,6 +66,7 @@ export function FormulariosList({ onCreateNew, onEdit, onViewRespostas }: Formul
       {/* Featured fixed forms */}
       <FixedCard title="Formulário de Encerramento — Estagiário Líder" subtitle="Estagiário Líder · ao final do turno · tablet/celular" url={encerramentoUrl} />
       <FixedCard title="Formulário de Encerramento — Coordenador" subtitle="Coordenador de Unidade · ao final do turno · tablet/celular" url={coordenadorUrl} />
+      <FixedCard title="Formulário de Encerramento — Coordenador de Horário" subtitle="Coordenador de Horário · ao final do turno · tablet/celular" url={horarioUrl} />
 
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Formulários</h3>
