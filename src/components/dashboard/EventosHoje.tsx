@@ -387,6 +387,30 @@ Aguardamos você! 💪`;
                   </div>
                 </div>
 
+                {item.tipoEvento === 'experimental' && (() => {
+                  const anamneseOk = !!anamneseMap[item.lead.id];
+                  const lembrete = lembreteMap[item.lead.id];
+                  const lembreteOk = !!lembrete;
+                  return (
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline" className={anamneseOk
+                        ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
+                        : 'bg-zinc-100 text-zinc-600 border-zinc-300'}>
+                        <FileText className="w-3 h-3 mr-1" />
+                        {anamneseOk ? 'Anamnese preenchida' : 'Anamnese pendente'}
+                      </Badge>
+                      <Badge variant="outline" className={lembreteOk
+                        ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
+                        : 'bg-zinc-100 text-zinc-600 border-zinc-300'}>
+                        <BellRing className="w-3 h-3 mr-1" />
+                        {lembreteOk
+                          ? `Lembrete ${lembrete!.tipo} enviado às ${format(new Date(lembrete!.at as string), 'HH:mm', { locale: ptBR })}`
+                          : 'Lembrete pendente'}
+                      </Badge>
+                    </div>
+                  );
+                })()}
+
                 <div className="flex items-center gap-2">
                   <Input
                     placeholder="Obs. rápida"
