@@ -1340,6 +1340,75 @@ export type Database = {
           },
         ]
       }
+      relatorio_diario_comercial_respostas: {
+        Row: {
+          atividades_realizadas: string[] | null
+          cancelamentos: number | null
+          created_at: string
+          data: string
+          experimentais_realizadas: number | null
+          id: string
+          inadimplentes: string | null
+          leads_recebidos: number | null
+          nao_renovados: string | null
+          nome: string
+          novos_alunos: number | null
+          observacoes: string | null
+          pendencias: string | null
+          plano_amanha: string | null
+          precisa_suporte: boolean | null
+          renovacoes: number | null
+          suporte_descricao: string | null
+          total_alunos_ativos: number | null
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          atividades_realizadas?: string[] | null
+          cancelamentos?: number | null
+          created_at?: string
+          data: string
+          experimentais_realizadas?: number | null
+          id?: string
+          inadimplentes?: string | null
+          leads_recebidos?: number | null
+          nao_renovados?: string | null
+          nome: string
+          novos_alunos?: number | null
+          observacoes?: string | null
+          pendencias?: string | null
+          plano_amanha?: string | null
+          precisa_suporte?: boolean | null
+          renovacoes?: number | null
+          suporte_descricao?: string | null
+          total_alunos_ativos?: number | null
+          unidade: string
+          updated_at?: string
+        }
+        Update: {
+          atividades_realizadas?: string[] | null
+          cancelamentos?: number | null
+          created_at?: string
+          data?: string
+          experimentais_realizadas?: number | null
+          id?: string
+          inadimplentes?: string | null
+          leads_recebidos?: number | null
+          nao_renovados?: string | null
+          nome?: string
+          novos_alunos?: number | null
+          observacoes?: string | null
+          pendencias?: string | null
+          plano_amanha?: string | null
+          precisa_suporte?: boolean | null
+          renovacoes?: number | null
+          suporte_descricao?: string | null
+          total_alunos_ativos?: number | null
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       relatorio_gerencial_zn: {
         Row: {
           adimplentes: number
