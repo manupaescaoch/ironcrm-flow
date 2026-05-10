@@ -188,23 +188,23 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
                       <BellRing className="w-3 h-3 mr-1" />
                       {lembreteOk ? 'Lembrete 24h enviado' : 'Lembrete pendente'}
                     </Badge>
-                    {evoOk ? (
-                      <Badge className="bg-green-600 hover:bg-green-600 text-white border-transparent">
-                        <CheckCircle2 className="w-3 h-3 mr-1" />
-                        Agendado no EVO
-                      </Badge>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        onClick={() => handleAgendarEvo(item)}
-                        disabled={loading[`evo-${item.interacao.id}`]}
-                      >
-                        Agendar no EVO
-                      </Button>
-                    )}
                   </div>
+
+                  {evoOk ? (
+                    <div className="flex items-center justify-center gap-2 w-full rounded-md bg-green-600 text-white py-2.5 text-sm font-semibold">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Agendado no EVO
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={() => handleAgendarEvo(item)}
+                      disabled={loading[`evo-${item.interacao.id}`]}
+                      className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm"
+                    >
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Confirmar no EVO
+                    </Button>
+                  )}
 
                   <div className="flex items-center justify-end">
                     <Button size="sm" variant="ghost" onClick={() => onReagendar(item)} className="h-7 text-xs text-muted-foreground hover:text-foreground">
