@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dumbbell, ClipboardCheck, ClipboardList, Send, CalendarClock, ArrowRight } from 'lucide-react';
+import { Dumbbell, ClipboardCheck, ClipboardList, Send, CalendarClock, ArrowRight, BellRing } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { format } from 'date-fns';
