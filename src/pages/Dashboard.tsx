@@ -255,16 +255,14 @@ export default function Dashboard() {
               />
               
               <PendenciasDia
-                pendenciasHoje={pendenciasHoje}
-                pendenciasAmanha={pendenciasAmanha}
-                followUpsHoje={urgentAutoFollowUpItems}
-                onReagendar={handleReagendar}
-                onFollowUpClick={() => {
+                onVerTodas={() => {
                   setShowFollowUpSection(true);
                   setTimeout(() => {
                     followUpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }, 100);
                 }}
+                onVerFollowUps={handleFollowUpCardClick}
+                onVerExperimentais={handleExperimentaisCardClick}
               />
             </div>
           </TabsContent>
