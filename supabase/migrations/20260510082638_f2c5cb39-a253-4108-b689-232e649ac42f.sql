@@ -1,0 +1,1 @@
+ALTER TABLE public.interacoes ADD COLUMN IF NOT EXISTS agendado_evo boolean NOT NULL DEFAULT false;

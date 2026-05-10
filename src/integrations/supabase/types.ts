@@ -687,6 +687,7 @@ export type Database = {
       }
       interacoes: {
         Row: {
+          agendado_evo: boolean
           agendou_experimental: boolean | null
           atendido_por: string | null
           atendido_por_tipo: string | null
@@ -726,6 +727,7 @@ export type Database = {
           valor_plano: number | null
         }
         Insert: {
+          agendado_evo?: boolean
           agendou_experimental?: boolean | null
           atendido_por?: string | null
           atendido_por_tipo?: string | null
@@ -765,6 +767,7 @@ export type Database = {
           valor_plano?: number | null
         }
         Update: {
+          agendado_evo?: boolean
           agendou_experimental?: boolean | null
           atendido_por?: string | null
           atendido_por_tipo?: string | null

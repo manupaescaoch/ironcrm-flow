@@ -71,6 +71,7 @@ export function mapToInteracao(data: any): Interacao {
     data_avaliacao: data.data_avaliacao || null,
     hora_avaliacao: data.hora_avaliacao || null,
     status_avaliacao: data.status_avaliacao || null,
+    agendado_evo: data.agendado_evo ?? false,
   };
 }
 
