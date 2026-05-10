@@ -186,7 +186,9 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
                       ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
                       : 'bg-zinc-100 text-zinc-600 border-zinc-300'}>
                       <BellRing className="w-3 h-3 mr-1" />
-                      {lembreteOk ? 'Lembrete 24h enviado' : 'Lembrete pendente'}
+                      {lembreteOk
+                        ? `Lembrete 24h enviado às ${format(new Date(lembreteMap[item.lead.id] as string), 'HH:mm', { locale: ptBR })}`
+                        : 'Lembrete pendente'}
                     </Badge>
                   </div>
 
