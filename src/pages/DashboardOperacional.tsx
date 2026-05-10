@@ -264,7 +264,10 @@ export default function DashboardOperacional() {
   if (loading) return null;
   if (!isAdmin) return <Navigate to="/" replace />;
 
-  const v = mock.visaoGeral;
+  const { data: live } = useDashboardOperacionalData(periodo, unidade);
+  const m: typeof mock = (live as any) ?? mock;
+
+  const v = m.visaoGeral;
   const totalAtivos = v.alunosAtivosZN + v.alunosAtivosZS;
   const expHoje = (unidade === 'ZN' ? v.experimentaisHoje.ZN : unidade === 'ZS' ? v.experimentaisHoje.ZS : v.experimentaisHoje.ZN + v.experimentaisHoje.ZS);
   const fechHoje = (unidade === 'ZN' ? v.fechamentosHoje.ZN : unidade === 'ZS' ? v.fechamentosHoje.ZS : v.fechamentosHoje.ZN + v.fechamentosHoje.ZS);
