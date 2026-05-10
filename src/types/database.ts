@@ -82,6 +82,7 @@ export interface Interacao {
   data_avaliacao: string | null;
   hora_avaliacao: string | null;
   status_avaliacao: StatusAvaliacao | null;
+  agendado_evo?: boolean | null;
 }
 
 export interface Database {
