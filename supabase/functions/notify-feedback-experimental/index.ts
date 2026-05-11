@@ -189,6 +189,27 @@ Equipe Iron 💙`;
             .from('interacoes')
             .update({ feedback_pos_aula_enviado_em: new Date().toISOString() })
             .eq('id', inter.id);
+
+          // Cancelar D+1 pendente desse lead — feedback pós-aula já cobre o mesmo propósito
+          const { data: cancelados, error: cancelErr } = await supabase
+            .from('follow_ups')
+            .update({
+              status: 'cancelado',
+              cancelado_motivo: 'feedback_pos_aula_enviado',
+              concluido_em: new Date().toISOString(),
+              concluido_por: 'SISTEMA (feedback pós-aula)',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('lead_id', lead.id)
+            .eq('tipo', 'D+1')
+            .eq('status', 'pendente')
+            .select('id');
+          if (cancelErr) {
+            console.error(`[feedback] ⚠️ erro cancelando D+1 ${lead.nome}`, cancelErr);
+          } else if (cancelados && cancelados.length > 0) {
+            console.log(`[feedback] 🚫 D+1 cancelado (${cancelados.length}) p/ ${lead.nome}`);
+          }
+
           console.log(`[feedback] ✅ enviado para ${lead.nome}`);
         } else {
           console.error(`[feedback] ❌ Z-API ${resp.status} ${lead.nome}`, result);
