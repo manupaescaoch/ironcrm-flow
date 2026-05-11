@@ -45,6 +45,11 @@ export function getTodayInBrasilia(date: Date = new Date()): string {
   return `${parts.year}-${pad2(parts.month)}-${pad2(parts.day)}`;
 }
 
+export function formatDateLocal(date: Date): string {
+  if (!isValidDate(date)) return '';
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
 export function addDaysToDateOnly(dateOnly: string, days: number): string {
   const [year, month, day] = dateOnly.split('-').map(Number);
   const date = new Date(year, month - 1, day);
