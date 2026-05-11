@@ -149,8 +149,8 @@ Deno.serve(async (req) => {
     // Send confirmation message via Z-API
     if (ZAPI_INSTANCE_ID && ZAPI_TOKEN) {
       const confirmMessage = concluida
-        ? `✅ Rotina *${rotina.nome}* marcada como *concluída*! Obrigado, ${matchedUserName}. 👏`
-        : `❌ Rotina *${rotina.nome}* registrada como *não realizada*. Registrado por ${matchedUserName}.`;
+        ? `✅ *Rotina concluída*\n\n🔹 *${rotina.nome}*\n👤 *Registrado por:* ${matchedUserName}\n\nObrigado pela confirmação! 👏`
+        : `⚠️ *Rotina não realizada*\n\n🔹 *${rotina.nome}*\n👤 *Registrado por:* ${matchedUserName}\n\nRegistro feito. Caso precise reagendar, fale com a coordenação.`;
 
       const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
 

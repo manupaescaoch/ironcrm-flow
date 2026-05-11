@@ -147,59 +147,46 @@ Deno.serve(async (req) => {
     const taxaGeral = pct(totalConv, totalLeads);
 
     const message =
-`📊 *RESUMO SEMANAL CRM*
-
-*Período: ${fmtDate(sunday)} a ${fmtDate(saturday)}*
-
-*ZN — Zona Norte*
-
-Leads: ${zn.leads}
-
-Experimentais: ${zn.experimentais}
-
-Convertidos: ${zn.convertidos}
-
-Conversão: ${zn.taxa}%
-
-Origem:
-
-Instagram: ${zn.origem['Instagram']}
-
-Indicação: ${zn.origem['Indicação']}
-
-Visita Presencial: ${zn.origem['Visita Presencial']}
-
-Tráfego Pago: ${zn.origem['Tráfego Pago']}
+`📈 *RESUMO SEMANAL CRM*
+📅 *Período:* ${fmtDate(sunday)} a ${fmtDate(saturday)}
 
 ———
 
-*ZS — Zona Sul*
+🏢 *ZN — Zona Norte*
 
-Leads: ${zs.leads}
+• 📈 *Leads:* ${zn.leads}
+• 🧪 *Experimentais:* ${zn.experimentais}
+• ✅ *Convertidos:* ${zn.convertidos}
+• ⭐ *Conversão:* ${zn.taxa}%
 
-Experimentais: ${zs.experimentais}
-
-Convertidos: ${zs.convertidos}
-
-Conversão: ${zs.taxa}%
-
-Origem:
-
-Instagram: ${zs.origem['Instagram']}
-
-Indicação: ${zs.origem['Indicação']}
-
-Visita Presencial: ${zs.origem['Visita Presencial']}
+📌 *Origem dos leads*
+• Instagram: ${zn.origem['Instagram']}
+• Indicação: ${zn.origem['Indicação']}
+• Visita Presencial: ${zn.origem['Visita Presencial']}
+• Tráfego Pago: ${zn.origem['Tráfego Pago']}
 
 ———
 
-*CONSOLIDADO*
+🏢 *ZS — Zona Sul*
 
-Total Leads: ${totalLeads}
+• 📈 *Leads:* ${zs.leads}
+• 🧪 *Experimentais:* ${zs.experimentais}
+• ✅ *Convertidos:* ${zs.convertidos}
+• ⭐ *Conversão:* ${zs.taxa}%
 
-Total Convertidos: ${totalConv}
+📌 *Origem dos leads*
+• Instagram: ${zs.origem['Instagram']}
+• Indicação: ${zs.origem['Indicação']}
+• Visita Presencial: ${zs.origem['Visita Presencial']}
+• Tráfego Pago: ${zs.origem['Tráfego Pago']}
 
-Conversão Geral: ${taxaGeral}%`;
+———
+
+🌟 *CONSOLIDADO*
+
+• 📈 *Total de Leads:* ${totalLeads}
+• ✅ *Total de Convertidos:* ${totalConv}
+• ⭐ *Conversão Geral:* ${taxaGeral}%`;
 
     if (dryRun) {
       return new Response(

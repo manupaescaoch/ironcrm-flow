@@ -80,37 +80,38 @@ Deno.serve(async (req) => {
           ? 'Não'
           : NA;
 
-    const message = `✅ Nova anamnese da aula experimental
+    const message = `🧪 *Nova anamnese — Aula experimental*
 
-👤 Nome: ${fmt(lead?.nome)}
-📍 Unidade: ${fmt(unidade?.nome)}
-📅 Data da aula: ${dataAula}
+👤 *Nome:* ${fmt(lead?.nome)}
+📍 *Unidade:* ${fmt(unidade?.nome)}
+📅 *Data da aula:* ${dataAula}
 
-🎯 Objetivo:
+🎯 *Objetivo*
 ${fmt(a.objetivo)}
 
-🏋️ Histórico:
+🏋️ *Histórico*
 ${fmt(a.historico)}
 
-📆 Frequência disponível:
+📅 *Frequência disponível*
 ${fmt(a.dias_semana)}
 
-🕒 Melhor horário:
+🕒 *Melhor horário*
 ${fmt(a.preferencia_horario)}
 
-🚧 Maior obstáculo:
+🚧 *Maior obstáculo*
 ${fmt(a.obstaculo)}
 
-🩺 Condição de saúde:
+🩺 *Condição de saúde*
 ${condicao}
 
-⚠️ Lesão ou limitação:
+⚠️ *Lesão ou limitação*
 ${lesao}
 
-📝 Observações:
+📝 *Observações*
 ${fmt(a.observacoes)}
 
-📌 Anamnese preenchida pela recepção no momento da chegada do lead.`;
+———
+_Anamnese preenchida pela recepção no momento da chegada do lead._`;
 
     // Seleciona o grupo de WhatsApp conforme a unidade do lead
     const nomeUnidade = (unidade?.nome ?? '').toUpperCase();
