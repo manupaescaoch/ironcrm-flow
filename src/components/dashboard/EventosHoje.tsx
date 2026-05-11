@@ -135,25 +135,6 @@ export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps)
     setLoading(prev => ({ ...prev, [item.interacao.id]: false }));
   };
 
-  const handleSaveObs = async (item: EventoItem) => {
-    const obs = observations[item.interacao.id];
-    if (!obs) return;
-
-    setLoading(prev => ({ ...prev, [`obs-${item.interacao.id}`]: true }));
-    
-    const { error } = await supabase
-      .from('interacoes')
-      .update({ descricao: obs })
-      .eq('id', item.interacao.id);
-
-    if (error) {
-      toast({ title: 'Erro ao salvar observação', description: getErrorMessage(error), variant: 'destructive' });
-    } else {
-      toast({ title: 'Observação salva!' });
-    }
-    
-    setLoading(prev => ({ ...prev, [`obs-${item.interacao.id}`]: false }));
-  };
 
   const getPrimeiroNome = (nomeCompleto: string): string => {
     return nomeCompleto.split(' ')[0];
