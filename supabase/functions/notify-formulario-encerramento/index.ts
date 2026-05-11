@@ -18,6 +18,7 @@ interface Payload {
 function emojiForLabel(label: string): string {
   const l = label.toLowerCase();
   if (l.includes('nome')) return '👤';
+  if (l.includes('data')) return '📅';
   if (l.includes('unidade')) return '📍';
   if (l.includes('turno')) return '🕘';
   if (l.includes('horário') || l.includes('horario')) return '⏰';
@@ -27,18 +28,22 @@ function emojiForLabel(label: string): string {
   if (l.includes('feedback')) return '💬';
   if (l.includes('clima')) return '🌡️';
   if (l.includes('equipamento')) return '🛠️';
-  if (l.includes('faria diferente') || l.includes('observa') || l.includes('gestão') || l.includes('gestao')) return '📝';
   if (l.includes('suporte')) return '🆘';
   if (l.includes('matrícul') || l.includes('matricul')) return '🎟️';
   if (l.includes('lead')) return '🎯';
   if (l.includes('cancela')) return '❌';
   if (l.includes('renova')) return '🔁';
+  if (l.includes('inadimpl')) return '💸';
   if (l.includes('financ') || l.includes('venda') || l.includes('faturamento') || l.includes('valor')) return '💰';
   if (l.includes('presenç') || l.includes('presenc')) return '📊';
   if (l.includes('treinador') || l.includes('professor')) return '🏋️';
+  if (l.includes('total') && l.includes('ativo')) return '👥';
   if (l.includes('aluno')) return '🎓';
-  if (l.includes('observ')) return '📝';
-  return '•';
+  if (l.includes('atividade')) return '📌';
+  if (l.includes('pend') || l.includes('não conseguiu') || l.includes('nao conseguiu') || l.includes('faria diferente')) return '⚠️';
+  if (l.includes('plano') || l.includes('amanhã') || l.includes('amanha')) return '🗓️';
+  if (l.includes('observ') || l.includes('gestão') || l.includes('gestao')) return '📝';
+  return '▫️';
 }
 
 // Hash simples para idempotência
