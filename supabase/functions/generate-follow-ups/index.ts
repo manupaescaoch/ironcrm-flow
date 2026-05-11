@@ -103,8 +103,16 @@ Deno.serve(async (req) => {
 
       const existingTypes = new Set(existingFollowUps?.map((f: any) => f.tipo) || []);
 
-      // Use the experimental date as reference (not today!)
-      const dataReferencia = new Date(info.data_experimental);
+      // Use the experimental date as reference (not today!) — anchored to BRT
+      const dateOnlyToBrtIso = (s: string) => `${s.slice(0, 10)}T00:00:00-03:00`;
+      const addDays = (s: string, days: number) => {
+        const [y, m, d] = s.slice(0, 10).split('-').map(Number);
+        const dt = new Date(Date.UTC(y, m - 1, d));
+        dt.setUTCDate(dt.getUTCDate() + days);
+        return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+      };
+
+      const dataReferenciaIso = dateOnlyToBrtIso(info.data_experimental);
 
       // Generate follow-ups for each type if not exists
       const followUpTypes: { tipo: string; dias: number }[] = [
@@ -117,8 +125,7 @@ Deno.serve(async (req) => {
       for (const { tipo, dias } of followUpTypes) {
         if (existingTypes.has(tipo)) continue;
 
-        const dataPrevista = new Date(dataReferencia);
-        dataPrevista.setDate(dataPrevista.getDate() + dias);
+        const dataPrevistaIso = `${addDays(info.data_experimental, dias)}T00:00:00-03:00`;
 
         const { error: insertError } = await supabase
           .from('follow_ups')
@@ -126,8 +133,8 @@ Deno.serve(async (req) => {
             lead_id: leadId,
             unidade_id: info.unidade_id,
             tipo,
-            data_referencia: dataReferencia.toISOString(),
-            data_prevista: dataPrevista.toISOString(),
+            data_referencia: dataReferenciaIso,
+            data_prevista: dataPrevistaIso,
             status: 'pendente',
           });
 
