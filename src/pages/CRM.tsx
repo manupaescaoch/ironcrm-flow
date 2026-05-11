@@ -61,7 +61,7 @@ import { cn } from '@/lib/utils';
 const leadSchema = z.object({
   nome: z.string().trim().min(1, 'Nome é obrigatório').max(200, 'Nome muito longo (máx. 200 caracteres)'),
   email: z.string().trim().email('Email inválido').max(255, 'Email muito longo').optional().or(z.literal('')),
-  telefone: z.string().trim().max(20, 'Telefone muito longo (máx. 20 caracteres)').optional().or(z.literal('')),
+  telefone: z.string().trim().regex(/^\d{10,11}$/, 'Telefone deve conter 10 ou 11 dígitos numéricos (DDD + número)'),
   origem: z.string().min(1, 'Origem é obrigatória').max(100, 'Origem muito longa'),
 });
 
