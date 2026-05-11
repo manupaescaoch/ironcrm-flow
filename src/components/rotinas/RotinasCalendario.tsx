@@ -184,7 +184,7 @@ export function RotinasCalendario({ rotinas, atividades, onEdit, onDelete, canEd
               </div>
               {weekDates.map((date, dayIdx) => {
                 const items = rotinasByHourDay[`${hour}-${dayIdx}`] || [];
-                const isToday = date.toISOString().split('T')[0] === todayStr;
+                const isToday = formatDateLocal(date) === todayStr;
                 return (
                   <div key={dayIdx} className={cn('border-r last:border-r-0 p-0.5 relative', isToday && 'bg-primary/[0.02]')}>
                     {items.map(({ rotina }) => {
