@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { EventoItem } from '@/components/dashboard/EventosHoje';
 import { mapToEventoItem, sortEventosByTime } from '@/utils/dashboardMappers';
-import { format, addDays } from 'date-fns';
+import { format } from 'date-fns';
+import { addDaysToDateOnly, getTodayInBrasilia } from '@/lib/brasilia';
 
 interface UseDashboardEventosReturn {
   eventosHoje: EventoItem[];
@@ -34,8 +35,8 @@ export function useDashboardEventos(): UseDashboardEventosReturn {
     lastDateRangeRef.current = { startDate, endDate };
     setLoading(true);
     try {
-      const today = format(new Date(), 'yyyy-MM-dd');
-      const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd');
+      const today = getTodayInBrasilia();
+      const tomorrow = addDaysToDateOnly(today, 1);
       const startDateStr = format(startDate, 'yyyy-MM-dd');
       const endDateStr = format(endDate, 'yyyy-MM-dd');
       const minDate = startDateStr < today ? startDateStr : today;

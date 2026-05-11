@@ -6,6 +6,16 @@ const corsHeaders = {
 };
 
 const NA = 'Não informado';
+const extractDateOnly = (value: unknown) => {
+  const match = String(value ?? '').match(/^(\d{4}-\d{2}-\d{2})/);
+  return match?.[1] ?? null;
+};
+const formatDateOnlyBR = (value: unknown) => {
+  const dateOnly = extractDateOnly(value);
+  if (!dateOnly) return NA;
+  const [year, month, day] = dateOnly.split('-');
+  return `${day}/${month}/${year}`;
+};
 const fmt = (v: unknown) => {
   if (v === null || v === undefined) return NA;
   if (typeof v === 'string') return v.trim().length > 0 ? v : NA;
@@ -49,9 +59,7 @@ Deno.serve(async (req) => {
       .eq('id', a.unidade_id)
       .maybeSingle();
 
-    const dataAulaBase = lead?.data_aula_experimental
-      ? new Date(lead.data_aula_experimental).toLocaleDateString('pt-BR')
-      : NA;
+    const dataAulaBase = formatDateOnlyBR(lead?.data_aula_experimental);
     const horaAula = lead?.hora_aula_experimental
       ? String(lead.hora_aula_experimental).slice(0, 5)
       : null;

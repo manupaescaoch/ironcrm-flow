@@ -43,6 +43,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InteractionTimeline } from '@/components/lead/InteractionTimeline';
 import { MotivosPerdaModal } from '@/components/lead/MotivosPerdaModal';
 import { AnamneseSection } from '@/components/lead/AnamneseSection';
+import { formatDateOnly, formatTimeValue, formatTimestampInBrasilia } from '@/lib/brasilia';
 
 const statusOptions: { value: StatusFunil; label: string }[] = [
   { value: 'novo', label: 'Novo' },
@@ -529,17 +530,13 @@ export default function LeadDetail() {
   };
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return '-';
-    return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
+    return formatDateOnly(dateString);
   };
 
   const formatDateTime = (dateString: string | null, timeString: string | null) => {
-    if (!dateString) return '-';
-    const datePart = format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
-    if (timeString) {
-      return `${datePart} às ${timeString}`;
-    }
-    return datePart;
+    const datePart = formatDateOnly(dateString);
+    if (datePart === '-') return '-';
+    return timeString ? `${datePart} às ${formatTimeValue(timeString)}` : datePart;
   };
 
   if (loading) {
@@ -565,7 +562,7 @@ export default function LeadDetail() {
             <div>
               <h1 className="text-3xl font-bold">{lead.nome?.toUpperCase()}</h1>
               <p className="text-muted-foreground">
-                Cadastrado em {format(new Date(lead.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                Cadastrado em {formatTimestampInBrasilia(lead.created_at)}
               </p>
             </div>
           </div>

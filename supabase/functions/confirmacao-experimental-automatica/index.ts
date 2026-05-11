@@ -6,6 +6,45 @@ const corsHeaders = {
 };
 
 const ANAMNESE_URL = 'https://ironclub-app.com/anamnese';
+const BRASILIA_TIME_ZONE = 'America/Sao_Paulo';
+
+function getBrasiliaParts(date: Date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: BRASILIA_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return {
+    year: Number(values.year),
+    month: Number(values.month),
+    day: Number(values.day),
+    hour: Number(values.hour),
+    minute: Number(values.minute),
+    second: Number(values.second),
+  };
+}
+
+function getBrasiliaNow() {
+  const parts = getBrasiliaParts();
+  return new Date(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+}
+
+function getBrasiliaDateOnly(date: Date = new Date()): string {
+  const parts = getBrasiliaParts(date);
+  return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
+}
+
+function extractDateOnly(value: string): string {
+  const match = String(value).match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : getBrasiliaDateOnly(new Date(value));
+}
 
 function primeiroNomeCapitalizado(nome: string): string {
   const primeiro = (nome || '').trim().split(/\s+/)[0] || '';
@@ -79,7 +118,7 @@ Deno.serve(async (req) => {
     );
 
     // Busca leads candidatos com aula nas próximas 25h
-    const agora = new Date();
+    const agora = getBrasiliaNow();
     const limiteFuturo = new Date(agora.getTime() + 25 * 60 * 60 * 1000);
 
     const { data: leads, error } = await supabase
@@ -91,8 +130,8 @@ Deno.serve(async (req) => {
       .not('data_aula_experimental', 'is', null)
       .not('hora_aula_experimental', 'is', null)
       .not('status_funil', 'in', '(convertido,perdido)')
-      .gte('data_aula_experimental', new Date(agora.getTime() - 24 * 60 * 60 * 1000).toISOString())
-      .lte('data_aula_experimental', limiteFuturo.toISOString());
+      .gte('data_aula_experimental', `${getBrasiliaDateOnly(new Date(agora.getTime() - 24 * 60 * 60 * 1000))}T00:00:00-03:00`)
+      .lte('data_aula_experimental', `${getBrasiliaDateOnly(limiteFuturo)}T23:59:59-03:00`);
 
     if (error) throw error;
 
@@ -100,14 +139,10 @@ Deno.serve(async (req) => {
 
     for (const lead of leads || []) {
       // Constrói momento da aula em horário local BRT
-      const dataAula = new Date(lead.data_aula_experimental as string);
+      const dataAula = extractDateOnly(String(lead.data_aula_experimental));
       const [h, m] = String(lead.hora_aula_experimental).slice(0, 5).split(':').map(Number);
-      // Monta no fuso BRT (-03:00) para evitar drift
-      const ano = dataAula.getUTCFullYear();
-      const mes = dataAula.getUTCMonth();
-      const dia = dataAula.getUTCDate();
-      // Cria momento como UTC equivalente ao horário BRT
-      const momentoAula = new Date(Date.UTC(ano, mes, dia, h + 3, m, 0));
+      const [ano, mes, dia] = dataAula.split('-').map(Number);
+      const momentoAula = new Date(`${dataAula}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00-03:00`);
 
       const diffMs = momentoAula.getTime() - agora.getTime();
       const diffMin = diffMs / (60 * 1000);
@@ -125,7 +160,7 @@ Deno.serve(async (req) => {
       // 24h
       if (dentro24h && !lead.confirmacao_24h_enviada_em) {
         // formata data e hora em BRT
-        const dataStr = formatarDataBR(new Date(Date.UTC(ano, mes, dia)));
+        const dataStr = formatarDataBR(new Date(ano, mes - 1, dia));
         const horaStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
         const message = template24h(nome, dataStr, horaStr);
 

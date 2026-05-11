@@ -18,6 +18,17 @@ function getBrasiliaNow() {
   return brasilia;
 }
 
+function getBrasiliaDateOnly(date: Date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
 function firstName(full: string): string {
   return (full || '').trim().split(/\s+/)[0] || full;
 }
@@ -51,7 +62,7 @@ Deno.serve(async (req) => {
     const dryRun = body?.dry_run === true;
 
     const brasilia = getBrasiliaNow();
-    const todayStr = brasilia.toISOString().split('T')[0];
+    const todayStr = getBrasiliaDateOnly();
     const nowMin = brasilia.getHours() * 60 + brasilia.getMinutes();
 
     console.log(`[feedback-pos-aula] Brasília: ${brasilia.toISOString()} | hoje=${todayStr} | nowMin=${nowMin}`);

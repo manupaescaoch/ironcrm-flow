@@ -1,7 +1,6 @@
 import { Lead, Interacao } from '@/types/database';
 import { EventoItem } from '@/components/dashboard/EventosHoje';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { formatDateOnly } from '@/lib/brasilia';
 
 /**
  * Map raw Supabase data to Lead type
@@ -94,12 +93,7 @@ export function mapToEventoItem(
  * Format date string to Brazilian format
  */
 export function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '-';
-  try {
-    return format(new Date(dateStr + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR });
-  } catch {
-    return dateStr;
-  }
+  return formatDateOnly(dateStr);
 }
 
 /**
