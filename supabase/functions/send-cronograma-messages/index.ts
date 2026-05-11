@@ -112,8 +112,10 @@ Deno.serve(async (req) => {
       }
       const aTotalMin = aHour * 60 + aMinute;
       const nowTotalMin = currentHour * 60 + currentMinute;
-      // Janela de -2 a +12 minutos (cobre cron a cada 15 min)
-      return aTotalMin >= nowTotalMin - 2 && aTotalMin <= nowTotalMin + 12;
+      // Janela de -20 a +2 minutos: cobre o horário-alvo + janela de recuperação
+      // Com cron a cada 3 min, cada horário é tentado ~7 vezes (recuperação se Z-API falhar)
+      // Duplicação é evitada via tabela cronograma_envios
+      return aTotalMin >= nowTotalMin - 20 && aTotalMin <= nowTotalMin + 2;
     });
 
     console.log(`[send-cronograma] ${atividadesNaJanela.length} atividade(s) na janela de horário`);
