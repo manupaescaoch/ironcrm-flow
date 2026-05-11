@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Rotina, RotinaAtividade } from '@/hooks/useRotinasData';
 import { cn } from '@/lib/utils';
+import { formatDateLocal } from '@/lib/brasilia';
 
 interface Props {
   rotinas: Rotina[];
