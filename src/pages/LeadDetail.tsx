@@ -817,7 +817,7 @@ export default function LeadDetail() {
                         {interacoes.map((int) => (
                           <TableRow key={int.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openEditInteracao(int)}>
                             <TableCell className="whitespace-nowrap">
-                              {format(new Date(int.data_interacao), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                              {formatTimestampInBrasilia(int.data_interacao)}
                             </TableCell>
                             <TableCell>{int.tipo}</TableCell>
                             <TableCell>
