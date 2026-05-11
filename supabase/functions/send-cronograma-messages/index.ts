@@ -187,21 +187,24 @@ Deno.serve(async (req) => {
         // Mensagem customizada
         message = atividade.mensagem;
       } else if (atividade.formulario_id) {
-        // Formulário vinculado
         const formTitulo = formularioMap.get(atividade.formulario_id) || 'Formulário';
         const formLink = `${SUPABASE_URL.replace('.supabase.co', '.lovable.app')}/formulario/${atividade.formulario_id}`;
-        message = `📋 *${atividade.titulo}*\n`;
-        message += `📍 *${unidadeNome}*\n`;
-        message += `⏰ ${atividade.horario?.substring(0, 5)}\n`;
-        message += `👤 ${resp.nome}\n\n`;
-        message += `Preencha o formulário: ${formTitulo}\n`;
-        message += formLink;
+        message =
+          `✅ *${atividade.titulo}*\n` +
+          `\n` +
+          `📍 *Unidade:* ${unidadeNome}\n` +
+          `🕒 *Horário:* ${atividade.horario?.substring(0, 5)}\n` +
+          `👤 *Responsável:* ${resp.nome}\n` +
+          `\n` +
+          `📝 *Formulário:* ${formTitulo}\n` +
+          `🔗 ${formLink}`;
       } else {
-        // Sem mensagem e sem formulário - enviar lembrete básico
-        message = `📋 *${atividade.titulo}*\n`;
-        message += `📍 *${unidadeNome}*\n`;
-        message += `⏰ ${atividade.horario?.substring(0, 5)}\n`;
-        message += `👤 ${resp.nome}`;
+        message =
+          `✅ *${atividade.titulo}*\n` +
+          `\n` +
+          `📍 *Unidade:* ${unidadeNome}\n` +
+          `🕒 *Horário:* ${atividade.horario?.substring(0, 5)}\n` +
+          `👤 *Responsável:* ${resp.nome}`;
       }
 
       console.log(`[send-cronograma] Enviando para ${resp.nome} (${normalizedPhone}): ${atividade.titulo}`);

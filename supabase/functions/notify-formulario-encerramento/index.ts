@@ -53,10 +53,11 @@ Deno.serve(async (req) => {
     if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) throw new Error('Z-API não configurada');
 
     const dataHora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-    const cabecalho = titulo ? `📋 ${titulo}` : '📋 Novo formulário';
+    const cabecalho = titulo ? `✅ *${titulo}*` : '✅ *Novo formulário recebido*';
     const message = `${cabecalho}
-📍 Unidade: ${unidade}
-🕒 Recebido em: ${dataHora}
+
+📍 *Unidade:* ${unidade}
+🕒 *Recebido em:* ${dataHora}
 
 ${resumo}`;
 

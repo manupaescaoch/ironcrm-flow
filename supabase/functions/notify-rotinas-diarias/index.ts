@@ -254,21 +254,28 @@ Deno.serve(async (req) => {
         .filter(a => a.rotina_id === rotina.id)
         .map(a => {
           let label = `• ${a.titulo}`;
-          if (a.horario) label += ` (${a.horario.substring(0, 5)})`;
-          if (a.responsavel && a.responsavel !== responsavel) label += ` - ${a.responsavel}`;
+          if (a.horario) label += ` — ${a.horario.substring(0, 5)}`;
+          if (a.responsavel && a.responsavel !== responsavel) label += ` (${a.responsavel})`;
           return label;
         });
 
-      let message = `📋 *Rotina Pendente*\n`;
-      message += `📍 *${unidadeNome}*\n`;
-      message += `📅 ${new Date().toLocaleDateString('pt-BR')}\n\n`;
-      message += `🔹 *${rotina.nome}* (${rotina.setor})`;
-      if (rotina.horario_esperado) {
-        message += ` - ${rotina.horario_esperado.substring(0, 5)}`;
-      }
+      const dataHoje = new Date().toLocaleDateString('pt-BR');
+      const horarioRotina = rotina.horario_esperado ? rotina.horario_esperado.substring(0, 5) : null;
+
+      let message = `🔧 *Rotina pendente*\n`;
       message += `\n`;
+      message += `📍 *Unidade:* ${unidadeNome}\n`;
+      message += `📅 *Data:* ${dataHoje}\n`;
+      if (horarioRotina) {
+        message += `🕒 *Horário previsto:* ${horarioRotina}\n`;
+      }
+      message += `👤 *Responsável:* ${responsavel}\n`;
+      message += `\n`;
+      message += `🔹 *${rotina.nome}*\n`;
+      message += `_${rotina.setor}_`;
 
       if (rotinaAtividades.length > 0) {
+        message += `\n\n📝 *Checklist:*\n`;
         message += rotinaAtividades.join('\n');
       }
 
