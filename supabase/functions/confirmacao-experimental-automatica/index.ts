@@ -31,11 +31,6 @@ function getBrasiliaParts(date: Date = new Date()) {
   };
 }
 
-function getBrasiliaNow() {
-  const parts = getBrasiliaParts();
-  return new Date(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
-}
-
 function getBrasiliaDateOnly(date: Date = new Date()): string {
   const parts = getBrasiliaParts(date);
   return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
@@ -118,7 +113,7 @@ Deno.serve(async (req) => {
     );
 
     // Busca leads candidatos com aula nas próximas 25h
-    const agora = getBrasiliaNow();
+    const agora = new Date();
     const limiteFuturo = new Date(agora.getTime() + 25 * 60 * 60 * 1000);
 
     const { data: leads, error } = await supabase
@@ -169,10 +164,17 @@ Deno.serve(async (req) => {
         } else {
           const r = await sendWhatsApp(phone, message);
           if (r.ok) {
-            await supabase
+            const { error: updateError } = await supabase
               .from('leads')
               .update({ confirmacao_24h_enviada_em: new Date().toISOString() })
               .eq('id', lead.id);
+
+            if (updateError) {
+              console.error('[confirmacao-experimental] erro ao gravar confirmação 24h', {
+                lead_id: lead.id,
+                error: updateError.message,
+              });
+            }
           }
           resultados.push({ lead_id: lead.id, tipo: '24h', sent: r.ok, status: r.status });
         }
@@ -188,10 +190,17 @@ Deno.serve(async (req) => {
         } else {
           const r = await sendWhatsApp(phone, message);
           if (r.ok) {
-            await supabase
+            const { error: updateError } = await supabase
               .from('leads')
               .update({ confirmacao_2h_enviada_em: new Date().toISOString() })
               .eq('id', lead.id);
+
+            if (updateError) {
+              console.error('[confirmacao-experimental] erro ao gravar confirmação 2h', {
+                lead_id: lead.id,
+                error: updateError.message,
+              });
+            }
           }
           resultados.push({ lead_id: lead.id, tipo: '2h', sent: r.ok, status: r.status });
         }
