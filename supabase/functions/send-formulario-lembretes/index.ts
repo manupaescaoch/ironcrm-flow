@@ -113,8 +113,11 @@ Deno.serve(async (req) => {
       return diff >= 30 && diff <= 240;
     });
 
+    // Ordena por horário ASC para que o Map preserve o ÚLTIMO horário por chave
+    // (coordenador de horário cobre várias atividades do turno; espera-se o fim do turno)
+    const candidatosOrdenados = [...candidatos].sort((a, b) => (a.horario || '').localeCompare(b.horario || ''));
     const candidatosUnicos = Array.from(new Map(
-      candidatos.map((a) => {
+      candidatosOrdenados.map((a) => {
         const tipo = detectTipo(a.titulo)!;
         const resp = a.responsavel as any;
         const turno = (resp?.turno && resp.turno !== 'integral' ? resp.turno : inferTurno(a.horario)).toUpperCase();
