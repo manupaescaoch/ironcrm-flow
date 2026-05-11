@@ -78,8 +78,8 @@ export function RotinasCalendario({ rotinas, atividades, onEdit, onDelete, canEd
   }, [weekOffset]);
 
   const weekDates = useMemo(() => getWeekDates(baseDate), [baseDate]);
-  const todayStr = today.toISOString().split('T')[0];
-  const isCurrentWeek = weekDates.some(d => d.toISOString().split('T')[0] === todayStr);
+  const todayStr = formatDateLocal(today);
+  const isCurrentWeek = weekDates.some(d => formatDateLocal(d) === todayStr);
 
   const rotinasByHourDay = useMemo(() => {
     const map: Record<string, Array<{ rotina: Rotina; rotinaAtividades: RotinaAtividade[] }>> = {};
