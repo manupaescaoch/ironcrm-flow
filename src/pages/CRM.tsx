@@ -396,26 +396,29 @@ export default function CRM() {
       return;
     }
 
-    // Validar telefone duplicado se telefone foi informado (apenas na mesma unidade)
-    if (formData.telefone.trim() && unidadeAtual) {
+    // Validar telefone duplicado globalmente (telefone é o ID único do lead)
+    if (formData.telefone.trim()) {
       const telefoneNormalizado = formData.telefone.trim().replace(/\D/g, '');
-      
+
       const { data: existingLeads } = await supabase
         .from('leads')
-        .select('id, nome, telefone')
-        .eq('ativo', true)
-        .eq('unidade_id', unidadeAtual.id);
-      
+        .select('id, nome, telefone, unidade_id, unidades(nome)')
+        .eq('ativo', true);
+
       const duplicado = existingLeads?.find(lead => {
         const leadTelefone = lead.telefone?.replace(/\D/g, '');
         return leadTelefone === telefoneNormalizado;
       });
 
       if (duplicado) {
-        toast({ 
-          title: 'Telefone já cadastrado', 
-          description: `Este telefone já está cadastrado para o lead "${duplicado.nome}".`,
-          variant: 'destructive' 
+        const unidadeNome = (duplicado as any).unidades?.nome;
+        const sufixo = unidadeNome && unidadeNome !== unidadeAtual?.nome
+          ? ` na unidade ${unidadeNome}`
+          : '';
+        toast({
+          title: 'Telefone já cadastrado',
+          description: `Este telefone já está cadastrado para "${duplicado.nome}"${sufixo}.`,
+          variant: 'destructive'
         });
         return;
       }
