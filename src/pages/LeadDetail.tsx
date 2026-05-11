@@ -755,7 +755,7 @@ export default function LeadDetail() {
                       <p className="text-sm font-medium text-destructive">{lead.motivo_perda}</p>
                       {lead.data_perda && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          Perdido em: {format(new Date(lead.data_perda), 'dd/MM/yyyy', { locale: ptBR })}
+                          Perdido em: {formatTimestampInBrasilia(lead.data_perda, { dateOnly: true })}
                         </p>
                       )}
                     </div>
