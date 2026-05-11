@@ -154,7 +154,7 @@ export function useVencimentosData(filters: VencimentosFilters = { status: 'todo
         const diasRestantes = differenceInDays(dataVencimento, hoje);
         
         // Verificar se pagamento foi confirmado para este ciclo
-        const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
+        const dataVencimentoStr = formatDateLocal(dataVencimento);
         const pagamentoConfirmado = pagamentosConfirmadosSet.has(`${item.id}_${dataVencimentoStr}`);
         
         // Determinar status: se vencido e não pago = inadimplente

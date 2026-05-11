@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { getTodayInBrasilia, formatDateLocal } from '@/lib/brasilia';
 
 const UNIDADES = {
   ZN: { id: 'b4df0ba8-7fa8-4f28-8924-d5ce6a9b50c6', label: 'ZONA NORTE' },
@@ -19,8 +20,7 @@ function rangeFromPeriodo(periodo: Periodo) {
 }
 
 function todayStr() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return getTodayInBrasilia();
 }
 
 function unidadesAlvo(u: UnidadeFiltro): Array<keyof typeof UNIDADES> {
@@ -36,8 +36,8 @@ export function useDashboardOperacionalData(periodo: Periodo, unidade: UnidadeFi
       const today = todayStr();
       const startISO = start.toISOString();
       const endISO = end.toISOString();
-      const startDate = start.toISOString().slice(0, 10);
-      const endDate = end.toISOString().slice(0, 10);
+      const startDate = formatDateLocal(start);
+      const endDate = formatDateLocal(end);
 
       const alvos = unidadesAlvo(unidade);
       const labelsAlvo = alvos.map((k) => UNIDADES[k].label);
@@ -96,7 +96,7 @@ export function useDashboardOperacionalData(periodo: Periodo, unidade: UnidadeFi
       for (let i = 6; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
-        const dStr = d.toISOString().slice(0, 10);
+        const dStr = formatDateLocal(d);
         dias.push({ dia: diasNomes[d.getDay()], date: dStr, leads: 0, experimentais: 0, fechamentos: 0 });
       }
       const semStart = dias[0].date;

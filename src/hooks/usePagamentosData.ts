@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
+import { formatDateLocal } from '@/lib/brasilia';
 
 export interface PagamentoConfirmado {
   id: string;
@@ -43,11 +44,11 @@ export function usePagamentosData() {
 
   // Cria um Set de interacao_id + data_vencimento para verificação rápida
   const pagamentosConfirmadosSet = new Set(
-    (pagamentos || []).map((p) => `${p.interacaoId}_${p.dataVencimento.toISOString().split('T')[0]}`)
+    (pagamentos || []).map((p) => `${p.interacaoId}_${formatDateLocal(p.dataVencimento)}`)
   );
 
   const verificarPagamentoConfirmado = (interacaoId: string, dataVencimento: Date): boolean => {
-    const key = `${interacaoId}_${dataVencimento.toISOString().split('T')[0]}`;
+    const key = `${interacaoId}_${formatDateLocal(dataVencimento)}`;
     return pagamentosConfirmadosSet.has(key);
   };
 
