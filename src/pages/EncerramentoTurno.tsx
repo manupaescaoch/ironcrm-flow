@@ -415,38 +415,49 @@ export default function EncerramentoTurno() {
 
     const handleSubmit = async () => {
       setSaving(true);
-      const { error } = await supabase.from('encerramento_turno_respostas').insert({
-        nome: r.nome,
-        unidade: r.unidade,
-        turno: r.turno,
-        experimentais_realizadas: Number(r.experimentais) || 0,
-        teve_ocorrencia: !!r.teveOcorrencia,
-        ocorrencia_descricao: r.ocorrenciaDescricao || null,
-        manteve_padrao: !!r.manteveProtocolo,
-        padrao_observacao: r.protocoloObs || null,
-        recebeu_feedback: !!r.recebeuFeedback,
-        feedback_descricao: r.feedbackDescricao || null,
-        clima_equipe: r.climaEquipe ?? 0,
-        clima_influencia: r.climaInfluencia || null,
-        equipamento_problema: !!r.equipamentoProblema,
-        equipamento_descricao: r.equipamentoDescricao || null,
-        faria_diferente: r.fariaDiferente || null,
-        precisou_suporte: !!r.precisouSuporte,
-        suporte_descricao: r.suporteDescricao || null,
-        observacao_gestao: r.observacaoGestao || null,
-      });
-      setSaving(false);
-      if (error) {
-        toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
-        return;
+      try {
+        const { error } = await supabase.from('encerramento_turno_respostas').insert({
+          nome: r.nome,
+          unidade: r.unidade,
+          turno: r.turno,
+          experimentais_realizadas: Number(r.experimentais) || 0,
+          teve_ocorrencia: !!r.teveOcorrencia,
+          ocorrencia_descricao: r.ocorrenciaDescricao || null,
+          manteve_padrao: !!r.manteveProtocolo,
+          padrao_observacao: r.protocoloObs || null,
+          recebeu_feedback: !!r.recebeuFeedback,
+          feedback_descricao: r.feedbackDescricao || null,
+          clima_equipe: r.climaEquipe ?? 0,
+          clima_influencia: r.climaInfluencia || null,
+          equipamento_problema: !!r.equipamentoProblema,
+          equipamento_descricao: r.equipamentoDescricao || null,
+          faria_diferente: r.fariaDiferente || null,
+          precisou_suporte: !!r.precisouSuporte,
+          suporte_descricao: r.suporteDescricao || null,
+          observacao_gestao: r.observacaoGestao || null,
+        });
+
+        if (error) {
+          toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
+          return;
+        }
+
+        await notifyFormularioGrupo({
+          formulario_key: 'estagiario_lider',
+          unidade: r.unidade,
+          titulo: 'Encerramento de Turno — Estagiário Líder',
+          items,
+        });
+        setStage('done');
+      } catch (error) {
+        toast({
+          title: 'Erro ao enviar',
+          description: error instanceof Error ? error.message : 'Tente novamente.',
+          variant: 'destructive',
+        });
+      } finally {
+        setSaving(false);
       }
-      await notifyFormularioGrupo({
-        formulario_key: 'estagiario_lider',
-        unidade: r.unidade,
-        titulo: 'Encerramento de Turno — Estagiário Líder',
-        items,
-      });
-      setStage('done');
     };
 
     return (
@@ -475,6 +486,7 @@ export default function EncerramentoTurno() {
         <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-anamnese-border bg-anamnese-card/95 backdrop-blur safe-bottom">
           <div className="mx-auto flex max-w-md flex-col gap-1 px-5 pt-3 pb-3">
             <Button
+              type="button"
               size="lg"
               disabled={saving}
               onClick={handleSubmit}

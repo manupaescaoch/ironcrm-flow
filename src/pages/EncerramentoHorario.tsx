@@ -306,37 +306,51 @@ export default function EncerramentoHorario() {
 
     const handleSubmit = async () => {
       setSaving(true);
-      const { error } = await supabase.from('encerramento_horario_respostas').insert({
-        nome: r.nome,
-        data: r.data ? format(r.data, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-        unidade: r.unidade,
-        turno: r.turno,
-        teve_ocorrencia: r.teveOcorrencia,
-        ocorrencia_descricao: r.ocorrenciaDescricao || null,
-        treinador_faltou: r.treinadorFaltou,
-        treinador_faltou_quem: r.treinadorFaltouQuem || null,
-        atendimentos_por_treinador: r.atendimentosPorTreinador || null,
-        experimentais_realizadas: Number(r.experimentais) || 0,
-        teve_feedback_aluno: r.feedbackAluno,
-        feedback_aluno_descricao: r.feedbackAlunoDescricao || null,
-        destaque_positivo: r.destaquePositivo,
-        destaque_descricao: r.destaqueDescricao || null,
-        feedback_corretivo: r.feedbackCorretivo,
-        feedback_corretivo_descricao: r.feedbackCorretivoDescricao || null,
-        sala_organizada: r.salaOrganizada,
-        pendencia_organizacao: r.pendenciaOrganizacao || null,
-        nota_geral: r.notaGeral,
-        observacoes: r.observacoes || null,
-      });
-      setSaving(false);
-      if (error) { toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' }); return; }
-      await notifyFormularioGrupo({
-        formulario_key: 'coordenador_horario',
-        unidade: r.unidade,
-        titulo: 'Encerramento — Coordenador de Horário',
-        items,
-      });
-      setStage('done');
+      try {
+        const { error } = await supabase.from('encerramento_horario_respostas').insert({
+          nome: r.nome,
+          data: r.data ? format(r.data, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+          unidade: r.unidade,
+          turno: r.turno,
+          teve_ocorrencia: r.teveOcorrencia,
+          ocorrencia_descricao: r.ocorrenciaDescricao || null,
+          treinador_faltou: r.treinadorFaltou,
+          treinador_faltou_quem: r.treinadorFaltouQuem || null,
+          atendimentos_por_treinador: r.atendimentosPorTreinador || null,
+          experimentais_realizadas: Number(r.experimentais) || 0,
+          teve_feedback_aluno: r.feedbackAluno,
+          feedback_aluno_descricao: r.feedbackAlunoDescricao || null,
+          destaque_positivo: r.destaquePositivo,
+          destaque_descricao: r.destaqueDescricao || null,
+          feedback_corretivo: r.feedbackCorretivo,
+          feedback_corretivo_descricao: r.feedbackCorretivoDescricao || null,
+          sala_organizada: r.salaOrganizada,
+          pendencia_organizacao: r.pendenciaOrganizacao || null,
+          nota_geral: r.notaGeral,
+          observacoes: r.observacoes || null,
+        });
+
+        if (error) {
+          toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
+          return;
+        }
+
+        await notifyFormularioGrupo({
+          formulario_key: 'coordenador_horario',
+          unidade: r.unidade,
+          titulo: 'Encerramento — Coordenador de Horário',
+          items,
+        });
+        setStage('done');
+      } catch (error) {
+        toast({
+          title: 'Erro ao enviar',
+          description: error instanceof Error ? error.message : 'Tente novamente.',
+          variant: 'destructive',
+        });
+      } finally {
+        setSaving(false);
+      }
     };
 
     return (
@@ -361,7 +375,7 @@ export default function EncerramentoHorario() {
         </main>
         <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-anamnese-border bg-anamnese-card/95 backdrop-blur safe-bottom">
           <div className="mx-auto flex max-w-md flex-col gap-2 px-5 pt-3 pb-3">
-            <Button size="lg" disabled={saving} onClick={handleSubmit}
+            <Button type="button" size="lg" disabled={saving} onClick={handleSubmit}
               className="h-14 w-full rounded-2xl bg-anamnese-royal text-base font-semibold text-anamnese-royal-foreground hover:bg-anamnese-royal/90">
               {saving ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Enviando...</> : <>Enviar ficha <ArrowRight className="ml-2 h-5 w-5" /></>}
             </Button>

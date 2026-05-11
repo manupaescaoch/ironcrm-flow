@@ -289,34 +289,48 @@ export default function RelatorioDiarioComercial() {
 
     const handleSubmit = async () => {
       setSaving(true);
-      const { error } = await supabase.from('relatorio_diario_comercial_respostas').insert({
-        nome: r.nome,
-        unidade: r.unidade,
-        data: r.data ? format(r.data, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-        total_alunos_ativos: r.totalAtivos !== '' ? Number(r.totalAtivos) : null,
-        leads_recebidos: r.leads !== '' ? Number(r.leads) : null,
-        experimentais_realizadas: r.experimentais !== '' ? Number(r.experimentais) : null,
-        novos_alunos: r.novos !== '' ? Number(r.novos) : null,
-        renovacoes: r.renovacoes !== '' ? Number(r.renovacoes) : null,
-        cancelamentos: r.cancelamentos !== '' ? Number(r.cancelamentos) : null,
-        inadimplentes: r.inadimplentes || null,
-        nao_renovados: r.naoRenovados || null,
-        atividades_realizadas: r.atividades.length > 0 ? r.atividades : null,
-        pendencias: r.pendencias || null,
-        plano_amanha: r.planoAmanha || null,
-        precisa_suporte: r.precisaSuporte,
-        suporte_descricao: r.suporteDescricao || null,
-        observacoes: r.observacoes || null,
-      });
-      setSaving(false);
-      if (error) { toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' }); return; }
-      await notifyFormularioGrupo({
-        formulario_key: 'relatorio_comercial',
-        unidade: r.unidade,
-        titulo: 'Relatório Diário — Comercial',
-        items,
-      });
-      setStage('done');
+      try {
+        const { error } = await supabase.from('relatorio_diario_comercial_respostas').insert({
+          nome: r.nome,
+          unidade: r.unidade,
+          data: r.data ? format(r.data, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+          total_alunos_ativos: r.totalAtivos !== '' ? Number(r.totalAtivos) : null,
+          leads_recebidos: r.leads !== '' ? Number(r.leads) : null,
+          experimentais_realizadas: r.experimentais !== '' ? Number(r.experimentais) : null,
+          novos_alunos: r.novos !== '' ? Number(r.novos) : null,
+          renovacoes: r.renovacoes !== '' ? Number(r.renovacoes) : null,
+          cancelamentos: r.cancelamentos !== '' ? Number(r.cancelamentos) : null,
+          inadimplentes: r.inadimplentes || null,
+          nao_renovados: r.naoRenovados || null,
+          atividades_realizadas: r.atividades.length > 0 ? r.atividades : null,
+          pendencias: r.pendencias || null,
+          plano_amanha: r.planoAmanha || null,
+          precisa_suporte: r.precisaSuporte,
+          suporte_descricao: r.suporteDescricao || null,
+          observacoes: r.observacoes || null,
+        });
+
+        if (error) {
+          toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
+          return;
+        }
+
+        await notifyFormularioGrupo({
+          formulario_key: 'relatorio_comercial',
+          unidade: r.unidade,
+          titulo: 'Relatório Diário — Comercial',
+          items,
+        });
+        setStage('done');
+      } catch (error) {
+        toast({
+          title: 'Erro ao enviar',
+          description: error instanceof Error ? error.message : 'Tente novamente.',
+          variant: 'destructive',
+        });
+      } finally {
+        setSaving(false);
+      }
     };
 
     return (
@@ -341,7 +355,7 @@ export default function RelatorioDiarioComercial() {
         </main>
         <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-anamnese-border bg-anamnese-card/95 backdrop-blur safe-bottom">
           <div className="mx-auto flex max-w-md flex-col gap-2 px-5 pt-3 pb-3">
-            <Button size="lg" disabled={saving} onClick={handleSubmit}
+            <Button type="button" size="lg" disabled={saving} onClick={handleSubmit}
               className="h-14 w-full rounded-2xl bg-anamnese-royal text-base font-semibold text-anamnese-royal-foreground hover:bg-anamnese-royal/90">
               {saving ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Enviando...</> : <>Enviar relatório <ArrowRight className="ml-2 h-5 w-5" /></>}
             </Button>

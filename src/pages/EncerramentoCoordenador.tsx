@@ -466,35 +466,49 @@ export default function EncerramentoCoordenador() {
 
     const handleSubmit = async () => {
       setSaving(true);
-      const { error } = await supabase.from('encerramento_coordenador_respostas').insert({
-        nome: r.nome, unidade: r.unidade, turno: r.turno, ultimo_turno_dia: !!r.ultimoTurnoDia,
-        limpeza_geral: r.limpeza, equipamentos_funcionando: r.equipamentos, climatizacao: r.climatizacao,
-        organizacao_espaco: r.organizacao, infraestrutura: r.infraestrutura,
-        todos_compareceram: r.todosCompareceram, faltas_atrasos: r.faltasAtrasos || null,
-        postura_atendimento: r.postura, proatividade: r.proatividade,
-        destaque_positivo: r.destaquePositivo, destaque_descricao: r.destaqueDescricao || null,
-        feedback_corretivo: r.feedbackCorretivo, feedback_descricao: r.feedbackDescricao || null,
-        reclamacao_aluno: r.reclamacao, reclamacao_descricao: r.reclamacaoDescricao || null,
-        reclamacao_acao: r.reclamacaoAcao || null, reclamacao_resolvida: r.reclamacaoResolvida,
-        reclamacao_pendencia: r.reclamacaoPendencia || null,
-        elogio_aluno: r.elogio, elogio_descricao: r.elogioDescricao || null,
-        teve_ocorrencia: r.ocorrencia, ocorrencia_tipo: r.ocorrenciaTipo || null,
-        ocorrencia_gravidade: r.ocorrenciaGravidade || null,
-        ocorrencia_descricao: r.ocorrenciaDescricao || null, ocorrencia_acao: r.ocorrenciaAcao || null,
-        ocorrencia_resolvida: r.ocorrenciaResolvida, ocorrencia_pendencia: r.ocorrenciaPendencia || null,
-        padrao_iron: r.padraoIron, fora_padrao_descricao: r.foraPadraoDescricao || null,
-        funcionou_bem: r.funcionouBem || null, nota_geral: r.notaGeral,
-        pontos_atencao: r.pontosAtencao || null, pendencias_abertas: r.pendenciasAbertas || null,
-      });
-      setSaving(false);
-      if (error) { toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' }); return; }
-      await notifyFormularioGrupo({
-        formulario_key: 'coordenador_unidade',
-        unidade: r.unidade,
-        titulo: 'Encerramento — Coordenador de Unidade',
-        items,
-      });
-      setStage('done');
+      try {
+        const { error } = await supabase.from('encerramento_coordenador_respostas').insert({
+          nome: r.nome, unidade: r.unidade, turno: r.turno, ultimo_turno_dia: !!r.ultimoTurnoDia,
+          limpeza_geral: r.limpeza, equipamentos_funcionando: r.equipamentos, climatizacao: r.climatizacao,
+          organizacao_espaco: r.organizacao, infraestrutura: r.infraestrutura,
+          todos_compareceram: r.todosCompareceram, faltas_atrasos: r.faltasAtrasos || null,
+          postura_atendimento: r.postura, proatividade: r.proatividade,
+          destaque_positivo: r.destaquePositivo, destaque_descricao: r.destaqueDescricao || null,
+          feedback_corretivo: r.feedbackCorretivo, feedback_descricao: r.feedbackDescricao || null,
+          reclamacao_aluno: r.reclamacao, reclamacao_descricao: r.reclamacaoDescricao || null,
+          reclamacao_acao: r.reclamacaoAcao || null, reclamacao_resolvida: r.reclamacaoResolvida,
+          reclamacao_pendencia: r.reclamacaoPendencia || null,
+          elogio_aluno: r.elogio, elogio_descricao: r.elogioDescricao || null,
+          teve_ocorrencia: r.ocorrencia, ocorrencia_tipo: r.ocorrenciaTipo || null,
+          ocorrencia_gravidade: r.ocorrenciaGravidade || null,
+          ocorrencia_descricao: r.ocorrenciaDescricao || null, ocorrencia_acao: r.ocorrenciaAcao || null,
+          ocorrencia_resolvida: r.ocorrenciaResolvida, ocorrencia_pendencia: r.ocorrenciaPendencia || null,
+          padrao_iron: r.padraoIron, fora_padrao_descricao: r.foraPadraoDescricao || null,
+          funcionou_bem: r.funcionouBem || null, nota_geral: r.notaGeral,
+          pontos_atencao: r.pontosAtencao || null, pendencias_abertas: r.pendenciasAbertas || null,
+        });
+
+        if (error) {
+          toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
+          return;
+        }
+
+        await notifyFormularioGrupo({
+          formulario_key: 'coordenador_unidade',
+          unidade: r.unidade,
+          titulo: 'Encerramento — Coordenador de Unidade',
+          items,
+        });
+        setStage('done');
+      } catch (error) {
+        toast({
+          title: 'Erro ao enviar',
+          description: error instanceof Error ? error.message : 'Tente novamente.',
+          variant: 'destructive',
+        });
+      } finally {
+        setSaving(false);
+      }
     };
 
     return (
@@ -519,7 +533,7 @@ export default function EncerramentoCoordenador() {
         </main>
         <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-anamnese-border bg-anamnese-card/95 backdrop-blur safe-bottom">
           <div className="mx-auto flex max-w-md flex-col gap-2 px-5 pt-3 pb-3">
-            <Button size="lg" disabled={saving} onClick={handleSubmit}
+            <Button type="button" size="lg" disabled={saving} onClick={handleSubmit}
               className="h-14 w-full rounded-2xl bg-anamnese-royal text-base font-semibold text-anamnese-royal-foreground hover:bg-anamnese-royal/90">
               {saving ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Enviando...</> : <>Enviar ficha <ArrowRight className="ml-2 h-5 w-5" /></>}
             </Button>
