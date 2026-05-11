@@ -121,7 +121,7 @@ export default function Login() {
                 {errorMsg}
                 {failedAttempts >= 2 && (
                   <div className="mt-2">
-                    Continua sem conseguir? <Link to="/forgot-password" className="underline font-medium">Redefina sua senha</Link>.
+                    Continua sem conseguir? <Link to={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`} className="underline font-medium">Redefina sua senha</Link>.
                   </div>
                 )}
               </AlertDescription>
@@ -137,7 +137,7 @@ export default function Login() {
             Entrar
           </Button>
           <div className="text-center">
-            <Link to="/forgot-password" className="text-sm text-muted-foreground hover:text-foreground">
+            <Link to={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`} className="text-sm text-muted-foreground hover:text-foreground">
               Esqueci minha senha
             </Link>
           </div>

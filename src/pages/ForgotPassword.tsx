@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,10 +13,16 @@ import ironClubLogo from '@/assets/iron-club-logo.png';
 const schema = z.object({ email: z.string().email('Email inválido') });
 
 export default function ForgotPassword() {
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const prefill = searchParams.get('email');
+    if (prefill) setEmail(prefill);
+  }, [searchParams]);
 
   const handleSubmit = async () => {
     const v = schema.safeParse({ email });
