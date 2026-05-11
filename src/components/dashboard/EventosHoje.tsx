@@ -338,56 +338,17 @@ Aguardamos você! 💪`;
                   </div>
                 </div>
 
-                {item.tipoEvento === 'experimental' && (() => {
-                  const anamneseOk = !!anamneseMap[item.lead.id];
-                  const lembrete = lembreteMap[item.lead.id];
-                  const lembreteOk = !!lembrete;
-                  return (
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline" className={anamneseOk
-                        ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
-                        : 'bg-zinc-100 text-zinc-600 border-zinc-300'}>
-                        <FileText className="w-3 h-3 mr-1" />
-                        {anamneseOk ? 'Anamnese preenchida' : 'Anamnese pendente'}
-                      </Badge>
-                      <Badge variant="outline" className={lembreteOk
-                        ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
-                        : 'bg-zinc-100 text-zinc-600 border-zinc-300'}>
-                        <BellRing className="w-3 h-3 mr-1" />
-                        {lembreteOk
-                          ? `Lembrete ${lembrete!.tipo} enviado às ${format(new Date(lembrete!.at as string), 'HH:mm', { locale: ptBR })}`
-                          : 'Lembrete pendente'}
-                      </Badge>
-                    </div>
-                  );
-                })()}
-
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="Obs. rápida"
-                    value={observations[item.interacao.id] || item.interacao.descricao || ''}
-                    onChange={(e) => setObservations(prev => ({ ...prev, [item.interacao.id]: e.target.value }))}
-                    onBlur={() => handleSaveObs(item)}
-                    className="flex-1 h-8 text-sm"
-                  />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleSaveObs(item)}
-                    disabled={loading[`obs-${item.interacao.id}`]}
-                  >
-                    <Save className="w-4 h-4" />
-                  </Button>
-                </div>
-
                 {item.tipoEvento === 'experimental' && (
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-muted-foreground" />
                     <Input
                       placeholder="Nome do treinador"
                       value={treinadores[item.interacao.id] ?? item.interacao.treinador_experimental ?? ''}
-                      onChange={(e) => setTreinadores(prev => ({ ...prev, [item.interacao.id]: e.target.value.toUpperCase() }))}
-                      className="h-8 w-[160px] text-sm"
+                      onChange={(e) => {
+                        setTreinadores(prev => ({ ...prev, [item.interacao.id]: e.target.value.toUpperCase() }));
+                        setSavedTreinador(prev => ({ ...prev, [item.interacao.id]: false }));
+                      }}
+                      className="flex-1 h-8 text-sm"
                       list={`treinadores-${item.interacao.id}`}
                     />
                     <datalist id={`treinadores-${item.interacao.id}`}>
@@ -397,7 +358,7 @@ Aguardamos você! 💪`;
                     </datalist>
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant="outline"
                       disabled={loading[`treinador-${item.interacao.id}`]}
                       onClick={async () => {
                         const value = (treinadores[item.interacao.id] ?? item.interacao.treinador_experimental ?? '').trim().toUpperCase();
@@ -413,7 +374,8 @@ Aguardamos você! 💪`;
                         if (error) {
                           toast({ title: 'Erro ao salvar treinador', description: getErrorMessage(error), variant: 'destructive' });
                         } else {
-                          toast({ title: 'Treinador salvo!' });
+                          toast({ title: 'Treinador salvo com sucesso' });
+                          setSavedTreinador(prev => ({ ...prev, [item.interacao.id]: true }));
                           onRefresh();
                         }
                         setLoading(prev => ({ ...prev, [`treinador-${item.interacao.id}`]: false }));
@@ -423,38 +385,47 @@ Aguardamos você! 💪`;
                     </Button>
                   </div>
                 )}
+                {item.tipoEvento === 'experimental' && savedTreinador[item.interacao.id] && (
+                  <p className="text-xs text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Treinador salvo com sucesso
+                  </p>
+                )}
 
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t">
                   <div className="flex items-center gap-2">
-                    <Switch
-                      checked={getPresencaChecked(item)}
-                      onCheckedChange={(checked) => handleMarcarPresenca(item, checked)}
-                      disabled={loading[item.interacao.id]}
-                    />
-                    <span className="text-sm">Marcar Presença</span>
+                    {getPresencaChecked(item) ? (
+                      <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-300">
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                        Presença marcada
+                      </Badge>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={false}
+                          onCheckedChange={() => setPresencaDialogItem(item)}
+                          disabled={loading[item.interacao.id]}
+                        />
+                        <span className="text-sm">Marcar Presença</span>
+                      </div>
+                    )}
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button size="sm" variant="outline">
-                        <RefreshCw className="w-4 h-4 mr-1" />
-                        Ações
-                        <ChevronDown className="w-3 h-3 ml-1" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onReagendar(item)}>
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Reagendar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleNaoCompareceu(item)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <UserX className="w-4 h-4 mr-2" />
-                        Não Compareceu
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => onReagendar(item)}>
+                      <RefreshCw className="w-4 h-4 mr-1" />
+                      Reagendar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => setNaoCompareceuDialogItem(item)}
+                      disabled={loading[item.interacao.id]}
+                    >
+                      <UserX className="w-4 h-4 mr-1" />
+                      Não compareceu
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
