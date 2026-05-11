@@ -226,12 +226,14 @@ Deno.serve(async (req) => {
       }
 
       const link = TIPO_LINK[tipo];
+      const horarioFmt = (a.horario || '').slice(0, 5);
       const message =
         `Fala, ${resp.nome}.\n\n` +
         `O formulário obrigatório do seu turno ainda não foi preenchido.\n\n` +
         `📋 *Formulário:* ${TIPO_LABEL[tipo]}\n` +
         `📍 *Unidade:* ${unidadeShort}\n` +
-        `🕒 *Turno:* ${turno}\n\n` +
+        `🕒 *Turno:* ${turno}\n` +
+        `⏰ *Horário previsto:* ${horarioFmt}\n\n` +
         `Preenche agora, por favor, para mantermos o controle da operação em dia.\n\n` +
         `🔗 ${link}\n\n` +
         `_Esse preenchimento é obrigatório ao final de cada turno._`;
