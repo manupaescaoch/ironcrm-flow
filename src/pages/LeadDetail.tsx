@@ -234,20 +234,32 @@ export default function LeadDetail() {
 
   const handleSaveLead = async () => {
     if (!lead) return;
+
+    // Normalize phone: only digits, 10-11 chars
+    const telefoneNormalizado = (lead.telefone || '').replace(/\D/g, '');
+    if (!telefoneNormalizado || telefoneNormalizado.length < 10 || telefoneNormalizado.length > 11) {
+      toast({
+        title: 'Telefone inválido',
+        description: 'Informe um telefone válido com DDD (10 ou 11 dígitos, apenas números).',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setSaving(true);
 
+    const leadParaSalvar = { ...lead, telefone: telefoneNormalizado };
+
     // Build a diff: only send fields that actually changed vs the loaded state.
-    // This avoids the "Operação não permitida" error from the DB trigger when
-    // non-admin/non-owner users save the form (the trigger compares IS DISTINCT FROM).
     const candidateFields = {
-      nome: lead.nome,
-      email: lead.email,
-      telefone: lead.telefone,
-      origem: lead.origem,
-      status_funil: lead.status_funil,
-      cadastrado_por: lead.cadastrado_por,
-      data_aula_experimental: lead.data_aula_experimental,
-      observacoes: lead.observacoes,
+      nome: leadParaSalvar.nome,
+      email: leadParaSalvar.email,
+      telefone: leadParaSalvar.telefone,
+      origem: leadParaSalvar.origem,
+      status_funil: leadParaSalvar.status_funil,
+      cadastrado_por: leadParaSalvar.cadastrado_por,
+      data_aula_experimental: leadParaSalvar.data_aula_experimental,
+      observacoes: leadParaSalvar.observacoes,
     } as Record<string, any>;
 
     const changedFields: Record<string, any> = {};
@@ -275,9 +287,24 @@ export default function LeadDetail() {
     setSaving(false);
 
     if (error) {
-      toast({ title: 'Erro ao salvar', description: getErrorMessage(error), variant: 'destructive' });
+      // Detectar duplicidade de telefone (trigger check_duplicate_lead)
+      const msg = getErrorMessage(error) || '';
+      const isDuplicate =
+        (error as any)?.code === '23505' ||
+        /duplicate|duplicado|unique_violation|já existe/i.test(msg);
+
+      if (isDuplicate) {
+        toast({
+          title: 'Telefone já cadastrado',
+          description: 'Já existe um lead ativo com este telefone. Verifique antes de salvar.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({ title: 'Erro ao salvar', description: msg, variant: 'destructive' });
+      }
     } else {
-      setOriginalLead(lead);
+      setLead(leadParaSalvar);
+      setOriginalLead(leadParaSalvar);
       toast({ title: 'Lead atualizado!' });
     }
   };
