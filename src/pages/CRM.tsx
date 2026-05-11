@@ -61,7 +61,7 @@ import { cn } from '@/lib/utils';
 const leadSchema = z.object({
   nome: z.string().trim().min(1, 'Nome é obrigatório').max(200, 'Nome muito longo (máx. 200 caracteres)'),
   email: z.string().trim().email('Email inválido').max(255, 'Email muito longo').optional().or(z.literal('')),
-  telefone: z.string().trim().max(20, 'Telefone muito longo (máx. 20 caracteres)').optional().or(z.literal('')),
+  telefone: z.string().trim().regex(/^\d{10,11}$/, 'Telefone deve conter 10 ou 11 dígitos numéricos (DDD + número)'),
   origem: z.string().min(1, 'Origem é obrigatória').max(100, 'Origem muito longa'),
 });
 
@@ -396,26 +396,29 @@ export default function CRM() {
       return;
     }
 
-    // Validar telefone duplicado se telefone foi informado (apenas na mesma unidade)
-    if (formData.telefone.trim() && unidadeAtual) {
+    // Validar telefone duplicado globalmente (telefone é o ID único do lead)
+    if (formData.telefone.trim()) {
       const telefoneNormalizado = formData.telefone.trim().replace(/\D/g, '');
-      
+
       const { data: existingLeads } = await supabase
         .from('leads')
-        .select('id, nome, telefone')
-        .eq('ativo', true)
-        .eq('unidade_id', unidadeAtual.id);
-      
+        .select('id, nome, telefone, unidade_id, unidades(nome)')
+        .eq('ativo', true);
+
       const duplicado = existingLeads?.find(lead => {
         const leadTelefone = lead.telefone?.replace(/\D/g, '');
         return leadTelefone === telefoneNormalizado;
       });
 
       if (duplicado) {
-        toast({ 
-          title: 'Telefone já cadastrado', 
-          description: `Este telefone já está cadastrado para o lead "${duplicado.nome}".`,
-          variant: 'destructive' 
+        const unidadeNome = (duplicado as any).unidades?.nome;
+        const sufixo = unidadeNome && unidadeNome !== unidadeAtual?.nome
+          ? ` na unidade ${unidadeNome}`
+          : '';
+        toast({
+          title: 'Telefone já cadastrado',
+          description: `Este telefone já está cadastrado para "${duplicado.nome}"${sufixo}.`,
+          variant: 'destructive'
         });
         return;
       }
@@ -449,7 +452,7 @@ export default function CRM() {
     const { data: leadData, error } = await supabase.from('leads').insert({
       nome: formData.nome.trim(),
       email: formData.email.trim() || null,
-      telefone: formData.telefone.trim() || null,
+      telefone: formData.telefone.trim().replace(/\D/g, '') || null,
       origem: formData.origem || 'WhatsApp',
       status_funil: formData.status_funil,
       cadastrado_por: getUserDisplayName(),
@@ -1054,12 +1057,17 @@ export default function CRM() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Telefone</Label>
+                    <Label>Telefone *</Label>
                     <Input
+                      type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={11}
                       value={formData.telefone}
-                      onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                      placeholder="(11) 99999-9999"
+                      onChange={(e) => setFormData({ ...formData, telefone: e.target.value.replace(/\D/g, '') })}
+                      placeholder="11999999999"
                     />
+                    <p className="text-xs text-muted-foreground">Apenas números — DDD + telefone (10 ou 11 dígitos).</p>
                   </div>
                   <div className="space-y-2">
                     <Label>Origem *</Label>

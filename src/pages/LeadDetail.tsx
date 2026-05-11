@@ -660,10 +660,16 @@ export default function LeadDetail() {
                 <div className="space-y-2">
                   <Label>Telefone</Label>
                   <Input
+                    type="tel"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={11}
                     value={lead.telefone || ''}
-                    onChange={(e) => setLead({ ...lead, telefone: e.target.value })}
+                    onChange={(e) => setLead({ ...lead, telefone: e.target.value.replace(/\D/g, '') })}
                     disabled={!canEditLead}
+                    placeholder="11999999999"
                   />
+                  <p className="text-xs text-muted-foreground">Apenas números — 10 ou 11 dígitos.</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Origem</Label>
