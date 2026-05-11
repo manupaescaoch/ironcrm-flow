@@ -16,12 +16,11 @@ interface NotifyArgs {
 export async function notifyFormularioGrupo({ formulario_key, unidade, titulo, items }: NotifyArgs) {
   try {
     const filtered = items.filter(
-      (it) => it.value && it.value.trim() !== '' && it.value !== '—',
+      (it) => it.value && String(it.value).trim() !== '' && it.value !== '—',
     );
-    const resumo = filtered.map((it) => `*${it.label}:* ${it.value}`).join('\n');
-    if (!resumo) return;
+    if (filtered.length === 0) return;
     await supabase.functions.invoke('notify-formulario-encerramento', {
-      body: { formulario_key, unidade, titulo, resumo },
+      body: { formulario_key, unidade, titulo, items: filtered },
     });
   } catch (e) {
     console.warn('[notifyFormularioGrupo] falha (ignorada)', e);
