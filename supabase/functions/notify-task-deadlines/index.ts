@@ -127,8 +127,8 @@ serve(async (req) => {
         const horaStr = task.hora_prazo
           ? ` às ${task.hora_prazo.slice(0, 5)}`
           : "";
-        const prazoDate = new Date(task.prazo);
-        const prazoFormatado = prazoDate.toLocaleDateString("pt-BR");
+        const [py, pm, pd] = task.prazo.slice(0, 10).split('-');
+        const prazoFormatado = `${pd}/${pm}/${py}`;
 
         // Buscar nome da unidade
         let unidadeNome = "";
