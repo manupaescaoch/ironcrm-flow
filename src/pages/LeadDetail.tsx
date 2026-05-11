@@ -314,7 +314,7 @@ export default function LeadDetail() {
     setSavingMotivo(true);
 
     const observacaoFinal = observacao.trim()
-      ? `${lead.observacoes || ''}\n\n[Motivo da Perda - ${format(new Date(), 'dd/MM/yyyy')}]: ${observacao}`.trim()
+      ? `${lead.observacoes || ''}\n\n[Motivo da Perda - ${formatTimestampInBrasilia(new Date(), { dateOnly: true })}]: ${observacao}`.trim()
       : lead.observacoes;
 
     const { error } = await supabase
