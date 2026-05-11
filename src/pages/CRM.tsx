@@ -452,7 +452,7 @@ export default function CRM() {
     const { data: leadData, error } = await supabase.from('leads').insert({
       nome: formData.nome.trim(),
       email: formData.email.trim() || null,
-      telefone: formData.telefone.trim() || null,
+      telefone: formData.telefone.trim().replace(/\D/g, '') || null,
       origem: formData.origem || 'WhatsApp',
       status_funil: formData.status_funil,
       cadastrado_por: getUserDisplayName(),
