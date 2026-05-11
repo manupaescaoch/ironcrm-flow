@@ -423,6 +423,22 @@ export default function LeadDetail() {
       status_avaliacao: formData.tipo === 'Avaliação Física' ? formData.status_avaliacao : null,
     };
 
+    // Sincronizar data/hora da experimental no lead ANTES de salvar a interação,
+    // pois o trigger sync_hora_experimental_from_lead puxa o horário do lead e sobrescreveria
+    // o valor da interação caso o lead esteja desatualizado.
+    if (agendouExperimental && (formData.data_experimental || formData.hora_experimental)) {
+      const leadSyncPayload: Record<string, any> = {};
+      if (formData.data_experimental && formData.data_experimental !== lead?.data_aula_experimental) {
+        leadSyncPayload.data_aula_experimental = formData.data_experimental;
+      }
+      if (formData.hora_experimental && formData.hora_experimental !== (lead?.hora_aula_experimental?.slice(0, 5) ?? '')) {
+        leadSyncPayload.hora_aula_experimental = formData.hora_experimental;
+      }
+      if (Object.keys(leadSyncPayload).length > 0) {
+        await supabase.from('leads').update(leadSyncPayload).eq('id', id);
+      }
+    }
+
     let interacaoError;
 
     if (isEditing && formData.id) {
