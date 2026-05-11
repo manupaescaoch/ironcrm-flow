@@ -20,18 +20,18 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [failedAttempts, setFailedAttempts] = useState(0);
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleLogin = async () => {
+    setErrorMsg(null);
     const validation = authSchema.safeParse({ email, password });
     if (!validation.success) {
-      toast({
-        title: 'Erro de validação',
-        description: validation.error.errors[0].message,
-        variant: 'destructive',
-      });
+      setErrorMsg(validation.error.errors[0].message);
       return;
     }
 
@@ -40,12 +40,19 @@ export default function Login() {
     setLoading(false);
 
     if (error) {
-      let message = error.message;
-      if (error.message.includes('Invalid login credentials')) {
-        message = 'Email ou senha incorretos';
+      const raw = error.message || '';
+      let message = raw;
+      if (raw.includes('Invalid login credentials')) {
+        message = 'Email ou senha incorretos. Verifique se digitou a senha corretamente — evite usar o preenchimento automático do navegador, que pode estar com uma senha antiga salva.';
+      } else if (raw.includes('Email not confirmed')) {
+        message = 'Email ainda não confirmado. Verifique sua caixa de entrada.';
+      } else if (raw.toLowerCase().includes('too many') || raw.toLowerCase().includes('rate')) {
+        message = 'Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente.';
       }
+      setErrorMsg(message);
+      setFailedAttempts((n) => n + 1);
       toast({
-        title: 'Erro',
+        title: 'Não foi possível entrar',
         description: message,
         variant: 'destructive',
       });
