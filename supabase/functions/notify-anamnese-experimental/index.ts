@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
 
     const { data: lead } = await supabase
       .from('leads')
-      .select('nome, data_aula_experimental, unidade_id')
+      .select('nome, data_aula_experimental, hora_aula_experimental, unidade_id')
       .eq('id', a.lead_id)
       .maybeSingle();
     const { data: unidade } = await supabase
