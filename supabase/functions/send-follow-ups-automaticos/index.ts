@@ -95,9 +95,7 @@ Deno.serve(async (req) => {
     const dryRun = body?.dry_run === true;
     const force = body?.force === true; // ignora check de fim de semana
 
-    const brasilia = getBrasiliaNow();
-    const dayOfWeek = brasilia.getDay(); // 0=dom, 6=sab
-    const todayStr = brasilia.toISOString().split('T')[0];
+    const { dateStr: todayStr, dayOfWeek } = getBrasiliaParts();
 
     // Bloquear envio em fim de semana (a menos que force=true)
     if (!force && (dayOfWeek === 0 || dayOfWeek === 6)) {
@@ -108,11 +106,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { dateStr: todayStr, dayOfWeek } = getBrasiliaParts();
-
-    // Bloquear envio em fim de semana (a menos que force=true) — sobrescreve checagem acima
-    if (!force && (dayOfWeek === 0 || dayOfWeek === 6)) {
-      console.log(`[follow-ups-auto] Pulando envio: fim de semana (dia ${dayOfWeek})`);
+    console.log(`[follow-ups-auto] Brasília hoje=${todayStr}`);
       return new Response(
         JSON.stringify({ success: true, sent: 0, message: 'Fim de semana, envio pulado' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
