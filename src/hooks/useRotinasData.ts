@@ -4,6 +4,7 @@ import { useUnidade } from '@/contexts/UnidadeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/utils/errorMessages';
+import { getTodayInBrasilia } from '@/lib/brasilia';
 
 async function sendRotinaWhatsApp(responsavel: string, rotinaNome: string, rotinaDescricao: string | null, unidadeNome: string, creatorName: string): Promise<{ success: boolean; reason?: string }> {
   if (!responsavel) return { success: false, reason: 'no_responsavel' };
@@ -112,7 +113,7 @@ export function useRotinasData() {
       const [rotinasRes, atividadesRes, execucoesRes] = await Promise.all([
         supabase.from('rotinas').select('*').eq('unidade_id', unidadeAtual.id).order('setor').order('nome'),
         supabase.from('rotina_atividades').select('*').order('ordem'),
-        supabase.from('rotina_execucoes').select('*').eq('unidade_id', unidadeAtual.id).eq('data_execucao', new Date().toISOString().split('T')[0]),
+        supabase.from('rotina_execucoes').select('*').eq('unidade_id', unidadeAtual.id).eq('data_execucao', getTodayInBrasilia()),
       ]);
 
       if (rotinasRes.data) setRotinas(rotinasRes.data as Rotina[]);
@@ -224,7 +225,7 @@ export function useRotinasData() {
 
   const toggleExecucao = useCallback(async (rotinaId: string, atividadeId: string | null, concluida: boolean) => {
     if (!unidadeAtual?.id) return;
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayInBrasilia();
     const existing = execucoes.find(e => e.rotina_id === rotinaId && e.atividade_id === atividadeId && e.data_execucao === today);
     
     if (existing) {

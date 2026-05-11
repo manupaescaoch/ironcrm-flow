@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { addMonths, differenceInDays, parseISO, isValid, isToday } from 'date-fns';
+import { formatDateLocal } from '@/lib/brasilia';
 
 export type VencimentoStatus = 'vencido' | 'urgente' | 'atencao' | 'proximo' | 'ok' | 'inadimplente';
 
