@@ -281,6 +281,53 @@ Aguardamos você! 💪`;
       </AlertDialogContent>
     </AlertDialog>
 
+    <AlertDialog open={!!presencaDialogItem} onOpenChange={(open) => !open && setPresencaDialogItem(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirmar presença deste lead?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {presencaDialogItem?.lead.nome} será marcado como presente.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              const item = presencaDialogItem;
+              setPresencaDialogItem(null);
+              if (item) handleMarcarPresenca(item, true);
+            }}
+          >
+            Confirmar presença
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <AlertDialog open={!!naoCompareceuDialogItem} onOpenChange={(open) => !open && setNaoCompareceuDialogItem(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirmar que este lead não compareceu?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {naoCompareceuDialogItem?.lead.nome} será marcado como não compareceu.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => {
+              const item = naoCompareceuDialogItem;
+              setNaoCompareceuDialogItem(null);
+              if (item) handleNaoCompareceu(item);
+            }}
+          >
+            Confirmar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="flex items-center gap-2">
