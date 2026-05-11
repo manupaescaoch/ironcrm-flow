@@ -86,16 +86,48 @@ export default function Login() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Senha</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                autoComplete="current-password"
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                tabIndex={-1}
+                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Dica: digite a senha manualmente. O preenchimento automático do navegador pode usar uma senha antiga.
+            </p>
           </div>
+
+          {errorMsg && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Erro ao entrar</AlertTitle>
+              <AlertDescription>
+                {errorMsg}
+                {failedAttempts >= 2 && (
+                  <div className="mt-2">
+                    Continua sem conseguir? <Link to="/forgot-password" className="underline font-medium">Redefina sua senha</Link>.
+                  </div>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
           <Button 
             className="w-full" 
             onClick={handleLogin}
