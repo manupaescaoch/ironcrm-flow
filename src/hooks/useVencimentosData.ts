@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { addMonths, differenceInDays, parseISO, isValid, isToday } from 'date-fns';
+import { formatDateLocal } from '@/lib/brasilia';
 
 export type VencimentoStatus = 'vencido' | 'urgente' | 'atencao' | 'proximo' | 'ok' | 'inadimplente';
 
@@ -154,7 +155,7 @@ export function useVencimentosData(filters: VencimentosFilters = { status: 'todo
         const diasRestantes = differenceInDays(dataVencimento, hoje);
         
         // Verificar se pagamento foi confirmado para este ciclo
-        const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
+        const dataVencimentoStr = formatDateLocal(dataVencimento);
         const pagamentoConfirmado = pagamentosConfirmadosSet.has(`${item.id}_${dataVencimentoStr}`);
         
         // Determinar status: se vencido e não pago = inadimplente
