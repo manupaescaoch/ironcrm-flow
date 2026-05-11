@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { EventoItem } from '@/components/dashboard/EventosHoje';
 import { mapToEventoItem, sortEventosByTime } from '@/utils/dashboardMappers';
-import { format, addDays } from 'date-fns';
+import { format } from 'date-fns';
 import { addDaysToDateOnly, getTodayInBrasilia } from '@/lib/brasilia';
 
 interface UseDashboardEventosReturn {
