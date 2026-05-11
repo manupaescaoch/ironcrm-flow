@@ -137,7 +137,7 @@ export default function Login() {
             Entrar
           </Button>
           <div className="text-center">
-            <Link to="/forgot-password" className="text-sm text-muted-foreground hover:text-foreground">
+            <Link to={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`} className="text-sm text-muted-foreground hover:text-foreground">
               Esqueci minha senha
             </Link>
           </div>
