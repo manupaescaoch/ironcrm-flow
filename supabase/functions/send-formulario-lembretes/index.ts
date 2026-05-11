@@ -113,16 +113,26 @@ Deno.serve(async (req) => {
       return diff >= 30 && diff <= 240;
     });
 
-    console.log(`[lembretes] ${candidatos.length} candidato(s) na janela`);
+    const candidatosUnicos = Array.from(new Map(
+      candidatos.map((a) => {
+        const tipo = detectTipo(a.titulo)!;
+        const resp = a.responsavel as any;
+        const turno = (resp?.turno && resp.turno !== 'integral' ? resp.turno : inferTurno(a.horario)).toUpperCase();
+        const chaveBase = `${br.dateStr}_${a.unidade_id}_${turno}_${resp?.id || 'sem_responsavel'}_${tipo}`;
+        return [chaveBase, a] as const;
+      })
+    ).values());
 
-    if (candidatos.length === 0) {
+    console.log(`[lembretes] ${candidatos.length} candidato(s) na janela, ${candidatosUnicos.length} após deduplicação`);
+
+    if (candidatosUnicos.length === 0) {
       return new Response(JSON.stringify({ ok: true, sent: 0, candidatos: 0 }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     // 2. Mapas auxiliares
-    const unidadeIds = [...new Set(candidatos.map(c => c.unidade_id))];
+    const unidadeIds = [...new Set(candidatosUnicos.map(c => c.unidade_id))];
     const { data: unidades } = await supabase
       .from('unidades').select('id, nome').in('id', unidadeIds);
     const uMap = new Map((unidades || []).map(u => [u.id, u.nome]));
@@ -152,16 +162,12 @@ Deno.serve(async (req) => {
       relatorio_diario: respRel.data || [],
     };
 
-    function jaPreenchido(tipo: FormTipo, unidadeShort: string, nome: string, turno: string): boolean {
+    function jaPreenchido(tipo: FormTipo, unidadeShort: string, turno: string): boolean {
       const lista = respMap[tipo];
-      const nomeUp = (nome || '').toUpperCase().trim();
       const turnoUp = (turno || '').toUpperCase().trim();
       return lista.some((r: any) => {
         const ru = (r.unidade || '').toUpperCase().trim();
         if (ru !== unidadeShort) return false;
-        const rn = (r.nome || '').toUpperCase().trim();
-        // Exige match de nome quando disponível
-        if (nomeUp && rn && rn !== nomeUp) return false;
         if (tipo === 'coordenador_unidade' || tipo === 'coordenador_horario') {
           const rt = (r.turno || '').toUpperCase().trim();
           if (rt && turnoUp && rt !== turnoUp) return false;
@@ -180,7 +186,7 @@ Deno.serve(async (req) => {
     const ZAPI_URL = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
     const results: any[] = [];
 
-    for (const a of candidatos) {
+    for (const a of candidatosUnicos) {
       const tipo = detectTipo(a.titulo)!;
       const resp = a.responsavel as any;
       if (!resp || !resp.telefone) continue;
@@ -188,7 +194,7 @@ Deno.serve(async (req) => {
       const unidadeNome = uMap.get(a.unidade_id) || '';
       const unidadeShort = unidadeNomeShort(unidadeNome);
       const turno = (resp.turno && resp.turno !== 'integral' ? resp.turno : inferTurno(a.horario)).toUpperCase();
-      const chave = `${br.dateStr}_${a.unidade_id}_${turno}_${resp.id}_${a.id}`;
+      const chave = `${br.dateStr}_${a.unidade_id}_${turno}_${resp.id}_${tipo}`;
 
       const existente = lembreteMap.get(chave);
       if (existente && existente.status_lembrete === 'enviado') {
@@ -201,7 +207,7 @@ Deno.serve(async (req) => {
       }
 
       // Verifica preenchimento
-      if (jaPreenchido(tipo, unidadeShort, resp.nome, turno)) {
+      if (jaPreenchido(tipo, unidadeShort, turno)) {
         await supabase.from('formulario_lembretes').upsert({
           chave, data: br.dateStr, unidade_id: a.unidade_id, unidade_nome: unidadeShort,
           turno, atividade_id: a.id, formulario_tipo: tipo, formulario_titulo: TIPO_LABEL[tipo],
