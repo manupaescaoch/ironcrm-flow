@@ -107,13 +107,6 @@ Deno.serve(async (req) => {
     }
 
     console.log(`[follow-ups-auto] Brasília hoje=${todayStr}`);
-      return new Response(
-        JSON.stringify({ success: true, sent: 0, message: 'Fim de semana, envio pulado' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log(`[follow-ups-auto] Brasília hoje=${todayStr}`);
 
     // Buscar follow-ups pendentes com data_prevista <= hoje
     const { data: followUps, error: fuErr } = await supabase
