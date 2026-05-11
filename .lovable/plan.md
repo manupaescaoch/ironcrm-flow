@@ -1,41 +1,23 @@
-## Objetivo
+## Mudar cron de 15 min → 3 min
 
-Tornar o **telefone o identificador único** dos leads e impedir cadastros duplicados. Padronizar o campo para aceitar **apenas números** (sem traços, parênteses ou espaços) tanto no cadastro quanto na edição.
+Atualmente o job `send-cronograma-messages-every-15min` (jobid 7) roda a cada 15 minutos com janela de -2 a +12 min. Se um disparo falhar, só tenta de novo no próximo ciclo (15 min depois) — e como a janela do próximo ciclo já não cobre o horário antigo, **a mensagem é perdida**.
 
-## Escopo
+### Proposta
 
-### 1. Padronizar input de telefone (somente números)
+Rodar a cada **3 minutos**, com janela ajustada para **-2 a +20 min**.
 
-Em todos os formulários de cadastro/edição de lead:
-- `src/pages/CRM.tsx` — modal "Novo Lead" (linha ~1058)
-- `src/pages/LeadDetail.tsx` — edição de lead (linha ~663)
-- `src/pages/CRM.tsx` — importação CSV/XLSX (já normaliza, apenas reforçar)
+Assim:
+- Cada horário `:40` é coberto por ~7 execuções consecutivas
+- Se Z-API/edge falhar em uma execução, a próxima (3 min depois) tenta de novo
+- A proteção contra duplicação via `cronograma_envios` (já existente) garante que cada destinatário receba apenas 1 mensagem por atividade/dia
 
-Comportamento do campo:
-- `inputMode="numeric"` e `pattern="[0-9]*"` para abrir teclado numérico em mobile
-- `onChange` filtra qualquer caractere não numérico (`value.replace(/\D/g, '')`)
-- `maxLength={11}` (DDD + 9 dígitos)
-- `placeholder="11999999999"` (sem máscara visual)
-- Validação Zod: `z.string().regex(/^\d{10,11}$/, 'Telefone deve ter 10 ou 11 dígitos numéricos')`
+### Mudanças
 
-### 2. Reforçar checagem de duplicidade no front (CRM "Novo Lead")
+1. **Cron job** (jobid 7): reagendar de `*/15 * * * *` para `*/3 * * * *` e renomear para `send-cronograma-messages-every-3min`
+2. **Edge function `send-cronograma-messages`**: ampliar janela de `+12` para `+20` minutos para garantir recuperação dentro da nova frequência
 
-Hoje a checagem em `CRM.tsx` (linha 400) filtra **por unidade**. Como o telefone agora é o ID global do lead:
-- Remover o filtro `eq('unidade_id', unidadeAtual.id)` da query de duplicidade
-- Mensagem de erro deve informar a unidade do lead duplicado quando for de outra unidade  
-  Exemplo: "Telefone já cadastrado para BRUNA ALENCAR na unidade Iron Zona Norte."
+### Riscos
 
-### 3. Banco de dados
-
-O trigger `check_duplicate_lead` já valida duplicidade global por telefone normalizado (em leads ativos). Nenhuma migração necessária — apenas garantir que o front envie o telefone já normalizado (apenas dígitos) no `insert/update`.
-
-## Fora de escopo
-
-- Não alterar leads históricos já gravados com máscara (`(11) 99999-9999`) — a normalização do trigger já cuida disso na comparação.
-- Não mexer em telefones de fornecedores, funcionários ou usuários.
-- Sem mudanças em backend functions, RLS, ou outras telas.
-
-## Arquivos afetados
-
-- `src/pages/CRM.tsx` — input do modal Novo Lead + remoção do filtro de unidade na checagem de duplicidade + schema Zod
-- `src/pages/LeadDetail.tsx` — input de telefone na edição
+- Aumento de ~5x nas execuções do cron (de 96/dia para 480/dia) — desprezível
+- Logs ficam mais verbosos, mas a maioria das execuções retornará "Nenhuma atividade na janela atual"
+- Sem risco de duplicação (já tratado pela tabela `cronograma_envios`)
