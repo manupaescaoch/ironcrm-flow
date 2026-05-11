@@ -600,7 +600,7 @@ export function CronogramaTab() {
               {weekDates.map((date, dayIdx) => {
                 const items = atividadesByHourDay[`${hour}-${dayIdx}`] || [];
                 const rotinaItems = rotinasByHourDay[`${hour}-${dayIdx}`] || [];
-                const isToday = date.toISOString().split('T')[0] === todayStr;
+                const isToday = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` === todayStr;
                 return (
                   <div key={dayIdx} className={cn('border-r last:border-r-0 p-0.5 relative overflow-hidden', isToday && 'bg-primary/[0.02]')}>
                     {items.map(atv => (
