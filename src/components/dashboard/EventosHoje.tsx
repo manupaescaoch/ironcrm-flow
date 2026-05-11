@@ -55,36 +55,12 @@ Se vocÃª curtiu e quiser fazer parte do time, fico feliz em te ajudar com os prÃ
 
 export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps) {
   const { toast } = useToast();
-  const [observations, setObservations] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [treinadores, setTreinadores] = useState<Record<string, string>>({});
+  const [savedTreinador, setSavedTreinador] = useState<Record<string, boolean>>({});
   const [followUpDialogItem, setFollowUpDialogItem] = useState<EventoItem | null>(null);
-  const [anamneseMap, setAnamneseMap] = useState<Record<string, boolean>>({});
-  const [lembreteMap, setLembreteMap] = useState<Record<string, { at: string | null; tipo: '24h' | '2h' } | null>>({});
-
-  useEffect(() => {
-    const leadIds = Array.from(new Set(items.filter(i => i.tipoEvento === 'experimental').map(i => i.lead.id)));
-    if (leadIds.length === 0) {
-      setAnamneseMap({});
-      setLembreteMap({});
-      return;
-    }
-    (async () => {
-      const [anamRes, leadsRes] = await Promise.all([
-        supabase.from('anamneses_experimental').select('lead_id').in('lead_id', leadIds),
-        supabase.from('leads').select('id, confirmacao_24h_enviada_em, confirmacao_2h_enviada_em').in('id', leadIds),
-      ]);
-      const am: Record<string, boolean> = {};
-      anamRes.data?.forEach((r: any) => { am[r.lead_id] = true; });
-      setAnamneseMap(am);
-      const lm: Record<string, { at: string | null; tipo: '24h' | '2h' } | null> = {};
-      leadsRes.data?.forEach((r: any) => {
-        if (r.confirmacao_2h_enviada_em) lm[r.id] = { at: r.confirmacao_2h_enviada_em, tipo: '2h' };
-        else if (r.confirmacao_24h_enviada_em) lm[r.id] = { at: r.confirmacao_24h_enviada_em, tipo: '24h' };
-      });
-      setLembreteMap(lm);
-    })();
-  }, [items]);
+  const [presencaDialogItem, setPresencaDialogItem] = useState<EventoItem | null>(null);
+  const [naoCompareceuDialogItem, setNaoCompareceuDialogItem] = useState<EventoItem | null>(null);
 
   const handleMarcarPresenca = async (item: EventoItem, checked: boolean) => {
     const treinadorSelecionado = treinadores[item.interacao.id] || item.interacao.treinador_experimental;
