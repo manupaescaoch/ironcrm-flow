@@ -632,37 +632,41 @@ export default function CRM() {
   };
 
   const parseDate = (dateStr: string): string => {
+    // Constrói ISO ancorado em BRT (-03:00) para evitar drift de fuso
+    const toBrtIso = (y: number, m: number, d: number) =>
+      `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T00:00:00-03:00`;
+
     if (!dateStr) return new Date().toISOString();
-    
+
     // Handle Excel serial date numbers
     const num = Number(dateStr);
     if (!isNaN(num) && num > 10000) {
       const excelEpoch = new Date(1899, 11, 30);
       const date = new Date(excelEpoch.getTime() + num * 24 * 60 * 60 * 1000);
-      return date.toISOString();
+      return toBrtIso(date.getFullYear(), date.getMonth() + 1, date.getDate());
     }
-    
+
     const formats = [
       /^(\d{2})\/(\d{2})\/(\d{4})$/,
       /^(\d{4})-(\d{2})-(\d{2})$/,
       /^(\d{2})-(\d{2})-(\d{4})$/,
     ];
-    
+
     for (const fmt of formats) {
       const match = dateStr.match(fmt);
       if (match) {
-        if (fmt === formats[0]) {
-          return new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1])).toISOString();
-        } else if (fmt === formats[1]) {
-          return new Date(dateStr).toISOString();
-        } else if (fmt === formats[2]) {
-          return new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1])).toISOString();
+        if (fmt === formats[0] || fmt === formats[2]) {
+          return toBrtIso(parseInt(match[3]), parseInt(match[2]), parseInt(match[1]));
+        } else {
+          return toBrtIso(parseInt(match[1]), parseInt(match[2]), parseInt(match[3]));
         }
       }
     }
-    
+
     const parsed = new Date(dateStr);
-    return isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+    return isNaN(parsed.getTime())
+      ? new Date().toISOString()
+      : toBrtIso(parsed.getFullYear(), parsed.getMonth() + 1, parsed.getDate());
   };
 
   const validateStatusFunil = (status: string): StatusFunil => {
