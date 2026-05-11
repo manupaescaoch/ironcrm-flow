@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,13 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Calendar, Clock, Save, RefreshCw, MessageCircle, Activity, User, ChevronDown, UserX, FileText, BellRing } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Calendar, Clock, Save, RefreshCw, MessageCircle, Activity, User, UserX, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/utils/errorMessages';
@@ -61,36 +55,12 @@ Se você curtiu e quiser fazer parte do time, fico feliz em te ajudar com os pr�
 
 export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps) {
   const { toast } = useToast();
-  const [observations, setObservations] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [treinadores, setTreinadores] = useState<Record<string, string>>({});
+  const [savedTreinador, setSavedTreinador] = useState<Record<string, boolean>>({});
   const [followUpDialogItem, setFollowUpDialogItem] = useState<EventoItem | null>(null);
-  const [anamneseMap, setAnamneseMap] = useState<Record<string, boolean>>({});
-  const [lembreteMap, setLembreteMap] = useState<Record<string, { at: string | null; tipo: '24h' | '2h' } | null>>({});
-
-  useEffect(() => {
-    const leadIds = Array.from(new Set(items.filter(i => i.tipoEvento === 'experimental').map(i => i.lead.id)));
-    if (leadIds.length === 0) {
-      setAnamneseMap({});
-      setLembreteMap({});
-      return;
-    }
-    (async () => {
-      const [anamRes, leadsRes] = await Promise.all([
-        supabase.from('anamneses_experimental').select('lead_id').in('lead_id', leadIds),
-        supabase.from('leads').select('id, confirmacao_24h_enviada_em, confirmacao_2h_enviada_em').in('id', leadIds),
-      ]);
-      const am: Record<string, boolean> = {};
-      anamRes.data?.forEach((r: any) => { am[r.lead_id] = true; });
-      setAnamneseMap(am);
-      const lm: Record<string, { at: string | null; tipo: '24h' | '2h' } | null> = {};
-      leadsRes.data?.forEach((r: any) => {
-        if (r.confirmacao_2h_enviada_em) lm[r.id] = { at: r.confirmacao_2h_enviada_em, tipo: '2h' };
-        else if (r.confirmacao_24h_enviada_em) lm[r.id] = { at: r.confirmacao_24h_enviada_em, tipo: '24h' };
-      });
-      setLembreteMap(lm);
-    })();
-  }, [items]);
+  const [presencaDialogItem, setPresencaDialogItem] = useState<EventoItem | null>(null);
+  const [naoCompareceuDialogItem, setNaoCompareceuDialogItem] = useState<EventoItem | null>(null);
 
   const handleMarcarPresenca = async (item: EventoItem, checked: boolean) => {
     const treinadorSelecionado = treinadores[item.interacao.id] || item.interacao.treinador_experimental;
@@ -165,25 +135,6 @@ export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps)
     setLoading(prev => ({ ...prev, [item.interacao.id]: false }));
   };
 
-  const handleSaveObs = async (item: EventoItem) => {
-    const obs = observations[item.interacao.id];
-    if (!obs) return;
-
-    setLoading(prev => ({ ...prev, [`obs-${item.interacao.id}`]: true }));
-    
-    const { error } = await supabase
-      .from('interacoes')
-      .update({ descricao: obs })
-      .eq('id', item.interacao.id);
-
-    if (error) {
-      toast({ title: 'Erro ao salvar observação', description: getErrorMessage(error), variant: 'destructive' });
-    } else {
-      toast({ title: 'Observação salva!' });
-    }
-    
-    setLoading(prev => ({ ...prev, [`obs-${item.interacao.id}`]: false }));
-  };
 
   const getPrimeiroNome = (nomeCompleto: string): string => {
     return nomeCompleto.split(' ')[0];
@@ -330,6 +281,53 @@ Aguardamos você! 💪`;
       </AlertDialogContent>
     </AlertDialog>
 
+    <AlertDialog open={!!presencaDialogItem} onOpenChange={(open) => !open && setPresencaDialogItem(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirmar presença deste lead?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {presencaDialogItem?.lead.nome} será marcado como presente.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              const item = presencaDialogItem;
+              setPresencaDialogItem(null);
+              if (item) handleMarcarPresenca(item, true);
+            }}
+          >
+            Confirmar presença
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <AlertDialog open={!!naoCompareceuDialogItem} onOpenChange={(open) => !open && setNaoCompareceuDialogItem(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirmar que este lead não compareceu?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {naoCompareceuDialogItem?.lead.nome} será marcado como não compareceu.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => {
+              const item = naoCompareceuDialogItem;
+              setNaoCompareceuDialogItem(null);
+              if (item) handleNaoCompareceu(item);
+            }}
+          >
+            Confirmar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="flex items-center gap-2">
@@ -387,56 +385,17 @@ Aguardamos você! 💪`;
                   </div>
                 </div>
 
-                {item.tipoEvento === 'experimental' && (() => {
-                  const anamneseOk = !!anamneseMap[item.lead.id];
-                  const lembrete = lembreteMap[item.lead.id];
-                  const lembreteOk = !!lembrete;
-                  return (
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline" className={anamneseOk
-                        ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
-                        : 'bg-zinc-100 text-zinc-600 border-zinc-300'}>
-                        <FileText className="w-3 h-3 mr-1" />
-                        {anamneseOk ? 'Anamnese preenchida' : 'Anamnese pendente'}
-                      </Badge>
-                      <Badge variant="outline" className={lembreteOk
-                        ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
-                        : 'bg-zinc-100 text-zinc-600 border-zinc-300'}>
-                        <BellRing className="w-3 h-3 mr-1" />
-                        {lembreteOk
-                          ? `Lembrete ${lembrete!.tipo} enviado às ${format(new Date(lembrete!.at as string), 'HH:mm', { locale: ptBR })}`
-                          : 'Lembrete pendente'}
-                      </Badge>
-                    </div>
-                  );
-                })()}
-
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="Obs. rápida"
-                    value={observations[item.interacao.id] || item.interacao.descricao || ''}
-                    onChange={(e) => setObservations(prev => ({ ...prev, [item.interacao.id]: e.target.value }))}
-                    onBlur={() => handleSaveObs(item)}
-                    className="flex-1 h-8 text-sm"
-                  />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleSaveObs(item)}
-                    disabled={loading[`obs-${item.interacao.id}`]}
-                  >
-                    <Save className="w-4 h-4" />
-                  </Button>
-                </div>
-
                 {item.tipoEvento === 'experimental' && (
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-muted-foreground" />
                     <Input
                       placeholder="Nome do treinador"
                       value={treinadores[item.interacao.id] ?? item.interacao.treinador_experimental ?? ''}
-                      onChange={(e) => setTreinadores(prev => ({ ...prev, [item.interacao.id]: e.target.value.toUpperCase() }))}
-                      className="h-8 w-[160px] text-sm"
+                      onChange={(e) => {
+                        setTreinadores(prev => ({ ...prev, [item.interacao.id]: e.target.value.toUpperCase() }));
+                        setSavedTreinador(prev => ({ ...prev, [item.interacao.id]: false }));
+                      }}
+                      className="flex-1 h-8 text-sm"
                       list={`treinadores-${item.interacao.id}`}
                     />
                     <datalist id={`treinadores-${item.interacao.id}`}>
@@ -446,7 +405,7 @@ Aguardamos você! 💪`;
                     </datalist>
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant="outline"
                       disabled={loading[`treinador-${item.interacao.id}`]}
                       onClick={async () => {
                         const value = (treinadores[item.interacao.id] ?? item.interacao.treinador_experimental ?? '').trim().toUpperCase();
@@ -462,7 +421,8 @@ Aguardamos você! 💪`;
                         if (error) {
                           toast({ title: 'Erro ao salvar treinador', description: getErrorMessage(error), variant: 'destructive' });
                         } else {
-                          toast({ title: 'Treinador salvo!' });
+                          toast({ title: 'Treinador salvo com sucesso' });
+                          setSavedTreinador(prev => ({ ...prev, [item.interacao.id]: true }));
                           onRefresh();
                         }
                         setLoading(prev => ({ ...prev, [`treinador-${item.interacao.id}`]: false }));
@@ -472,38 +432,47 @@ Aguardamos você! 💪`;
                     </Button>
                   </div>
                 )}
+                {item.tipoEvento === 'experimental' && savedTreinador[item.interacao.id] && (
+                  <p className="text-xs text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Treinador salvo com sucesso
+                  </p>
+                )}
 
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t">
                   <div className="flex items-center gap-2">
-                    <Switch
-                      checked={getPresencaChecked(item)}
-                      onCheckedChange={(checked) => handleMarcarPresenca(item, checked)}
-                      disabled={loading[item.interacao.id]}
-                    />
-                    <span className="text-sm">Marcar Presença</span>
+                    {getPresencaChecked(item) ? (
+                      <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-300">
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                        Presença marcada
+                      </Badge>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={false}
+                          onCheckedChange={() => setPresencaDialogItem(item)}
+                          disabled={loading[item.interacao.id]}
+                        />
+                        <span className="text-sm">Marcar Presença</span>
+                      </div>
+                    )}
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button size="sm" variant="outline">
-                        <RefreshCw className="w-4 h-4 mr-1" />
-                        Ações
-                        <ChevronDown className="w-3 h-3 ml-1" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onReagendar(item)}>
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Reagendar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleNaoCompareceu(item)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <UserX className="w-4 h-4 mr-2" />
-                        Não Compareceu
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => onReagendar(item)}>
+                      <RefreshCw className="w-4 h-4 mr-1" />
+                      Reagendar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => setNaoCompareceuDialogItem(item)}
+                      disabled={loading[item.interacao.id]}
+                    >
+                      <UserX className="w-4 h-4 mr-1" />
+                      Não compareceu
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
