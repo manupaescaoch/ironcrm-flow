@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { normalizePhoneForWhatsApp } from '@/components/WhatsAppLink';
 import { EventoItem } from './EventosHoje';
+import { formatTimestampInBrasilia, getCurrentHourInBrasilia } from '@/lib/brasilia';
 
 interface ConfirmacoesAmanhaProps {
   items: EventoItem[];
@@ -26,7 +27,7 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
   const [anamneseMap, setAnamneseMap] = useState<Record<string, boolean>>({});
   const [lembreteMap, setLembreteMap] = useState<Record<string, string | null>>({});
 
-  const currentHour = new Date().getHours();
+  const currentHour = getCurrentHourInBrasilia();
   const isLateWarning = currentHour >= 20;
 
   useEffect(() => {
@@ -186,8 +187,8 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
                       ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
                       : 'bg-zinc-100 text-zinc-600 border-zinc-300'}>
                       <BellRing className="w-3 h-3 mr-1" />
-                      {lembreteOk
-                        ? `Lembrete 24h enviado às ${format(new Date(lembreteMap[item.lead.id] as string), 'HH:mm', { locale: ptBR })}`
+                        {lembreteOk
+                        ? `Lembrete 24h enviado às ${formatTimestampInBrasilia(lembreteMap[item.lead.id] as string).slice(-5)}`
                         : 'Lembrete pendente'}
                     </Badge>
                   </div>
