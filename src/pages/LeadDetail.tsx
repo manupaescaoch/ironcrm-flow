@@ -314,7 +314,7 @@ export default function LeadDetail() {
     setSavingMotivo(true);
 
     const observacaoFinal = observacao.trim()
-      ? `${lead.observacoes || ''}\n\n[Motivo da Perda - ${format(new Date(), 'dd/MM/yyyy')}]: ${observacao}`.trim()
+      ? `${lead.observacoes || ''}\n\n[Motivo da Perda - ${formatTimestampInBrasilia(new Date(), { dateOnly: true })}]: ${observacao}`.trim()
       : lead.observacoes;
 
     const { error } = await supabase
@@ -755,7 +755,7 @@ export default function LeadDetail() {
                       <p className="text-sm font-medium text-destructive">{lead.motivo_perda}</p>
                       {lead.data_perda && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          Perdido em: {format(new Date(lead.data_perda), 'dd/MM/yyyy', { locale: ptBR })}
+                          Perdido em: {formatTimestampInBrasilia(lead.data_perda, { dateOnly: true })}
                         </p>
                       )}
                     </div>
@@ -817,7 +817,7 @@ export default function LeadDetail() {
                         {interacoes.map((int) => (
                           <TableRow key={int.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openEditInteracao(int)}>
                             <TableCell className="whitespace-nowrap">
-                              {format(new Date(int.data_interacao), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                              {formatTimestampInBrasilia(int.data_interacao)}
                             </TableCell>
                             <TableCell>{int.tipo}</TableCell>
                             <TableCell>
