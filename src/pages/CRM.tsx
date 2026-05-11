@@ -1057,12 +1057,17 @@ export default function CRM() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Telefone</Label>
+                    <Label>Telefone *</Label>
                     <Input
+                      type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={11}
                       value={formData.telefone}
-                      onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                      placeholder="(11) 99999-9999"
+                      onChange={(e) => setFormData({ ...formData, telefone: e.target.value.replace(/\D/g, '') })}
+                      placeholder="11999999999"
                     />
+                    <p className="text-xs text-muted-foreground">Apenas números — DDD + telefone (10 ou 11 dígitos).</p>
                   </div>
                   <div className="space-y-2">
                     <Label>Origem *</Label>
