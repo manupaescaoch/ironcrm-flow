@@ -544,7 +544,7 @@ export function CronogramaTab() {
         <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b bg-muted/30">
           <div className="p-2 text-xs text-muted-foreground text-center border-r">GMT-03</div>
           {weekDates.map((date, i) => {
-            const isToday = date.toISOString().split('T')[0] === todayStr;
+            const isToday = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` === todayStr;
             return (
               <div key={i} className={cn('p-2 text-center border-r last:border-r-0', isToday && 'bg-primary/5')}>
                 <div className={cn('text-xs font-medium', isToday ? 'text-primary' : 'text-muted-foreground')}>{DAY_LABELS[i]}</div>
@@ -600,7 +600,7 @@ export function CronogramaTab() {
               {weekDates.map((date, dayIdx) => {
                 const items = atividadesByHourDay[`${hour}-${dayIdx}`] || [];
                 const rotinaItems = rotinasByHourDay[`${hour}-${dayIdx}`] || [];
-                const isToday = date.toISOString().split('T')[0] === todayStr;
+                const isToday = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` === todayStr;
                 return (
                   <div key={dayIdx} className={cn('border-r last:border-r-0 p-0.5 relative overflow-hidden', isToday && 'bg-primary/[0.02]')}>
                     {items.map(atv => (
