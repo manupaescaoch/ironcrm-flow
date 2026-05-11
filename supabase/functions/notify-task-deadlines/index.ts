@@ -240,13 +240,8 @@ serve(async (req) => {
 });
 
 function getTaskDateTime(prazo: string, hora_prazo: string | null): Date {
-  const date = new Date(prazo);
-  if (hora_prazo) {
-    const [hours, minutes] = hora_prazo.split(":");
-    date.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-  } else {
-    // If no time specified, default to end of day (23:59)
-    date.setHours(23, 59, 0, 0);
-  }
-  return date;
+  // prazo: "YYYY-MM-DD", hora_prazo: "HH:MM[:SS]" — interpretar em BRT (-03:00)
+  const dateOnly = prazo.slice(0, 10);
+  const time = hora_prazo ? hora_prazo.slice(0, 5) : '23:59';
+  return new Date(`${dateOnly}T${time}:00-03:00`);
 }
