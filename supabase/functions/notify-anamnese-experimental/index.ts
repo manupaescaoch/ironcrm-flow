@@ -49,9 +49,15 @@ Deno.serve(async (req) => {
       .eq('id', a.unidade_id)
       .maybeSingle();
 
-    const dataAula = lead?.data_aula_experimental
+    const dataAulaBase = lead?.data_aula_experimental
       ? new Date(lead.data_aula_experimental).toLocaleDateString('pt-BR')
       : NA;
+    const horaAula = lead?.hora_aula_experimental
+      ? String(lead.hora_aula_experimental).slice(0, 5)
+      : null;
+    const dataAula = horaAula && dataAulaBase !== NA
+      ? `${dataAulaBase} às ${horaAula}`
+      : dataAulaBase;
 
     const condicao =
       a.tem_condicao_saude === true
