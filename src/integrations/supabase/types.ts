@@ -765,6 +765,78 @@ export type Database = {
         }
         Relationships: []
       }
+      formulario_lembretes: {
+        Row: {
+          atividade_id: string | null
+          chave: string
+          created_at: string
+          data: string
+          erro_zapi: string | null
+          formulario_tipo: string
+          formulario_titulo: string | null
+          horario_lembrete: string
+          horario_previsto: string | null
+          id: string
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          responsavel_telefone: string | null
+          status_lembrete: string
+          status_preenchimento: string | null
+          tentativas: number
+          turno: string | null
+          unidade_id: string
+          unidade_nome: string | null
+          updated_at: string
+          zapi_response: Json | null
+        }
+        Insert: {
+          atividade_id?: string | null
+          chave: string
+          created_at?: string
+          data: string
+          erro_zapi?: string | null
+          formulario_tipo: string
+          formulario_titulo?: string | null
+          horario_lembrete?: string
+          horario_previsto?: string | null
+          id?: string
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          responsavel_telefone?: string | null
+          status_lembrete: string
+          status_preenchimento?: string | null
+          tentativas?: number
+          turno?: string | null
+          unidade_id: string
+          unidade_nome?: string | null
+          updated_at?: string
+          zapi_response?: Json | null
+        }
+        Update: {
+          atividade_id?: string | null
+          chave?: string
+          created_at?: string
+          data?: string
+          erro_zapi?: string | null
+          formulario_tipo?: string
+          formulario_titulo?: string | null
+          horario_lembrete?: string
+          horario_previsto?: string | null
+          id?: string
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          responsavel_telefone?: string | null
+          status_lembrete?: string
+          status_preenchimento?: string | null
+          tentativas?: number
+          turno?: string | null
+          unidade_id?: string
+          unidade_nome?: string | null
+          updated_at?: string
+          zapi_response?: Json | null
+        }
+        Relationships: []
+      }
       formulario_respostas: {
         Row: {
           created_at: string
