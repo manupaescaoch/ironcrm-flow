@@ -109,21 +109,22 @@ async function calcularUnidade(
 }
 
 function blocoUnidade(nome: string, sigla: string, u: any) {
-  return `*${sigla} — ${nome}*
-Leads qualificados: ${u.totalLeads}
-Aulas agendadas: ${u.agendamentos}
-Comparecimentos: ${u.comparecimentos}
-Matrículas / convertidos: ${u.matriculas}
-Fechamento no dia: ${u.fechamentoNoDia} (${fmtPct(u.pctFechamentoDia)})
-Conversão: ${fmtPct(u.conversao)}
-Taxa de comparecimento: ${fmtPct(u.taxaComparecimento)}
+  return `🏢 *${sigla} — ${nome}*
 
-Origem dos leads:
-- Instagram: ${u.origens['INSTAGRAM']}
-- Indicação: ${u.origens['INDICAÇÃO']}
-- Visita Presencial: ${u.origens['VISITA PRESENCIAL']}
-- Tráfego Pago: ${u.origens['TRÁFEGO PAGO']}
-- Outros: ${u.origens['OUTROS']}`
+• 📈 *Leads qualificados:* ${u.totalLeads}
+• 📅 *Aulas agendadas:* ${u.agendamentos}
+• ✅ *Comparecimentos:* ${u.comparecimentos}
+• 💳 *Matrículas:* ${u.matriculas}
+• ⚡ *Fechamento no dia:* ${u.fechamentoNoDia} (${fmtPct(u.pctFechamentoDia)})
+• ⭐ *Conversão:* ${fmtPct(u.conversao)}
+• 🌟 *Taxa de comparecimento:* ${fmtPct(u.taxaComparecimento)}
+
+📌 *Origem dos leads*
+• Instagram: ${u.origens['INSTAGRAM']}
+• Indicação: ${u.origens['INDICAÇÃO']}
+• Visita Presencial: ${u.origens['VISITA PRESENCIAL']}
+• Tráfego Pago: ${u.origens['TRÁFEGO PAGO']}
+• Outros: ${u.origens['OUTROS']}`
 }
 
 Deno.serve(async (req) => {
@@ -186,8 +187,10 @@ Deno.serve(async (req) => {
       return `${d}/${m}`
     }
 
-    const msg = `📊 *RESUMO SEMANAL CRM*
-*Período: ${fmtDate(inicio)} a ${fmtDate(fim)}*
+    const msg = `📈 *RESUMO SEMANAL CRM*
+📅 *Período:* ${fmtDate(inicio)} a ${fmtDate(fim)}
+
+———
 
 ${blocoUnidade('Zona Norte', 'ZN', zn)}
 
@@ -197,14 +200,15 @@ ${blocoUnidade('Zona Sul', 'ZS', zs)}
 
 ———
 
-*CONSOLIDADO*
-Total de leads qualificados: ${totalLeads}
-Total de aulas agendadas: ${totalAgend}
-Total de comparecimentos: ${totalComp}
-Total de matrículas / convertidos: ${totalMatr}
-Fechamento no dia: ${totalFechDia} (${fmtPct(pctFechDiaGeral)})
-Conversão geral: ${fmtPct(conversaoGeral)}
-Taxa geral de comparecimento: ${fmtPct(taxaCompGeral)}`
+🌟 *CONSOLIDADO*
+
+• 📈 *Total de leads qualificados:* ${totalLeads}
+• 📅 *Total de aulas agendadas:* ${totalAgend}
+• ✅ *Total de comparecimentos:* ${totalComp}
+• 💳 *Total de matrículas:* ${totalMatr}
+• ⚡ *Fechamento no dia:* ${totalFechDia} (${fmtPct(pctFechDiaGeral)})
+• ⭐ *Conversão geral:* ${fmtPct(conversaoGeral)}
+• 🌟 *Taxa geral de comparecimento:* ${fmtPct(taxaCompGeral)}`
 
     // Enviar resposta
     const instanceId = Deno.env.get('ZAPI_INSTANCE_ID')!
