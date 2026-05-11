@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
     // 4. Buscar lembretes já registrados hoje
     const { data: lembretesHoje } = await supabase
       .from('formulario_lembretes')
-      .select('chave, status_lembrete, tentativas')
+      .select('chave, status_lembrete, tentativas, formulario_tipo, unidade_id, turno, responsavel_id, data')
       .eq('data', br.dateStr);
     const lembreteMap = new Map((lembretesHoje || []).map((l: any) => [l.chave, l]));
 
@@ -196,7 +196,13 @@ Deno.serve(async (req) => {
       const turno = (resp.turno && resp.turno !== 'integral' ? resp.turno : inferTurno(a.horario)).toUpperCase();
       const chave = `${br.dateStr}_${a.unidade_id}_${turno}_${resp.id}_${tipo}`;
 
-      const existente = lembreteMap.get(chave);
+      const existente = lembreteMap.get(chave) || (lembretesHoje || []).find((l: any) => (
+        l.data === br.dateStr &&
+        l.unidade_id === a.unidade_id &&
+        l.turno === turno &&
+        l.responsavel_id === resp.id &&
+        l.formulario_tipo === tipo
+      ));
       if (existente && existente.status_lembrete === 'enviado') {
         results.push({ chave, status: 'ignorado_duplicidade' });
         continue;
