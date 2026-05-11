@@ -13,16 +13,21 @@ function normalizePhone(phone: string): string {
   return normalized;
 }
 
-/** Retorna hora Brasília atual */
+/** Retorna hora Brasília atual (via Intl) */
 function getBrasiliaTime() {
   const now = new Date();
-  const brasiliaStr = now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
-  const brasilia = new Date(brasiliaStr);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(now);
+  const v = Object.fromEntries(parts.map(p => [p.type, p.value]));
+  const brasiliaDate = new Date(`${v.year}-${v.month}-${v.day}T12:00:00Z`);
   return {
-    hour: brasilia.getHours(),
-    minute: brasilia.getMinutes(),
-    dayOfWeek: brasilia.getDay(), // 0=Dom, 1=Seg, ..., 6=Sab
-    dateStr: brasilia.toISOString().split('T')[0],
+    hour: Number(v.hour),
+    minute: Number(v.minute),
+    dayOfWeek: brasiliaDate.getUTCDay(),
+    dateStr: `${v.year}-${v.month}-${v.day}`,
   };
 }
 
