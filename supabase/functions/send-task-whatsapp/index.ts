@@ -130,32 +130,24 @@ Deno.serve(async (req) => {
     // Montar mensagem
     let message = '';
     if (notificationType === 'nova_tarefa') {
-      message = `📋 *Nova Tarefa Atribuída*\n`;
-      if (unidade_nome) {
-        message += `📍 Unidade: *${unidade_nome}*\n`;
-      }
-      message += `\nVocê foi designado para: *${title}*\n`;
+      message = `📝 *Nova tarefa atribuída*\n\n`;
+      message += `📋 *Tarefa:* ${title}\n`;
+      if (unidade_nome) message += `📍 *Unidade:* ${unidade_nome}\n`;
+      if (prazoStr) message += `🕒 *Prazo:* ${prazoStr}\n`;
+      message += `👤 *Responsável:* ${targetName}\n`;
+      if (creator_name) message += `👤 *Atribuída por:* ${creator_name}\n`;
       if (description) {
-        message += `\n📝 *Descrição:*\n${description}\n`;
+        message += `\n💬 *Descrição:*\n${description}\n`;
       }
-      if (prazoStr) {
-        message += `\n⏰ *Prazo Final:* ${prazoStr}\n`;
-      }
-      if (creator_name) {
-        message += `\nAtribuída por: ${creator_name}`;
-      }
-      message += `\n\nAcesse o sistema para ver os detalhes.`;
+      message += `\nAcesse o sistema para ver os detalhes.`;
     } else {
-      message = `🔄 *Tarefa Transferida*\n`;
-      if (unidade_nome) {
-        message += `📍 Unidade: *${unidade_nome}*\n`;
-      }
-      message += `\nA tarefa "*${title}*" foi transferida para você.\n`;
+      message = `🔄 *Tarefa transferida*\n\n`;
+      message += `📋 *Tarefa:* ${title}\n`;
+      if (unidade_nome) message += `📍 *Unidade:* ${unidade_nome}\n`;
+      if (prazoStr) message += `🕒 *Prazo:* ${prazoStr}\n`;
+      message += `👤 *Novo responsável:* ${targetName}\n`;
       if (description) {
-        message += `\n📝 *Descrição:*\n${description}\n`;
-      }
-      if (prazoStr) {
-        message += `\n⏰ *Prazo Final:* ${prazoStr}\n`;
+        message += `\n💬 *Descrição:*\n${description}\n`;
       }
       message += `\nAcesse o sistema para ver os detalhes.`;
     }

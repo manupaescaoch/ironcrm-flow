@@ -145,12 +145,13 @@ serve(async (req) => {
           criadorNome = creator?.user_metadata?.full_name || creator?.user_metadata?.name || "";
         }
 
-        let message = `⏰ *Lembrete de Prazo*\n`;
-        if (unidadeNome) message += `📍 Unidade: *${unidadeNome}*\n`;
-        message += `\nA tarefa *"${task.titulo}"* vence amanhã (${prazoFormatado}${horaStr}).\n`;
-        if (task.descricao) message += `\n📝 *Descrição:*\n${task.descricao}\n`;
-        if (criadorNome) message += `\nAtribuída por: ${criadorNome}`;
-        message += `\n\nNão esqueça de concluí-la!`;
+        let message = `⚠️ *Lembrete de prazo — vence amanhã*\n\n`;
+        message += `📋 *Tarefa:* ${task.titulo}\n`;
+        if (unidadeNome) message += `📍 *Unidade:* ${unidadeNome}\n`;
+        message += `🕒 *Prazo:* ${prazoFormatado}${horaStr}\n`;
+        if (criadorNome) message += `👤 *Atribuída por:* ${criadorNome}\n`;
+        if (task.descricao) message += `\n💬 *Descrição:*\n${task.descricao}\n`;
+        message += `\nNão esqueça de concluí-la! ✅`;
 
         const sent = await sendWhatsApp(phone, message);
         if (sent) {
@@ -203,12 +204,12 @@ serve(async (req) => {
           criadorNome = creator?.user_metadata?.full_name || creator?.user_metadata?.name || "";
         }
 
-        let message = `🚨 *Prazo Final!*\n`;
-        if (unidadeNome) message += `📍 Unidade: *${unidadeNome}*\n`;
-        message += `\nA tarefa *"${task.titulo}"* vence *AGORA*!\n`;
-        if (task.descricao) message += `\n📝 *Descrição:*\n${task.descricao}\n`;
-        if (criadorNome) message += `\nAtribuída por: ${criadorNome}`;
-        message += `\n\nPor favor, conclua-a o mais rápido possível.`;
+        let message = `🚨 *Prazo final — vence agora!*\n\n`;
+        message += `📋 *Tarefa:* ${task.titulo}\n`;
+        if (unidadeNome) message += `📍 *Unidade:* ${unidadeNome}\n`;
+        if (criadorNome) message += `👤 *Atribuída por:* ${criadorNome}\n`;
+        if (task.descricao) message += `\n💬 *Descrição:*\n${task.descricao}\n`;
+        message += `\nPor favor, conclua o quanto antes. ✅`;
 
         const sent = await sendWhatsApp(phone, message);
         if (sent) {
