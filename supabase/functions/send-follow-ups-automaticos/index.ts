@@ -16,7 +16,20 @@ function firstName(full: string): string {
   return (full || '').trim().split(/\s+/)[0] || full;
 }
 
+function getBrasiliaParts() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(new Date());
+  const v = Object.fromEntries(parts.map(p => [p.type, p.value]));
+  const dateStr = `${v.year}-${v.month}-${v.day}`;
+  const brasiliaDate = new Date(`${dateStr}T12:00:00Z`);
+  return { dateStr, dayOfWeek: brasiliaDate.getUTCDay(), hour: Number(v.hour), minute: Number(v.minute) };
+}
+
 function getBrasiliaNow() {
+  // Mantém compatibilidade — retorna Date com wall-clock Brasília simulado
   const now = new Date();
   const brasiliaStr = now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
   return new Date(brasiliaStr);
@@ -95,7 +108,18 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[follow-ups-auto] Brasília: ${brasilia.toISOString()} | hoje=${todayStr}`);
+    const { dateStr: todayStr, dayOfWeek } = getBrasiliaParts();
+
+    // Bloquear envio em fim de semana (a menos que force=true) — sobrescreve checagem acima
+    if (!force && (dayOfWeek === 0 || dayOfWeek === 6)) {
+      console.log(`[follow-ups-auto] Pulando envio: fim de semana (dia ${dayOfWeek})`);
+      return new Response(
+        JSON.stringify({ success: true, sent: 0, message: 'Fim de semana, envio pulado' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[follow-ups-auto] Brasília hoje=${todayStr}`);
 
     // Buscar follow-ups pendentes com data_prevista <= hoje
     const { data: followUps, error: fuErr } = await supabase
