@@ -739,17 +739,37 @@ export default function CRM() {
           return obj as unknown as CSVRow;
         });
 
-      // Fetch existing phone numbers to avoid duplicates (apenas na mesma unidade)
+      // Re-validar (não confiar apenas no preview client-side)
+      const results: CsvRowValidationResult[] = allRows.map((row, idx) =>
+        validateCsvRow(row as unknown as Record<string, string>, idx + 2)
+      );
+      const seen = new Set<string>();
+      results.forEach((r) => {
+        const phone = r.data?.telefone;
+        if (phone) {
+          if (seen.has(phone)) {
+            r.duplicate = true;
+            r.valid = false;
+            r.errors.push('telefone duplicado no arquivo');
+          } else {
+            seen.add(phone);
+          }
+        }
+      });
+
+      const rejectedCount = results.filter((r) => !r.valid).length;
+
+      // Telefones existentes no banco (escopo da unidade)
       const { data: existingLeads } = await supabase
         .from('leads')
         .select('telefone')
         .eq('ativo', true)
         .eq('unidade_id', unidadeAtual?.id || '')
         .not('telefone', 'is', null);
-      
+
       const existingPhones = new Set(
         (existingLeads || [])
-          .map(l => l.telefone?.replace(/\D/g, ''))
+          .map((l) => l.telefone?.replace(/\D/g, ''))
           .filter(Boolean)
       );
 
@@ -757,51 +777,72 @@ export default function CRM() {
       let failCount = 0;
       let duplicateCount = 0;
 
+      const validResults = results.filter((r) => r.valid && r.data);
       const chunkSize = 100;
-      for (let i = 0; i < allRows.length; i += chunkSize) {
-        const chunk = allRows.slice(i, i + chunkSize);
+
+      for (let i = 0; i < validResults.length; i += chunkSize) {
+        const chunk = validResults.slice(i, i + chunkSize);
         const leadsToInsert = chunk
-          .filter(row => row.nome_completo?.trim())
-          .filter(row => {
-            const phone = row.telefone?.replace(/\D/g, '');
+          .filter((r) => {
+            const phone = r.data!.telefone;
             if (phone && existingPhones.has(phone)) {
               duplicateCount++;
               return false;
             }
-            if (phone) existingPhones.add(phone); // Avoid duplicates within import
+            if (phone) existingPhones.add(phone);
             return true;
           })
-          .map(row => ({
-            nome: row.nome_completo.trim(),
-            telefone: row.telefone?.trim() || null,
-            origem: validateOrigem(row.origem),
-            atendido_por: row.atendido_por?.trim() || null,
-            status_funil: validateStatusFunil(row.status_funil),
-            created_at: parseDate(row.data_cadastro),
-            user_id: user?.id || null,
-            created_by: user?.id || null,
-            cadastrado_por: getUserDisplayName(),
-            ativo: true,
-            unidade_id: unidadeAtual?.id,
-          }));
+          .map((r) => {
+            const d = r.data!;
+            const originalRow = allRows[r.index - 2];
+            return {
+              nome: d.nome_completo,
+              telefone: d.telefone || null,
+              email: d.email || null,
+              origem: validateOrigem(d.origem || originalRow?.origem),
+              atendido_por: d.atendido_por || null,
+              status_funil: validateStatusFunil(d.status_funil || ''),
+              observacoes: d.observacoes || null,
+              created_at: parseDate(d.data_cadastro || originalRow?.data_cadastro || ''),
+              user_id: user?.id || null,
+              created_by: user?.id || null,
+              cadastrado_por: getUserDisplayName(),
+              ativo: true,
+              unidade_id: unidadeAtual?.id,
+            };
+          });
 
         if (leadsToInsert.length > 0) {
           const { data, error } = await supabase.from('leads').insert(leadsToInsert).select();
           if (error) {
             failCount += leadsToInsert.length;
+            console.error('CSV import insert error', error);
           } else {
             successCount += data?.length || 0;
           }
         }
       }
 
+      // Audit log (sem PII)
+      console.log(JSON.stringify({
+        audit: 'crm_csv_import',
+        user_id: user?.id ?? null,
+        unidade_id: unidadeAtual?.id ?? null,
+        total: results.length,
+        success: successCount,
+        rejected: rejectedCount,
+        duplicates: duplicateCount,
+        failed: failCount,
+        at: new Date().toISOString(),
+      }));
+
       setIsImporting(false);
-      
-      if (failCount > 0 || duplicateCount > 0) {
-        toast({ 
+
+      if (failCount > 0 || duplicateCount > 0 || rejectedCount > 0) {
+        toast({
           title: 'Importação concluída com observações',
-          description: `${successCount} importados, ${duplicateCount} duplicados ignorados${failCount > 0 ? `, ${failCount} falharam` : ''}`,
-          variant: duplicateCount > 0 && failCount === 0 ? 'default' : 'destructive'
+          description: `${successCount} importados · ${rejectedCount} rejeitados · ${duplicateCount} duplicados${failCount > 0 ? ` · ${failCount} falharam` : ''}`,
+          variant: failCount > 0 || rejectedCount > 0 ? 'destructive' : 'default',
         });
       } else {
         toast({ title: `Importação concluída: ${successCount} leads importados com sucesso.` });
