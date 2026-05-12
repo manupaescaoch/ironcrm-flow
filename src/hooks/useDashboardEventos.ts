@@ -134,26 +134,8 @@ export function useDashboardEventos(): UseDashboardEventosReturn {
       )
       .subscribe();
 
-    const leadsChannel = supabase
-      .channel('leads_realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'leads',
-          filter: `unidade_id=eq.${unidadeAtual.id}`,
-        },
-        (payload) => {
-          console.log('Lead realtime update:', payload.eventType);
-          handleRealtimeUpdate();
-        }
-      )
-      .subscribe();
-
     return () => {
       supabase.removeChannel(interacoesChannel);
-      supabase.removeChannel(leadsChannel);
     };
   }, [unidadeAtual?.id, fetchEventos]);
 
