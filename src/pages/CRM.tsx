@@ -1033,6 +1033,7 @@ export default function CRM() {
                         setImportFile(e.target.files?.[0] || null);
                         setIsPreviewReady(false);
                         setPreviewData([]);
+                        setValidationResults([]);
                       }}
                     />
                   </div>
