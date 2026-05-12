@@ -172,14 +172,20 @@ Deno.serve(async (req) => {
         }
         const r = raw as Record<string, unknown>;
 
-        const nome = sanitizeText(r.nome, 255).toUpperCase();
-        const contrato = sanitizeText(r.contrato, 255);
+        const nome = sanitizeText(r.nome, 120).toUpperCase();
+        const contrato = sanitizeText(r.contrato, 120);
         const dataCadastroStr = sanitizeText(r.data_cadastro, 30);
         const vencimentoStr = sanitizeText(r.vencimento, 30);
 
-        if (!nome) {
+        if (!nome || nome.length < 2) {
           results.rejected++;
           results.errors.push('registro sem nome');
+          continue;
+        }
+
+        if (isMalicious(nome) || isMalicious(contrato)) {
+          results.rejected++;
+          results.errors.push('conteúdo inválido detectado');
           continue;
         }
 
