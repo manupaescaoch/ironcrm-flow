@@ -44,10 +44,26 @@ const parseDate = (dateStr: string): string | null => {
 
 const parseVencimentoDate = parseDate;
 
+const MALICIOUS_PATTERNS: RegExp[] = [
+  /<\s*script/i, /<\/\s*script/i, /javascript\s*:/i,
+  /on(error|click|load|mouseover|focus|blur|change|submit)\s*=/i,
+  /<\s*iframe/i, /<\s*object/i, /<\s*embed/i,
+  /\bdrop\s+table\b/i, /\bdelete\s+from\b/i, /\binsert\s+into\b/i,
+  /\bupdate\s+\w+\s+set\b/i, /\bunion\s+select\b/i, /\bxp_\w+/i,
+  /(--\s)|(\/\*)|(\*\/)/, /'\s*or\s*'/i, /"\s*or\s*"/i, /\bor\s+1\s*=\s*1\b/i,
+];
+
+const isMalicious = (s: string): boolean => MALICIOUS_PATTERNS.some((re) => re.test(s));
+
 const sanitizeText = (s: unknown, max: number): string => {
   if (typeof s !== 'string') return '';
-  // strip control chars and HTML angle brackets to avoid script injection
-  return s.replace(/[\u0000-\u001F\u007F<>]/g, '').trim().slice(0, max);
+  // strip control chars and HTML tags
+  return s
+    .replace(/[\u0000-\u001F\u007F]/g, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max);
 };
 
 interface StudentData {
