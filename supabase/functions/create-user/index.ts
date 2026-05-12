@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
     const errorMessage = e instanceof Error ? e.message : 'Internal server error';
     console.error('Error in create-user function:', errorMessage);
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'Erro interno ao processar a solicitação.' }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
