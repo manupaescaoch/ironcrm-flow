@@ -32,6 +32,8 @@ export default function AnamnesePublica() {
   const [respostas, setRespostas] = useState<AnamneseRespostas>(initialRespostas);
   const [saving, setSaving] = useState(false);
 
+  const [alreadyFilled, setAlreadyFilled] = useState(false);
+
   useEffect(() => {
     (async () => {
       if (!id) return;
@@ -39,30 +41,14 @@ export default function AnamnesePublica() {
         body: { action: 'get', lead_id: id },
       });
       if (error || !data?.lead) {
-        setError('Lead não encontrado ou link inválido.');
+        setError('Formulário não encontrado ou link inválido.');
         setLoading(false);
         return;
       }
       const leadData = data.lead;
-      const existing = data.existing;
-      if (existing) {
-        setRespostas({
-          nome: existing.nome ?? leadData.nome ?? '',
-          objetivo: existing.objetivo ?? '',
-          historico: existing.historico ?? '',
-          frequencia_atual: existing.frequencia_atual ?? '',
-          obstaculo: existing.obstaculo ?? '',
-          dias_semana: existing.dias_semana ?? '',
-          preferencia_horario: existing.preferencia_horario ?? [],
-          tem_condicao_saude: existing.tem_condicao_saude,
-          condicao_saude_descricao: existing.condicao_saude_descricao ?? '',
-          tem_lesao: existing.tem_lesao,
-          lesao_descricao: existing.lesao_descricao ?? '',
-          observacoes: existing.observacoes ?? '',
-        });
-      } else {
-        setRespostas((prev) => ({ ...prev, nome: leadData.nome ?? '' }));
-      }
+      // Por segurança, respostas anteriores nunca são retornadas no fluxo público.
+      setAlreadyFilled(!!data.already_filled);
+      setRespostas((prev) => ({ ...prev, nome: leadData.nome ?? '' }));
       setLead(leadData);
       setLoading(false);
     })();
