@@ -863,6 +863,7 @@ export default function CRM() {
   const resetImportDialog = () => {
     setImportFile(null);
     setPreviewData([]);
+    setValidationResults([]);
     setIsPreviewReady(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
