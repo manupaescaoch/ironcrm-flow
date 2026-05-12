@@ -56,6 +56,7 @@ import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
+import { validateCsvRow, type CsvRowValidationResult } from '@/utils/csvImportValidation';
 
 // Validation schema for lead creation/update
 const leadSchema = z.object({
