@@ -5,62 +5,56 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Mapeamento de planos para normalização
+const json = (status: number, body: Record<string, unknown>) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+
+const MAX_BATCH = 1000;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const normalizePlano = (plano: string): string => {
-  const planoUpper = plano.toUpperCase().trim();
-  
-  if (planoUpper.includes('EXECUTIVO') && planoUpper.includes('ANUAL')) {
-    return 'Executivo Anual';
-  }
-  if (planoUpper.includes('EXECUTIVO') && planoUpper.includes('MENSAL')) {
-    return 'Executivo Mensal';
-  }
-  if (planoUpper.includes('TREINADOR') || planoUpper.includes('INFLUENCIADOR')) {
-    return 'Anual'; // Treinadores geralmente têm plano anual
-  }
-  if (planoUpper.includes('PARCERIA')) {
-    return 'Anual';
-  }
-  if (planoUpper.includes('ANUAL')) {
-    return 'Anual';
-  }
-  if (planoUpper.includes('SEMESTRAL')) {
-    return 'Semestral';
-  }
-  if (planoUpper.includes('TRIMESTRAL')) {
-    return 'Trimestral';
-  }
-  if (planoUpper.includes('MENSAL')) {
-    return 'Mensal';
-  }
-  
-  return 'Anual'; // Default
+  const p = (plano || '').toUpperCase().trim();
+  if (p.includes('EXECUTIVO') && p.includes('ANUAL')) return 'Executivo Anual';
+  if (p.includes('EXECUTIVO') && p.includes('MENSAL')) return 'Executivo Mensal';
+  if (p.includes('TREINADOR') || p.includes('INFLUENCIADOR')) return 'Anual';
+  if (p.includes('PARCERIA')) return 'Anual';
+  if (p.includes('ANUAL')) return 'Anual';
+  if (p.includes('SEMESTRAL')) return 'Semestral';
+  if (p.includes('TRIMESTRAL')) return 'Trimestral';
+  if (p.includes('MENSAL')) return 'Mensal';
+  return 'Anual';
 };
 
-// Parse date from Brazilian format (DD/MM/YYYY HH:MM:SS or DD/MM/YYYY) to ISO format
-const parseDate = (dateStr: string): string => {
-  const [datePart] = dateStr.split(' ');
-  const [day, month, year] = datePart.split('/');
-  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-};
-
-// Parse vencimento date from DD/MM/YYYY format
-const parseVencimentoDate = (dateStr: string): string | null => {
+const parseDate = (dateStr: string): string | null => {
   if (!dateStr) return null;
   try {
-    const [day, month, year] = dateStr.trim().split('/');
+    const [datePart] = dateStr.split(' ');
+    const [day, month, year] = datePart.split('/');
     if (!day || !month || !year) return null;
-    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    const iso = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+    if (isNaN(new Date(iso).getTime())) return null;
+    return iso;
   } catch {
     return null;
   }
+};
+
+const parseVencimentoDate = parseDate;
+
+const sanitizeText = (s: unknown, max: number): string => {
+  if (typeof s !== 'string') return '';
+  // strip control chars and HTML angle brackets to avoid script injection
+  return s.replace(/[\u0000-\u001F\u007F<>]/g, '').trim().slice(0, max);
 };
 
 interface StudentData {
   nome: string;
   contrato: string;
   data_cadastro: string;
-  conversao: string;
+  conversao?: string;
   vencimento: string;
 }
 
@@ -71,76 +65,157 @@ Deno.serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
+
+    // 1. Auth — require Bearer token
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return json(401, { error: 'Não autenticado' });
+    }
+    const token = authHeader.replace('Bearer ', '');
+
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await authClient.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      return json(401, { error: 'Não autenticado' });
+    }
+    const userId = userData.user.id;
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { students, unidade_id } = await req.json() as { 
-      students: StudentData[]; 
-      unidade_id: string;
-    };
+    // 2. Authorization — admin or 'user' role only
+    const { data: isAdminData } = await supabase.rpc('has_role', {
+      _user_id: userId,
+      _role: 'admin',
+    });
+    const isAdmin = !!isAdminData;
 
-    if (!students || !Array.isArray(students) || students.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'Lista de alunos vazia ou inválida' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    let isAuthorized = isAdmin;
+    if (!isAdmin) {
+      const { data: isUserRole } = await supabase.rpc('has_role', {
+        _user_id: userId,
+        _role: 'user',
+      });
+      isAuthorized = !!isUserRole;
+    }
+    if (!isAuthorized) {
+      return json(403, { error: 'Sem permissão' });
     }
 
-    if (!unidade_id) {
-      return new Response(
-        JSON.stringify({ error: 'unidade_id é obrigatório' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Parse body
+    let body: { students?: unknown; unidade_id?: unknown };
+    try {
+      body = await req.json();
+    } catch {
+      return json(400, { error: 'Payload inválido' });
+    }
+
+    const unidade_id = typeof body.unidade_id === 'string' ? body.unidade_id : '';
+    if (!unidade_id || !UUID_RE.test(unidade_id)) {
+      return json(400, { error: 'unidade_id inválido' });
+    }
+
+    const students = body.students;
+    if (!Array.isArray(students) || students.length === 0) {
+      return json(400, { error: 'Lista de alunos vazia ou inválida' });
+    }
+    if (students.length > MAX_BATCH) {
+      return json(400, { error: `Lote excede o limite de ${MAX_BATCH} registros` });
+    }
+
+    // 3. Scope by unit — non-admin must belong to it
+    if (!isAdmin) {
+      const { data: unidades, error: unidadesErr } = await supabase.rpc('get_user_unidades', {
+        _user_id: userId,
+      });
+      if (unidadesErr) {
+        console.error('get_user_unidades error', unidadesErr);
+        return json(500, { error: 'Erro ao validar unidade' });
+      }
+      const allowed = (unidades as string[] | null)?.includes(unidade_id);
+      if (!allowed) {
+        return json(403, { error: 'Sem acesso à unidade informada' });
+      }
     }
 
     const results = {
       success: 0,
       skipped: 0,
+      rejected: 0,
       errors: [] as string[],
     };
 
-    for (const student of students) {
+    for (const raw of students as unknown[]) {
       try {
-        // Check if lead already exists with same name in this unit
-        const { data: existingLead } = await supabase
+        if (!raw || typeof raw !== 'object') {
+          results.rejected++;
+          continue;
+        }
+        const r = raw as Record<string, unknown>;
+
+        const nome = sanitizeText(r.nome, 255).toUpperCase();
+        const contrato = sanitizeText(r.contrato, 255);
+        const dataCadastroStr = sanitizeText(r.data_cadastro, 30);
+        const vencimentoStr = sanitizeText(r.vencimento, 30);
+
+        if (!nome) {
+          results.rejected++;
+          results.errors.push('registro sem nome');
+          continue;
+        }
+
+        const dataFechamento = parseDate(dataCadastroStr);
+        if (!dataFechamento) {
+          results.rejected++;
+          results.errors.push(`${nome}: data_cadastro inválida`);
+          continue;
+        }
+        const dataVencimento = parseVencimentoDate(vencimentoStr);
+
+        // Duplicate check within unit
+        const { data: existingLead, error: existingErr } = await supabase
           .from('leads')
           .select('id')
           .eq('unidade_id', unidade_id)
-          .ilike('nome', student.nome.trim())
+          .ilike('nome', nome)
           .maybeSingle();
 
+        if (existingErr) {
+          console.error('lookup error', existingErr);
+          results.errors.push(`${nome}: erro ao verificar duplicidade`);
+          continue;
+        }
         if (existingLead) {
           results.skipped++;
           continue;
         }
 
-        const planoNormalizado = normalizePlano(student.contrato);
-        const dataFechamento = parseDate(student.data_cadastro);
-        const dataVencimento = parseVencimentoDate(student.vencimento);
+        const planoNormalizado = normalizePlano(contrato);
 
-        // Insert lead
         const { data: newLead, error: leadError } = await supabase
           .from('leads')
           .insert({
-            nome: student.nome.trim().toUpperCase(),
+            nome,
             origem: 'IMPORTAÇÃO',
             cadastrado_por: 'SISTEMA',
             status_funil: 'convertido',
             is_matriculado: true,
             ativo: true,
-            unidade_id: unidade_id,
+            unidade_id,
             plano_escolhido: planoNormalizado,
           })
           .select('id')
           .single();
 
-        if (leadError) {
-          results.errors.push(`Lead ${student.nome}: ${leadError.message}`);
+        if (leadError || !newLead) {
+          console.error('lead insert error', leadError);
+          results.errors.push(`${nome}: falha ao criar lead`);
           continue;
         }
 
-        // Insert interaction (matrícula)
         const { error: interacaoError } = await supabase
           .from('interacoes')
           .insert({
@@ -153,33 +228,42 @@ Deno.serve(async (req) => {
             data_interacao: dataFechamento,
             responsavel_fechamento: 'SISTEMA',
             cadastrado_por: 'SISTEMA',
-            unidade_id: unidade_id,
+            unidade_id,
           });
 
         if (interacaoError) {
-          results.errors.push(`Interação ${student.nome}: ${interacaoError.message}`);
+          console.error('interacao insert error', interacaoError);
+          results.errors.push(`${nome}: falha ao criar matrícula`);
           continue;
         }
 
         results.success++;
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        results.errors.push(`${student.nome}: ${errorMessage}`);
+        console.error('item error', err);
+        results.rejected++;
+        results.errors.push('erro ao processar item');
       }
     }
 
-    return new Response(
-      JSON.stringify({
-        message: `Importação concluída: ${results.success} importados, ${results.skipped} já existentes`,
-        ...results,
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    // 8. Audit log
+    console.log(JSON.stringify({
+      audit: 'import_students',
+      user_id: userId,
+      unidade_id,
+      total: (students as unknown[]).length,
+      success: results.success,
+      skipped: results.skipped,
+      rejected: results.rejected,
+      at: new Date().toISOString(),
+      ua: req.headers.get('user-agent') ?? null,
+    }));
+
+    return json(200, {
+      message: `Importação concluída: ${results.success} importados, ${results.skipped} já existentes, ${results.rejected} rejeitados`,
+      ...results,
+    });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error('import-students fatal', error);
+    return json(500, { error: 'Erro interno' });
   }
 });
