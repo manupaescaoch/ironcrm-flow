@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
 
     if (updateError) {
       console.error('Failed to update user name:', updateError);
-      return new Response(JSON.stringify({ error: updateError.message }), {
+      return new Response(JSON.stringify({ error: 'Não foi possível atualizar o nome do usuário.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

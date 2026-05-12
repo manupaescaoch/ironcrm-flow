@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
     if (atividadesError) {
       console.error('[send-cronograma] Erro ao buscar atividades:', atividadesError);
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch activities', details: atividadesError.message }),
+        JSON.stringify({ error: 'Erro interno ao processar a solicitação.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
