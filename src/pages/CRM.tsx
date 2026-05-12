@@ -1057,51 +1057,93 @@ export default function CRM() {
                     </Button>
                   </div>
 
-                  {isPreviewReady && previewData.length > 0 && (
-                    <>
-                      <div className="border rounded-lg">
-                        <p className="text-sm text-muted-foreground p-3 border-b">
-                          Pré-visualização (primeiras {previewData.length} linhas)
-                        </p>
-                        <ScrollArea className="h-[300px]">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Nome</TableHead>
-                                <TableHead>Telefone</TableHead>
-                                <TableHead>Origem</TableHead>
-                                <TableHead>Atendido Por</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Data</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {previewData.map((row, idx) => (
-                                <TableRow key={idx}>
-                                  <TableCell className="font-medium">{row.nome_completo}</TableCell>
-                                  <TableCell>{row.telefone || '-'}</TableCell>
-                                  <TableCell>{row.origem || '-'}</TableCell>
-                                  <TableCell>{row.atendido_por || '-'}</TableCell>
-                                  <TableCell>{row.status_funil || '-'}</TableCell>
-                                  <TableCell>{row.data_cadastro || '-'}</TableCell>
+                  {isPreviewReady && previewData.length > 0 && (() => {
+                    const validCount = validationResults.filter((r) => r.valid).length;
+                    const invalidResults = validationResults.filter((r) => !r.valid);
+                    return (
+                      <>
+                        <div className="grid grid-cols-3 gap-2 text-sm">
+                          <div className="rounded-md border p-2">
+                            <div className="text-muted-foreground">Total</div>
+                            <div className="font-semibold">{validationResults.length}</div>
+                          </div>
+                          <div className="rounded-md border p-2">
+                            <div className="text-muted-foreground">Válidas</div>
+                            <div className="font-semibold text-emerald-600">{validCount}</div>
+                          </div>
+                          <div className="rounded-md border p-2">
+                            <div className="text-muted-foreground">Rejeitadas</div>
+                            <div className="font-semibold text-destructive">{invalidResults.length}</div>
+                          </div>
+                        </div>
+
+                        {invalidResults.length > 0 && (
+                          <div className="border border-destructive/30 rounded-lg bg-destructive/5">
+                            <p className="text-sm font-medium p-3 border-b border-destructive/30">
+                              Linhas rejeitadas (não serão importadas)
+                            </p>
+                            <ScrollArea className="h-[160px]">
+                              <ul className="text-xs p-3 space-y-1">
+                                {invalidResults.slice(0, 50).map((r) => (
+                                  <li key={r.index}>
+                                    <span className="font-medium">Linha {r.index}:</span>{' '}
+                                    {r.errors.join(' · ')}
+                                  </li>
+                                ))}
+                                {invalidResults.length > 50 && (
+                                  <li className="text-muted-foreground">
+                                    + {invalidResults.length - 50} outras linhas rejeitadas
+                                  </li>
+                                )}
+                              </ul>
+                            </ScrollArea>
+                          </div>
+                        )}
+
+                        <div className="border rounded-lg">
+                          <p className="text-sm text-muted-foreground p-3 border-b">
+                            Pré-visualização (primeiras {previewData.length} linhas)
+                          </p>
+                          <ScrollArea className="h-[300px]">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Nome</TableHead>
+                                  <TableHead>Telefone</TableHead>
+                                  <TableHead>Origem</TableHead>
+                                  <TableHead>Atendido Por</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead>Data</TableHead>
                                 </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </ScrollArea>
-                      </div>
-                      
-                      <Button 
-                        onClick={handleImport} 
-                        disabled={isImporting}
-                        className="w-full"
-                      >
-                        {isImporting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                        <Upload className="w-4 h-4 mr-2" />
-                        Importar agora
-                      </Button>
-                    </>
-                  )}
+                              </TableHeader>
+                              <TableBody>
+                                {previewData.map((row, idx) => (
+                                  <TableRow key={idx}>
+                                    <TableCell className="font-medium">{row.nome_completo}</TableCell>
+                                    <TableCell>{row.telefone || '-'}</TableCell>
+                                    <TableCell>{row.origem || '-'}</TableCell>
+                                    <TableCell>{row.atendido_por || '-'}</TableCell>
+                                    <TableCell>{row.status_funil || '-'}</TableCell>
+                                    <TableCell>{row.data_cadastro || '-'}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </ScrollArea>
+                        </div>
+
+                        <Button
+                          onClick={handleImport}
+                          disabled={isImporting || validCount === 0}
+                          className="w-full"
+                        >
+                          {isImporting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                          <Upload className="w-4 h-4 mr-2" />
+                          Importar {validCount} linha{validCount === 1 ? '' : 's'} válida{validCount === 1 ? '' : 's'}
+                        </Button>
+                      </>
+                    );
+                  })()}
                 </div>
               </DialogContent>
             </Dialog>
