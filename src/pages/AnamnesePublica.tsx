@@ -32,6 +32,8 @@ export default function AnamnesePublica() {
   const [respostas, setRespostas] = useState<AnamneseRespostas>(initialRespostas);
   const [saving, setSaving] = useState(false);
 
+  const [alreadyFilled, setAlreadyFilled] = useState(false);
+
   useEffect(() => {
     (async () => {
       if (!id) return;
@@ -39,30 +41,14 @@ export default function AnamnesePublica() {
         body: { action: 'get', lead_id: id },
       });
       if (error || !data?.lead) {
-        setError('Lead não encontrado ou link inválido.');
+        setError('Formulário não encontrado ou link inválido.');
         setLoading(false);
         return;
       }
       const leadData = data.lead;
-      const existing = data.existing;
-      if (existing) {
-        setRespostas({
-          nome: existing.nome ?? leadData.nome ?? '',
-          objetivo: existing.objetivo ?? '',
-          historico: existing.historico ?? '',
-          frequencia_atual: existing.frequencia_atual ?? '',
-          obstaculo: existing.obstaculo ?? '',
-          dias_semana: existing.dias_semana ?? '',
-          preferencia_horario: existing.preferencia_horario ?? [],
-          tem_condicao_saude: existing.tem_condicao_saude,
-          condicao_saude_descricao: existing.condicao_saude_descricao ?? '',
-          tem_lesao: existing.tem_lesao,
-          lesao_descricao: existing.lesao_descricao ?? '',
-          observacoes: existing.observacoes ?? '',
-        });
-      } else {
-        setRespostas((prev) => ({ ...prev, nome: leadData.nome ?? '' }));
-      }
+      // Por segurança, respostas anteriores nunca são retornadas no fluxo público.
+      setAlreadyFilled(!!data.already_filled);
+      setRespostas((prev) => ({ ...prev, nome: leadData.nome ?? '' }));
       setLead(leadData);
       setLoading(false);
     })();
@@ -113,12 +99,16 @@ export default function AnamnesePublica() {
     );
   }
 
-  if (stage === 'done') {
+  if (stage === 'done' || alreadyFilled) {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 bg-anamnese-bg p-8 text-center">
-        <h1 className="font-display text-3xl uppercase tracking-tight">Tudo certo! 🎉</h1>
+        <h1 className="font-display text-3xl uppercase tracking-tight">
+          {alreadyFilled && stage !== 'done' ? 'Anamnese já preenchida' : 'Tudo certo! 🎉'}
+        </h1>
         <p className="max-w-sm text-sm text-muted-foreground">
-          Suas respostas foram enviadas para a equipe. Você já pode fechar esta página.
+          {alreadyFilled && stage !== 'done'
+            ? 'Esta anamnese já foi enviada anteriormente. Procure a equipe se precisar atualizar alguma informação.'
+            : 'Suas respostas foram enviadas para a equipe. Você já pode fechar esta página.'}
         </p>
       </div>
     );
