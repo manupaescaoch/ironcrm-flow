@@ -56,6 +56,7 @@ import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
+import { validateCsvRow, type CsvRowValidationResult } from '@/utils/csvImportValidation';
 
 // Validation schema for lead creation/update
 const leadSchema = z.object({
@@ -255,6 +256,7 @@ export default function CRM() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [previewData, setPreviewData] = useState<CSVRow[]>([]);
+  const [validationResults, setValidationResults] = useState<CsvRowValidationResult[]>([]);
   const [isPreviewReady, setIsPreviewReady] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -620,8 +622,38 @@ export default function CRM() {
           return obj as unknown as CSVRow;
         });
 
+      // Validate all rows (zod + sanitização + bloqueio de conteúdo malicioso)
+      const results: CsvRowValidationResult[] = mappedRows.map((row, idx) =>
+        validateCsvRow(row as unknown as Record<string, string>, idx + 2)
+      );
+
+      // Detectar duplicidade de telefone dentro do próprio CSV
+      const seenPhones = new Set<string>();
+      results.forEach((r) => {
+        const phone = r.data?.telefone;
+        if (phone) {
+          if (seenPhones.has(phone)) {
+            r.duplicate = true;
+            r.valid = false;
+            r.errors.push('telefone duplicado no arquivo');
+          } else {
+            seenPhones.add(phone);
+          }
+        }
+      });
+
+      const validCount = results.filter((r) => r.valid).length;
+      const invalidCount = results.length - validCount;
+
+      setValidationResults(results);
       setPreviewData(mappedRows.slice(0, 20));
       setIsPreviewReady(true);
+
+      toast({
+        title: 'Pré-validação concluída',
+        description: `${validCount} válidas · ${invalidCount} rejeitadas (de ${results.length})`,
+        variant: invalidCount > 0 ? 'destructive' : 'default',
+      });
     };
     
     if (isExcel) {
@@ -707,17 +739,37 @@ export default function CRM() {
           return obj as unknown as CSVRow;
         });
 
-      // Fetch existing phone numbers to avoid duplicates (apenas na mesma unidade)
+      // Re-validar (não confiar apenas no preview client-side)
+      const results: CsvRowValidationResult[] = allRows.map((row, idx) =>
+        validateCsvRow(row as unknown as Record<string, string>, idx + 2)
+      );
+      const seen = new Set<string>();
+      results.forEach((r) => {
+        const phone = r.data?.telefone;
+        if (phone) {
+          if (seen.has(phone)) {
+            r.duplicate = true;
+            r.valid = false;
+            r.errors.push('telefone duplicado no arquivo');
+          } else {
+            seen.add(phone);
+          }
+        }
+      });
+
+      const rejectedCount = results.filter((r) => !r.valid).length;
+
+      // Telefones existentes no banco (escopo da unidade)
       const { data: existingLeads } = await supabase
         .from('leads')
         .select('telefone')
         .eq('ativo', true)
         .eq('unidade_id', unidadeAtual?.id || '')
         .not('telefone', 'is', null);
-      
+
       const existingPhones = new Set(
         (existingLeads || [])
-          .map(l => l.telefone?.replace(/\D/g, ''))
+          .map((l) => l.telefone?.replace(/\D/g, ''))
           .filter(Boolean)
       );
 
@@ -725,51 +777,72 @@ export default function CRM() {
       let failCount = 0;
       let duplicateCount = 0;
 
+      const validResults = results.filter((r) => r.valid && r.data);
       const chunkSize = 100;
-      for (let i = 0; i < allRows.length; i += chunkSize) {
-        const chunk = allRows.slice(i, i + chunkSize);
+
+      for (let i = 0; i < validResults.length; i += chunkSize) {
+        const chunk = validResults.slice(i, i + chunkSize);
         const leadsToInsert = chunk
-          .filter(row => row.nome_completo?.trim())
-          .filter(row => {
-            const phone = row.telefone?.replace(/\D/g, '');
+          .filter((r) => {
+            const phone = r.data!.telefone;
             if (phone && existingPhones.has(phone)) {
               duplicateCount++;
               return false;
             }
-            if (phone) existingPhones.add(phone); // Avoid duplicates within import
+            if (phone) existingPhones.add(phone);
             return true;
           })
-          .map(row => ({
-            nome: row.nome_completo.trim(),
-            telefone: row.telefone?.trim() || null,
-            origem: validateOrigem(row.origem),
-            atendido_por: row.atendido_por?.trim() || null,
-            status_funil: validateStatusFunil(row.status_funil),
-            created_at: parseDate(row.data_cadastro),
-            user_id: user?.id || null,
-            created_by: user?.id || null,
-            cadastrado_por: getUserDisplayName(),
-            ativo: true,
-            unidade_id: unidadeAtual?.id,
-          }));
+          .map((r) => {
+            const d = r.data!;
+            const originalRow = allRows[r.index - 2];
+            return {
+              nome: d.nome_completo,
+              telefone: d.telefone || null,
+              email: d.email || null,
+              origem: validateOrigem(d.origem || originalRow?.origem),
+              atendido_por: d.atendido_por || null,
+              status_funil: validateStatusFunil(d.status_funil || ''),
+              observacoes: d.observacoes || null,
+              created_at: parseDate(d.data_cadastro || originalRow?.data_cadastro || ''),
+              user_id: user?.id || null,
+              created_by: user?.id || null,
+              cadastrado_por: getUserDisplayName(),
+              ativo: true,
+              unidade_id: unidadeAtual?.id,
+            };
+          });
 
         if (leadsToInsert.length > 0) {
           const { data, error } = await supabase.from('leads').insert(leadsToInsert).select();
           if (error) {
             failCount += leadsToInsert.length;
+            console.error('CSV import insert error', error);
           } else {
             successCount += data?.length || 0;
           }
         }
       }
 
+      // Audit log (sem PII)
+      console.log(JSON.stringify({
+        audit: 'crm_csv_import',
+        user_id: user?.id ?? null,
+        unidade_id: unidadeAtual?.id ?? null,
+        total: results.length,
+        success: successCount,
+        rejected: rejectedCount,
+        duplicates: duplicateCount,
+        failed: failCount,
+        at: new Date().toISOString(),
+      }));
+
       setIsImporting(false);
-      
-      if (failCount > 0 || duplicateCount > 0) {
-        toast({ 
+
+      if (failCount > 0 || duplicateCount > 0 || rejectedCount > 0) {
+        toast({
           title: 'Importação concluída com observações',
-          description: `${successCount} importados, ${duplicateCount} duplicados ignorados${failCount > 0 ? `, ${failCount} falharam` : ''}`,
-          variant: duplicateCount > 0 && failCount === 0 ? 'default' : 'destructive'
+          description: `${successCount} importados · ${rejectedCount} rejeitados · ${duplicateCount} duplicados${failCount > 0 ? ` · ${failCount} falharam` : ''}`,
+          variant: failCount > 0 || rejectedCount > 0 ? 'destructive' : 'default',
         });
       } else {
         toast({ title: `Importação concluída: ${successCount} leads importados com sucesso.` });
@@ -790,6 +863,7 @@ export default function CRM() {
   const resetImportDialog = () => {
     setImportFile(null);
     setPreviewData([]);
+    setValidationResults([]);
     setIsPreviewReady(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -959,6 +1033,7 @@ export default function CRM() {
                         setImportFile(e.target.files?.[0] || null);
                         setIsPreviewReady(false);
                         setPreviewData([]);
+                        setValidationResults([]);
                       }}
                     />
                   </div>
@@ -982,51 +1057,93 @@ export default function CRM() {
                     </Button>
                   </div>
 
-                  {isPreviewReady && previewData.length > 0 && (
-                    <>
-                      <div className="border rounded-lg">
-                        <p className="text-sm text-muted-foreground p-3 border-b">
-                          Pré-visualização (primeiras {previewData.length} linhas)
-                        </p>
-                        <ScrollArea className="h-[300px]">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Nome</TableHead>
-                                <TableHead>Telefone</TableHead>
-                                <TableHead>Origem</TableHead>
-                                <TableHead>Atendido Por</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Data</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {previewData.map((row, idx) => (
-                                <TableRow key={idx}>
-                                  <TableCell className="font-medium">{row.nome_completo}</TableCell>
-                                  <TableCell>{row.telefone || '-'}</TableCell>
-                                  <TableCell>{row.origem || '-'}</TableCell>
-                                  <TableCell>{row.atendido_por || '-'}</TableCell>
-                                  <TableCell>{row.status_funil || '-'}</TableCell>
-                                  <TableCell>{row.data_cadastro || '-'}</TableCell>
+                  {isPreviewReady && previewData.length > 0 && (() => {
+                    const validCount = validationResults.filter((r) => r.valid).length;
+                    const invalidResults = validationResults.filter((r) => !r.valid);
+                    return (
+                      <>
+                        <div className="grid grid-cols-3 gap-2 text-sm">
+                          <div className="rounded-md border p-2">
+                            <div className="text-muted-foreground">Total</div>
+                            <div className="font-semibold">{validationResults.length}</div>
+                          </div>
+                          <div className="rounded-md border p-2">
+                            <div className="text-muted-foreground">Válidas</div>
+                            <div className="font-semibold text-emerald-600">{validCount}</div>
+                          </div>
+                          <div className="rounded-md border p-2">
+                            <div className="text-muted-foreground">Rejeitadas</div>
+                            <div className="font-semibold text-destructive">{invalidResults.length}</div>
+                          </div>
+                        </div>
+
+                        {invalidResults.length > 0 && (
+                          <div className="border border-destructive/30 rounded-lg bg-destructive/5">
+                            <p className="text-sm font-medium p-3 border-b border-destructive/30">
+                              Linhas rejeitadas (não serão importadas)
+                            </p>
+                            <ScrollArea className="h-[160px]">
+                              <ul className="text-xs p-3 space-y-1">
+                                {invalidResults.slice(0, 50).map((r) => (
+                                  <li key={r.index}>
+                                    <span className="font-medium">Linha {r.index}:</span>{' '}
+                                    {r.errors.join(' · ')}
+                                  </li>
+                                ))}
+                                {invalidResults.length > 50 && (
+                                  <li className="text-muted-foreground">
+                                    + {invalidResults.length - 50} outras linhas rejeitadas
+                                  </li>
+                                )}
+                              </ul>
+                            </ScrollArea>
+                          </div>
+                        )}
+
+                        <div className="border rounded-lg">
+                          <p className="text-sm text-muted-foreground p-3 border-b">
+                            Pré-visualização (primeiras {previewData.length} linhas)
+                          </p>
+                          <ScrollArea className="h-[300px]">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Nome</TableHead>
+                                  <TableHead>Telefone</TableHead>
+                                  <TableHead>Origem</TableHead>
+                                  <TableHead>Atendido Por</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead>Data</TableHead>
                                 </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </ScrollArea>
-                      </div>
-                      
-                      <Button 
-                        onClick={handleImport} 
-                        disabled={isImporting}
-                        className="w-full"
-                      >
-                        {isImporting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                        <Upload className="w-4 h-4 mr-2" />
-                        Importar agora
-                      </Button>
-                    </>
-                  )}
+                              </TableHeader>
+                              <TableBody>
+                                {previewData.map((row, idx) => (
+                                  <TableRow key={idx}>
+                                    <TableCell className="font-medium">{row.nome_completo}</TableCell>
+                                    <TableCell>{row.telefone || '-'}</TableCell>
+                                    <TableCell>{row.origem || '-'}</TableCell>
+                                    <TableCell>{row.atendido_por || '-'}</TableCell>
+                                    <TableCell>{row.status_funil || '-'}</TableCell>
+                                    <TableCell>{row.data_cadastro || '-'}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </ScrollArea>
+                        </div>
+
+                        <Button
+                          onClick={handleImport}
+                          disabled={isImporting || validCount === 0}
+                          className="w-full"
+                        >
+                          {isImporting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                          <Upload className="w-4 h-4 mr-2" />
+                          Importar {validCount} linha{validCount === 1 ? '' : 's'} válida{validCount === 1 ? '' : 's'}
+                        </Button>
+                      </>
+                    );
+                  })()}
                 </div>
               </DialogContent>
             </Dialog>
