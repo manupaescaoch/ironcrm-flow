@@ -256,6 +256,7 @@ export default function CRM() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [previewData, setPreviewData] = useState<CSVRow[]>([]);
+  const [validationResults, setValidationResults] = useState<CsvRowValidationResult[]>([]);
   const [isPreviewReady, setIsPreviewReady] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
