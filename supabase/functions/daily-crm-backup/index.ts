@@ -270,7 +270,8 @@ serve(async (req) => {
       .order('created_at', { ascending: false });
 
     if (leadsError) {
-      throw new Error(`Failed to fetch leads: ${leadsError.message}`);
+      console.error('Failed to fetch leads:', leadsError);
+      throw new Error('Backup step failed: fetch leads');
     }
 
     // Fetch all interactions
@@ -280,7 +281,8 @@ serve(async (req) => {
       .order('created_at', { ascending: false });
 
     if (interacoesError) {
-      throw new Error(`Failed to fetch interacoes: ${interacoesError.message}`);
+      console.error('Failed to fetch interacoes:', interacoesError);
+      throw new Error('Backup step failed: fetch interacoes');
     }
 
     console.log(`Fetched ${leads?.length || 0} leads and ${interacoes?.length || 0} interacoes`);
@@ -321,7 +323,8 @@ serve(async (req) => {
       });
 
     if (uploadLeadsError) {
-      throw new Error(`Failed to upload leads backup: ${uploadLeadsError.message}`);
+      console.error('Failed to upload leads backup:', uploadLeadsError);
+      throw new Error('Backup step failed: upload leads');
     }
 
     // Upload interacoes CSV
@@ -333,7 +336,8 @@ serve(async (req) => {
       });
 
     if (uploadInteracoesError) {
-      throw new Error(`Failed to upload interacoes backup: ${uploadInteracoesError.message}`);
+      console.error('Failed to upload interacoes backup:', uploadInteracoesError);
+      throw new Error('Backup step failed: upload interacoes');
     }
 
     console.log('Backup files uploaded successfully');
@@ -383,7 +387,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: 'Erro interno ao processar a solicitação.' 
       }),
       {
         status: 500,

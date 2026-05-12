@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
     if (userError) {
       console.error('Error fetching user profiles:', userError);
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch user profiles', details: userError.message }),
+        JSON.stringify({ error: 'Erro interno ao processar a solicitação.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
     if (authError) {
       console.error('Error fetching auth users:', authError);
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch users', details: authError.message }),
+        JSON.stringify({ error: 'Erro interno ao processar a solicitação.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }

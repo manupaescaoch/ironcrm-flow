@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
 
       if (updateError) {
         console.error('Error updating phone:', updateError);
-        return new Response(JSON.stringify({ error: updateError.message }), {
+        return new Response(JSON.stringify({ error: 'Erro interno ao processar a solicitação.' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 500,
         });
@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
 
       if (insertError) {
         console.error('Error creating profile:', insertError);
-        return new Response(JSON.stringify({ error: insertError.message }), {
+        return new Response(JSON.stringify({ error: 'Erro interno ao processar a solicitação.' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 500,
         });
@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
     const errorMessage = e instanceof Error ? e.message : 'Internal server error';
     console.error('Error in update-user-phone function:', errorMessage);
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'Erro interno ao processar a solicitação.' }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,

@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
 
     if (createError) {
       console.error('Error creating user:', createError);
-      return new Response(JSON.stringify({ error: createError.message }), {
+      return new Response(JSON.stringify({ error: 'Não foi possível criar o usuário. Verifique os dados informados.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       });
@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
     const errorMessage = e instanceof Error ? e.message : 'Internal server error';
     console.error('Error in create-user function:', errorMessage);
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'Erro interno ao processar a solicitação.' }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,

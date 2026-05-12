@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
     if (rotinasError) {
       console.error('Erro ao buscar rotinas:', rotinasError);
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch rotinas', details: rotinasError.message }),
+        JSON.stringify({ error: 'Erro interno ao processar a solicitação.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
