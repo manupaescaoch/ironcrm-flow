@@ -622,8 +622,38 @@ export default function CRM() {
           return obj as unknown as CSVRow;
         });
 
+      // Validate all rows (zod + sanitização + bloqueio de conteúdo malicioso)
+      const results: CsvRowValidationResult[] = mappedRows.map((row, idx) =>
+        validateCsvRow(row as unknown as Record<string, string>, idx + 2)
+      );
+
+      // Detectar duplicidade de telefone dentro do próprio CSV
+      const seenPhones = new Set<string>();
+      results.forEach((r) => {
+        const phone = r.data?.telefone;
+        if (phone) {
+          if (seenPhones.has(phone)) {
+            r.duplicate = true;
+            r.valid = false;
+            r.errors.push('telefone duplicado no arquivo');
+          } else {
+            seenPhones.add(phone);
+          }
+        }
+      });
+
+      const validCount = results.filter((r) => r.valid).length;
+      const invalidCount = results.length - validCount;
+
+      setValidationResults(results);
       setPreviewData(mappedRows.slice(0, 20));
       setIsPreviewReady(true);
+
+      toast({
+        title: 'Pré-validação concluída',
+        description: `${validCount} válidas · ${invalidCount} rejeitadas (de ${results.length})`,
+        variant: invalidCount > 0 ? 'destructive' : 'default',
+      });
     };
     
     if (isExcel) {
