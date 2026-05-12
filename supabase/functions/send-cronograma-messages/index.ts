@@ -133,8 +133,8 @@ Deno.serve(async (req) => {
       .from('cronograma_envios')
       .select('atividade_id, funcionario_id')
       .in('atividade_id', atividadeIds)
-      .gte('created_at', todayStr + 'T00:00:00')
-      .lte('created_at', todayStr + 'T23:59:59');
+      .gte('created_at', todayStr + 'T00:00:00-03:00')
+      .lte('created_at', todayStr + 'T23:59:59-03:00');
 
     const enviosSet = new Set(
       (enviosHoje || []).map(e => `${e.atividade_id}_${e.funcionario_id}`)
