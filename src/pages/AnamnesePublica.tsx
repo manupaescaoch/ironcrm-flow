@@ -99,12 +99,16 @@ export default function AnamnesePublica() {
     );
   }
 
-  if (stage === 'done') {
+  if (stage === 'done' || alreadyFilled) {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 bg-anamnese-bg p-8 text-center">
-        <h1 className="font-display text-3xl uppercase tracking-tight">Tudo certo! 🎉</h1>
+        <h1 className="font-display text-3xl uppercase tracking-tight">
+          {alreadyFilled && stage !== 'done' ? 'Anamnese já preenchida' : 'Tudo certo! 🎉'}
+        </h1>
         <p className="max-w-sm text-sm text-muted-foreground">
-          Suas respostas foram enviadas para a equipe. Você já pode fechar esta página.
+          {alreadyFilled && stage !== 'done'
+            ? 'Esta anamnese já foi enviada anteriormente. Procure a equipe se precisar atualizar alguma informação.'
+            : 'Suas respostas foram enviadas para a equipe. Você já pode fechar esta página.'}
         </p>
       </div>
     );
