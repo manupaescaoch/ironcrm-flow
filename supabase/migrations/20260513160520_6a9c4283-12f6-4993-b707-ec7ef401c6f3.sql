@@ -1,0 +1,1 @@
+SELECT cron.unschedule('send-formulario-lembretes-every-5min');
