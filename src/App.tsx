@@ -203,9 +203,9 @@ const AppRoutes = () => (
     <Route
       path="/admin-users"
       element={
-        <MasterAdminRoute>
+        <AdminRoute>
           <AdminUsers />
-        </MasterAdminRoute>
+        </AdminRoute>
       }
     />
     <Route
