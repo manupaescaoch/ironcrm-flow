@@ -173,6 +173,27 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
             detalhe: r.hora_experimental ? r.hora_experimental.slice(0, 5) : undefined,
           }));
         setModalLeads(dedupe(list));
+      } else if (key === 'experimentaisSemana') {
+        const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        const weekEnd = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        const { data } = await supabase
+          .from('interacoes')
+          .select('lead_id, data_experimental, hora_experimental, leads!inner(id, nome, ativo)')
+          .eq('unidade_id', unidadeAtual.id)
+          .eq('agendou_experimental', true)
+          .gte('data_experimental', weekStart)
+          .lte('data_experimental', weekEnd)
+          .order('data_experimental', { ascending: true });
+        const list: LeadEntry[] = (data || [])
+          .filter((r: any) => r.leads && r.leads.ativo !== false)
+          .map((r: any) => {
+            const [y, m, d] = (r.data_experimental || '').split('-').map(Number);
+            const dataFmt = y ? format(new Date(y, m - 1, d), 'dd/MM', { locale: ptBR }) : '';
+            const hora = r.hora_experimental ? r.hora_experimental.slice(0, 5) : '';
+            const detalhe = [dataFmt, hora].filter(Boolean).join(' • ');
+            return { id: r.leads.id, nome: r.leads.nome, detalhe: detalhe || undefined };
+          });
+        setModalLeads(dedupe(list));
       } else if (key === 'confirmacoesEnviadas') {
         const { data } = await supabase
           .from('leads')
