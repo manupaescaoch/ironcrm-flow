@@ -69,13 +69,20 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
       const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
       const weekEnd = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
-      const [expRes, anamRespRes, leadsExpRes, anamLeadIdsRes, fuEnvRes, fuAgRes, conf24Res, conf2Res] = await Promise.all([
+      const [expRes, expSemanaRes, anamRespRes, leadsExpRes, anamLeadIdsRes, fuEnvRes, fuAgRes, conf24Res, conf2Res] = await Promise.all([
         supabase
           .from('interacoes')
           .select('lead_id', { count: 'exact', head: true })
           .eq('unidade_id', unidadeAtual.id)
           .eq('agendou_experimental', true)
           .eq('data_experimental', today),
+        supabase
+          .from('interacoes')
+          .select('lead_id', { count: 'exact', head: true })
+          .eq('unidade_id', unidadeAtual.id)
+          .eq('agendou_experimental', true)
+          .gte('data_experimental', weekStart)
+          .lte('data_experimental', weekEnd),
         supabase
           .from('anamneses_experimental')
           .select('id', { count: 'exact', head: true })
