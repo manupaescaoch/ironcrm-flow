@@ -66,6 +66,8 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
       const today = format(new Date(), 'yyyy-MM-dd');
       const startTs = `${today}T00:00:00`;
       const endTs = `${today}T23:59:59`;
+      const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      const weekEnd = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
       const [expRes, anamRespRes, leadsExpRes, anamLeadIdsRes, fuEnvRes, fuAgRes, conf24Res, conf2Res] = await Promise.all([
         supabase
