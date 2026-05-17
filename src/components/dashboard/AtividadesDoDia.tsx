@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Dumbbell, ClipboardCheck, ClipboardList, Send, CalendarClock, ArrowRight, BellRing, ExternalLink } from 'lucide-react';
+import { Dumbbell, ClipboardCheck, ClipboardList, Send, CalendarClock, ArrowRight, BellRing, ExternalLink, CalendarDays } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
-import { format } from 'date-fns';
+import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 
 interface AtividadesStats {
   experimentaisHoje: number;
+  experimentaisSemana: number;
   confirmacoesEnviadas: number;
   anamnesesRespondidas: number;
   anamnesesPendentes: number;
@@ -32,6 +33,7 @@ interface AtividadesDoDiaProps {
 
 const ITEMS: Array<{ key: StatKey; label: string; subtitle: string; icon: any; color: string }> = [
   { key: 'experimentaisHoje', label: 'Experimentais do dia', subtitle: 'aulas experimentais hoje', icon: Dumbbell, color: 'text-primary' },
+  { key: 'experimentaisSemana', label: 'Experimentais da semana', subtitle: 'agendadas nesta semana', icon: CalendarDays, color: 'text-indigo-600' },
   { key: 'confirmacoesEnviadas', label: 'Confirmações experimentais', subtitle: 'lembretes 24h/2h enviados hoje', icon: BellRing, color: 'text-sky-600' },
   { key: 'anamnesesRespondidas', label: 'Anamneses respondidas', subtitle: 'respondidas hoje', icon: ClipboardCheck, color: 'text-green-600' },
   { key: 'anamnesesPendentes', label: 'Anamneses pendentes', subtitle: 'aguardando resposta', icon: ClipboardList, color: 'text-amber-600' },
@@ -43,6 +45,7 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
   const { unidadeAtual } = useUnidade();
   const [stats, setStats] = useState<AtividadesStats>({
     experimentaisHoje: 0,
+    experimentaisSemana: 0,
     confirmacoesEnviadas: 0,
     anamnesesRespondidas: 0,
     anamnesesPendentes: 0,
@@ -63,14 +66,23 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
       const today = format(new Date(), 'yyyy-MM-dd');
       const startTs = `${today}T00:00:00`;
       const endTs = `${today}T23:59:59`;
+      const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      const weekEnd = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
-      const [expRes, anamRespRes, leadsExpRes, anamLeadIdsRes, fuEnvRes, fuAgRes, conf24Res, conf2Res] = await Promise.all([
+      const [expRes, expSemanaRes, anamRespRes, leadsExpRes, anamLeadIdsRes, fuEnvRes, fuAgRes, conf24Res, conf2Res] = await Promise.all([
         supabase
           .from('interacoes')
           .select('lead_id', { count: 'exact', head: true })
           .eq('unidade_id', unidadeAtual.id)
           .eq('agendou_experimental', true)
           .eq('data_experimental', today),
+        supabase
+          .from('interacoes')
+          .select('lead_id', { count: 'exact', head: true })
+          .eq('unidade_id', unidadeAtual.id)
+          .eq('agendou_experimental', true)
+          .gte('data_experimental', weekStart)
+          .lte('data_experimental', weekEnd),
         supabase
           .from('anamneses_experimental')
           .select('id', { count: 'exact', head: true })
@@ -124,6 +136,7 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
       if (cancelled) return;
       setStats({
         experimentaisHoje: expRes.count ?? 0,
+        experimentaisSemana: expSemanaRes.count ?? 0,
         confirmacoesEnviadas: confSet.size,
         anamnesesRespondidas: anamRespRes.count ?? 0,
         anamnesesPendentes: pendentes,
@@ -159,6 +172,27 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
             nome: r.leads.nome,
             detalhe: r.hora_experimental ? r.hora_experimental.slice(0, 5) : undefined,
           }));
+        setModalLeads(dedupe(list));
+      } else if (key === 'experimentaisSemana') {
+        const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        const weekEnd = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        const { data } = await supabase
+          .from('interacoes')
+          .select('lead_id, data_experimental, hora_experimental, leads!inner(id, nome, ativo)')
+          .eq('unidade_id', unidadeAtual.id)
+          .eq('agendou_experimental', true)
+          .gte('data_experimental', weekStart)
+          .lte('data_experimental', weekEnd)
+          .order('data_experimental', { ascending: true });
+        const list: LeadEntry[] = (data || [])
+          .filter((r: any) => r.leads && r.leads.ativo !== false)
+          .map((r: any) => {
+            const [y, m, d] = (r.data_experimental || '').split('-').map(Number);
+            const dataFmt = y ? format(new Date(y, m - 1, d), 'dd/MM', { locale: ptBR }) : '';
+            const hora = r.hora_experimental ? r.hora_experimental.slice(0, 5) : '';
+            const detalhe = [dataFmt, hora].filter(Boolean).join(' • ');
+            return { id: r.leads.id, nome: r.leads.nome, detalhe: detalhe || undefined };
+          });
         setModalLeads(dedupe(list));
       } else if (key === 'confirmacoesEnviadas') {
         const { data } = await supabase
