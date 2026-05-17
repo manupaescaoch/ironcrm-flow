@@ -130,9 +130,23 @@ Deno.serve(async (req) => {
 
     if (error) throw error;
 
+    // Busca leads que já compareceram à experimental (qualquer interação com compareceu=true)
+    const leadIds = (leads || []).map((l) => l.id);
+    let leadsJaCompareceram = new Set<string>();
+    if (leadIds.length > 0) {
+      const { data: interacoesCompareceu } = await supabase
+        .from('interacoes')
+        .select('lead_id')
+        .in('lead_id', leadIds)
+        .eq('compareceu', true);
+      leadsJaCompareceram = new Set((interacoesCompareceu || []).map((i: any) => i.lead_id));
+    }
+
     const resultados: any[] = [];
 
     for (const lead of leads || []) {
+      // Pula leads que já compareceram à experimental
+      if (leadsJaCompareceram.has(lead.id)) continue;
       // Constrói momento da aula em horário local BRT
       const dataAula = extractDateOnly(String(lead.data_aula_experimental));
       const [h, m] = String(lead.hora_aula_experimental).slice(0, 5).split(':').map(Number);
