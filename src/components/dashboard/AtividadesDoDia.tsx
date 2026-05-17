@@ -45,6 +45,7 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
   const { unidadeAtual } = useUnidade();
   const [stats, setStats] = useState<AtividadesStats>({
     experimentaisHoje: 0,
+    experimentaisSemana: 0,
     confirmacoesEnviadas: 0,
     anamnesesRespondidas: 0,
     anamnesesPendentes: 0,
