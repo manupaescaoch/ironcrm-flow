@@ -136,6 +136,7 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
       if (cancelled) return;
       setStats({
         experimentaisHoje: expRes.count ?? 0,
+        experimentaisSemana: expSemanaRes.count ?? 0,
         confirmacoesEnviadas: confSet.size,
         anamnesesRespondidas: anamRespRes.count ?? 0,
         anamnesesPendentes: pendentes,
