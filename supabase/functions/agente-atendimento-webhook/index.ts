@@ -195,9 +195,10 @@ Deno.serve(async (req) => {
       '- Siga EXATAMENTE a formatação, tom, emojis, quebras de linha e estrutura definidos acima.\n' +
       '- Você responde via WhatsApp: use *texto* para negrito (UM asterisco), nunca **texto** nem markdown de cabeçalho (#).\n' +
       '- Use _texto_ para itálico e ~texto~ para tachado, padrão WhatsApp.\n' +
-      '- Mantenha mensagens curtas, divididas em blocos com quebras de linha quando o prompt pedir.\n' +
+      '- Mantenha mensagens curtas, divididas em blocos quando o prompt pedir.\n' +
       '- Use os emojis especificados no prompt nos locais indicados.\n' +
-      '- Não invente informações fora do escopo do prompt.';
+      '- Não invente informações fora do escopo do prompt.\n' +
+      '- IMPORTANTE: Quando o prompt pedir para dividir em mensagens separadas (ex: "envie em 2/3 mensagens"), separe cada mensagem usando exclusivamente o delimitador "---" em uma linha sozinha entre elas. Não use "---" para qualquer outra finalidade.';
 
     const basePrompt = agente.prompt || 'Você é um SDR cordial do Iron Club.';
     const messages: Array<{ role: string; content: string }> = [
@@ -237,12 +238,18 @@ Deno.serve(async (req) => {
     const experimentalDetectada =
       /experimental/.test(lower) && /(agend|marc|solicit|confirm|reserv)/.test(lower);
 
-    // Salvar resposta
+    // Dividir resposta em múltiplas mensagens (delimitador "---" em linha própria)
+    const partes = resposta
+      .split(/\n\s*-{3,}\s*\n/g)
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
+
+    // Salvar resposta completa (com delimitadores removidos)
     await supabase.from('agente_mensagens').insert({
       atendimento_id: atendimento.id,
       unidade_id: unidadeId,
       role: 'assistant',
-      conteudo: resposta,
+      conteudo: partes.join('\n\n'),
     });
 
     const updates: Record<string, unknown> = {
@@ -256,8 +263,13 @@ Deno.serve(async (req) => {
     }
     await supabase.from('agente_atendimentos').update(updates).eq('id', atendimento.id);
 
-    // Enviar via Z-API
-    await sendWhatsApp(telefone, resposta);
+    // Enviar via Z-API (uma mensagem por parte)
+    for (let i = 0; i < partes.length; i++) {
+      await sendWhatsApp(telefone, partes[i]);
+      if (i < partes.length - 1) {
+        await new Promise((r) => setTimeout(r, 1200));
+      }
+    }
 
     // Mensagem pós-solicitação configurada
     if (experimentalDetectada && agente.mensagem_pos_solicitacao && !atendimento.experimental_solicitada) {
