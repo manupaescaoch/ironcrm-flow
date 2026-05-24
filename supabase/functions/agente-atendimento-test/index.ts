@@ -54,8 +54,17 @@ Deno.serve(async (req) => {
       });
     }
 
+    const reforco =
+      '\n\nINSTRUÇÕES DE FORMATAÇÃO (OBRIGATÓRIAS, NÃO IGNORE):\n' +
+      '- Siga EXATAMENTE a formatação, tom, emojis, quebras de linha e estrutura definidos acima.\n' +
+      '- Você responde via WhatsApp: use *texto* para negrito (UM asterisco), nunca **texto** nem markdown de cabeçalho (#).\n' +
+      '- Use _texto_ para itálico e ~texto~ para tachado, padrão WhatsApp.\n' +
+      '- Mantenha mensagens curtas, divididas em blocos com quebras de linha quando o prompt pedir.\n' +
+      '- Use os emojis especificados no prompt nos locais indicados.\n' +
+      '- Não invente informações fora do escopo do prompt.';
+
     const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: prompt },
+      { role: 'system', content: prompt + reforco },
     ];
 
     if (Array.isArray(historico) && historico.length > 0) {
