@@ -75,7 +75,8 @@ function installMocks(state: MockState) {
       if (u.pathname.endsWith('/rest/v1/interacoes') && method === 'GET') {
         const compareceuFilter = u.searchParams.get('compareceu'); // eq.true
         const leadIdParam = u.searchParams.get('lead_id'); // eq.uuid OR in.(a,b,c)
-        const prefer = (init?.headers as Record<string, string> | undefined)?.['Prefer'] ?? '';
+        // deno-lint-ignore no-explicit-any
+        const prefer = ((init as any)?.headers ?? {})['Prefer'] ?? '';
 
         const onlyCompareceu = compareceuFilter === 'eq.true';
         let ids: string[] = [];
