@@ -124,7 +124,25 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
+    // Gatilho de ativação: se ainda não há atendimento ativo, exige a frase configurada
+    const normalize = (s: string) =>
+      (s || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const gatilho: string | null = agente.gatilho_ativacao || null;
     if (!atendimento) {
+      if (gatilho && gatilho.trim()) {
+        const gNorm = normalize(gatilho);
+        const mNorm = normalize(payload.mensagem);
+        if (!mNorm.includes(gNorm)) {
+          return json({ ok: true, ignored: 'aguardando gatilho de ativação' });
+        }
+      }
       const { data: novo, error: insErr } = await supabase
         .from('agente_atendimentos')
         .insert({
