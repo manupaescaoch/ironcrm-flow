@@ -177,7 +177,8 @@ Deno.test('NÃO envia em race condition (recheck per-lead intercepta)', async ()
   const realFetch = globalThis.fetch;
   globalThis.fetch = async (input, init) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
-    const prefer = ((init?.headers ?? {}) as Record<string, string>)['Prefer'] ?? '';
+    // deno-lint-ignore no-explicit-any
+    const prefer = ((init as any)?.headers ?? {})['Prefer'] ?? '';
     if (url.includes('/rest/v1/interacoes') && prefer.includes('head=true')) {
       return new Response(null, { status: 200, headers: { 'Content-Range': '0-0/3' } });
     }
