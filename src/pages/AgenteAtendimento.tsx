@@ -698,9 +698,9 @@ export default function AgenteAtendimento() {
           <Button onClick={() => salvar()} disabled={saving || !canEdit}>
             {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
             Salvar configurações
-          </Button>
-          <Button variant="outline" onClick={testar} disabled={testing}>
-            <Send className="w-4 h-4 mr-1" /> Testar agente
+          <Button onClick={() => salvar()} disabled={saving || !canEdit}>
+            {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+            Salvar configurações
           </Button>
           {agente?.status !== 'ativo' ? (
             <Button variant="default" onClick={() => salvar('ativo')} disabled={saving || !canEdit}>
