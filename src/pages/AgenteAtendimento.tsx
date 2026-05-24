@@ -552,6 +552,19 @@ export default function AgenteAtendimento() {
             </div>
 
             <div className="space-y-2">
+              <Label>Gatilho de ativação</Label>
+              <Input
+                value={gatilhoAtivacao}
+                onChange={(e) => setGatilhoAtivacao(e.target.value)}
+                placeholder="Olá! Tenho interesse e queria mais informações, por favor."
+                disabled={!canEdit}
+              />
+              <p className="text-xs text-muted-foreground">
+                O agente só inicia o atendimento quando recebe uma mensagem contendo esta frase. Após iniciado, responde normalmente a todas as mensagens seguintes.
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <Label>Mensagem inicial</Label>
               <Textarea
                 value={mensagemInicial}
