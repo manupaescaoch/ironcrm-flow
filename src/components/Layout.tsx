@@ -24,7 +24,8 @@ import {
   Menu,
   CheckSquare,
   Phone,
-  ClipboardList
+  ClipboardList,
+  Bot
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/logo.png';
@@ -53,6 +54,7 @@ const allNavItems = [
   { href: '/operacional', label: 'Operacional', icon: ClipboardList, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/estoque', label: 'Estoque', icon: Package, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
+  { href: '/agente-atendimento', label: 'Agente de Atendimento', icon: Bot, roles: ['admin', 'comercial'], masterOnly: false },
   { href: '/dashboard-executivo', label: 'Executivo', icon: BarChart3, roles: ['admin'], masterOnly: false },
   { href: '/relatorio', label: 'Relatório Vendas', icon: FileText, roles: ['admin'], masterOnly: false },
   { href: '/backups', label: 'Backups', icon: Database, roles: ['admin'], masterOnly: false },

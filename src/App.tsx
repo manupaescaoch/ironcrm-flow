@@ -37,6 +37,7 @@ import EncerramentoHorario from "./pages/EncerramentoHorario";
 import RelatorioDiarioComercial from "./pages/RelatorioDiarioComercial";
 import GruposWhatsApp from "./pages/admin/GruposWhatsApp";
 import DashboardOperacional from "./pages/DashboardOperacional";
+import AgenteAtendimento from "./pages/AgenteAtendimento";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -88,6 +89,35 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 // edge functions (create-user, list-users, update-user-*, delete-user) which all
 // validate has_role(auth.uid(), 'admin'). The route now uses AdminRoute as a
 // visual gate; real access control lives in the backend.
+
+function AdminOrComercialRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading, userRole } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (userRole && userRole !== 'admin' && userRole !== 'comercial') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-md text-center space-y-3">
+          <h1 className="text-2xl font-bold">Acesso negado</h1>
+          <p className="text-muted-foreground">Você não tem permissão para acessar esta página.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -294,6 +324,14 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <ControleVencimentos />
         </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/agente-atendimento"
+      element={
+        <AdminOrComercialRoute>
+          <AgenteAtendimento />
+        </AdminOrComercialRoute>
       }
     />
     <Route path="*" element={<NotFound />} />

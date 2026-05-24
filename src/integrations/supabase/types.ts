@@ -14,6 +14,199 @@ export type Database = {
   }
   public: {
     Tables: {
+      agente_atendimentos: {
+        Row: {
+          agente_id: string
+          aluno_id: string | null
+          canal: string
+          created_at: string
+          dia_experimental: string | null
+          experimental_solicitada: boolean
+          horario_experimental: string | null
+          horario_treino: string | null
+          id: string
+          lead_id: string | null
+          nome: string | null
+          objetivo: string | null
+          plano_indicado: string | null
+          primeira_interacao_at: string | null
+          resumo_conversa: string | null
+          status: string
+          telefone: string | null
+          ultima_interacao_at: string | null
+          unidade_id: string
+          unidade_interesse: string | null
+          updated_at: string
+        }
+        Insert: {
+          agente_id: string
+          aluno_id?: string | null
+          canal?: string
+          created_at?: string
+          dia_experimental?: string | null
+          experimental_solicitada?: boolean
+          horario_experimental?: string | null
+          horario_treino?: string | null
+          id?: string
+          lead_id?: string | null
+          nome?: string | null
+          objetivo?: string | null
+          plano_indicado?: string | null
+          primeira_interacao_at?: string | null
+          resumo_conversa?: string | null
+          status?: string
+          telefone?: string | null
+          ultima_interacao_at?: string | null
+          unidade_id: string
+          unidade_interesse?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agente_id?: string
+          aluno_id?: string | null
+          canal?: string
+          created_at?: string
+          dia_experimental?: string | null
+          experimental_solicitada?: boolean
+          horario_experimental?: string | null
+          horario_treino?: string | null
+          id?: string
+          lead_id?: string | null
+          nome?: string | null
+          objetivo?: string | null
+          plano_indicado?: string | null
+          primeira_interacao_at?: string | null
+          resumo_conversa?: string | null
+          status?: string
+          telefone?: string | null
+          ultima_interacao_at?: string | null
+          unidade_id?: string
+          unidade_interesse?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_atendimentos_agente_id_fkey"
+            columns: ["agente_id"]
+            isOneToOne: false
+            referencedRelation: "agentes_atendimento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agentes_atendimento: {
+        Row: {
+          atualizado_por: string | null
+          canal: string
+          configuracao_experimental: Json
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          id: string
+          mensagem_inicial: string | null
+          mensagem_pos_solicitacao: string | null
+          nome: string
+          prompt: string | null
+          regras: Json
+          status: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          atualizado_por?: string | null
+          canal?: string
+          configuracao_experimental?: Json
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          mensagem_inicial?: string | null
+          mensagem_pos_solicitacao?: string | null
+          nome?: string
+          prompt?: string | null
+          regras?: Json
+          status?: string
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          atualizado_por?: string | null
+          canal?: string
+          configuracao_experimental?: Json
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          mensagem_inicial?: string | null
+          mensagem_pos_solicitacao?: string | null
+          nome?: string
+          prompt?: string | null
+          regras?: Json
+          status?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      agentes_atendimento_versoes: {
+        Row: {
+          agente_id: string
+          configuracao_experimental: Json
+          created_at: string
+          criado_por: string | null
+          criado_por_nome: string | null
+          descricao: string | null
+          id: string
+          mensagem_inicial: string | null
+          mensagem_pos_solicitacao: string | null
+          nome: string | null
+          prompt: string | null
+          regras: Json
+          status: string | null
+          unidade_id: string
+        }
+        Insert: {
+          agente_id: string
+          configuracao_experimental?: Json
+          created_at?: string
+          criado_por?: string | null
+          criado_por_nome?: string | null
+          descricao?: string | null
+          id?: string
+          mensagem_inicial?: string | null
+          mensagem_pos_solicitacao?: string | null
+          nome?: string | null
+          prompt?: string | null
+          regras?: Json
+          status?: string | null
+          unidade_id: string
+        }
+        Update: {
+          agente_id?: string
+          configuracao_experimental?: Json
+          created_at?: string
+          criado_por?: string | null
+          criado_por_nome?: string | null
+          descricao?: string | null
+          id?: string
+          mensagem_inicial?: string | null
+          mensagem_pos_solicitacao?: string | null
+          nome?: string | null
+          prompt?: string | null
+          regras?: Json
+          status?: string | null
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agentes_atendimento_versoes_agente_id_fkey"
+            columns: ["agente_id"]
+            isOneToOne: false
+            referencedRelation: "agentes_atendimento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       anamneses_experimental: {
         Row: {
           condicao_saude_descricao: string | null
