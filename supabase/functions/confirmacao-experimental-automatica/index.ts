@@ -175,6 +175,8 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // Constrói momento da aula em horário local BRT
+      const dataAula = extractDateOnly(String(lead.data_aula_experimental));
       const [h, m] = String(lead.hora_aula_experimental).slice(0, 5).split(':').map(Number);
       const [ano, mes, dia] = dataAula.split('-').map(Number);
       const momentoAula = new Date(`${dataAula}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00-03:00`);
