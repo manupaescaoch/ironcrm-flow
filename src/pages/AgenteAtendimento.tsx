@@ -325,30 +325,34 @@ export default function AgenteAtendimento() {
     setSaving(false);
   };
 
-  const testar = async () => {
-    if (!testMsg.trim()) {
-      toast({ title: 'Atenção', description: 'Digite uma mensagem de teste.', variant: 'destructive' });
-      return;
-    }
+  const enviarMensagemTeste = async () => {
+    const texto = testMsg.trim();
+    if (!texto) return;
     if (!prompt.trim()) {
       toast({ title: 'Atenção', description: 'Preencha o prompt antes de testar.', variant: 'destructive' });
       return;
     }
+    const novoHistorico = [...chat, { role: 'user' as const, content: texto }];
+    setChat(novoHistorico);
+    setTestMsg('');
     setTesting(true);
-    setTestResp('');
     try {
       const { data, error } = await supabase.functions.invoke('agente-atendimento-test', {
-        body: { prompt, mensagem_inicial: mensagemInicial, mensagem: testMsg },
+        body: { prompt, mensagem_inicial: mensagemInicial, historico: novoHistorico },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      setTestResp((data as any)?.resposta || '');
+      const resposta = (data as any)?.resposta || '';
+      setChat([...novoHistorico, { role: 'assistant', content: resposta }]);
     } catch (e: any) {
       toast({ title: 'Erro no teste', description: e.message || String(e), variant: 'destructive' });
+      setChat(novoHistorico); // mantém a mensagem do usuário
     } finally {
       setTesting(false);
     }
   };
+
+  const limparChat = () => setChat([]);
 
   const restaurarVersao = (v: VersaoRow) => {
     setPrompt(v.prompt || '');
