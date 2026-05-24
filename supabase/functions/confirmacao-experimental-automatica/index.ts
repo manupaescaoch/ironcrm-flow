@@ -145,8 +145,36 @@ Deno.serve(async (req) => {
     const resultados: any[] = [];
 
     for (const lead of leads || []) {
-      // Pula leads que já compareceram à experimental
-      if (leadsJaCompareceram.has(lead.id)) continue;
+      // GUARDA 1: pré-filtro em lote — leads com compareceu=true em qualquer interação
+      if (leadsJaCompareceram.has(lead.id)) {
+        console.log('[confirmacao-experimental] BLOQUEADO (pré-filtro compareceu)', { lead_id: lead.id });
+        continue;
+      }
+
+      // GUARDA 2: re-checagem per-lead imediatamente antes do envio (defense-in-depth)
+      // Protege contra race conditions entre o SELECT em lote e o loop de envio.
+      const { count: compareceuCount, error: recheckErr } = await supabase
+        .from('interacoes')
+        .select('id', { count: 'exact', head: true })
+        .eq('lead_id', lead.id)
+        .eq('compareceu', true);
+
+      if (recheckErr) {
+        console.error('[confirmacao-experimental] erro no recheck compareceu — abortando lead', {
+          lead_id: lead.id,
+          error: recheckErr.message,
+        });
+        continue;
+      }
+
+      if ((compareceuCount ?? 0) > 0) {
+        console.log('[confirmacao-experimental] BLOQUEADO (recheck compareceu>0)', {
+          lead_id: lead.id,
+          compareceuCount,
+        });
+        continue;
+      }
+
       // Constrói momento da aula em horário local BRT
       const dataAula = extractDateOnly(String(lead.data_aula_experimental));
       const [h, m] = String(lead.hora_aula_experimental).slice(0, 5).split(':').map(Number);
