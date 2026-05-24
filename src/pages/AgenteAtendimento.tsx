@@ -630,34 +630,66 @@ export default function AgenteAtendimento() {
           </CardContent>
         </Card>
 
-        {/* Testar agente */}
+        {/* Testar agente - chat fluido estilo WhatsApp */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Testar agente</CardTitle>
-            <CardDescription>Simule uma mensagem usando o prompt acima</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle className="text-lg">Testar agente</CardTitle>
+              <CardDescription>Conversa de simulação seguindo o fluxo de atendimento</CardDescription>
+            </div>
+            <Button size="sm" variant="ghost" onClick={limparChat} disabled={chat.length === 0 && !testing}>
+              <RotateCcw className="w-3.5 h-3.5 mr-1" /> Nova conversa
+            </Button>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <Textarea
-              value={testMsg}
-              onChange={(e) => setTestMsg(e.target.value)}
-              placeholder="Digite uma mensagem como se fosse um lead..."
-              rows={3}
-            />
-            <div className="flex gap-2">
-              <Button onClick={testar} disabled={testing}>
-                {testing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Send className="w-4 h-4 mr-1" />}
-                Enviar teste
-              </Button>
-              <Button variant="outline" onClick={() => { setTestMsg(''); setTestResp(''); }}>
-                Limpar teste
+          <CardContent>
+            <div className="rounded-md border p-4 h-[420px] overflow-y-auto space-y-2 bg-muted/30">
+              {mensagemInicial && (
+                <div className="flex justify-start">
+                  <div className="max-w-[75%] rounded-2xl rounded-tl-sm bg-card border px-3 py-2 text-sm whitespace-pre-wrap shadow-sm">
+                    {mensagemInicial}
+                  </div>
+                </div>
+              )}
+              {chat.map((m, i) => (
+                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div
+                    className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap shadow-sm ${
+                      m.role === 'user'
+                        ? 'bg-primary text-primary-foreground rounded-tr-sm'
+                        : 'bg-card border rounded-tl-sm'
+                    }`}
+                  >
+                    {m.content}
+                  </div>
+                </div>
+              ))}
+              {testing && (
+                <div className="flex justify-start">
+                  <div className="rounded-2xl rounded-tl-sm bg-card border px-3 py-2 text-sm text-muted-foreground shadow-sm flex items-center gap-2">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Digitando...
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+            <div className="flex gap-2 mt-3">
+              <Textarea
+                value={testMsg}
+                onChange={(e) => setTestMsg(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    enviarMensagemTeste();
+                  }
+                }}
+                placeholder="Digite uma mensagem como se fosse um lead no WhatsApp..."
+                rows={2}
+                className="min-h-[44px] resize-none"
+              />
+              <Button onClick={enviarMensagemTeste} disabled={testing || !testMsg.trim()} className="self-end">
+                <Send className="w-4 h-4" />
               </Button>
             </div>
-            {testResp && (
-              <div className="rounded-md border bg-muted/30 p-4 text-sm whitespace-pre-wrap">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Resposta do agente</p>
-                {testResp}
-              </div>
-            )}
           </CardContent>
         </Card>
 
