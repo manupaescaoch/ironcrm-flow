@@ -149,10 +149,15 @@ export default function AgenteAtendimento() {
   const [filtroCanal, setFiltroCanal] = useState('todos');
   const [resumoOpen, setResumoOpen] = useState<AtendimentoRow | null>(null);
 
-  // Test agent
+  // Test agent - chat fluido
   const [testMsg, setTestMsg] = useState('');
-  const [testResp, setTestResp] = useState('');
+  const [chat, setChat] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const [testing, setTesting] = useState(false);
+  const chatEndRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chat, testing]);
 
   // Versions
   const [versoes, setVersoes] = useState<VersaoRow[]>([]);
