@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { prompt, mensagem_inicial, mensagem } = body ?? {};
+    const { prompt, mensagem_inicial, mensagem, historico } = body ?? {};
 
     if (!prompt || typeof prompt !== 'string') {
       return new Response(JSON.stringify({ error: 'Prompt é obrigatório' }), {
@@ -53,11 +53,32 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    if (!mensagem || typeof mensagem !== 'string') {
-      return new Response(JSON.stringify({ error: 'Mensagem é obrigatória' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+
+    const messages: Array<{ role: string; content: string }> = [
+      { role: 'system', content: prompt },
+    ];
+
+    if (Array.isArray(historico) && historico.length > 0) {
+      // Conversa completa do chat de teste
+      if (mensagem_inicial) {
+        messages.push({ role: 'assistant', content: mensagem_inicial });
+      }
+      for (const m of historico) {
+        if (m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant')) {
+          messages.push({ role: m.role, content: m.content });
+        }
+      }
+    } else {
+      if (!mensagem || typeof mensagem !== 'string') {
+        return new Response(JSON.stringify({ error: 'Mensagem é obrigatória' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (mensagem_inicial) {
+        messages.push({ role: 'assistant', content: mensagem_inicial });
+      }
+      messages.push({ role: 'user', content: mensagem });
     }
 
     const apiKey = Deno.env.get('LOVABLE_API_KEY');
@@ -67,14 +88,6 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-
-    const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: prompt },
-    ];
-    if (mensagem_inicial) {
-      messages.push({ role: 'assistant', content: mensagem_inicial });
-    }
-    messages.push({ role: 'user', content: mensagem });
 
     const aiResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',

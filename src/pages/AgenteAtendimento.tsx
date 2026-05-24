@@ -149,10 +149,15 @@ export default function AgenteAtendimento() {
   const [filtroCanal, setFiltroCanal] = useState('todos');
   const [resumoOpen, setResumoOpen] = useState<AtendimentoRow | null>(null);
 
-  // Test agent
+  // Test agent - chat fluido
   const [testMsg, setTestMsg] = useState('');
-  const [testResp, setTestResp] = useState('');
+  const [chat, setChat] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const [testing, setTesting] = useState(false);
+  const chatEndRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chat, testing]);
 
   // Versions
   const [versoes, setVersoes] = useState<VersaoRow[]>([]);
@@ -320,30 +325,34 @@ export default function AgenteAtendimento() {
     setSaving(false);
   };
 
-  const testar = async () => {
-    if (!testMsg.trim()) {
-      toast({ title: 'Atenção', description: 'Digite uma mensagem de teste.', variant: 'destructive' });
-      return;
-    }
+  const enviarMensagemTeste = async () => {
+    const texto = testMsg.trim();
+    if (!texto) return;
     if (!prompt.trim()) {
       toast({ title: 'Atenção', description: 'Preencha o prompt antes de testar.', variant: 'destructive' });
       return;
     }
+    const novoHistorico = [...chat, { role: 'user' as const, content: texto }];
+    setChat(novoHistorico);
+    setTestMsg('');
     setTesting(true);
-    setTestResp('');
     try {
       const { data, error } = await supabase.functions.invoke('agente-atendimento-test', {
-        body: { prompt, mensagem_inicial: mensagemInicial, mensagem: testMsg },
+        body: { prompt, mensagem_inicial: mensagemInicial, historico: novoHistorico },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      setTestResp((data as any)?.resposta || '');
+      const resposta = (data as any)?.resposta || '';
+      setChat([...novoHistorico, { role: 'assistant', content: resposta }]);
     } catch (e: any) {
       toast({ title: 'Erro no teste', description: e.message || String(e), variant: 'destructive' });
+      setChat(novoHistorico); // mantém a mensagem do usuário
     } finally {
       setTesting(false);
     }
   };
+
+  const limparChat = () => setChat([]);
 
   const restaurarVersao = (v: VersaoRow) => {
     setPrompt(v.prompt || '');
@@ -621,34 +630,66 @@ export default function AgenteAtendimento() {
           </CardContent>
         </Card>
 
-        {/* Testar agente */}
+        {/* Testar agente - chat fluido estilo WhatsApp */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Testar agente</CardTitle>
-            <CardDescription>Simule uma mensagem usando o prompt acima</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle className="text-lg">Testar agente</CardTitle>
+              <CardDescription>Conversa de simulação seguindo o fluxo de atendimento</CardDescription>
+            </div>
+            <Button size="sm" variant="ghost" onClick={limparChat} disabled={chat.length === 0 && !testing}>
+              <RotateCcw className="w-3.5 h-3.5 mr-1" /> Nova conversa
+            </Button>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <Textarea
-              value={testMsg}
-              onChange={(e) => setTestMsg(e.target.value)}
-              placeholder="Digite uma mensagem como se fosse um lead..."
-              rows={3}
-            />
-            <div className="flex gap-2">
-              <Button onClick={testar} disabled={testing}>
-                {testing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Send className="w-4 h-4 mr-1" />}
-                Enviar teste
-              </Button>
-              <Button variant="outline" onClick={() => { setTestMsg(''); setTestResp(''); }}>
-                Limpar teste
+          <CardContent>
+            <div className="rounded-md border p-4 h-[420px] overflow-y-auto space-y-2 bg-muted/30">
+              {mensagemInicial && (
+                <div className="flex justify-start">
+                  <div className="max-w-[75%] rounded-2xl rounded-tl-sm bg-card border px-3 py-2 text-sm whitespace-pre-wrap shadow-sm">
+                    {mensagemInicial}
+                  </div>
+                </div>
+              )}
+              {chat.map((m, i) => (
+                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div
+                    className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap shadow-sm ${
+                      m.role === 'user'
+                        ? 'bg-primary text-primary-foreground rounded-tr-sm'
+                        : 'bg-card border rounded-tl-sm'
+                    }`}
+                  >
+                    {m.content}
+                  </div>
+                </div>
+              ))}
+              {testing && (
+                <div className="flex justify-start">
+                  <div className="rounded-2xl rounded-tl-sm bg-card border px-3 py-2 text-sm text-muted-foreground shadow-sm flex items-center gap-2">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Digitando...
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+            <div className="flex gap-2 mt-3">
+              <Textarea
+                value={testMsg}
+                onChange={(e) => setTestMsg(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    enviarMensagemTeste();
+                  }
+                }}
+                placeholder="Digite uma mensagem como se fosse um lead no WhatsApp..."
+                rows={2}
+                className="min-h-[44px] resize-none"
+              />
+              <Button onClick={enviarMensagemTeste} disabled={testing || !testMsg.trim()} className="self-end">
+                <Send className="w-4 h-4" />
               </Button>
             </div>
-            {testResp && (
-              <div className="rounded-md border bg-muted/30 p-4 text-sm whitespace-pre-wrap">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Resposta do agente</p>
-                {testResp}
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -657,9 +698,6 @@ export default function AgenteAtendimento() {
           <Button onClick={() => salvar()} disabled={saving || !canEdit}>
             {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
             Salvar configurações
-          </Button>
-          <Button variant="outline" onClick={testar} disabled={testing}>
-            <Send className="w-4 h-4 mr-1" /> Testar agente
           </Button>
           {agente?.status !== 'ativo' ? (
             <Button variant="default" onClick={() => salvar('ativo')} disabled={saving || !canEdit}>
