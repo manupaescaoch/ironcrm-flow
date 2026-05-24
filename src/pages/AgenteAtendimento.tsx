@@ -199,6 +199,7 @@ export default function AgenteAtendimento() {
       setMensagemInicial(ag.mensagem_inicial || '');
       setPrompt(ag.prompt || '');
       setMensagemPos(ag.mensagem_pos_solicitacao || '');
+      setGatilhoAtivacao((ag as any).gatilho_ativacao || 'Olá! Tenho interesse e queria mais informações, por favor.');
       setRegras((ag.regras as any) || {});
       const exp = (ag.configuracao_experimental as any)?.campos;
       if (exp) setCamposExperimental(exp);
