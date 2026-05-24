@@ -238,12 +238,18 @@ Deno.serve(async (req) => {
     const experimentalDetectada =
       /experimental/.test(lower) && /(agend|marc|solicit|confirm|reserv)/.test(lower);
 
-    // Salvar resposta
+    // Dividir resposta em múltiplas mensagens (delimitador "---" em linha própria)
+    const partes = resposta
+      .split(/\n\s*-{3,}\s*\n/g)
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
+
+    // Salvar resposta completa (com delimitadores removidos)
     await supabase.from('agente_mensagens').insert({
       atendimento_id: atendimento.id,
       unidade_id: unidadeId,
       role: 'assistant',
-      conteudo: resposta,
+      conteudo: partes.join('\n\n'),
     });
 
     const updates: Record<string, unknown> = {
@@ -257,8 +263,13 @@ Deno.serve(async (req) => {
     }
     await supabase.from('agente_atendimentos').update(updates).eq('id', atendimento.id);
 
-    // Enviar via Z-API
-    await sendWhatsApp(telefone, resposta);
+    // Enviar via Z-API (uma mensagem por parte)
+    for (let i = 0; i < partes.length; i++) {
+      await sendWhatsApp(telefone, partes[i]);
+      if (i < partes.length - 1) {
+        await new Promise((r) => setTimeout(r, 1200));
+      }
+    }
 
     // Mensagem pós-solicitação configurada
     if (experimentalDetectada && agente.mensagem_pos_solicitacao && !atendimento.experimental_solicitada) {
