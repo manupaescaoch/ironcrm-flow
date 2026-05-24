@@ -630,6 +630,50 @@ export default function AgenteAtendimento() {
           </CardContent>
         </Card>
 
+        {/* Webhook de entrada */}
+        {agente?.id && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Webhook className="h-5 w-5" /> Webhook de entrada
+              </CardTitle>
+              <CardDescription>
+                Cole esta URL no webhook "Ao receber" da sua instância Z-API. O agente responderá automaticamente quando estiver ativo.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {(() => {
+                const projectId = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID;
+                const webhookUrl = `https://${projectId}.supabase.co/functions/v1/agente-atendimento-webhook?agente_id=${agente.id}`;
+                return (
+                  <>
+                    <div className="flex gap-2">
+                      <Input readOnly value={webhookUrl} className="font-mono text-xs" />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          navigator.clipboard.writeText(webhookUrl);
+                          toast({ title: 'URL copiada' });
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <p>• Método: <span className="font-mono">POST</span></p>
+                      <p>• Aceita payload padrão Z-API (campos <span className="font-mono">phone</span>, <span className="font-mono">text.message</span>, <span className="font-mono">fromMe</span>).</p>
+                      <p>• O agente só responde quando o status está <strong>Ativo</strong>.</p>
+                      <p>• Mensagens <span className="font-mono">fromMe</span> são ignoradas.</p>
+                      <p>• Opcional: proteger com <span className="font-mono">?token=SEU_TOKEN</span> definindo a secret <span className="font-mono">AGENTE_WEBHOOK_SECRET</span>.</p>
+                    </div>
+                  </>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Testar agente - chat fluido estilo WhatsApp */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
