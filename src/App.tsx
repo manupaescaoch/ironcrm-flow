@@ -326,6 +326,14 @@ const AppRoutes = () => (
         </ProtectedRoute>
       }
     />
+    <Route
+      path="/agente-atendimento"
+      element={
+        <AdminOrComercialRoute>
+          <AgenteAtendimento />
+        </AdminOrComercialRoute>
+      }
+    />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
