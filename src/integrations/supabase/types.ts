@@ -94,6 +94,44 @@ export type Database = {
           },
         ]
       }
+      agente_mensagens: {
+        Row: {
+          atendimento_id: string
+          conteudo: string
+          created_at: string
+          external_message_id: string | null
+          id: string
+          role: string
+          unidade_id: string
+        }
+        Insert: {
+          atendimento_id: string
+          conteudo: string
+          created_at?: string
+          external_message_id?: string | null
+          id?: string
+          role: string
+          unidade_id: string
+        }
+        Update: {
+          atendimento_id?: string
+          conteudo?: string
+          created_at?: string
+          external_message_id?: string | null
+          id?: string
+          role?: string
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_mensagens_atendimento_id_fkey"
+            columns: ["atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "agente_atendimentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agentes_atendimento: {
         Row: {
           atualizado_por: string | null

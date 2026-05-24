@@ -21,3 +21,6 @@ verify_jwt = false
 [functions.notify-formulario-encerramento]
 verify_jwt = false
 
+
+[functions.agente-atendimento-webhook]
+verify_jwt = false
