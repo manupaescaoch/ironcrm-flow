@@ -137,6 +137,7 @@ export default function AgenteAtendimento() {
   const [mensagemInicial, setMensagemInicial] = useState('');
   const [prompt, setPrompt] = useState('');
   const [mensagemPos, setMensagemPos] = useState('');
+  const [gatilhoAtivacao, setGatilhoAtivacao] = useState('Olá! Tenho interesse e queria mais informações, por favor.');
   const [regras, setRegras] = useState<Record<string, boolean>>({});
   const [camposExperimental, setCamposExperimental] = useState<Record<string, boolean>>(
     () => Object.fromEntries(EXPERIMENTAL_FIELDS.map((f) => [f.key, true]))
