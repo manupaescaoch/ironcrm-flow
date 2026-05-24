@@ -292,6 +292,7 @@ export default function AgenteAtendimento() {
       prompt,
       mensagem_inicial: mensagemInicial,
       mensagem_pos_solicitacao: mensagemPos,
+      gatilho_ativacao: gatilhoAtivacao,
       regras,
       configuracao_experimental: { campos: camposExperimental },
       atualizado_por: user?.id,
