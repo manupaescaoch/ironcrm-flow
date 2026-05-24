@@ -221,7 +221,7 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ model: 'google/gemini-2.5-flash', messages }),
+      body: JSON.stringify({ model: 'google/gemini-2.5-pro', temperature: 0.4, messages }),
     });
 
     if (!aiResp.ok) {
