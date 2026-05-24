@@ -102,19 +102,20 @@ function installMocks(state: MockState) {
   };
 }
 
-async function importHandler() {
+type Handler = (req: Request) => Promise<Response>;
+async function importHandler(): Promise<Handler> {
   // Patch Deno.serve para capturar o handler sem realmente abrir socket
-  let captured: ((req: Request) => Promise<Response>) | null = null;
+  let captured: Handler | null = null;
   const orig = Deno.serve;
   // deno-lint-ignore no-explicit-any
-  (Deno as any).serve = (handler: any) => {
+  (Deno as any).serve = (handler: Handler) => {
     captured = handler;
     return { finished: Promise.resolve(), shutdown: () => Promise.resolve() } as never;
   };
   await import(`./index.ts?ts=${Date.now()}`);
   (Deno as any).serve = orig;
   if (!captured) throw new Error('handler não capturado');
-  return captured!;
+  return captured;
 }
 
 function buildLead(overrides: Partial<Lead> = {}): Lead {
