@@ -190,8 +190,18 @@ Deno.serve(async (req) => {
       .order('created_at', { ascending: true })
       .limit(40);
 
+    const reforco =
+      '\n\nINSTRUÇÕES DE FORMATAÇÃO (OBRIGATÓRIAS, NÃO IGNORE):\n' +
+      '- Siga EXATAMENTE a formatação, tom, emojis, quebras de linha e estrutura definidos acima.\n' +
+      '- Você responde via WhatsApp: use *texto* para negrito (UM asterisco), nunca **texto** nem markdown de cabeçalho (#).\n' +
+      '- Use _texto_ para itálico e ~texto~ para tachado, padrão WhatsApp.\n' +
+      '- Mantenha mensagens curtas, divididas em blocos com quebras de linha quando o prompt pedir.\n' +
+      '- Use os emojis especificados no prompt nos locais indicados.\n' +
+      '- Não invente informações fora do escopo do prompt.';
+
+    const basePrompt = agente.prompt || 'Você é um SDR cordial do Iron Club.';
     const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: agente.prompt || 'Você é um SDR cordial do Iron Club.' },
+      { role: 'system', content: basePrompt + reforco },
     ];
     if (agente.mensagem_inicial && !(historico && historico.some((m: any) => m.role === 'assistant'))) {
       messages.push({ role: 'assistant', content: agente.mensagem_inicial });
@@ -211,7 +221,7 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ model: 'google/gemini-2.5-flash', messages }),
+      body: JSON.stringify({ model: 'google/gemini-2.5-pro', temperature: 0.4, messages }),
     });
 
     if (!aiResp.ok) {
