@@ -41,7 +41,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Bot, Send, Save, Power, PowerOff, RotateCcw, Eye, ExternalLink, FileText, Loader2, History } from 'lucide-react';
+import { Bot, Send, Save, Power, PowerOff, RotateCcw, Eye, ExternalLink, FileText, Loader2, History, Webhook, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnidade } from '@/contexts/UnidadeContext';
