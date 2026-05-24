@@ -137,6 +137,7 @@ export default function AgenteAtendimento() {
   const [mensagemInicial, setMensagemInicial] = useState('');
   const [prompt, setPrompt] = useState('');
   const [mensagemPos, setMensagemPos] = useState('');
+  const [gatilhoAtivacao, setGatilhoAtivacao] = useState('Olá! Tenho interesse e queria mais informações, por favor.');
   const [regras, setRegras] = useState<Record<string, boolean>>({});
   const [camposExperimental, setCamposExperimental] = useState<Record<string, boolean>>(
     () => Object.fromEntries(EXPERIMENTAL_FIELDS.map((f) => [f.key, true]))
@@ -198,6 +199,7 @@ export default function AgenteAtendimento() {
       setMensagemInicial(ag.mensagem_inicial || '');
       setPrompt(ag.prompt || '');
       setMensagemPos(ag.mensagem_pos_solicitacao || '');
+      setGatilhoAtivacao((ag as any).gatilho_ativacao || 'Olá! Tenho interesse e queria mais informações, por favor.');
       setRegras((ag.regras as any) || {});
       const exp = (ag.configuracao_experimental as any)?.campos;
       if (exp) setCamposExperimental(exp);
@@ -290,6 +292,7 @@ export default function AgenteAtendimento() {
       prompt,
       mensagem_inicial: mensagemInicial,
       mensagem_pos_solicitacao: mensagemPos,
+      gatilho_ativacao: gatilhoAtivacao,
       regras,
       configuracao_experimental: { campos: camposExperimental },
       atualizado_por: user?.id,
@@ -546,6 +549,19 @@ export default function AgenteAtendimento() {
                 rows={2}
                 disabled={!canEdit}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Gatilho de ativação</Label>
+              <Input
+                value={gatilhoAtivacao}
+                onChange={(e) => setGatilhoAtivacao(e.target.value)}
+                placeholder="Olá! Tenho interesse e queria mais informações, por favor."
+                disabled={!canEdit}
+              />
+              <p className="text-xs text-muted-foreground">
+                O agente só inicia o atendimento quando recebe uma mensagem contendo esta frase. Após iniciado, responde normalmente a todas as mensagens seguintes.
+              </p>
             </div>
 
             <div className="space-y-2">
