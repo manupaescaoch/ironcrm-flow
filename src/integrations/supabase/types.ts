@@ -140,6 +140,7 @@ export type Database = {
           created_at: string
           criado_por: string | null
           descricao: string | null
+          gatilho_ativacao: string | null
           id: string
           mensagem_inicial: string | null
           mensagem_pos_solicitacao: string | null
@@ -157,6 +158,7 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           descricao?: string | null
+          gatilho_ativacao?: string | null
           id?: string
           mensagem_inicial?: string | null
           mensagem_pos_solicitacao?: string | null
@@ -174,6 +176,7 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           descricao?: string | null
+          gatilho_ativacao?: string | null
           id?: string
           mensagem_inicial?: string | null
           mensagem_pos_solicitacao?: string | null
