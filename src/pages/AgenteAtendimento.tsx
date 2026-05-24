@@ -563,12 +563,12 @@ export default function AgenteAtendimento() {
               <div className="flex items-center justify-between">
                 <Label>Prompt do agente</Label>
                 <span className="text-xs text-muted-foreground">
-                  Caracteres: {prompt.length} / 8000
+                  Caracteres: {prompt.length} / 20000
                 </span>
               </div>
               <Textarea
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value.slice(0, 8000))}
+                onChange={(e) => setPrompt(e.target.value.slice(0, 20000))}
                 rows={12}
                 className="font-mono text-xs"
                 placeholder="Instruções completas para o agente SDR..."
