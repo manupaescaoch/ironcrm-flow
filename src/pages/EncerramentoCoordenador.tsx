@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { StepShell } from '@/components/anamnese/StepShell';
 import { OptionCard } from '@/components/anamnese/OptionCard';
 import { cn } from '@/lib/utils';
-import { notifyFormularioGrupo } from '@/lib/notifyFormularioGrupo';
+import { submitFormularioPublico } from '@/lib/notifyFormularioGrupo';
 
 type Stage = 'intro' | 'wizard' | 'review' | 'done';
 
