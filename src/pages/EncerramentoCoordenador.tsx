@@ -467,37 +467,40 @@ export default function EncerramentoCoordenador() {
     const handleSubmit = async () => {
       setSaving(true);
       try {
-        const { error } = await supabase.from('encerramento_coordenador_respostas').insert({
-          nome: r.nome, unidade: r.unidade, turno: r.turno, ultimo_turno_dia: !!r.ultimoTurnoDia,
-          limpeza_geral: r.limpeza, equipamentos_funcionando: r.equipamentos, climatizacao: r.climatizacao,
-          organizacao_espaco: r.organizacao, infraestrutura: r.infraestrutura,
-          todos_compareceram: r.todosCompareceram, faltas_atrasos: r.faltasAtrasos || null,
-          postura_atendimento: r.postura, proatividade: r.proatividade,
-          destaque_positivo: r.destaquePositivo, destaque_descricao: r.destaqueDescricao || null,
-          feedback_corretivo: r.feedbackCorretivo, feedback_descricao: r.feedbackDescricao || null,
-          reclamacao_aluno: r.reclamacao, reclamacao_descricao: r.reclamacaoDescricao || null,
-          reclamacao_acao: r.reclamacaoAcao || null, reclamacao_resolvida: r.reclamacaoResolvida,
-          reclamacao_pendencia: r.reclamacaoPendencia || null,
-          elogio_aluno: r.elogio, elogio_descricao: r.elogioDescricao || null,
-          teve_ocorrencia: r.ocorrencia, ocorrencia_tipo: r.ocorrenciaTipo || null,
-          ocorrencia_gravidade: r.ocorrenciaGravidade || null,
-          ocorrencia_descricao: r.ocorrenciaDescricao || null, ocorrencia_acao: r.ocorrenciaAcao || null,
-          ocorrencia_resolvida: r.ocorrenciaResolvida, ocorrencia_pendencia: r.ocorrenciaPendencia || null,
-          padrao_iron: r.padraoIron, fora_padrao_descricao: r.foraPadraoDescricao || null,
-          funcionou_bem: r.funcionouBem || null, nota_geral: r.notaGeral,
-          pontos_atencao: r.pontosAtencao || null, pendencias_abertas: r.pendenciasAbertas || null,
-        });
+        const { data: inserted, error } = await supabase
+          .from('encerramento_coordenador_respostas')
+          .insert({
+            nome: r.nome, unidade: r.unidade, turno: r.turno, ultimo_turno_dia: !!r.ultimoTurnoDia,
+            limpeza_geral: r.limpeza, equipamentos_funcionando: r.equipamentos, climatizacao: r.climatizacao,
+            organizacao_espaco: r.organizacao, infraestrutura: r.infraestrutura,
+            todos_compareceram: r.todosCompareceram, faltas_atrasos: r.faltasAtrasos || null,
+            postura_atendimento: r.postura, proatividade: r.proatividade,
+            destaque_positivo: r.destaquePositivo, destaque_descricao: r.destaqueDescricao || null,
+            feedback_corretivo: r.feedbackCorretivo, feedback_descricao: r.feedbackDescricao || null,
+            reclamacao_aluno: r.reclamacao, reclamacao_descricao: r.reclamacaoDescricao || null,
+            reclamacao_acao: r.reclamacaoAcao || null, reclamacao_resolvida: r.reclamacaoResolvida,
+            reclamacao_pendencia: r.reclamacaoPendencia || null,
+            elogio_aluno: r.elogio, elogio_descricao: r.elogioDescricao || null,
+            teve_ocorrencia: r.ocorrencia, ocorrencia_tipo: r.ocorrenciaTipo || null,
+            ocorrencia_gravidade: r.ocorrenciaGravidade || null,
+            ocorrencia_descricao: r.ocorrenciaDescricao || null, ocorrencia_acao: r.ocorrenciaAcao || null,
+            ocorrencia_resolvida: r.ocorrenciaResolvida, ocorrencia_pendencia: r.ocorrenciaPendencia || null,
+            padrao_iron: r.padraoIron, fora_padrao_descricao: r.foraPadraoDescricao || null,
+            funcionou_bem: r.funcionouBem || null, nota_geral: r.notaGeral,
+            pontos_atencao: r.pontosAtencao || null, pendencias_abertas: r.pendenciasAbertas || null,
+          })
+          .select('id')
+          .single();
 
-        if (error) {
-          toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
+        if (error || !inserted) {
+          toast({ title: 'Erro ao enviar', description: error?.message ?? 'Falha ao salvar.', variant: 'destructive' });
           return;
         }
 
-        await notifyFormularioGrupo({
-          formulario_key: 'coordenador_unidade',
+        await submitFormularioPublico({
+          tipo_formulario: 'coordenador_unidade',
           unidade: r.unidade,
-          titulo: 'Encerramento — Coordenador de Unidade',
-          items,
+          resposta_id: inserted.id,
         });
         setStage('done');
       } catch (error) {
