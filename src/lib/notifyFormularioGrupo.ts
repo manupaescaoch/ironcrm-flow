@@ -54,21 +54,3 @@ export async function notifyFormularioGrupoAuth(args: {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Compatibilidade temporária: a assinatura antiga aceitava `formulario_key`,
-// `titulo` e `items`. Esses parâmetros são IGNORADOS pelo servidor agora — só
-// mantemos a função exportada para evitar quebrar imports legados durante a
-// migração. NÃO use em código novo. Use `submitFormularioPublico` quando o
-// resposta_id estiver disponível.
-// ---------------------------------------------------------------------------
-export type FormularioKey = TipoFormulario;
-export async function notifyFormularioGrupo(_args: {
-  formulario_key: FormularioKey;
-  unidade: string;
-  titulo: string;
-  items: { label: string; value: string }[];
-}): Promise<void> {
-  console.warn(
-    '[notifyFormularioGrupo] DEPRECATED: payload livre não é mais aceito. Use submitFormularioPublico.',
-  );
-}

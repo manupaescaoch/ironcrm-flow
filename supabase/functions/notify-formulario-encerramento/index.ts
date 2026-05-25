@@ -170,8 +170,6 @@ Deno.serve(async (req) => {
       row,
     );
     return jsonResp(result.status, result.body);
-    );
-    return jsonResp(result.status, result.body);
   } catch (e) {
     console.error('[notify-formulario-encerramento] error', e);
     return jsonResp(500, { error: 'Erro interno ao processar a solicitação.' });
