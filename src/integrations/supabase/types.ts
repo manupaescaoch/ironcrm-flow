@@ -966,6 +966,57 @@ export type Database = {
           },
         ]
       }
+      formulario_envios_log: {
+        Row: {
+          created_at: string
+          destino_grupo_hash: string | null
+          error_message: string | null
+          id: string
+          idempotency_key: string
+          origem: string
+          payload_hash: string | null
+          requested_by: string | null
+          resposta_id: string | null
+          sent_at: string | null
+          status: string
+          tipo_formulario: string
+          unidade: string
+          unidade_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          destino_grupo_hash?: string | null
+          error_message?: string | null
+          id?: string
+          idempotency_key: string
+          origem: string
+          payload_hash?: string | null
+          requested_by?: string | null
+          resposta_id?: string | null
+          sent_at?: string | null
+          status: string
+          tipo_formulario: string
+          unidade: string
+          unidade_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          destino_grupo_hash?: string | null
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string
+          origem?: string
+          payload_hash?: string | null
+          requested_by?: string | null
+          resposta_id?: string | null
+          sent_at?: string | null
+          status?: string
+          tipo_formulario?: string
+          unidade?: string
+          unidade_id?: string | null
+        }
+        Relationships: []
+      }
       formulario_grupos_whatsapp: {
         Row: {
           ativo: boolean
