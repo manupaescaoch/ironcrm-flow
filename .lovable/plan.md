@@ -1,80 +1,95 @@
-## Agente de Atendimento — Nova página no CRM
+# Hardening do notify-formulario-encerramento
 
-Página completa para configurar, testar e acompanhar um agente SDR automatizado de WhatsApp, restrita a Admin e Comercial.
+## Arquitetura proposta
 
-### 1. Banco de dados (migration)
+```
+[CRM autenticado]                          [Páginas públicas /encerramento-*]
+  GruposWhatsApp.tsx                         EncerramentoTurno/Coord/Horario
+  (futuros usos autenticados)                RelatorioDiarioComercial
+        |                                            |
+        | JWT do usuário                             | 1) INSERT na tabela *_respostas (anon RLS)
+        |                                            | 2) chamar submit-formulario-publico
+        v                                            v
+  notify-formulario-encerramento  <----invoke-----  submit-formulario-publico
+  (JWT + role + unidade obrigatórios)               (público + token + carrega
+   - Zod, template server-side,                       fonte canônica do banco)
+   - destino server-side,
+   - idempotência, rate limit,
+   - auditoria
+```
 
-Criar 3 tabelas com RLS restrita a `admin` e `comercial` (`user` no enum):
+Princípio: o caller nunca controla título nem corpo da mensagem. O servidor lê a fonte canônica e renderiza por template.
 
-**`agentes_atendimento`** — configuração do agente (1 por unidade)
-- `id`, `unidade_id`, `nome`, `descricao`, `prompt`, `mensagem_inicial`
-- `mensagem_pos_solicitacao` (mensagem padrão editável)
-- `status` (ativo/inativo), `canal` (whatsapp), `regras` (jsonb), `configuracao_experimental` (jsonb)
-- `criado_por`, `atualizado_por`, timestamps
+## Banco
 
-**`agente_atendimentos`** — histórico de leads atendidos
-- `id`, `agente_id`, `lead_id`, `nome`, `telefone`, `canal`
-- `status` (novo/em_atendimento/qualificado/experimental_solicitada/sem_resposta/finalizado)
-- `objetivo`, `horario_treino`, `unidade_interesse`, `plano_indicado`
-- `resumo_conversa`, `experimental_solicitada` (bool), `dia_experimental`, `horario_experimental`
-- `primeira_interacao_at`, `ultima_interacao_at`, timestamps
+Nova tabela `formulario_envios_log` (auditoria + idempotência):
+- `id uuid pk`, `idempotency_key text unique not null`
+- `tipo_formulario text not null`, `unidade text not null`, `unidade_id uuid null`
+- `resposta_id uuid null`, `requested_by uuid null`, `origem text not null` ('crm_auth' | 'public_form')
+- `status text not null` ('enviado' | 'duplicado' | 'rate_limited' | 'erro' | 'sem_grupo')
+- `destino_grupo_hash text null`, `payload_hash text null`, `error_message text null`
+- `created_at timestamptz default now()`, `sent_at timestamptz null`
+- RLS: SELECT só para admin. INSERT bloqueado para usuários (só service role grava).
+- Índice em `(tipo_formulario, unidade, created_at desc)` para rate limit.
 
-**`agentes_atendimento_versoes`** — snapshots de prompt/regras a cada save
-- `id`, `agente_id`, `prompt`, `mensagem_inicial`, `regras`, `configuracao_experimental`, `criado_por`, `created_at`
+## Edge functions
 
-RLS: `SELECT/INSERT/UPDATE/DELETE` permitidos só quando `has_role(auth.uid(),'admin') OR has_role(auth.uid(),'user')` (comercial). Sempre filtrando por `unidade_id` via `user_has_unidade_access`.
+### `notify-formulario-encerramento` (rewrite)
+- Mantém `verify_jwt = false` no config (validação JWT em código + também aceita chamada via service role do submit público).
+- Fluxo:
+  1. Método POST + CORS
+  2. Detectar modo: header `x-internal-call` com secret `INTERNAL_NOTIFY_SECRET` (chamado pelo submit público com SERVICE_ROLE), senão valida JWT do usuário via `auth.getClaims()`
+  3. Se JWT: buscar role do usuário; permitir admin/coordenador/user com `user_has_unidade_access(uid, unidade_id)`
+  4. Zod schema rígido: `{ tipo_formulario, unidade, unidade_id?, resposta_id?, fields: Record<string, string|number|boolean> }`, `strict()`, limites de tamanho, max keys
+  5. Sanitiza cada campo string: strip HTML, bloqueia `javascript:`, `data:`, `<script>`, URLs externas (configurável por tipo)
+  6. Rate limit DB: max 10 envios por (tipo+unidade) em 5min, 60/hora → 429
+  7. Idempotency key = sha1(`tipo|unidade|resposta_id`) ou (`tipo|unidade|date|payload_hash`); UPSERT em log; se já 'enviado' → 200 idempotente
+  8. Resolve grupo via `formulario_grupos_whatsapp(formulario_key=tipo, unidade)`; sem grupo → log 'sem_grupo' + 200 noop
+  9. Monta mensagem por template server-side (cabeçalho fixo por `tipo_formulario`, corpo iterando `fields` na ordem definida pelo template)
+  10. Envia Z-API; atualiza log com `status='enviado'`, `sent_at`
+- Erros nunca vazam stack/secret/group_id completo.
 
-### 2. Rota e menu
+### `submit-formulario-publico` (nova)
+- `verify_jwt = false`.
+- Aceita: `{ tipo_formulario, unidade, resposta_id, public_token }`.
+- Valida `public_token === FORMULARIO_PUBLIC_TOKEN` (secret) com `timingSafeEqual`.
+- Valida `tipo_formulario` no enum permitido.
+- Carrega a linha canônica da tabela correta (`encerramento_turno_respostas`, etc.) por `resposta_id` usando service role.
+- Monta `fields` a partir dos campos do banco (whitelist por tipo).
+- Chama `notify-formulario-encerramento` internamente via fetch com header `x-internal-call: INTERNAL_NOTIFY_SECRET` e payload pronto.
 
-- Nova rota `/agente-atendimento` em `App.tsx`, protegida com `ComercialOrAdminRoute` (novo wrapper que redireciona para `/dashboard` se não for admin/comercial; mostra "Você não tem permissão" antes do redirect quando acessado diretamente).
-- Item de menu em `Layout.tsx` na seção **Automações** (criar se não existir), ícone `Bot`, visível apenas para admin/comercial.
+### Template server-side
+Mapa `tipo_formulario → { titulo, ordem_campos }`:
+- `encerramento_turno` → "Encerramento de Turno — Estagiário Líder"
+- `encerramento_coordenador` → "Encerramento — Coordenador de Unidade"
+- `encerramento_horario` → "Encerramento — Coordenador de Horário"
+- `relatorio_comercial` → "Relatório Diário — Comercial"
 
-### 3. Página `src/pages/AgenteAtendimento.tsx`
+(Mantém os mesmos `formulario_key` já cadastrados em `formulario_grupos_whatsapp` para não perder configuração de grupos.)
 
-Layout em seções:
+## Client
 
-1. **Header** — título + subtítulo
-2. **KPI grid** (6 cards) — atendidos hoje/semana/mês, qualificados, experimentais solicitadas, taxa de conversão
-3. **Filtros** — período (Hoje/7d/30d/Custom), status, unidade, plano, canal
-4. **Tabela "Atendimentos recentes"** — colunas conforme spec, ações Ver conversa / Abrir lead / Ver resumo (modal)
-5. **Card de status do agente** — ativo/inativo, canal, última atualização, responsável, toggle ativar/desativar
-6. **Configurações do agente** — Nome, Função, Mensagem inicial, Prompt (com contador 0/8000)
-7. **Regras rápidas** — 9 checkboxes
-8. **Agendamento da experimental** — campos obrigatórios + mensagem padrão editável
-9. **Testar agente** — input + botão Enviar teste → chama edge function que usa Lovable AI Gateway (`google/gemini-2.5-flash`) com o prompt salvo; área de resposta + Limpar
-10. **Histórico de versões** — lista com data/usuário/status + restaurar
-11. **Botões principais** — Salvar / Testar / Ativar / Desativar (com validações)
+### `src/lib/notifyFormularioGrupo.ts` (rewrite)
+Duas funções exportadas:
+- `notifyFormularioGrupoAuth({ tipo_formulario, unidade, unidade_id, fields })` — para CRM logado, `supabase.functions.invoke('notify-formulario-encerramento', ...)`.
+- `submitFormularioPublico({ tipo_formulario, unidade, resposta_id })` — para páginas públicas, anexa `public_token = import.meta.env.VITE_FORMULARIO_PUBLIC_TOKEN`, chama `submit-formulario-publico`.
 
-### 4. Edge function
+### 4 páginas públicas
+- `INSERT ... .select('id').single()` para capturar `resposta_id`.
+- Trocar `notifyFormularioGrupo({ formulario_key, unidade, titulo, items })` por `submitFormularioPublico({ tipo_formulario, unidade, resposta_id })`.
+- Remover construção local de `items` (fica como UI de revisão local apenas).
 
-`supabase/functions/agente-atendimento-test/index.ts` — recebe `{ prompt, mensagem }`, chama Lovable AI Gateway (`LOVABLE_API_KEY`) e devolve resposta simulada do agente. Verify JWT ligado; valida role admin/comercial server-side.
+### `GruposWhatsApp.tsx`
+- Botão "Testar" passa a chamar `notifyFormularioGrupoAuth` com `fields: { teste: 'envio de configuração' }` e usa `tipo_formulario` enum. Como o usuário é admin logado, JWT é injetado pelo SDK.
 
-### 5. Validações
+## Secrets
+- `INTERNAL_NOTIFY_SECRET` — gerado, usado entre `submit-formulario-publico` e `notify-formulario-encerramento`.
+- `FORMULARIO_PUBLIC_TOKEN` — token anti-scraper exposto via `VITE_FORMULARIO_PUBLIC_TOKEN`. Não é segredo forte (frontend público), mas combinado com rate limit + idempotência + leitura canônica do banco torna POSTs forjados inúteis.
 
-- Ativar exige: nome + mensagem inicial + prompt preenchidos (alertas específicos por campo faltante).
-- Save grava versão em `agentes_atendimento_versoes`.
-- Auto-update de status no atendimento quando experimental for solicitada.
+## Respostas HTTP
+401 (sem JWT em modo auth) · 403 (role/unidade) · 400 (Zod/sanitização) · 429 (rate limit) · 409/200 (idempotente) · 200 (ok) · 500 genérico.
 
-### 6. Componentes auxiliares
-
-- `src/components/agente/AgenteKPIGrid.tsx`
-- `src/components/agente/AtendimentosTable.tsx`
-- `src/components/agente/AgenteConfigForm.tsx`
-- `src/components/agente/TestarAgentePanel.tsx`
-- `src/components/agente/HistoricoVersoes.tsx`
-- `src/components/agente/ResumoConversaModal.tsx`
-- Hook `src/hooks/useAgenteAtendimento.ts`
-
-### Detalhes técnicos
-
-- Permissões: `userRole === 'admin' || userRole === 'comercial'` (no `AuthContext`, comercial = `user` no enum).
-- Filtro de unidade via `useUnidadeFilter` existente.
-- Datas com `new Date(ano, mês-1, dia)` (sem timezone bugs).
-- Inputs em uppercase exceto email/numéricos (padrão do projeto).
-- Tokens semânticos do design system; sem cores hardcoded.
-- Sem quebrar nada existente — só adições.
-
-### Fora de escopo (não incluído nesta entrega)
-
-- Integração real com WhatsApp/Z-API para o agente operar em produção (apenas estrutura + endpoint de teste).
-- Webhook de entrada de mensagens reais — a tabela `agente_atendimentos` fica pronta para ser populada por integração futura.
+## Não está no escopo
+- Migrar páginas públicas para autenticadas (decisão sua: continuam públicas).
+- Mudar tabelas `encerramento_*_respostas` (continuam recebendo INSERT anon).
+- HMAC tradicional (decisão sua: usar token público + canonical-source + rate limit).
