@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { StepShell } from '@/components/anamnese/StepShell';
 import { OptionCard } from '@/components/anamnese/OptionCard';
 import { cn } from '@/lib/utils';
-import { notifyFormularioGrupo } from '@/lib/notifyFormularioGrupo';
+import { submitFormularioPublico } from '@/lib/notifyFormularioGrupo';
 
 type Stage = 'intro' | 'wizard' | 'review' | 'done';
 
