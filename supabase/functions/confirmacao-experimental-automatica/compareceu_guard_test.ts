@@ -112,7 +112,10 @@ function installPostgrestFetchMock(opts: {
 
 function makeClient() {
   // URL/key fake — nunca chegam à rede de verdade por causa do interceptor.
-  return createClient('http://mock.local', 'fake-anon-key');
+  // Desabilita auth refresh/persist para evitar timers vazando entre testes.
+  return createClient('http://mock.local', 'fake-anon-key', {
+    auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
+  });
 }
 
 // ---------------------------------------------------------------------------
