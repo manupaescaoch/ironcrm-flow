@@ -34,17 +34,25 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-const FieldsSchema = z
-  .record(z.string().min(1).max(80), z.union([z.string().max(2000), z.number(), z.boolean(), z.null()]))
-  .refine((obj) => Object.keys(obj).length <= 50, { message: 'Too many fields' });
-
-const PayloadSchema = z
+// PUBLIC (internal) payload: canonical row loaded server-side by submit-formulario-publico.
+const InternalPayloadSchema = z
   .object({
     tipo_formulario: z.enum(TIPOS_FORMULARIO as unknown as [string, ...string[]]),
     unidade: z.string().min(1).max(50),
     unidade_id: z.string().uuid().optional().nullable(),
-    resposta_id: z.string().uuid().optional().nullable(),
-    fields: FieldsSchema,
+    resposta_id: z.string().uuid(),
+    row: z.record(z.string(), z.unknown()),
+  })
+  .strict();
+
+// AUTH (JWT) payload: only used by CRM admin "Testar" button. Server emits a fixed
+// test message. Caller cannot inject any text into the WhatsApp body.
+const AuthPayloadSchema = z
+  .object({
+    tipo_formulario: z.enum(TIPOS_FORMULARIO as unknown as [string, ...string[]]),
+    unidade: z.string().min(1).max(50),
+    unidade_id: z.string().uuid().optional().nullable(),
+    mode: z.literal('test'),
   })
   .strict();
 
@@ -53,6 +61,16 @@ function jsonResp(status: number, body: Record<string, unknown>): Response {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+// Fixed test stub. Caller never controls any of these values.
+function buildTestStubRow(): Record<string, unknown> {
+  return {
+    nome: '[TESTE] Configuração de grupo',
+    turno: 'TESTE',
+    data: new Date().toISOString().slice(0, 10),
+    observacoes: 'Envio de teste a partir do painel administrativo.',
+  };
 }
 
 Deno.serve(async (req) => {
