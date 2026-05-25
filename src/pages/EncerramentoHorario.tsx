@@ -307,39 +307,42 @@ export default function EncerramentoHorario() {
     const handleSubmit = async () => {
       setSaving(true);
       try {
-        const { error } = await supabase.from('encerramento_horario_respostas').insert({
-          nome: r.nome,
-          data: r.data ? format(r.data, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-          unidade: r.unidade,
-          turno: r.turno,
-          teve_ocorrencia: r.teveOcorrencia,
-          ocorrencia_descricao: r.ocorrenciaDescricao || null,
-          treinador_faltou: r.treinadorFaltou,
-          treinador_faltou_quem: r.treinadorFaltouQuem || null,
-          atendimentos_por_treinador: r.atendimentosPorTreinador || null,
-          experimentais_realizadas: Number(r.experimentais) || 0,
-          teve_feedback_aluno: r.feedbackAluno,
-          feedback_aluno_descricao: r.feedbackAlunoDescricao || null,
-          destaque_positivo: r.destaquePositivo,
-          destaque_descricao: r.destaqueDescricao || null,
-          feedback_corretivo: r.feedbackCorretivo,
-          feedback_corretivo_descricao: r.feedbackCorretivoDescricao || null,
-          sala_organizada: r.salaOrganizada,
-          pendencia_organizacao: r.pendenciaOrganizacao || null,
-          nota_geral: r.notaGeral,
-          observacoes: r.observacoes || null,
-        });
+        const { data: inserted, error } = await supabase
+          .from('encerramento_horario_respostas')
+          .insert({
+            nome: r.nome,
+            data: r.data ? format(r.data, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+            unidade: r.unidade,
+            turno: r.turno,
+            teve_ocorrencia: r.teveOcorrencia,
+            ocorrencia_descricao: r.ocorrenciaDescricao || null,
+            treinador_faltou: r.treinadorFaltou,
+            treinador_faltou_quem: r.treinadorFaltouQuem || null,
+            atendimentos_por_treinador: r.atendimentosPorTreinador || null,
+            experimentais_realizadas: Number(r.experimentais) || 0,
+            teve_feedback_aluno: r.feedbackAluno,
+            feedback_aluno_descricao: r.feedbackAlunoDescricao || null,
+            destaque_positivo: r.destaquePositivo,
+            destaque_descricao: r.destaqueDescricao || null,
+            feedback_corretivo: r.feedbackCorretivo,
+            feedback_corretivo_descricao: r.feedbackCorretivoDescricao || null,
+            sala_organizada: r.salaOrganizada,
+            pendencia_organizacao: r.pendenciaOrganizacao || null,
+            nota_geral: r.notaGeral,
+            observacoes: r.observacoes || null,
+          })
+          .select('id')
+          .single();
 
-        if (error) {
-          toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
+        if (error || !inserted) {
+          toast({ title: 'Erro ao enviar', description: error?.message ?? 'Falha ao salvar.', variant: 'destructive' });
           return;
         }
 
-        await notifyFormularioGrupo({
-          formulario_key: 'coordenador_horario',
+        await submitFormularioPublico({
+          tipo_formulario: 'coordenador_horario',
           unidade: r.unidade,
-          titulo: 'Encerramento — Coordenador de Horário',
-          items,
+          resposta_id: inserted.id,
         });
         setStage('done');
       } catch (error) {
