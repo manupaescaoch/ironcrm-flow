@@ -119,10 +119,8 @@ function makeClient() {
 // Reimplementação fiel das DUAS guardas presentes em index.ts.
 // Mantém a mesma sequência de chamadas Postgrest, agora atravessando fetch real.
 // ---------------------------------------------------------------------------
-async function processarLeads(
-  supabase: ReturnType<typeof createClient>,
-  leads: Lead[],
-): Promise<string[]> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function processarLeads(supabase: any, leads: Lead[]): Promise<string[]> {
   const sent: string[] = [];
 
   const leadIds = leads.map((l) => l.id);
