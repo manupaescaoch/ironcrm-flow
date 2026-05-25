@@ -307,9 +307,11 @@ export default function EncerramentoHorario() {
     const handleSubmit = async () => {
       setSaving(true);
       try {
-        const { data: inserted, error } = await supabase
+        const respostaId = crypto.randomUUID();
+        const { error } = await supabase
           .from('encerramento_horario_respostas')
           .insert({
+            id: respostaId,
             nome: r.nome,
             data: r.data ? format(r.data, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
             unidade: r.unidade,
@@ -330,19 +332,17 @@ export default function EncerramentoHorario() {
             pendencia_organizacao: r.pendenciaOrganizacao || null,
             nota_geral: r.notaGeral,
             observacoes: r.observacoes || null,
-          })
-          .select('id')
-          .single();
+          });
 
-        if (error || !inserted) {
-          toast({ title: 'Erro ao enviar', description: error?.message ?? 'Falha ao salvar.', variant: 'destructive' });
+        if (error) {
+          toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
           return;
         }
 
         await submitFormularioPublico({
           tipo_formulario: 'coordenador_horario',
           unidade: r.unidade,
-          resposta_id: inserted.id,
+          resposta_id: respostaId,
         });
         setStage('done');
       } catch (error) {
