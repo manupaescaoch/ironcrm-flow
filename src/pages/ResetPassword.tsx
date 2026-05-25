@@ -47,7 +47,11 @@ export default function ResetPassword() {
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) {
-      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+      const raw = (error.message || '').toLowerCase();
+      const friendly = raw.includes('weak') || raw.includes('pwned') || raw.includes('leak') || raw.includes('compromise')
+        ? 'Essa senha já apareceu em vazamentos ou é muito comum. Escolha uma senha mais segura.'
+        : error.message;
+      toast({ title: 'Erro', description: friendly, variant: 'destructive' });
       return;
     }
     toast({ title: 'Senha redefinida', description: 'Faça login com sua nova senha.' });
