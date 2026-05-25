@@ -102,13 +102,13 @@ export default function GruposWhatsApp() {
     if (!l.grupo_id) { toast.error('Informe o ID do grupo antes de testar'); return; }
     const key = `${l.formulario_key}|${l.unidade}`;
     setTestingKey(key);
-    const titulo = FORMULARIOS.find((f) => f.key === l.formulario_key)?.titulo ?? l.formulario_key;
+    // Envia mensagem de TESTE fixa — o servidor monta o conteúdo. O caller
+    // não controla título, corpo nem grupo de destino.
     const { data, error } = await supabase.functions.invoke('notify-formulario-encerramento', {
       body: {
-        formulario_key: l.formulario_key,
+        tipo_formulario: l.formulario_key,
         unidade: l.unidade,
-        titulo: `[TESTE] ${titulo}`,
-        resumo: `*Teste:* envio de configuração de grupo\n*Unidade:* ${l.unidade}`,
+        mode: 'test',
       },
     });
     setTestingKey(null);
