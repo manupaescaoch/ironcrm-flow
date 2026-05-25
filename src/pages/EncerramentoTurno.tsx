@@ -416,9 +416,11 @@ export default function EncerramentoTurno() {
     const handleSubmit = async () => {
       setSaving(true);
       try {
-        const { data: inserted, error } = await supabase
+        const respostaId = crypto.randomUUID();
+        const { error } = await supabase
           .from('encerramento_turno_respostas')
           .insert({
+            id: respostaId,
             nome: r.nome,
             unidade: r.unidade,
             turno: r.turno,
@@ -437,19 +439,17 @@ export default function EncerramentoTurno() {
             precisou_suporte: !!r.precisouSuporte,
             suporte_descricao: r.suporteDescricao || null,
             observacao_gestao: r.observacaoGestao || null,
-          })
-          .select('id')
-          .single();
+          });
 
-        if (error || !inserted) {
-          toast({ title: 'Erro ao enviar', description: error?.message ?? 'Falha ao salvar.', variant: 'destructive' });
+        if (error) {
+          toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
           return;
         }
 
         await submitFormularioPublico({
           tipo_formulario: 'estagiario_lider',
           unidade: r.unidade,
-          resposta_id: inserted.id,
+          resposta_id: respostaId,
         });
         setStage('done');
       } catch (error) {
