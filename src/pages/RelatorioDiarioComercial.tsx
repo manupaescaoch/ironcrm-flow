@@ -290,36 +290,39 @@ export default function RelatorioDiarioComercial() {
     const handleSubmit = async () => {
       setSaving(true);
       try {
-        const { error } = await supabase.from('relatorio_diario_comercial_respostas').insert({
-          nome: r.nome,
-          unidade: r.unidade,
-          data: r.data ? format(r.data, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-          total_alunos_ativos: r.totalAtivos !== '' ? Number(r.totalAtivos) : null,
-          leads_recebidos: r.leads !== '' ? Number(r.leads) : null,
-          experimentais_realizadas: r.experimentais !== '' ? Number(r.experimentais) : null,
-          novos_alunos: r.novos !== '' ? Number(r.novos) : null,
-          renovacoes: r.renovacoes !== '' ? Number(r.renovacoes) : null,
-          cancelamentos: r.cancelamentos !== '' ? Number(r.cancelamentos) : null,
-          inadimplentes: r.inadimplentes || null,
-          nao_renovados: r.naoRenovados || null,
-          atividades_realizadas: r.atividades.length > 0 ? r.atividades : null,
-          pendencias: r.pendencias || null,
-          plano_amanha: r.planoAmanha || null,
-          precisa_suporte: r.precisaSuporte,
-          suporte_descricao: r.suporteDescricao || null,
-          observacoes: r.observacoes || null,
-        });
+        const { data: inserted, error } = await supabase
+          .from('relatorio_diario_comercial_respostas')
+          .insert({
+            nome: r.nome,
+            unidade: r.unidade,
+            data: r.data ? format(r.data, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+            total_alunos_ativos: r.totalAtivos !== '' ? Number(r.totalAtivos) : null,
+            leads_recebidos: r.leads !== '' ? Number(r.leads) : null,
+            experimentais_realizadas: r.experimentais !== '' ? Number(r.experimentais) : null,
+            novos_alunos: r.novos !== '' ? Number(r.novos) : null,
+            renovacoes: r.renovacoes !== '' ? Number(r.renovacoes) : null,
+            cancelamentos: r.cancelamentos !== '' ? Number(r.cancelamentos) : null,
+            inadimplentes: r.inadimplentes || null,
+            nao_renovados: r.naoRenovados || null,
+            atividades_realizadas: r.atividades.length > 0 ? r.atividades : null,
+            pendencias: r.pendencias || null,
+            plano_amanha: r.planoAmanha || null,
+            precisa_suporte: r.precisaSuporte,
+            suporte_descricao: r.suporteDescricao || null,
+            observacoes: r.observacoes || null,
+          })
+          .select('id')
+          .single();
 
-        if (error) {
-          toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
+        if (error || !inserted?.id) {
+          toast({ title: 'Erro ao enviar', description: error?.message ?? 'Tente novamente.', variant: 'destructive' });
           return;
         }
 
-        await notifyFormularioGrupo({
-          formulario_key: 'relatorio_comercial',
+        await submitFormularioPublico({
+          tipo_formulario: 'relatorio_comercial',
           unidade: r.unidade,
-          titulo: 'Relatório Diário — Comercial',
-          items,
+          resposta_id: inserted.id,
         });
         setStage('done');
       } catch (error) {
