@@ -290,9 +290,11 @@ export default function RelatorioDiarioComercial() {
     const handleSubmit = async () => {
       setSaving(true);
       try {
-        const { data: inserted, error } = await supabase
+        const respostaId = crypto.randomUUID();
+        const { error } = await supabase
           .from('relatorio_diario_comercial_respostas')
           .insert({
+            id: respostaId,
             nome: r.nome,
             unidade: r.unidade,
             data: r.data ? format(r.data, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
@@ -310,19 +312,17 @@ export default function RelatorioDiarioComercial() {
             precisa_suporte: r.precisaSuporte,
             suporte_descricao: r.suporteDescricao || null,
             observacoes: r.observacoes || null,
-          })
-          .select('id')
-          .single();
+          });
 
-        if (error || !inserted?.id) {
-          toast({ title: 'Erro ao enviar', description: error?.message ?? 'Tente novamente.', variant: 'destructive' });
+        if (error) {
+          toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
           return;
         }
 
         await submitFormularioPublico({
           tipo_formulario: 'relatorio_comercial',
           unidade: r.unidade,
-          resposta_id: inserted.id,
+          resposta_id: respostaId,
         });
         setStage('done');
       } catch (error) {

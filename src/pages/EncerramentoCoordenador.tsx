@@ -467,9 +467,11 @@ export default function EncerramentoCoordenador() {
     const handleSubmit = async () => {
       setSaving(true);
       try {
-        const { data: inserted, error } = await supabase
+        const respostaId = crypto.randomUUID();
+        const { error } = await supabase
           .from('encerramento_coordenador_respostas')
           .insert({
+            id: respostaId,
             nome: r.nome, unidade: r.unidade, turno: r.turno, ultimo_turno_dia: !!r.ultimoTurnoDia,
             limpeza_geral: r.limpeza, equipamentos_funcionando: r.equipamentos, climatizacao: r.climatizacao,
             organizacao_espaco: r.organizacao, infraestrutura: r.infraestrutura,
@@ -488,19 +490,17 @@ export default function EncerramentoCoordenador() {
             padrao_iron: r.padraoIron, fora_padrao_descricao: r.foraPadraoDescricao || null,
             funcionou_bem: r.funcionouBem || null, nota_geral: r.notaGeral,
             pontos_atencao: r.pontosAtencao || null, pendencias_abertas: r.pendenciasAbertas || null,
-          })
-          .select('id')
-          .single();
+          });
 
-        if (error || !inserted) {
-          toast({ title: 'Erro ao enviar', description: error?.message ?? 'Falha ao salvar.', variant: 'destructive' });
+        if (error) {
+          toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
           return;
         }
 
         await submitFormularioPublico({
           tipo_formulario: 'coordenador_unidade',
           unidade: r.unidade,
-          resposta_id: inserted.id,
+          resposta_id: respostaId,
         });
         setStage('done');
       } catch (error) {
