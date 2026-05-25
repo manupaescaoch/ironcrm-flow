@@ -153,18 +153,55 @@ async function processarLeads(supabase: any, leads: Lead[]): Promise<string[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Helpers de invariantes
+// ---------------------------------------------------------------------------
+// Invariante NEGATIVA: nenhum lead enviado pode ter compareceu=true em interacoes.
+function assertNoSendForCompareceu(sent: string[], interacoes: Interacao[], msg?: string) {
+  const compareceuLeadIds = new Set(
+    interacoes.filter((i) => i.compareceu === true).map((i) => i.lead_id),
+  );
+  const violacoes = sent.filter((id) => compareceuLeadIds.has(id));
+  assertEquals(
+    violacoes,
+    [],
+    `${msg ?? 'INVARIANTE'}: leads com compareceu=true NUNCA podem ser enviados. Violações: ${JSON.stringify(violacoes)}`,
+  );
+}
+
+// Invariante POSITIVA: leads candidatos sem compareceu=true devem ser enviados (pelo menos um).
+function assertAtLeastOneSentWhenEligible(
+  sent: string[],
+  candidatos: Lead[],
+  interacoes: Interacao[],
+  msg?: string,
+) {
+  const compareceuLeadIds = new Set(
+    interacoes.filter((i) => i.compareceu === true).map((i) => i.lead_id),
+  );
+  const elegiveis = candidatos.filter((l) => !compareceuLeadIds.has(l.id));
+  if (elegiveis.length === 0) return; // nada a garantir
+  assertEquals(
+    sent.length > 0,
+    true,
+    `${msg ?? 'INVARIANTE'}: havia ${elegiveis.length} lead(s) elegível(eis) sem compareceu=true, mas nenhum envio ocorreu`,
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Testes
 // ---------------------------------------------------------------------------
 
 Deno.test('GUARDA 1: bloqueia lead com compareceu=true no pré-filtro em lote', async () => {
   const compareceu = { id: 'lead-compareceu' };
   const ok = { id: 'lead-ok' };
-  const restore = installPostgrestFetchMock({
-    interacoesProvider: () => [{ lead_id: compareceu.id, compareceu: true }],
-  });
+  const interacoes: Interacao[] = [{ lead_id: compareceu.id, compareceu: true }];
+  const restore = installPostgrestFetchMock({ interacoesProvider: () => interacoes });
   try {
-    const sent = await processarLeads(makeClient(), [compareceu, ok]);
+    const candidatos = [compareceu, ok];
+    const sent = await processarLeads(makeClient(), candidatos);
     assertEquals(sent, ['lead-ok'], 'apenas lead-ok deve ser liberado');
+    assertNoSendForCompareceu(sent, interacoes, 'GUARDA 1');
+    assertAtLeastOneSentWhenEligible(sent, candidatos, interacoes, 'GUARDA 1');
   } finally {
     restore();
   }
@@ -189,6 +226,8 @@ Deno.test('GUARDA 2: recheck per-lead bloqueia race condition após pré-filtro'
   try {
     const sent = await processarLeads(makeClient(), [lead]);
     assertEquals(sent, [], 'recheck deve bloquear o envio');
+    // Estado final das interações deve respeitar a invariante negativa.
+    assertNoSendForCompareceu(sent, interacoes, 'GUARDA 2 (recheck)');
   } finally {
     restore();
   }
@@ -196,12 +235,13 @@ Deno.test('GUARDA 2: recheck per-lead bloqueia race condition após pré-filtro'
 
 Deno.test('Lead sem nenhuma interação compareceu=true é liberado', async () => {
   const lead = { id: 'lead-novo' };
-  const restore = installPostgrestFetchMock({
-    interacoesProvider: () => [{ lead_id: lead.id, compareceu: false }],
-  });
+  const interacoes: Interacao[] = [{ lead_id: lead.id, compareceu: false }];
+  const restore = installPostgrestFetchMock({ interacoesProvider: () => interacoes });
   try {
     const sent = await processarLeads(makeClient(), [lead]);
     assertEquals(sent, ['lead-novo']);
+    assertNoSendForCompareceu(sent, interacoes, 'lead novo');
+    assertAtLeastOneSentWhenEligible(sent, [lead], interacoes, 'lead novo');
   } finally {
     restore();
   }
@@ -211,15 +251,17 @@ Deno.test('Múltiplos leads: só bloqueia os com compareceu=true', async () => {
   const a = { id: 'A' };
   const b = { id: 'B' };
   const c = { id: 'C' };
-  const restore = installPostgrestFetchMock({
-    interacoesProvider: () => [
-      { lead_id: 'A', compareceu: true },
-      { lead_id: 'C', compareceu: true },
-    ],
-  });
+  const interacoes: Interacao[] = [
+    { lead_id: 'A', compareceu: true },
+    { lead_id: 'C', compareceu: true },
+  ];
+  const restore = installPostgrestFetchMock({ interacoesProvider: () => interacoes });
   try {
-    const sent = await processarLeads(makeClient(), [a, b, c]);
+    const candidatos = [a, b, c];
+    const sent = await processarLeads(makeClient(), candidatos);
     assertEquals(sent, ['B'], 'apenas B (que não compareceu) deve ser liberado');
+    assertNoSendForCompareceu(sent, interacoes, 'múltiplos leads');
+    assertAtLeastOneSentWhenEligible(sent, candidatos, interacoes, 'múltiplos leads');
   } finally {
     restore();
   }
@@ -227,16 +269,50 @@ Deno.test('Múltiplos leads: só bloqueia os com compareceu=true', async () => {
 
 Deno.test('Lead com várias interações, ao menos uma compareceu=true → bloqueado', async () => {
   const lead = { id: 'multi' };
-  const restore = installPostgrestFetchMock({
-    interacoesProvider: () => [
-      { lead_id: lead.id, compareceu: false },
-      { lead_id: lead.id, compareceu: false },
-      { lead_id: lead.id, compareceu: true },
-    ],
-  });
+  const interacoes: Interacao[] = [
+    { lead_id: lead.id, compareceu: false },
+    { lead_id: lead.id, compareceu: false },
+    { lead_id: lead.id, compareceu: true },
+  ];
+  const restore = installPostgrestFetchMock({ interacoesProvider: () => interacoes });
   try {
     const sent = await processarLeads(makeClient(), [lead]);
     assertEquals(sent, []);
+    assertNoSendForCompareceu(sent, interacoes, 'multi-interações');
+  } finally {
+    restore();
+  }
+});
+
+Deno.test('INVARIANTE POSITIVA: todos os leads elegíveis (sem compareceu=true) são enviados', async () => {
+  const candidatos = [{ id: 'X' }, { id: 'Y' }, { id: 'Z' }];
+  const interacoes: Interacao[] = [
+    { lead_id: 'X', compareceu: false },
+    // Y sem interações
+    { lead_id: 'Z', compareceu: false },
+  ];
+  const restore = installPostgrestFetchMock({ interacoesProvider: () => interacoes });
+  try {
+    const sent = await processarLeads(makeClient(), candidatos);
+    assertEquals(sent.sort(), ['X', 'Y', 'Z']);
+    assertNoSendForCompareceu(sent, interacoes, 'invariante positiva');
+    assertAtLeastOneSentWhenEligible(sent, candidatos, interacoes, 'invariante positiva');
+  } finally {
+    restore();
+  }
+});
+
+Deno.test('INVARIANTE NEGATIVA: zero candidatos elegíveis → zero envios', async () => {
+  const candidatos = [{ id: 'P' }, { id: 'Q' }];
+  const interacoes: Interacao[] = [
+    { lead_id: 'P', compareceu: true },
+    { lead_id: 'Q', compareceu: true },
+  ];
+  const restore = installPostgrestFetchMock({ interacoesProvider: () => interacoes });
+  try {
+    const sent = await processarLeads(makeClient(), candidatos);
+    assertEquals(sent, [], 'nenhum lead pode ser enviado');
+    assertNoSendForCompareceu(sent, interacoes, 'todos compareceram');
   } finally {
     restore();
   }
