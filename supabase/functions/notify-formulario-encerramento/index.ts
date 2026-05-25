@@ -129,23 +129,33 @@ Deno.serve(async (req) => {
 
     // ---------- Schema validation ----------
     const raw = await req.json().catch(() => null);
-    const parsed = PayloadSchema.safeParse(raw);
+    const parsed = isInternalCall
+      ? InternalPayloadSchema.safeParse(raw)
+      : AuthPayloadSchema.safeParse(raw);
     if (!parsed.success) {
       return jsonResp(400, { error: 'Dados inválidos.' });
     }
-    const { tipo_formulario, fields } = parsed.data;
+    const { tipo_formulario } = parsed.data;
     const unidade = validateUnidade(parsed.data.unidade);
     if (!unidade) return jsonResp(400, { error: 'Unidade inválida.' });
 
-    // ---------- Authz: unidade scope ----------
+    // ---------- Authz: unidade scope (JWT path only) ----------
     if (!isInternalCall && !isAdmin) {
-      if (!parsed.data.unidade_id) {
-        return jsonResp(403, { error: 'Unidade não autorizada.' });
-      }
-      if (!userUnidadeIds.includes(parsed.data.unidade_id)) {
+      if (!parsed.data.unidade_id || !userUnidadeIds.includes(parsed.data.unidade_id)) {
         return jsonResp(403, { error: 'Unidade não autorizada.' });
       }
     }
+
+    // ---------- Pick canonical row ----------
+    // Internal call: row comes pre-loaded by submit-formulario-publico from the
+    // canonical *_respostas table. JWT call: server uses a fixed test stub so
+    // the caller cannot inject any WhatsApp body content.
+    const row = isInternalCall
+      ? (parsed.data as { row: Record<string, unknown> }).row
+      : buildTestStubRow();
+    const resposta_id = isInternalCall
+      ? (parsed.data as { resposta_id: string }).resposta_id
+      : null;
 
     // ---------- Execute ----------
     const result = await executeNotification(
@@ -153,11 +163,13 @@ Deno.serve(async (req) => {
         tipo_formulario: tipo_formulario as TipoFormulario,
         unidade,
         unidade_id: parsed.data.unidade_id ?? null,
-        resposta_id: parsed.data.resposta_id ?? null,
+        resposta_id,
         requested_by: requestedBy,
-        origem: isInternalCall ? 'public_form' : 'crm_auth',
+        origem: isInternalCall ? 'public_form' : 'internal_test',
       },
-      fields as Record<string, unknown>,
+      row,
+    );
+    return jsonResp(result.status, result.body);
     );
     return jsonResp(result.status, result.body);
   } catch (e) {
