@@ -416,37 +416,40 @@ export default function EncerramentoTurno() {
     const handleSubmit = async () => {
       setSaving(true);
       try {
-        const { error } = await supabase.from('encerramento_turno_respostas').insert({
-          nome: r.nome,
-          unidade: r.unidade,
-          turno: r.turno,
-          experimentais_realizadas: Number(r.experimentais) || 0,
-          teve_ocorrencia: !!r.teveOcorrencia,
-          ocorrencia_descricao: r.ocorrenciaDescricao || null,
-          manteve_padrao: !!r.manteveProtocolo,
-          padrao_observacao: r.protocoloObs || null,
-          recebeu_feedback: !!r.recebeuFeedback,
-          feedback_descricao: r.feedbackDescricao || null,
-          clima_equipe: r.climaEquipe ?? 0,
-          clima_influencia: r.climaInfluencia || null,
-          equipamento_problema: !!r.equipamentoProblema,
-          equipamento_descricao: r.equipamentoDescricao || null,
-          faria_diferente: r.fariaDiferente || null,
-          precisou_suporte: !!r.precisouSuporte,
-          suporte_descricao: r.suporteDescricao || null,
-          observacao_gestao: r.observacaoGestao || null,
-        });
+        const { data: inserted, error } = await supabase
+          .from('encerramento_turno_respostas')
+          .insert({
+            nome: r.nome,
+            unidade: r.unidade,
+            turno: r.turno,
+            experimentais_realizadas: Number(r.experimentais) || 0,
+            teve_ocorrencia: !!r.teveOcorrencia,
+            ocorrencia_descricao: r.ocorrenciaDescricao || null,
+            manteve_padrao: !!r.manteveProtocolo,
+            padrao_observacao: r.protocoloObs || null,
+            recebeu_feedback: !!r.recebeuFeedback,
+            feedback_descricao: r.feedbackDescricao || null,
+            clima_equipe: r.climaEquipe ?? 0,
+            clima_influencia: r.climaInfluencia || null,
+            equipamento_problema: !!r.equipamentoProblema,
+            equipamento_descricao: r.equipamentoDescricao || null,
+            faria_diferente: r.fariaDiferente || null,
+            precisou_suporte: !!r.precisouSuporte,
+            suporte_descricao: r.suporteDescricao || null,
+            observacao_gestao: r.observacaoGestao || null,
+          })
+          .select('id')
+          .single();
 
-        if (error) {
-          toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
+        if (error || !inserted) {
+          toast({ title: 'Erro ao enviar', description: error?.message ?? 'Falha ao salvar.', variant: 'destructive' });
           return;
         }
 
-        await notifyFormularioGrupo({
-          formulario_key: 'estagiario_lider',
+        await submitFormularioPublico({
+          tipo_formulario: 'estagiario_lider',
           unidade: r.unidade,
-          titulo: 'Encerramento de Turno — Estagiário Líder',
-          items,
+          resposta_id: inserted.id,
         });
         setStage('done');
       } catch (error) {
