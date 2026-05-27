@@ -36,6 +36,7 @@ import EncerramentoCoordenador from "./pages/EncerramentoCoordenador";
 import EncerramentoHorario from "./pages/EncerramentoHorario";
 import RelatorioDiarioComercial from "./pages/RelatorioDiarioComercial";
 import GruposWhatsApp from "./pages/admin/GruposWhatsApp";
+import WhatsAppComercial from "./pages/admin/WhatsAppComercial";
 import DashboardOperacional from "./pages/DashboardOperacional";
 import AgenteAtendimento from "./pages/AgenteAtendimento";
 import NotFound from "./pages/NotFound";
@@ -145,6 +146,8 @@ const AppRoutes = () => (
     <Route path="/encerramento-horario" element={<EncerramentoHorario />} />
     <Route path="/relatorio-diario-comercial" element={<RelatorioDiarioComercial />} />
     <Route path="/admin/grupos-whatsapp" element={<ProtectedRoute><GruposWhatsApp /></ProtectedRoute>} />
+    <Route path="/admin/whatsapp-comercial" element={<ProtectedRoute><WhatsAppComercial /></ProtectedRoute>} />
+
     <Route path="/dashboard-operacional" element={<ProtectedRoute><DashboardOperacional /></ProtectedRoute>} />
     <Route path="/anamnese-publica/:id" element={<AnamnesePublica />} />
     <Route path="/" element={<Navigate to="/dashboard" replace />} />

@@ -2343,6 +2343,36 @@ export type Database = {
           },
         ]
       }
+      unidade_whatsapp_config: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          grupo_fu_id: string | null
+          grupo_fu_nome: string | null
+          telefone_recepcao: string | null
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          grupo_fu_id?: string | null
+          grupo_fu_nome?: string | null
+          telefone_recepcao?: string | null
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          grupo_fu_id?: string | null
+          grupo_fu_nome?: string | null
+          telefone_recepcao?: string | null
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       unidades: {
         Row: {
           ativo: boolean
