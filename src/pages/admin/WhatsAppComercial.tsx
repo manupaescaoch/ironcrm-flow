@@ -205,15 +205,32 @@ export default function WhatsAppComercial() {
                           onValueChange={(v) => {
                             const g = groups.find((x) => x.phone === v);
                             update(u.id, { grupo_fu_id: v, grupo_fu_nome: r.grupo_fu_nome || g?.name || '' });
+                            setGroupSearch('');
                           }}
                         >
                           <SelectTrigger className="h-9 w-[140px] shrink-0"><SelectValue placeholder="Selecionar..." /></SelectTrigger>
-                          <SelectContent className="max-h-72 overflow-y-auto">
-                            {groups.map((g) => (
-                              <SelectItem key={g.phone} value={g.phone}>
-                                <span className="truncate">{g.name || g.phone}</span>
-                              </SelectItem>
-                            ))}
+                          <SelectContent className="max-h-72 overflow-y-auto w-80">
+                            <div className="p-2 sticky top-0 bg-popover z-10">
+                              <Input
+                                placeholder="Pesquisar grupo..."
+                                value={groupSearch}
+                                onChange={(e) => setGroupSearch(e.target.value)}
+                                className="h-8 text-sm"
+                                autoFocus={false}
+                              />
+                            </div>
+                            {(() => {
+                              const q = groupSearch.trim().toLowerCase();
+                              const filtered = q
+                                ? groups.filter((g) => (g.name || '').toLowerCase().includes(q) || g.phone.toLowerCase().includes(q))
+                                : groups;
+                              if (filtered.length === 0) return <div className="px-2 py-3 text-sm text-muted-foreground text-center">Nenhum grupo encontrado</div>;
+                              return filtered.map((g) => (
+                                <SelectItem key={g.phone} value={g.phone}>
+                                  <span className="truncate">{g.name || g.phone}</span>
+                                </SelectItem>
+                              ));
+                            })()}
                           </SelectContent>
                         </Select>
                       )}
