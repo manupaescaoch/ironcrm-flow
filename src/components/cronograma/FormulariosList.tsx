@@ -68,10 +68,15 @@ export function FormulariosList({ onCreateNew, onEdit, onViewRespostas }: Formul
   return (
     <div className="space-y-4">
       {isAdmin && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/admin/whatsapp-comercial">
+              <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp Comercial (FU + Confirmações)
+            </Link>
+          </Button>
           <Button variant="outline" size="sm" asChild>
             <Link to="/admin/grupos-whatsapp">
-              <MessageCircle className="w-4 h-4 mr-2" /> Configurar grupos WhatsApp
+              <MessageCircle className="w-4 h-4 mr-2" /> Grupos por Formulário
             </Link>
           </Button>
         </div>
