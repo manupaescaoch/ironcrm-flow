@@ -36,6 +36,7 @@ import EncerramentoCoordenador from "./pages/EncerramentoCoordenador";
 import EncerramentoHorario from "./pages/EncerramentoHorario";
 import RelatorioDiarioComercial from "./pages/RelatorioDiarioComercial";
 import GruposWhatsApp from "./pages/admin/GruposWhatsApp";
+import WhatsAppComercial from "./pages/admin/WhatsAppComercial";
 import DashboardOperacional from "./pages/DashboardOperacional";
 import AgenteAtendimento from "./pages/AgenteAtendimento";
 import NotFound from "./pages/NotFound";
