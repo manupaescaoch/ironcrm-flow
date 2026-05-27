@@ -225,6 +225,21 @@ Deno.serve(async (req) => {
 
       console.log(`[send-cronograma] Enviando para ${resp.nome} (${normalizedPhone}): ${atividade.titulo}`);
 
+      // Se Z-API está offline, registra erro imediatamente sem tentar enviar
+      if (!zapiConnected) {
+        console.error(`[send-cronograma] ❌ Z-API offline — marcando erro para ${resp.nome}`);
+        await supabase.from('cronograma_envios').insert({
+          atividade_id: atividade.id,
+          formulario_id: atividade.formulario_id || null,
+          funcionario_id: funcionarioId,
+          unidade_id: atividade.unidade_id,
+          status: 'erro',
+          enviado_em: new Date().toISOString(),
+        });
+        errors.push(`Z-API offline: ${resp.nome} - ${atividade.titulo}`);
+        continue;
+      }
+
       const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
 
       try {
