@@ -153,15 +153,13 @@ Deno.serve(async (req) => {
       }
 
       const nome = unidadeNome.get(cfg.unidade_id) || 'UNIDADE';
-      const fmtItens = (arr: any[]) => arr
+      const fmtItens = (arr: any[], tmplFn: (n: string, d: string, h: string) => string) => arr
         .sort((a, b) => a.aulaMs - b.aulaMs)
         .map((l, i) => {
           const horaUI = (l.hora_aula_experimental || '').slice(0, 5);
           const dataParts = l.data_aula_experimental.split('-');
           const dataLabel = `${dataParts[2]}/${dataParts[1]}`;
-          const tmpl = l === itens24[itens24.indexOf(l)] && itens24.includes(l)
-            ? template24h(firstName(l.nome), dataLabel, horaUI)
-            : template2h(firstName(l.nome), horaUI);
+          const tmpl = tmplFn(firstName(l.nome), dataLabel, horaUI);
           return `${i + 1}. *${l.nome}* — ${formatPhone(l.telefone)} — ${dataLabel} às ${horaUI}\n   ↳ "${tmpl}"`;
         })
         .join('\n\n');
