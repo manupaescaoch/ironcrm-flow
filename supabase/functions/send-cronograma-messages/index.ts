@@ -54,6 +54,20 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Verifica status do Z-API antes de qualquer envio
+    let zapiConnected = false;
+    try {
+      const statusUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/status`;
+      const statusResp = await fetch(statusUrl, {
+        headers: { 'Client-Token': ZAPI_CLIENT_TOKEN || '' },
+      });
+      const statusData = await statusResp.json();
+      zapiConnected = statusResp.ok && statusData?.connected === true;
+      console.log(`[send-cronograma] Z-API status: connected=${zapiConnected}`, statusData);
+    } catch (e) {
+      console.error('[send-cronograma] Erro ao verificar status Z-API:', e);
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
