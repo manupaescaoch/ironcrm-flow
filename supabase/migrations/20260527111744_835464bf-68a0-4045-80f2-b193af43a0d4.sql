@@ -1,0 +1,1 @@
+UPDATE unidade_whatsapp_config SET grupo_fu_id = '120363423846997807-group', grupo_fu_nome = 'SUPERVISÃO COMERCIAL ZONA NORTE ZN' WHERE unidade_id = 'b4df0ba8-7fa8-4f28-8924-d5ce6a9b50c6'; UPDATE unidade_whatsapp_config SET grupo_fu_id = '120363419881143524-group', grupo_fu_nome = 'SUPERVISÃO COMERCIAL IRON ZS' WHERE unidade_id = 'f3d048da-31d7-48df-b1f1-7e2a809c9a9a';
