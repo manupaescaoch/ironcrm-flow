@@ -165,8 +165,8 @@ Deno.serve(async (req) => {
         .join('\n\n');
 
       const blocos: string[] = [];
-      if (itens24.length) blocos.push(`⏰ *EM 24H* (${itens24.length})\n\n${fmtItens(itens24)}`);
-      if (itens2.length)  blocos.push(`⏰ *EM 2H* (${itens2.length})\n\n${fmtItens(itens2)}`);
+      if (itens24.length) blocos.push(`⏰ *EM 24H* (${itens24.length})\n\n${fmtItens(itens24, (n, d, h) => template24h(n, d, h))}`);
+      if (itens2.length)  blocos.push(`⏰ *EM 2H* (${itens2.length})\n\n${fmtItens(itens2, (n, _d, h) => template2h(n, h))}`);
 
       const message =
 `📞 *CONFIRMAÇÕES DE EXPERIMENTAL — ${nome}*
