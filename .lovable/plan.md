@@ -1,95 +1,152 @@
-# Hardening do notify-formulario-encerramento
 
-## Arquitetura proposta
+# Reestruturação dos envios automáticos pós-bloqueio
 
+## Princípio
+
+**Zero envio automático para o lead.** O chip de automação não fala mais com cliente final, só com canais internos. Isso elimina a causa raiz do bloqueio (volume + repetição + mensagens não solicitadas).
+
+## Fluxos novos
+
+### 1. Follow-ups → grupo comercial da unidade
+
+```text
+[pg_cron 09:00 BRT, seg-sex]
+        │
+        ▼
+[edge: send-fu-digest-comercial]
+   ├── lê follow_ups (status='pendente', data_prevista <= hoje, lead ativo, não matriculado)
+   ├── agrupa por unidade_id
+   ├── monta 1 msg por unidade (template fixo no servidor)
+   └── envia ao grupo_fu_id configurado da unidade
 ```
-[CRM autenticado]                          [Páginas públicas /encerramento-*]
-  GruposWhatsApp.tsx                         EncerramentoTurno/Coord/Horario
-  (futuros usos autenticados)                RelatorioDiarioComercial
-        |                                            |
-        | JWT do usuário                             | 1) INSERT na tabela *_respostas (anon RLS)
-        |                                            | 2) chamar submit-formulario-publico
-        v                                            v
-  notify-formulario-encerramento  <----invoke-----  submit-formulario-publico
-  (JWT + role + unidade obrigatórios)               (público + token + carrega
-   - Zod, template server-side,                       fonte canônica do banco)
-   - destino server-side,
-   - idempotência, rate limit,
-   - auditoria
+
+- **NÃO** marca o follow-up como concluído.
+- Permanece `pendente` até humano da CRM marcar manualmente em `/dashboard` (botão já existente).
+- Se ficar pendente, reaparece no digest do dia seguinte naturalmente.
+- Mensagem termina com instrução: "marque como enviado na CRM após disparar".
+
+### 2. Confirmação experimental → telefone da recepção (1:1)
+
+```text
+[pg_cron a cada 30 min, 07:00-21:00 BRT]
+        │
+        ▼
+[edge: send-confirmacao-recepcao]
+   ├── 24h antes: leads com aula em [agora+23h30, agora+24h30] e confirmacao_24h_enviada_em IS NULL
+   ├── 2h antes:  leads com aula em [agora+1h30, agora+2h30]  e confirmacao_2h_enviada_em  IS NULL
+   ├── agrupa por unidade_id
+   ├── monta 1 msg consolidada com lista (24h e 2h misturados, ordenados por hora)
+   └── envia ao telefone_recepcao da unidade (chat 1:1)
+   └── marca timestamps em leads
 ```
 
-Princípio: o caller nunca controla título nem corpo da mensagem. O servidor lê a fonte canônica e renderiza por template.
+- Recepção recebe lista e dispara manualmente do número comercial dela.
+- Marcação automática dos flags `confirmacao_*_enviada_em` evita reenvio.
 
 ## Banco
 
-Nova tabela `formulario_envios_log` (auditoria + idempotência):
-- `id uuid pk`, `idempotency_key text unique not null`
-- `tipo_formulario text not null`, `unidade text not null`, `unidade_id uuid null`
-- `resposta_id uuid null`, `requested_by uuid null`, `origem text not null` ('crm_auth' | 'public_form')
-- `status text not null` ('enviado' | 'duplicado' | 'rate_limited' | 'erro' | 'sem_grupo')
-- `destino_grupo_hash text null`, `payload_hash text null`, `error_message text null`
-- `created_at timestamptz default now()`, `sent_at timestamptz null`
-- RLS: SELECT só para admin. INSERT bloqueado para usuários (só service role grava).
-- Índice em `(tipo_formulario, unidade, created_at desc)` para rate limit.
+### Nova tabela `unidade_whatsapp_config`
+
+| coluna | tipo | descrição |
+|---|---|---|
+| `unidade_id` | uuid PK | FK unidades |
+| `grupo_fu_id` | text | id do grupo WhatsApp comercial para FU |
+| `grupo_fu_nome` | text | rótulo |
+| `telefone_recepcao` | text | número da recepção (formato 55DDDXXXXXXXX) |
+| `ativo` | boolean | default true |
+| timestamps | | |
+
+- RLS: admin gerencia tudo; coordenador/user da unidade pode ler.
+- GRANT padrão.
 
 ## Edge functions
 
-### `notify-formulario-encerramento` (rewrite)
-- Mantém `verify_jwt = false` no config (validação JWT em código + também aceita chamada via service role do submit público).
-- Fluxo:
-  1. Método POST + CORS
-  2. Detectar modo: header `x-internal-call` com secret `INTERNAL_NOTIFY_SECRET` (chamado pelo submit público com SERVICE_ROLE), senão valida JWT do usuário via `auth.getClaims()`
-  3. Se JWT: buscar role do usuário; permitir admin/coordenador/user com `user_has_unidade_access(uid, unidade_id)`
-  4. Zod schema rígido: `{ tipo_formulario, unidade, unidade_id?, resposta_id?, fields: Record<string, string|number|boolean> }`, `strict()`, limites de tamanho, max keys
-  5. Sanitiza cada campo string: strip HTML, bloqueia `javascript:`, `data:`, `<script>`, URLs externas (configurável por tipo)
-  6. Rate limit DB: max 10 envios por (tipo+unidade) em 5min, 60/hora → 429
-  7. Idempotency key = sha1(`tipo|unidade|resposta_id`) ou (`tipo|unidade|date|payload_hash`); UPSERT em log; se já 'enviado' → 200 idempotente
-  8. Resolve grupo via `formulario_grupos_whatsapp(formulario_key=tipo, unidade)`; sem grupo → log 'sem_grupo' + 200 noop
-  9. Monta mensagem por template server-side (cabeçalho fixo por `tipo_formulario`, corpo iterando `fields` na ordem definida pelo template)
-  10. Envia Z-API; atualiza log com `status='enviado'`, `sent_at`
-- Erros nunca vazam stack/secret/group_id completo.
+### Nova: `send-fu-digest-comercial`
+- `verify_jwt = false`, chamada pelo pg_cron.
+- Roda seg-sex 09h BRT, idempotente por dia (idempotency_key = `fu-digest|{unidade}|{date}`).
+- Reusa `formulario_envios_log` para auditoria/idempotência.
+- Template fixo no servidor, só interpola `{nome}`, `{telefone}`, `{tipo}` por linha.
 
-### `submit-formulario-publico` (nova)
-- `verify_jwt = false`.
-- Aceita: `{ tipo_formulario, unidade, resposta_id, public_token }`.
-- Valida `public_token === FORMULARIO_PUBLIC_TOKEN` (secret) com `timingSafeEqual`.
-- Valida `tipo_formulario` no enum permitido.
-- Carrega a linha canônica da tabela correta (`encerramento_turno_respostas`, etc.) por `resposta_id` usando service role.
-- Monta `fields` a partir dos campos do banco (whitelist por tipo).
-- Chama `notify-formulario-encerramento` internamente via fetch com header `x-internal-call: INTERNAL_NOTIFY_SECRET` e payload pronto.
+### Nova: `send-confirmacao-recepcao`
+- `verify_jwt = false`, chamada pelo pg_cron.
+- Roda 07-21h BRT a cada 30 min.
+- Mesma idempotência (`conf-recep|{unidade}|{slot}`).
 
-### Template server-side
-Mapa `tipo_formulario → { titulo, ordem_campos }`:
-- `encerramento_turno` → "Encerramento de Turno — Estagiário Líder"
-- `encerramento_coordenador` → "Encerramento — Coordenador de Unidade"
-- `encerramento_horario` → "Encerramento — Coordenador de Horário"
-- `relatorio_comercial` → "Relatório Diário — Comercial"
+### Desativar/aposentar
+- `send-follow-ups-automaticos`: parar de chamar. Manter código por 1 sprint, então remover.
+- `confirmacao-experimental-automatica`: idem.
+- pg_cron antigo dessas duas funções: desabilitar.
 
-(Mantém os mesmos `formulario_key` já cadastrados em `formulario_grupos_whatsapp` para não perder configuração de grupos.)
+## Frontend
 
-## Client
+### Nova: `/admin/whatsapp-comercial`
+- Admin only.
+- Lista unidades, edita `grupo_fu_id` e `telefone_recepcao`.
+- Botão "Testar grupo FU": envia mensagem de teste fixa server-side.
+- Botão "Testar recepção": envia "Teste de canal IRON" para o número.
 
-### `src/lib/notifyFormularioGrupo.ts` (rewrite)
-Duas funções exportadas:
-- `notifyFormularioGrupoAuth({ tipo_formulario, unidade, unidade_id, fields })` — para CRM logado, `supabase.functions.invoke('notify-formulario-encerramento', ...)`.
-- `submitFormularioPublico({ tipo_formulario, unidade, resposta_id })` — para páginas públicas, anexa `public_token = import.meta.env.VITE_FORMULARIO_PUBLIC_TOKEN`, chama `submit-formulario-publico`.
+### Sem outras telas novas
+- Marcação manual de FU já existe em `PendenciasDia` / lead detail.
+- Dashboard continua mostrando FU pendente — única mudança é que o status só muda quando humano marca.
 
-### 4 páginas públicas
-- `INSERT ... .select('id').single()` para capturar `resposta_id`.
-- Trocar `notifyFormularioGrupo({ formulario_key, unidade, titulo, items })` por `submitFormularioPublico({ tipo_formulario, unidade, resposta_id })`.
-- Remover construção local de `items` (fica como UI de revisão local apenas).
+## Templates server-side (não editáveis pelo cliente)
 
-### `GruposWhatsApp.tsx`
-- Botão "Testar" passa a chamar `notifyFormularioGrupoAuth` com `fields: { teste: 'envio de configuração' }` e usa `tipo_formulario` enum. Como o usuário é admin logado, JWT é injetado pelo SDK.
+### FU digest (grupo)
+```
+📋 *FOLLOW-UPS DO DIA — {UNIDADE}*
+{DATA}
 
-## Secrets
-- `INTERNAL_NOTIFY_SECRET` — gerado, usado entre `submit-formulario-publico` e `notify-formulario-encerramento`.
-- `FORMULARIO_PUBLIC_TOKEN` — token anti-scraper exposto via `VITE_FORMULARIO_PUBLIC_TOKEN`. Não é segredo forte (frontend público), mas combinado com rate limit + idempotência + leitura canônica do banco torna POSTs forjados inúteis.
+Total pendente: {N}
 
-## Respostas HTTP
-401 (sem JWT em modo auth) · 403 (role/unidade) · 400 (Zod/sanitização) · 429 (rate limit) · 409/200 (idempotente) · 200 (ok) · 500 genérico.
+1. *{NOME}* — {TELEFONE_FORMATADO}
+   Tipo: {D+X}  •  Vencido há: {N} dia(s)
+   ↳ Mensagem sugerida:
+   "{TEMPLATE_RENDERIZADO}"
 
-## Não está no escopo
-- Migrar páginas públicas para autenticadas (decisão sua: continuam públicas).
-- Mudar tabelas `encerramento_*_respostas` (continuam recebendo INSERT anon).
-- HMAC tradicional (decisão sua: usar token público + canonical-source + rate limit).
+2. ...
+
+━━━━━━━━━━━━━━━
+⚠️ Após enviar, marque o lead como contatado na CRM.
+```
+
+### Confirmação (chat recepção)
+```
+📞 *CONFIRMAÇÕES DE EXPERIMENTAL — {UNIDADE}*
+{DATA} • {HORA}
+
+⏰ EM 24H
+1. *{NOME}* — {TELEFONE} — amanhã às {HORA}
+   ↳ "Oi, {nome}! ..."
+
+⏰ EM 2H
+1. *{NOME}* — {TELEFONE} — hoje às {HORA}
+   ↳ "Oi, {nome}! ..."
+```
+
+## Volume esperado
+
+| canal | antes | depois |
+|---|---|---|
+| Chip → leads | ~50/dia | **0** |
+| Chip → grupo comercial (N unidades) | 0 | ~N msgs/dia (1 por unidade) |
+| Chip → recepções (N unidades) | 0 | ~N×duas janelas com lista consolidada |
+
+Total: cai de ~50 para ~10-15 msgs/dia, todas para canais internos conhecidos. Risco de bloqueio: praticamente zero.
+
+## Ordem de execução
+
+1. Criar tabela `unidade_whatsapp_config` + RLS + GRANTs.
+2. Criar `/admin/whatsapp-comercial` (cadastro + testes).
+3. Implementar `send-fu-digest-comercial` (sem agendar cron ainda).
+4. Implementar `send-confirmacao-recepcao` (sem agendar cron ainda).
+5. Você testa ambos manualmente via botões da página admin.
+6. Quando ok: desativar pg_cron das funções antigas + agendar pg_cron das novas.
+7. (Opcional, 1 sprint depois) remover funções antigas.
+
+## Fora do escopo agora
+
+- Cloud API oficial (híbrido) — fica como evolução futura, não é necessário pra resolver o bloqueio.
+- Variação de templates com IA — não é mais relevante, mensagens vão pra grupo interno.
+- Outras automações Z-API (rotinas, tarefas, anamnese, encerramentos) — continuam como estão, são internas e baixo volume.
+
+Confirma esse desenho? Se sim, sigo na ordem 1→4 sem conectar o WhatsApp ainda.
