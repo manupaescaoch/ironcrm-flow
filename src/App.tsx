@@ -146,6 +146,8 @@ const AppRoutes = () => (
     <Route path="/encerramento-horario" element={<EncerramentoHorario />} />
     <Route path="/relatorio-diario-comercial" element={<RelatorioDiarioComercial />} />
     <Route path="/admin/grupos-whatsapp" element={<ProtectedRoute><GruposWhatsApp /></ProtectedRoute>} />
+    <Route path="/admin/whatsapp-comercial" element={<ProtectedRoute><WhatsAppComercial /></ProtectedRoute>} />
+
     <Route path="/dashboard-operacional" element={<ProtectedRoute><DashboardOperacional /></ProtectedRoute>} />
     <Route path="/anamnese-publica/:id" element={<AnamnesePublica />} />
     <Route path="/" element={<Navigate to="/dashboard" replace />} />
