@@ -34,6 +34,7 @@ export default function WhatsAppComercial() {
   const [testingRec, setTestingRec] = useState<string | null>(null);
   const [groups, setGroups] = useState<ZapiGroup[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(false);
+  const [groupSearch, setGroupSearch] = useState('');
   const [preview, setPreview] = useState<{ title: string; content: string } | null>(null);
 
   useEffect(() => {
