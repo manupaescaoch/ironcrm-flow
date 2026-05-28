@@ -1,9 +1,14 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  RATE_LIMIT_MS, checkZapiStatus, getZapiCreds, logEnvio, phoneExists, sendText, sleep,
+} from '../_shared/zapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const FUNC = 'confirmacao-experimental-automatica';
 
 const ANAMNESE_URL = 'https://ironclub-app.com/anamnese';
 const BRASILIA_TIME_ZONE = 'America/Sao_Paulo';
@@ -85,21 +90,6 @@ function normalizePhone(raw: string): string {
   return `55${digits}`;
 }
 
-async function sendWhatsApp(phone: string, message: string) {
-  const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
-  const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
-  const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN') || '';
-  if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) throw new Error('Z-API não configurada');
-
-  const url = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_CLIENT_TOKEN },
-    body: JSON.stringify({ phone, message }),
-  });
-  const body = await resp.json().catch(() => ({}));
-  return { ok: resp.ok, status: resp.status, body };
-}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
