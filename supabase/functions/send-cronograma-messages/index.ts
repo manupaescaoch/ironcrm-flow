@@ -1,5 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { checkZapiStatus, getZapiCreds } from '../_shared/zapi.ts';
+import { maybeSendZapiOfflineAlert } from '../_shared/zapi-alert.ts';
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
