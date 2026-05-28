@@ -245,6 +245,12 @@ Deno.serve(async (req) => {
 
       const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
 
+      // Rate limit: aguarda 10s entre envios sequenciais (não no primeiro)
+      if (!isFirstSend) {
+        await sleep(RATE_LIMIT_MS);
+      }
+      isFirstSend = false;
+
       try {
         const zapiResponse = await fetch(zapiUrl, {
           method: 'POST',
