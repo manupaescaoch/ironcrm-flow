@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { checkZapiStatus, getZapiCreds } from '../_shared/zapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -43,11 +44,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
-    const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
-    const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN');
+    const creds = getZapiCreds();
 
-    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
+    if (!creds) {
       return new Response(
         JSON.stringify({ error: 'ZAPI credentials not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
@@ -56,14 +55,12 @@ Deno.serve(async (req) => {
 
     // Verifica status do Z-API antes de qualquer envio
     let zapiConnected = false;
+    let zapiStatusData: any = null;
     try {
-      const statusUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/status`;
-      const statusResp = await fetch(statusUrl, {
-        headers: { 'Client-Token': ZAPI_CLIENT_TOKEN || '' },
-      });
-      const statusData = await statusResp.json();
-      zapiConnected = statusResp.ok && statusData?.connected === true;
-      console.log(`[send-cronograma] Z-API status: connected=${zapiConnected}`, statusData);
+      const status = await checkZapiStatus(creds);
+      zapiConnected = status.connected;
+      zapiStatusData = status.raw;
+      console.log(`[send-cronograma] Z-API status: connected=${zapiConnected}`, zapiStatusData);
     } catch (e) {
       console.error('[send-cronograma] Erro ao verificar status Z-API:', e);
     }
@@ -239,11 +236,20 @@ Deno.serve(async (req) => {
           status: 'erro',
           enviado_em: new Date().toISOString(),
         });
-        errors.push(`Z-API offline: ${resp.nome} - ${atividade.titulo}`);
+        await supabase.from('whatsapp_envios_log').insert({
+          funcao: 'send-cronograma-messages',
+          destino: normalizedPhone,
+          tipo_destino: 'funcionario',
+          unidade_id: atividade.unidade_id,
+          sucesso: false,
+          erro_msg: `status inválido da Z-API: ${JSON.stringify(zapiStatusData || {})}`,
+          zapi_status_code: null,
+        });
+        errors.push(`Z-API offline/inconsistente: ${resp.nome} - ${atividade.titulo}`);
         continue;
       }
 
-      const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
+      const zapiUrl = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}/send-text`;
 
       // Rate limit: aguarda 10s entre envios sequenciais (não no primeiro)
       if (!isFirstSend) {
@@ -256,7 +262,7 @@ Deno.serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Client-Token': ZAPI_CLIENT_TOKEN || '',
+            'Client-Token': creds.clientToken || '',
           },
           body: JSON.stringify({
             phone: normalizedPhone,
