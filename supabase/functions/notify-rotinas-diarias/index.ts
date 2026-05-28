@@ -71,6 +71,18 @@ function shouldSendToday(frequencia: string, dayOfWeek: number): boolean {
   return true;
 }
 
+
+async function __zapiStatusCheck() {
+  const id = Deno.env.get('ZAPI_INSTANCE_ID'); const tk = Deno.env.get('ZAPI_TOKEN');
+  const ct = Deno.env.get('ZAPI_CLIENT_TOKEN') || '';
+  if (!id || !tk) return { connected: false, raw: { error: 'sem credenciais' } };
+  try {
+    const r = await fetch(`https://api.z-api.io/instances/${id}/token/${tk}/status`, { headers: { 'Client-Token': ct } });
+    const j = await r.json().catch(() => ({}));
+    return { connected: r.ok && j?.connected === true, raw: j };
+  } catch (e) { return { connected: false, raw: { error: String(e) } }; }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -88,6 +100,27 @@ Deno.serve(async (req) => {
       );
     }
 
+
+    // [Z-API health] aborta cedo se o chip estiver offline (idem cronograma)
+    {
+      const __st = await __zapiStatusCheck();
+      if (!__st.connected) {
+        try {
+          const __sb = (await import('https://esm.sh/@supabase/supabase-js@2')).createClient(
+            Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+          );
+          await __sb.from('whatsapp_envios_log').insert({
+            funcao: 'notify-rotinas-diarias',
+            sucesso: false, motivo_skip: 'zapi_offline',
+            erro_msg: JSON.stringify(__st.raw).slice(0, 500),
+          });
+        } catch {}
+        console.warn('[zapi] offline — abortando', __st.raw);
+        return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: __st.raw }), {
+          status: 503, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        });
+      }
+    }
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
