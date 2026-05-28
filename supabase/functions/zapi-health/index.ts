@@ -47,7 +47,11 @@ Deno.serve(async (req) => {
     const since24 = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    const [{ data: logs24 }, { data: logs7 }] = await Promise.all([
+    // Início do dia em BRT (UTC-3)
+    const nowBrt = new Date(Date.now() - 3 * 60 * 60 * 1000);
+    const startOfDayBrt = new Date(Date.UTC(nowBrt.getUTCFullYear(), nowBrt.getUTCMonth(), nowBrt.getUTCDate(), 3, 0, 0)).toISOString();
+
+    const [{ data: logs24 }, { data: logs7 }, { data: logsHoje }] = await Promise.all([
       supabase
         .from('whatsapp_envios_log')
         .select('funcao, sucesso, erro_msg, motivo_skip, created_at, tipo_destino, destino')
@@ -58,6 +62,12 @@ Deno.serve(async (req) => {
         .from('whatsapp_envios_log')
         .select('sucesso, created_at')
         .gte('created_at', since7d),
+      supabase
+        .from('whatsapp_envios_log')
+        .select('funcao, sucesso, erro_msg, motivo_skip, created_at, tipo_destino, destino, unidade_id')
+        .gte('created_at', startOfDayBrt)
+        .order('created_at', { ascending: false })
+        .limit(500),
     ]);
 
     const totais24 = {
@@ -96,6 +106,35 @@ Deno.serve(async (req) => {
         em: l.created_at,
       }));
 
+    // Envios de hoje (BRT) agrupados por origem operacional
+    const categorize = (fn: string | null): 'cronograma' | 'rotinas' | 'outros' => {
+      const f = (fn || '').toLowerCase();
+      if (f.includes('cronograma')) return 'cronograma';
+      if (f.includes('rotina')) return 'rotinas';
+      return 'outros';
+    };
+    const enviosHoje: Record<'cronograma' | 'rotinas' | 'outros', any[]> = {
+      cronograma: [], rotinas: [], outros: [],
+    };
+    for (const l of logsHoje || []) {
+      const cat = categorize(l.funcao);
+      enviosHoje[cat].push({
+        funcao: l.funcao,
+        destino: l.destino,
+        tipo: l.tipo_destino,
+        sucesso: l.sucesso,
+        skip: l.motivo_skip,
+        erro: l.erro_msg,
+        em: l.created_at,
+        unidade_id: l.unidade_id,
+      });
+    }
+    const resumoHoje = {
+      cronograma: { ok: enviosHoje.cronograma.filter((x) => x.sucesso).length, err: enviosHoje.cronograma.filter((x) => !x.sucesso && !x.skip).length, skip: enviosHoje.cronograma.filter((x) => x.skip).length, total: enviosHoje.cronograma.length },
+      rotinas:    { ok: enviosHoje.rotinas.filter((x) => x.sucesso).length,    err: enviosHoje.rotinas.filter((x) => !x.sucesso && !x.skip).length,    skip: enviosHoje.rotinas.filter((x) => x.skip).length,    total: enviosHoje.rotinas.length },
+      outros:     { ok: enviosHoje.outros.filter((x) => x.sucesso).length,     err: enviosHoje.outros.filter((x) => !x.sucesso && !x.skip).length,     skip: enviosHoje.outros.filter((x) => x.skip).length,     total: enviosHoje.outros.length },
+    };
+
     return new Response(
       JSON.stringify({
         zapi: { connected: status.connected, raw: status.raw },
@@ -103,6 +142,8 @@ Deno.serve(async (req) => {
         porFuncao24,
         serie7d,
         ultimosErros,
+        enviosHoje,
+        resumoHoje,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
