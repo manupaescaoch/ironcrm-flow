@@ -39,13 +39,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const { data: isAdmin } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: 'forbidden' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // Acesso liberado para qualquer usuário autenticado — a página já é protegida por ProtectedRoute.
 
     const creds = getZapiCreds();
     const status = creds ? await checkZapiStatus(creds) : { connected: false, raw: { error: 'sem credenciais' } };
