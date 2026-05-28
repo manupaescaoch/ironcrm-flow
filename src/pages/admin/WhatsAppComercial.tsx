@@ -404,6 +404,60 @@ export default function WhatsAppComercial() {
                       </Button>
                     </div>
                   </div>
+
+                  {/* Grupo Anamnese */}
+                  <div className="space-y-2 border rounded-lg p-3">
+                    <Label className="text-sm font-semibold">Grupo — Respostas de Anamnese</Label>
+                    <div className="flex gap-1">
+                      <Input
+                        value={r.grupo_anamnese_id}
+                        onChange={(e) => update(u.id, { grupo_anamnese_id: e.target.value.trim() })}
+                        placeholder="120363xxxxxxxxxxx@g.us"
+                        className="font-mono text-sm h-9 flex-1"
+                      />
+                      {groups.length > 0 && (
+                        <Select
+                          value={r.grupo_anamnese_id || undefined}
+                          onValueChange={(v) => {
+                            const g = groups.find((x) => x.phone === v);
+                            update(u.id, { grupo_anamnese_id: v, grupo_anamnese_nome: r.grupo_anamnese_nome || g?.name || '' });
+                            setGroupSearch('');
+                          }}
+                        >
+                          <SelectTrigger className="h-9 w-[140px] shrink-0"><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+                          <SelectContent className="max-h-72 overflow-y-auto w-80">
+                            <div className="p-2 sticky top-0 bg-popover z-10">
+                              <Input
+                                placeholder="Pesquisar grupo..."
+                                value={groupSearch}
+                                onChange={(e) => setGroupSearch(e.target.value)}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            {(() => {
+                              const q = groupSearch.trim().toLowerCase();
+                              const filtered = q
+                                ? groups.filter((g) => (g.name || '').toLowerCase().includes(q) || g.phone.toLowerCase().includes(q))
+                                : groups;
+                              if (filtered.length === 0) return <div className="px-2 py-3 text-sm text-muted-foreground text-center">Nenhum grupo encontrado</div>;
+                              return filtered.map((g) => (
+                                <SelectItem key={g.phone} value={g.phone}>
+                                  <span className="truncate">{g.name || g.phone}</span>
+                                </SelectItem>
+                              ));
+                            })()}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                    <Input
+                      value={r.grupo_anamnese_nome}
+                      onChange={(e) => update(u.id, { grupo_anamnese_nome: e.target.value })}
+                      placeholder="Apelido (ex: Anamnese ZN)"
+                      className="h-9"
+                    />
+                    <p className="text-xs text-muted-foreground">As respostas das anamneses preenchidas pela recepção vão para este grupo.</p>
+                  </div>
                 </div>
 
                 <div className="flex justify-end">
