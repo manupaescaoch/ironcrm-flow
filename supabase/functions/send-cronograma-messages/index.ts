@@ -257,25 +257,37 @@ Deno.serve(async (req) => {
 
         const zapiResult = await zapiResponse.json();
 
-        // Registrar envio no cronograma_envios
-        const formularioId = atividade.formulario_id;
-        // Se não tem formulario_id, precisamos de um para o registro (campo obrigatório)
-        // Usamos o formulario_id da atividade ou criamos um registro sem
+        // Z-API só confirma entrega real quando retorna messageId. Sem messageId = falha (mesmo com HTTP 200).
+        const messageId = zapiResult?.messageId || zapiResult?.id || null;
+        const zapiError = zapiResult?.error || (typeof zapiResult?.message === 'string' ? zapiResult.message : null);
+        const reallyOk = zapiResponse.ok && !!messageId && !zapiError;
+
         await supabase.from('cronograma_envios').insert({
           atividade_id: atividade.id,
-          formulario_id: formularioId || null,
+          formulario_id: atividade.formulario_id || null,
           funcionario_id: funcionarioId,
           unidade_id: atividade.unidade_id,
-          status: zapiResponse.ok ? 'enviado' : 'erro',
+          status: reallyOk ? 'enviado' : 'erro',
           enviado_em: new Date().toISOString(),
         });
 
-        if (zapiResponse.ok) {
+        // Log centralizado p/ painel /admin/whatsapp-comercial
+        await supabase.from('whatsapp_envios_log').insert({
+          funcao: 'send-cronograma-messages',
+          destino: normalizedPhone,
+          tipo_destino: 'funcionario',
+          unidade_id: atividade.unidade_id,
+          sucesso: reallyOk,
+          erro_msg: reallyOk ? null : (zapiError || `sem messageId (HTTP ${zapiResponse.status})`),
+          zapi_status_code: zapiResponse.status,
+        });
+
+        if (reallyOk) {
           sentCount++;
-          console.log(`[send-cronograma] ✅ Enviado para ${resp.nome}:`, zapiResult);
+          console.log(`[send-cronograma] ✅ Enviado para ${resp.nome} messageId=${messageId}`);
         } else {
-          console.error(`[send-cronograma] ❌ Erro Zapi para ${resp.nome}:`, zapiResult);
-          errors.push(`Erro Zapi: ${resp.nome} - ${atividade.titulo}`);
+          console.error(`[send-cronograma] ❌ Z-API NÃO entregou para ${resp.nome}:`, zapiResult);
+          errors.push(`Z-API erro: ${resp.nome} - ${atividade.titulo} - ${zapiError || 'sem messageId'}`);
         }
       } catch (err) {
         console.error(`[send-cronograma] ❌ Erro ao enviar para ${resp.nome}:`, err);
