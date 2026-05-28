@@ -179,6 +179,9 @@ Deno.serve(async (req) => {
     let sentCount = 0;
     const errors: string[] = [];
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const RATE_LIMIT_MS = 10000; // 10s entre envios para proteger o chip
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    let isFirstSend = true;
 
     for (const atividade of atividadesNaJanela) {
       const resp = atividade.responsavel as any;
@@ -241,6 +244,12 @@ Deno.serve(async (req) => {
       }
 
       const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
+
+      // Rate limit: aguarda 10s entre envios sequenciais (não no primeiro)
+      if (!isFirstSend) {
+        await sleep(RATE_LIMIT_MS);
+      }
+      isFirstSend = false;
 
       try {
         const zapiResponse = await fetch(zapiUrl, {
