@@ -313,8 +313,19 @@ Deno.serve(async (req) => {
       } catch (err) {
         console.error(`[send-cronograma] ❌ Erro ao enviar para ${resp.nome}:`, err);
         errors.push(`Erro envio: ${resp.nome} - ${atividade.titulo}`);
-      }
+    console.log(`[send-cronograma] Concluído: ${sentCount} enviado(s), ${errors.length} erro(s) (${offlineErrorCount} por Z-API offline)`);
+
+    // Dispara alerta por e-mail se Z-API offline impactou 2+ envios (com throttle de 30min)
+    if (offlineErrorCount >= 2) {
+      await maybeSendZapiOfflineAlert({
+        supabase,
+        funcao: 'send-cronograma-messages',
+        affectedCount: offlineErrorCount,
+        zapiStatus: zapiStatusData,
+      });
     }
+
+
 
     console.log(`[send-cronograma] Concluído: ${sentCount} enviado(s), ${errors.length} erro(s)`);
 
