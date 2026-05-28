@@ -248,9 +248,11 @@ Deno.serve(async (req) => {
           sucesso: false,
           erro_msg: `status inválido da Z-API: ${JSON.stringify(zapiStatusData || {})}`,
           zapi_status_code: null,
-        });
         errors.push(`Z-API offline/inconsistente: ${resp.nome} - ${atividade.titulo}`);
+        offlineErrorCount++;
         continue;
+      }
+
       }
 
       const zapiUrl = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}/send-text`;
