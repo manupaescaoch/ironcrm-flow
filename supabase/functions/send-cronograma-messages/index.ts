@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { checkZapiStatus, getZapiCreds } from '../_shared/zapi.ts';
+import { checkZapiStatus, getZapiCreds, lookupWhatsAppPhone } from '../_shared/zapi.ts';
 import { maybeSendZapiOfflineAlert } from '../_shared/zapi-alert.ts';
 
 
@@ -12,6 +12,15 @@ function normalizePhone(phone: string): string {
   let normalized = phone.replace(/\D/g, '');
   if (!normalized.startsWith('55')) {
     normalized = '55' + normalized;
+  }
+  return normalized;
+}
+
+async function resolveSendPhone(creds: NonNullable<ReturnType<typeof getZapiCreds>>, rawPhone: string): Promise<string> {
+  const normalized = normalizePhone(rawPhone);
+  const lookup = await lookupWhatsAppPhone(creds, normalized);
+  if (lookup.exists && lookup.phone) {
+    return lookup.phone;
   }
   return normalized;
 }
@@ -198,7 +207,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const normalizedPhone = normalizePhone(resp.telefone);
+      const normalizedPhone = await resolveSendPhone(creds, resp.telefone);
       const unidadeNome = unidadeMap.get(atividade.unidade_id) || 'Unidade';
 
       // Montar a mensagem
