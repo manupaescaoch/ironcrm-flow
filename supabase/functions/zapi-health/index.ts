@@ -47,7 +47,11 @@ Deno.serve(async (req) => {
     const since24 = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    const [{ data: logs24 }, { data: logs7 }] = await Promise.all([
+    // Início do dia em BRT (UTC-3)
+    const nowBrt = new Date(Date.now() - 3 * 60 * 60 * 1000);
+    const startOfDayBrt = new Date(Date.UTC(nowBrt.getUTCFullYear(), nowBrt.getUTCMonth(), nowBrt.getUTCDate(), 3, 0, 0)).toISOString();
+
+    const [{ data: logs24 }, { data: logs7 }, { data: logsHoje }] = await Promise.all([
       supabase
         .from('whatsapp_envios_log')
         .select('funcao, sucesso, erro_msg, motivo_skip, created_at, tipo_destino, destino')
@@ -58,6 +62,12 @@ Deno.serve(async (req) => {
         .from('whatsapp_envios_log')
         .select('sucesso, created_at')
         .gte('created_at', since7d),
+      supabase
+        .from('whatsapp_envios_log')
+        .select('funcao, sucesso, erro_msg, motivo_skip, created_at, tipo_destino, destino, unidade_id')
+        .gte('created_at', startOfDayBrt)
+        .order('created_at', { ascending: false })
+        .limit(500),
     ]);
 
     const totais24 = {
