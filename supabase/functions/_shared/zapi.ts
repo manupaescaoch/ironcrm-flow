@@ -26,7 +26,6 @@ export function sleep(ms: number): Promise<void> {
 }
 
 export async function checkZapiStatus(creds: ZapiCreds): Promise<{ connected: boolean; raw: any }> {
-export async function checkZapiStatus(creds: ZapiCreds): Promise<{ connected: boolean; raw: any }> {
   try {
     const url = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}/status`;
     const resp = await fetch(url, { headers: { 'Client-Token': creds.clientToken } });
@@ -50,8 +49,6 @@ export async function checkZapiStatus(creds: ZapiCreds): Promise<{ connected: bo
   }
 }
 
-  }
-}
 
 export async function phoneExists(creds: ZapiCreds, phone: string): Promise<boolean | null> {
   try {
