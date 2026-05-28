@@ -20,6 +20,8 @@ interface ConfigRow {
   unidade_id: string;
   grupo_fu_id: string;
   grupo_fu_nome: string;
+  grupo_anamnese_id: string;
+  grupo_anamnese_nome: string;
   telefone_recepcao: string;
   ativo: boolean;
 }
