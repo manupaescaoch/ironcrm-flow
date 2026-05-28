@@ -179,6 +179,9 @@ Deno.serve(async (req) => {
     let sentCount = 0;
     const errors: string[] = [];
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const RATE_LIMIT_MS = 10000; // 10s entre envios para proteger o chip
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    let isFirstSend = true;
 
     for (const atividade of atividadesNaJanela) {
       const resp = atividade.responsavel as any;
