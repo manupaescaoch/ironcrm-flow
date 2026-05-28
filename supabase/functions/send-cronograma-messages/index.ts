@@ -1,5 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { checkZapiStatus, getZapiCreds } from '../_shared/zapi.ts';
+import { maybeSendZapiOfflineAlert } from '../_shared/zapi-alert.ts';
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -174,11 +176,13 @@ Deno.serve(async (req) => {
     }
 
     let sentCount = 0;
+    let offlineErrorCount = 0;
     const errors: string[] = [];
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const RATE_LIMIT_MS = 10000; // 10s entre envios para proteger o chip
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
     let isFirstSend = true;
+
 
     for (const atividade of atividadesNaJanela) {
       const resp = atividade.responsavel as any;
@@ -246,8 +250,11 @@ Deno.serve(async (req) => {
           zapi_status_code: null,
         });
         errors.push(`Z-API offline/inconsistente: ${resp.nome} - ${atividade.titulo}`);
+        offlineErrorCount++;
         continue;
       }
+
+
 
       const zapiUrl = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}/send-text`;
 
@@ -310,7 +317,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[send-cronograma] Concluído: ${sentCount} enviado(s), ${errors.length} erro(s)`);
+    console.log(`[send-cronograma] Concluído: ${sentCount} enviado(s), ${errors.length} erro(s) (${offlineErrorCount} por Z-API offline)`);
+
+    // Dispara alerta por e-mail se Z-API offline impactou 2+ envios (com throttle de 30min)
+    if (offlineErrorCount >= 2) {
+      await maybeSendZapiOfflineAlert({
+        supabase,
+        funcao: 'send-cronograma-messages',
+        affectedCount: offlineErrorCount,
+        zapiStatus: zapiStatusData,
+      });
+    }
+
 
     return new Response(
       JSON.stringify({
