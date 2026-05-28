@@ -6,16 +6,28 @@ const corsHeaders = {
 };
 
 function normalizePhone(phone: string): string {
-  let normalized = phone.replace(/\D/g, '');
+  let normalized = (phone || '').replace(/\D/g, '');
+  if (!normalized) return '';
   if (!normalized.startsWith('55')) normalized = '55' + normalized;
   return normalized;
+}
+
+function formatPhoneBR(phone: string): string {
+  const n = (phone || '').replace(/\D/g, '');
+  // Tenta formatar (55) DD 9XXXX-XXXX
+  if (n.length >= 12) {
+    const ddd = n.slice(2, 4);
+    const rest = n.slice(4);
+    if (rest.length === 9) return `(${ddd}) ${rest.slice(0, 5)}-${rest.slice(5)}`;
+    if (rest.length === 8) return `(${ddd}) ${rest.slice(0, 4)}-${rest.slice(4)}`;
+  }
+  return phone || '';
 }
 
 function getBrasiliaNow() {
   const now = new Date();
   const brasiliaStr = now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
-  const brasilia = new Date(brasiliaStr);
-  return brasilia;
+  return new Date(brasiliaStr);
 }
 
 function getBrasiliaDateOnly(date: Date = new Date()) {
@@ -27,10 +39,6 @@ function getBrasiliaDateOnly(date: Date = new Date()) {
   }).formatToParts(date);
   const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   return `${values.year}-${values.month}-${values.day}`;
-}
-
-function firstName(full: string): string {
-  return (full || '').trim().split(/\s+/)[0] || full;
 }
 
 const HOURS_AFTER_CLASS = 3;
@@ -67,7 +75,6 @@ Deno.serve(async (req) => {
 
     console.log(`[feedback-pos-aula] Brasília: ${brasilia.toISOString()} | hoje=${todayStr} | nowMin=${nowMin}`);
 
-    // Buscar interações de hoje com presença confirmada e feedback ainda não enviado
     const { data: interacoes, error: intErr } = await supabase
       .from('interacoes')
       .select('id, lead_id, hora_experimental, data_experimental, compareceu, feedback_pos_aula_enviado_em')
@@ -90,7 +97,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Filtrar pelas que já passaram HOURS_AFTER_CLASS desde a hora_experimental
     const elegiveis = interacoes.filter((i: any) => {
       if (!i.hora_experimental) return false;
       const [h, m] = i.hora_experimental.split(':').map((n: string) => parseInt(n, 10));
@@ -111,9 +117,19 @@ Deno.serve(async (req) => {
     const leadIds = elegiveis.map((e: any) => e.lead_id);
     const { data: leads } = await supabase
       .from('leads')
-      .select('id, nome, telefone, ativo, status_funil, is_matriculado')
+      .select('id, nome, telefone, ativo, status_funil, is_matriculado, unidade_id')
       .in('id', leadIds);
     const leadMap = new Map((leads || []).map((l: any) => [l.id, l]));
+
+    // Carrega telefones de recepção por unidade
+    const unidadeIds = Array.from(new Set((leads || []).map((l: any) => l.unidade_id).filter(Boolean)));
+    const { data: cfgs } = await supabase
+      .from('unidade_whatsapp_config')
+      .select('unidade_id, telefone_recepcao')
+      .eq('ativo', true)
+      .not('telefone_recepcao', 'is', null)
+      .in('unidade_id', unidadeIds);
+    const recepcaoMap = new Map((cfgs || []).map((c: any) => [c.unidade_id, c.telefone_recepcao]));
 
     const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
     let sent = 0;
@@ -126,13 +142,11 @@ Deno.serve(async (req) => {
       if (!lead.ativo) { console.log(`[feedback] lead inativo: ${lead.nome}`); continue; }
       if (lead.is_matriculado || lead.status_funil === 'convertido' || lead.status_funil === 'perdido') {
         console.log(`[feedback] lead já matriculado/perdido: ${lead.nome}`);
-        // marca como enviado para não tentar de novo
         await supabase.from('interacoes').update({ feedback_pos_aula_enviado_em: new Date().toISOString() }).eq('id', inter.id);
         continue;
       }
-      if (!lead.telefone) { errors.push(`Sem telefone: ${lead.nome}`); continue; }
 
-      // Re-check em tempo real: se virou matrícula entre o filtro e o envio, abortar
+      // Re-check em tempo real
       const { data: freshLead } = await supabase
         .from('leads')
         .select('is_matriculado, status_funil, ativo')
@@ -144,7 +158,6 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Verificar se existe matrícula registrada na tabela interacoes
       const { data: matricula } = await supabase
         .from('interacoes')
         .select('id')
@@ -157,21 +170,25 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const nome = firstName(lead.nome);
-      const message = `Oi ${nome}! Tudo bem?
+      const recepcao = recepcaoMap.get(lead.unidade_id);
+      if (!recepcao) {
+        errors.push(`Sem telefone de recepção para unidade ${lead.unidade_id} (lead ${lead.nome})`);
+        continue;
+      }
 
-Como foi sua experiência hoje na Iron?
+      const horaAula = (inter.hora_experimental || '').slice(0, 5);
+      const message = `📞 *Feedback pós-aula experimental*
 
-Queria saber, com sinceridade, o que você achou da nossa estrutura, do atendimento e do ambiente.
+👤 *Lead:* ${lead.nome}
+📱 *Telefone:* ${formatPhoneBR(lead.telefone || '')}
+🕒 *Aula:* hoje às ${horaAula}
 
-E caso faça sentido para você continuar treinando com a gente, me avisa por aqui que eu te explico os planos e como funciona. Se tiver qualquer outra dúvida, estamos à disposição!
+Entrar em contato para coletar feedback da experiência e oferecer o plano.`;
 
-Equipe Iron 💙`;
-
-      const phone = normalizePhone(lead.telefone);
+      const phone = normalizePhone(recepcao);
 
       if (dryRun) {
-        results.push({ lead: lead.nome, phone, preview: message });
+        results.push({ lead: lead.nome, destino_recepcao: phone, unidade_id: lead.unidade_id, preview: message });
         continue;
       }
 
@@ -190,7 +207,6 @@ Equipe Iron 💙`;
             .update({ feedback_pos_aula_enviado_em: new Date().toISOString() })
             .eq('id', inter.id);
 
-          // Cancelar D+1 pendente desse lead — feedback pós-aula já cobre o mesmo propósito
           const { data: cancelados, error: cancelErr } = await supabase
             .from('follow_ups')
             .update({
@@ -210,7 +226,7 @@ Equipe Iron 💙`;
             console.log(`[feedback] 🚫 D+1 cancelado (${cancelados.length}) p/ ${lead.nome}`);
           }
 
-          console.log(`[feedback] ✅ enviado para ${lead.nome}`);
+          console.log(`[feedback] ✅ enviado p/ recepção (${phone}) — lead ${lead.nome}`);
         } else {
           console.error(`[feedback] ❌ Z-API ${resp.status} ${lead.nome}`, result);
           errors.push(`Z-API ${resp.status}: ${lead.nome}`);

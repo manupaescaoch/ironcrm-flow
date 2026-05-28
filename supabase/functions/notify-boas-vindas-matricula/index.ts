@@ -6,13 +6,21 @@ const corsHeaders = {
 };
 
 function normalizePhone(phone: string): string {
-  let normalized = phone.replace(/\D/g, '');
+  let normalized = (phone || '').replace(/\D/g, '');
+  if (!normalized) return '';
   if (!normalized.startsWith('55')) normalized = '55' + normalized;
   return normalized;
 }
 
-function firstName(full: string): string {
-  return (full || '').trim().split(/\s+/)[0] || full;
+function formatPhoneBR(phone: string): string {
+  const n = (phone || '').replace(/\D/g, '');
+  if (n.length >= 12) {
+    const ddd = n.slice(2, 4);
+    const rest = n.slice(4);
+    if (rest.length === 9) return `(${ddd}) ${rest.slice(0, 5)}-${rest.slice(5)}`;
+    if (rest.length === 8) return `(${ddd}) ${rest.slice(0, 4)}-${rest.slice(4)}`;
+  }
+  return phone || '';
 }
 
 const HOURS_AFTER_MATRICULA = 2;
@@ -45,7 +53,6 @@ Deno.serve(async (req) => {
 
     const cutoff = new Date(Date.now() - HOURS_AFTER_MATRICULA * 60 * 60 * 1000).toISOString();
 
-    // Buscar matrículas fechadas há pelo menos 2h e ainda sem boas-vindas enviadas
     const { data: interacoes, error: intErr } = await supabase
       .from('interacoes')
       .select('id, lead_id, data_interacao, fechou_matricula, boas_vindas_enviada_em')
@@ -72,9 +79,18 @@ Deno.serve(async (req) => {
     const leadIds = interacoes.map((i: any) => i.lead_id);
     const { data: leads } = await supabase
       .from('leads')
-      .select('id, nome, telefone, ativo')
+      .select('id, nome, telefone, ativo, unidade_id')
       .in('id', leadIds);
     const leadMap = new Map((leads || []).map((l: any) => [l.id, l]));
+
+    const unidadeIds = Array.from(new Set((leads || []).map((l: any) => l.unidade_id).filter(Boolean)));
+    const { data: cfgs } = await supabase
+      .from('unidade_whatsapp_config')
+      .select('unidade_id, telefone_recepcao')
+      .eq('ativo', true)
+      .not('telefone_recepcao', 'is', null)
+      .in('unidade_id', unidadeIds);
+    const recepcaoMap = new Map((cfgs || []).map((c: any) => [c.unidade_id, c.telefone_recepcao]));
 
     const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
     let sent = 0;
@@ -84,23 +100,25 @@ Deno.serve(async (req) => {
     for (const inter of interacoes) {
       const lead: any = leadMap.get(inter.lead_id);
       if (!lead) { errors.push(`Lead não encontrado: ${inter.lead_id}`); continue; }
-      if (!lead.telefone) { errors.push(`Sem telefone: ${lead.nome}`); continue; }
 
-      const nome = firstName(lead.nome);
-      const message = `Oi, ${nome}! Tudo bem?
+      const recepcao = recepcaoMap.get(lead.unidade_id);
+      if (!recepcao) {
+        errors.push(`Sem telefone de recepção para unidade ${lead.unidade_id} (aluno ${lead.nome})`);
+        continue;
+      }
 
-Fiquei sabendo que você fez sua matrícula na Iron. Seja muito bem-vindo(a)! 💙
+      const message = `🎉 *Nova matrícula*
 
-A partir de agora, nossa equipe vai te acompanhar de perto pra você viver a experiência Iron da melhor forma possível.
+👤 *Aluno:* ${lead.nome}
+📱 *Telefone:* ${formatPhoneBR(lead.telefone || '')}
+⏰ *Fechada há:* ~${HOURS_AFTER_MATRICULA}h
 
-E mesmo depois da matrícula, continuo por aqui à disposição.
+Enviar boas-vindas ao aluno e iniciar onboarding.`;
 
-Qualquer dúvida, ajuste ou necessidade, pode me chamar.`;
-
-      const phone = normalizePhone(lead.telefone);
+      const phone = normalizePhone(recepcao);
 
       if (dryRun) {
-        results.push({ lead: lead.nome, phone, preview: message });
+        results.push({ aluno: lead.nome, destino_recepcao: phone, unidade_id: lead.unidade_id, preview: message });
         continue;
       }
 
@@ -118,7 +136,7 @@ Qualquer dúvida, ajuste ou necessidade, pode me chamar.`;
             .from('interacoes')
             .update({ boas_vindas_enviada_em: new Date().toISOString() })
             .eq('id', inter.id);
-          console.log(`[boas-vindas] ✅ enviado para ${lead.nome}`);
+          console.log(`[boas-vindas] ✅ enviado p/ recepção (${phone}) — aluno ${lead.nome}`);
         } else {
           console.error(`[boas-vindas] ❌ Z-API ${resp.status} ${lead.nome}`, result);
           errors.push(`Z-API ${resp.status}: ${lead.nome}`);
