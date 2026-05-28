@@ -138,6 +138,20 @@ _Anamnese preenchida pela recepção no momento da chegada do lead._`;
     const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN') || '';
     if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) throw new Error('Z-API não configurada');
 
+    // [Z-API health] aborta cedo se o chip estiver offline
+    {
+      const sr = await fetch(`https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/status`, { headers: { 'Client-Token': ZAPI_CLIENT_TOKEN } });
+      const sj = await sr.json().catch(() => ({}));
+      if (!sr.ok || sj?.connected !== true) {
+        console.warn('[notify-anamnese] Z-API offline', sj);
+        try {
+          const sb = (await import('https://esm.sh/@supabase/supabase-js@2')).createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+          await sb.from('whatsapp_envios_log').insert({ funcao: 'notify-anamnese-experimental', sucesso: false, motivo_skip: 'zapi_offline', erro_msg: JSON.stringify(sj).slice(0, 500) });
+        } catch {}
+        return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: sj }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    }
+
     const url = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
     const resp = await fetch(url, {
       method: 'POST',
