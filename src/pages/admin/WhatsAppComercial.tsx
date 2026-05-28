@@ -319,7 +319,7 @@ export default function WhatsAppComercial() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-3 gap-4">
                   {/* Grupo FU */}
                   <div className="space-y-2 border rounded-lg p-3">
                     <Label className="text-sm font-semibold">Grupo Comercial — Follow-ups</Label>
