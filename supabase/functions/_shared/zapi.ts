@@ -30,7 +30,13 @@ export async function checkZapiStatus(creds: ZapiCreds): Promise<{ connected: bo
     const url = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}/status`;
     const resp = await fetch(url, { headers: { 'Client-Token': creds.clientToken } });
     const raw = await resp.json().catch(() => ({}));
-    return { connected: resp.ok && raw?.connected === true, raw };
+    const healthy =
+      resp.ok &&
+      raw?.connected === true &&
+      raw?.smartphoneConnected === true &&
+      raw?.session === true &&
+      !raw?.error;
+    return { connected: healthy, raw };
   } catch (e) {
     return { connected: false, raw: { error: String(e) } };
   }
