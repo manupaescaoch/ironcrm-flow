@@ -1,0 +1,1 @@
+DELETE FROM cronograma_envios WHERE id IN ('e6d3fd85-5781-4693-8b3b-039579060a44','b32740c6-dcd9-4968-84b5-ef7796966eb8','cdac8daf-839c-4665-80d7-8bddc64f4c98','69639afe-2c8e-44c8-88b0-5c5f1879274a');
