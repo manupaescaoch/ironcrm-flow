@@ -37,21 +37,32 @@ Deno.serve(async (req) => {
     }
 
     const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN');
-    const url = `https://api.z-api.io/instances/${instanceId}/token/${zapiToken}/chats`;
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (clientToken) {
-      headers['Client-Token'] = clientToken;
-    }
-    const response = await fetch(url, { headers });
+    if (clientToken) headers['Client-Token'] = clientToken;
 
-    if (!response.ok) {
-      throw new Error(`Z-API error: ${response.status}`);
+    // Z-API exige paginação em /chats. Paginamos até esgotar.
+    const all: any[] = [];
+    const pageSize = 100;
+    for (let page = 1; page <= 50; page++) {
+      const url = `https://api.z-api.io/instances/${instanceId}/token/${zapiToken}/chats?page=${page}&pageSize=${pageSize}`;
+      const resp = await fetch(url, { headers });
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => '');
+        console.error(`[list-groups] Z-API ${resp.status} page=${page}: ${txt.slice(0, 200)}`);
+        if (page === 1) throw new Error(`Z-API error: ${resp.status} - ${txt.slice(0, 200)}`);
+        break;
+      }
+      const arr = await resp.json().catch(() => []);
+      if (!Array.isArray(arr) || arr.length === 0) break;
+      all.push(...arr);
+      if (arr.length < pageSize) break;
     }
 
-    const chats = await response.json();
-    const groups = (Array.isArray(chats) ? chats : [])
+    const groups = all
       .filter((c: any) => c.isGroup === true)
-      .map((c: any) => ({ id: c.phone || c.id, name: c.name || c.phone || 'Sem nome' }));
+      .map((c: any) => ({ phone: c.phone || c.id, name: c.name || c.phone || 'Sem nome' }));
+
+    console.log(`[list-groups] total chats=${all.length} groups=${groups.length}`);
 
     return new Response(JSON.stringify(groups), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
