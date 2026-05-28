@@ -106,6 +106,35 @@ Deno.serve(async (req) => {
         em: l.created_at,
       }));
 
+    // Envios de hoje (BRT) agrupados por origem operacional
+    const categorize = (fn: string | null): 'cronograma' | 'rotinas' | 'outros' => {
+      const f = (fn || '').toLowerCase();
+      if (f.includes('cronograma')) return 'cronograma';
+      if (f.includes('rotina')) return 'rotinas';
+      return 'outros';
+    };
+    const enviosHoje: Record<'cronograma' | 'rotinas' | 'outros', any[]> = {
+      cronograma: [], rotinas: [], outros: [],
+    };
+    for (const l of logsHoje || []) {
+      const cat = categorize(l.funcao);
+      enviosHoje[cat].push({
+        funcao: l.funcao,
+        destino: l.destino,
+        tipo: l.tipo_destino,
+        sucesso: l.sucesso,
+        skip: l.motivo_skip,
+        erro: l.erro_msg,
+        em: l.created_at,
+        unidade_id: l.unidade_id,
+      });
+    }
+    const resumoHoje = {
+      cronograma: { ok: enviosHoje.cronograma.filter((x) => x.sucesso).length, err: enviosHoje.cronograma.filter((x) => !x.sucesso && !x.skip).length, skip: enviosHoje.cronograma.filter((x) => x.skip).length, total: enviosHoje.cronograma.length },
+      rotinas:    { ok: enviosHoje.rotinas.filter((x) => x.sucesso).length,    err: enviosHoje.rotinas.filter((x) => !x.sucesso && !x.skip).length,    skip: enviosHoje.rotinas.filter((x) => x.skip).length,    total: enviosHoje.rotinas.length },
+      outros:     { ok: enviosHoje.outros.filter((x) => x.sucesso).length,     err: enviosHoje.outros.filter((x) => !x.sucesso && !x.skip).length,     skip: enviosHoje.outros.filter((x) => x.skip).length,     total: enviosHoje.outros.length },
+    };
+
     return new Response(
       JSON.stringify({
         zapi: { connected: status.connected, raw: status.raw },
@@ -113,6 +142,8 @@ Deno.serve(async (req) => {
         porFuncao24,
         serie7d,
         ultimosErros,
+        enviosHoje,
+        resumoHoje,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
