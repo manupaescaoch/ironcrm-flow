@@ -1,4 +1,13 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  RATE_LIMIT_MS,
+  checkZapiStatus,
+  getZapiCreds,
+  logEnvio,
+  phoneExists,
+  sendText,
+  sleep,
+} from '../_shared/zapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,13 +35,6 @@ function getBrasiliaParts() {
   const dateStr = `${v.year}-${v.month}-${v.day}`;
   const brasiliaDate = new Date(`${dateStr}T12:00:00Z`);
   return { dateStr, dayOfWeek: brasiliaDate.getUTCDay(), hour: Number(v.hour), minute: Number(v.minute) };
-}
-
-function getBrasiliaNow() {
-  // Mantém compatibilidade — retorna Date com wall-clock Brasília simulado
-  const now = new Date();
-  const brasiliaStr = now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
-  return new Date(brasiliaStr);
 }
 
 const TEMPLATES: Record<string, (nome: string) => string> = {
@@ -68,17 +70,14 @@ Passando pra deixar o contato aberto. Se em algum momento quiser treinar com mai
 Qualquer coisa é só chamar. 🤝`,
 };
 
+const FUNC = 'send-follow-ups-automaticos';
+
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
-    const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
-    const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN');
-
-    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
+    const creds = getZapiCreds();
+    if (!creds) {
       return new Response(
         JSON.stringify({ error: 'ZAPI credentials not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
@@ -93,22 +92,29 @@ Deno.serve(async (req) => {
     let body: any = {};
     try { body = await req.json(); } catch { /* sem body */ }
     const dryRun = body?.dry_run === true;
-    const force = body?.force === true; // ignora check de fim de semana
+    const force = body?.force === true;
 
     const { dateStr: todayStr, dayOfWeek } = getBrasiliaParts();
 
-    // Bloquear envio em fim de semana (a menos que force=true)
     if (!force && (dayOfWeek === 0 || dayOfWeek === 6)) {
-      console.log(`[follow-ups-auto] Pulando envio: fim de semana (dia ${dayOfWeek})`);
       return new Response(
         JSON.stringify({ success: true, sent: 0, message: 'Fim de semana, envio pulado' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`[follow-ups-auto] Brasília hoje=${todayStr}`);
+    // Verifica chip antes de qualquer envio
+    if (!dryRun) {
+      const st = await checkZapiStatus(creds);
+      if (!st.connected) {
+        await logEnvio(supabase, { funcao: FUNC, sucesso: false, motivo_skip: 'zapi_offline', erro_msg: JSON.stringify(st.raw).slice(0, 500) });
+        return new Response(
+          JSON.stringify({ error: 'Z-API desconectado', zapi: st.raw }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 }
+        );
+      }
+    }
 
-    // Buscar follow-ups pendentes com data_prevista <= hoje
     const { data: followUps, error: fuErr } = await supabase
       .from('follow_ups')
       .select(`
@@ -120,7 +126,6 @@ Deno.serve(async (req) => {
       .in('tipo', ['D+1', 'D+7', 'D+15', 'D+30']);
 
     if (fuErr) {
-      console.error('Erro buscando follow-ups:', fuErr);
       return new Response(
         JSON.stringify({ error: fuErr.message }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
@@ -134,43 +139,35 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[follow-ups-auto] ${followUps.length} follow-ups vencidos encontrados`);
-
-    const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
     let sent = 0;
     const errors: string[] = [];
     const results: any[] = [];
+    let isFirst = true;
 
     for (const fu of followUps as any[]) {
       const lead = fu.leads;
       if (!lead) {
-        errors.push(`Lead não encontrado: fu=${fu.id}`);
         await supabase.from('follow_ups')
           .update({ status: 'cancelado', cancelado_motivo: 'lead_inexistente', updated_at: new Date().toISOString() })
           .eq('id', fu.id);
         continue;
       }
-      // Filtros de elegibilidade
       if (!lead.ativo || lead.is_matriculado || lead.status_funil === 'convertido' || lead.status_funil === 'perdido') {
-        console.log(`[follow-ups-auto] Cancelando ${fu.tipo} - ${lead.nome} (inelegível)`);
         await supabase.from('follow_ups')
           .update({ status: 'cancelado', cancelado_motivo: 'lead_inelegivel', updated_at: new Date().toISOString() })
           .eq('id', fu.id);
         continue;
       }
       if (!lead.telefone) {
+        await logEnvio(supabase, { funcao: FUNC, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, motivo_skip: 'sem_telefone' });
         errors.push(`Sem telefone: ${lead.nome}`);
         continue;
       }
 
       const tmpl = TEMPLATES[fu.tipo];
-      if (!tmpl) {
-        errors.push(`Template não encontrado: ${fu.tipo}`);
-        continue;
-      }
+      if (!tmpl) continue;
 
-      const nome = firstName(lead.nome);
-      const message = tmpl(nome);
+      const message = tmpl(firstName(lead.nome));
       const phone = normalizePhone(lead.telefone);
 
       if (dryRun) {
@@ -178,29 +175,30 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      try {
-        const resp = await fetch(zapiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_CLIENT_TOKEN || '' },
-          body: JSON.stringify({ phone, message }),
-        });
-        const result = await resp.json().catch(() => ({}));
+      // Rate limit entre envios (não no primeiro)
+      if (!isFirst) await sleep(RATE_LIMIT_MS);
+      isFirst = false;
 
-        if (resp.ok) {
+      // Validação phone-exists no WhatsApp
+      const exists = await phoneExists(creds, phone);
+      if (exists === false) {
+        await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, motivo_skip: 'phone_nao_existe' });
+        await supabase.from('follow_ups')
+          .update({ status: 'cancelado', cancelado_motivo: 'phone_invalido', updated_at: new Date().toISOString() })
+          .eq('id', fu.id);
+        errors.push(`Telefone sem WhatsApp: ${lead.nome}`);
+        continue;
+      }
+
+      try {
+        const r = await sendText(creds, phone, message);
+        if (r.ok) {
           sent++;
           const nowIso = new Date().toISOString();
-          // Marcar follow-up como concluído
           await supabase
             .from('follow_ups')
-            .update({
-              status: 'concluido',
-              concluido_em: nowIso,
-              concluido_por: 'SISTEMA (automático)',
-              updated_at: nowIso,
-            })
+            .update({ status: 'concluido', concluido_em: nowIso, concluido_por: 'SISTEMA (automático)', updated_at: nowIso })
             .eq('id', fu.id);
-
-          // Registrar interação no histórico do lead
           await supabase.from('interacoes').insert({
             lead_id: lead.id,
             unidade_id: fu.unidade_id,
@@ -209,32 +207,23 @@ Deno.serve(async (req) => {
             data_interacao: nowIso,
             atendido_por: 'SISTEMA',
           });
-
-          console.log(`[follow-ups-auto] ✅ ${fu.tipo} enviado para ${lead.nome}`);
+          await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: true, zapi_status_code: r.status });
           results.push({ tipo: fu.tipo, lead: lead.nome, status: 'sent' });
         } else {
-          console.error(`[follow-ups-auto] ❌ Z-API ${resp.status} ${lead.nome}`, result);
-          errors.push(`Z-API ${resp.status}: ${fu.tipo} ${lead.nome}`);
+          await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, zapi_status_code: r.status, erro_msg: JSON.stringify(r.body).slice(0, 500) });
+          errors.push(`Z-API ${r.status}: ${fu.tipo} ${lead.nome}`);
         }
       } catch (e: any) {
-        console.error(`[follow-ups-auto] erro envio ${lead.nome}`, e);
+        await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, erro_msg: e?.message ?? String(e) });
         errors.push(`Erro envio: ${fu.tipo} ${lead.nome} - ${e?.message ?? e}`);
       }
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        sent,
-        total_eligible: followUps.length,
-        errors,
-        dry_run: dryRun,
-        results,
-      }),
+      JSON.stringify({ success: true, sent, total_eligible: followUps.length, errors, dry_run: dryRun, results }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err: any) {
-    console.error('[follow-ups-auto] erro geral', err);
     return new Response(
       JSON.stringify({ error: err?.message ?? 'Internal error' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }

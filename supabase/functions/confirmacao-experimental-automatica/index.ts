@@ -1,9 +1,14 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  RATE_LIMIT_MS, checkZapiStatus, getZapiCreds, logEnvio, phoneExists, sendText, sleep,
+} from '../_shared/zapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const FUNC = 'confirmacao-experimental-automatica';
 
 const ANAMNESE_URL = 'https://ironclub-app.com/anamnese';
 const BRASILIA_TIME_ZONE = 'America/Sao_Paulo';
@@ -85,21 +90,6 @@ function normalizePhone(raw: string): string {
   return `55${digits}`;
 }
 
-async function sendWhatsApp(phone: string, message: string) {
-  const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
-  const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
-  const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN') || '';
-  if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) throw new Error('Z-API não configurada');
-
-  const url = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_CLIENT_TOKEN },
-    body: JSON.stringify({ phone, message }),
-  });
-  const body = await resp.json().catch(() => ({}));
-  return { ok: resp.ok, status: resp.status, body };
-}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -107,10 +97,28 @@ Deno.serve(async (req) => {
   try {
     const { dryRun = false } = await req.json().catch(() => ({}));
 
+    const creds = getZapiCreds();
+    if (!creds) {
+      return new Response(JSON.stringify({ error: 'Z-API não configurada' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
+
+    if (!dryRun) {
+      const st = await checkZapiStatus(creds);
+      if (!st.connected) {
+        await logEnvio(supabase, { funcao: FUNC, sucesso: false, motivo_skip: 'zapi_offline', erro_msg: JSON.stringify(st.raw).slice(0, 500) });
+        return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: st.raw }), {
+          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
 
     // Busca leads candidatos com aula nas próximas 25h
     const agora = new Date();
@@ -143,6 +151,23 @@ Deno.serve(async (req) => {
     }
 
     const resultados: any[] = [];
+    let envios = 0;
+    let isFirstSend = true;
+    const checkedPhones = new Map<string, boolean>();
+
+    async function ensurePhoneOk(phone: string): Promise<boolean> {
+      if (checkedPhones.has(phone)) return checkedPhones.get(phone)!;
+      const ex = await phoneExists(creds!, phone);
+      const ok = ex !== false; // null (incerto) → permitir
+      checkedPhones.set(phone, ok);
+      return ok;
+    }
+
+    async function rateGate() {
+      if (!isFirstSend) await sleep(RATE_LIMIT_MS);
+      isFirstSend = false;
+    }
+
 
     for (const lead of leads || []) {
       // GUARDA 1: pré-filtro em lote — leads com compareceu=true em qualquer interação
@@ -204,23 +229,24 @@ Deno.serve(async (req) => {
         if (dryRun) {
           resultados.push({ lead_id: lead.id, tipo: '24h', dryRun: true, phone, preview: message });
         } else {
-          const r = await sendWhatsApp(phone, message);
-          if (r.ok) {
-            const { error: updateError } = await supabase
-              .from('leads')
-              .update({ confirmacao_24h_enviada_em: new Date().toISOString() })
-              .eq('id', lead.id);
-
-            if (updateError) {
-              console.error('[confirmacao-experimental] erro ao gravar confirmação 24h', {
-                lead_id: lead.id,
-                error: updateError.message,
-              });
+          if (!(await ensurePhoneOk(phone))) {
+            await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, motivo_skip: 'phone_nao_existe' });
+            resultados.push({ lead_id: lead.id, tipo: '24h', skipped: 'phone_nao_existe' });
+          } else {
+            await rateGate();
+            const r = await sendText(creds, phone, message);
+            if (r.ok) {
+              envios++;
+              await supabase.from('leads').update({ confirmacao_24h_enviada_em: new Date().toISOString() }).eq('id', lead.id);
+              await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: true, zapi_status_code: r.status });
+            } else {
+              await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, zapi_status_code: r.status, erro_msg: JSON.stringify(r.body).slice(0, 500) });
             }
+            resultados.push({ lead_id: lead.id, tipo: '24h', sent: r.ok, status: r.status });
           }
-          resultados.push({ lead_id: lead.id, tipo: '24h', sent: r.ok, status: r.status });
         }
       }
+
 
       // 2h
       if (dentro2h && !lead.confirmacao_2h_enviada_em) {
@@ -230,23 +256,24 @@ Deno.serve(async (req) => {
         if (dryRun) {
           resultados.push({ lead_id: lead.id, tipo: '2h', dryRun: true, phone, preview: message });
         } else {
-          const r = await sendWhatsApp(phone, message);
-          if (r.ok) {
-            const { error: updateError } = await supabase
-              .from('leads')
-              .update({ confirmacao_2h_enviada_em: new Date().toISOString() })
-              .eq('id', lead.id);
-
-            if (updateError) {
-              console.error('[confirmacao-experimental] erro ao gravar confirmação 2h', {
-                lead_id: lead.id,
-                error: updateError.message,
-              });
+          if (!(await ensurePhoneOk(phone))) {
+            await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, motivo_skip: 'phone_nao_existe' });
+            resultados.push({ lead_id: lead.id, tipo: '2h', skipped: 'phone_nao_existe' });
+          } else {
+            await rateGate();
+            const r = await sendText(creds, phone, message);
+            if (r.ok) {
+              envios++;
+              await supabase.from('leads').update({ confirmacao_2h_enviada_em: new Date().toISOString() }).eq('id', lead.id);
+              await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: true, zapi_status_code: r.status });
+            } else {
+              await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, zapi_status_code: r.status, erro_msg: JSON.stringify(r.body).slice(0, 500) });
             }
+            resultados.push({ lead_id: lead.id, tipo: '2h', sent: r.ok, status: r.status });
           }
-          resultados.push({ lead_id: lead.id, tipo: '2h', sent: r.ok, status: r.status });
         }
       }
+
     }
 
     return new Response(

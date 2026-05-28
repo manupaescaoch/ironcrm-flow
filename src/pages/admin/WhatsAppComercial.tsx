@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Loader2, Save, Send, RefreshCw, ArrowLeft, Eye } from 'lucide-react';
+import { Loader2, Save, Send, RefreshCw, ArrowLeft, Eye, Activity, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, Link } from 'react-router-dom';
@@ -36,6 +37,28 @@ export default function WhatsAppComercial() {
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [groupSearch, setGroupSearch] = useState('');
   const [preview, setPreview] = useState<{ title: string; content: string } | null>(null);
+  const [health, setHealth] = useState<any | null>(null);
+  const [healthLoading, setHealthLoading] = useState(false);
+
+  const loadHealth = async () => {
+    setHealthLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('zapi-health');
+      if (error) throw error;
+      setHealth(data);
+    } catch (e: any) {
+      toast.error('Falha ao carregar saúde: ' + (e?.message ?? ''));
+    } finally {
+      setHealthLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    loadHealth();
+    const t = setInterval(loadHealth, 60_000);
+    return () => clearInterval(t);
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -169,6 +192,108 @@ export default function WhatsAppComercial() {
           <p>
             <strong>Confirmações experimentais:</strong> a cada 30 min, lista consolidada (24h e 2h antes) vai direto para o <strong>número da recepção</strong> da unidade. Recepção envia do número comercial dela.
           </p>
+        </CardContent>
+      </Card>
+
+      {/* ============= Saúde do Chip ============= */}
+      <Card className="border-2">
+        <CardHeader className="pb-3 flex flex-row items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Activity className="w-4 h-4" />
+            Saúde do Chip Z-API
+            {health?.zapi?.connected ? (
+              <Badge variant="default" className="bg-green-600 hover:bg-green-700">Conectado</Badge>
+            ) : (
+              <Badge variant="destructive">Desconectado</Badge>
+            )}
+          </CardTitle>
+          <Button variant="ghost" size="sm" onClick={loadHealth} disabled={healthLoading}>
+            {healthLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="border rounded-lg p-3">
+              <div className="text-xs text-muted-foreground">Total 24h</div>
+              <div className="text-2xl font-bold">{health?.totais24?.total ?? '—'}</div>
+            </div>
+            <div className="border rounded-lg p-3">
+              <div className="text-xs text-muted-foreground flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-green-600" /> Sucesso
+              </div>
+              <div className="text-2xl font-bold text-green-600">{health?.totais24?.sucesso ?? '—'}</div>
+            </div>
+            <div className="border rounded-lg p-3">
+              <div className="text-xs text-muted-foreground flex items-center gap-1">
+                <XCircle className="w-3 h-3 text-destructive" /> Erros
+              </div>
+              <div className="text-2xl font-bold text-destructive">{health?.totais24?.erros ?? '—'}</div>
+            </div>
+            <div className="border rounded-lg p-3">
+              <div className="text-xs text-muted-foreground flex items-center gap-1">
+                <AlertCircle className="w-3 h-3 text-amber-500" /> Pulados
+              </div>
+              <div className="text-2xl font-bold text-amber-500">{health?.totais24?.skips ?? '—'}</div>
+            </div>
+          </div>
+
+          {health?.porFuncao24 && Object.keys(health.porFuncao24).length > 0 && (
+            <div>
+              <div className="text-xs font-semibold text-muted-foreground mb-2">ENVIOS POR FUNÇÃO (24h)</div>
+              <div className="space-y-1 text-sm">
+                {Object.entries(health.porFuncao24).map(([fn, st]: any) => (
+                  <div key={fn} className="flex items-center justify-between py-1 border-b last:border-b-0">
+                    <span className="font-mono text-xs">{fn}</span>
+                    <div className="flex gap-3 text-xs">
+                      <span className="text-green-600">✓ {st.ok}</span>
+                      <span className="text-destructive">✗ {st.err}</span>
+                      <span className="text-amber-500">⏭ {st.skip}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {health?.serie7d && (
+            <div>
+              <div className="text-xs font-semibold text-muted-foreground mb-2">ÚLTIMOS 7 DIAS</div>
+              <div className="flex items-end gap-1">
+                {(() => {
+                  const days: any[] = [];
+                  for (let i = 6; i >= 0; i--) {
+                    const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+                    days.push({ d, ...(health.serie7d[d] ?? { ok: 0, err: 0 }) });
+                  }
+                  const max = Math.max(1, ...days.map((x) => x.ok + x.err));
+                  return days.map((x) => (
+                    <div key={x.d} className="flex-1 flex flex-col items-center gap-1">
+                      <div className="w-full bg-muted rounded-sm flex flex-col-reverse overflow-hidden" style={{ height: '60px' }}>
+                        <div className="bg-green-600 w-full" style={{ height: `${(x.ok / max) * 100}%` }} title={`${x.ok} sucesso`} />
+                        <div className="bg-destructive w-full" style={{ height: `${(x.err / max) * 100}%` }} title={`${x.err} erros`} />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">{x.d.slice(5)}</span>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          )}
+
+          {health?.ultimosErros?.length > 0 && (
+            <div>
+              <div className="text-xs font-semibold text-muted-foreground mb-2">ÚLTIMOS ERROS (24h)</div>
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {health.ultimosErros.map((e: any, i: number) => (
+                  <div key={i} className="text-xs border-l-2 border-destructive pl-2 py-1">
+                    <div className="font-mono">{e.funcao}{e.destino ? ` → ${e.destino}` : ''}</div>
+                    <div className="text-muted-foreground truncate" title={e.erro}>{e.erro}</div>
+                    <div className="text-[10px] text-muted-foreground">{new Date(e.em).toLocaleString('pt-BR')}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
