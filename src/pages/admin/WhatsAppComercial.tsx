@@ -112,6 +112,8 @@ export default function WhatsAppComercial() {
       unidade_id: id,
       grupo_fu_id: r.grupo_fu_id || null,
       grupo_fu_nome: r.grupo_fu_nome || null,
+      grupo_anamnese_id: r.grupo_anamnese_id || null,
+      grupo_anamnese_nome: r.grupo_anamnese_nome || null,
       telefone_recepcao: r.telefone_recepcao.replace(/\D/g, '') || null,
       ativo: r.ativo,
     }, { onConflict: 'unidade_id' });
