@@ -1,62 +1,69 @@
-# Redirecionar notificações WhatsApp por unidade
+## Diagnóstico
 
-Hoje 3 funções enviam para destino errado (grupo legado ou direto ao lead). Vamos redirecionar cada uma para o canal interno correto da unidade.
+A página `/admin-users` mostra "Erro no servidor" porque a edge function `list-users` retorna **403 "Sem permissão para listar usuários"** mesmo para o usuário `emanuel.paes@gmail.com`, que **é admin** (confirmado em `public.user_roles`).
 
-## 1. `notify-anamnese-experimental` → grupo da unidade (novos IDs)
+### Causa raiz
 
-Atualizar os secrets já existentes para os novos grupos:
-- `WHATSAPP_GRUPO_ANAMNESE_ZN` = `120363423846997807-group`
-- `WHATSAPP_GRUPO_ANAMNESE_ZS` = `120363419881143524-group`
+A função `public.has_role(_user_id, _role)` foi modificada e contém uma cláusula extra que quebra o uso server-side:
 
-Nenhuma alteração de código — a função já roteia por unidade lendo esses secrets. Apenas confirmar e atualizar os valores no painel de Secrets.
+```sql
+AND (
+  _user_id = auth.uid()
+  OR EXISTS (SELECT 1 FROM user_roles a WHERE a.user_id = auth.uid() AND a.role = 'admin')
+)
+```
 
-## 2. `notify-feedback-experimental` → recepção da unidade
+Na edge function `list-users`, `has_role` é chamado via cliente **service-role**, onde `auth.uid()` é `NULL`. Resultado:
+- `_user_id = auth.uid()` → falso (NULL)
+- subquery de admin → falso (NULL)
+- retorna `false` para TODOS os roles, mesmo do admin real
 
-Hoje envia para `lead.telefone`. Vamos:
-- Buscar `lead.unidade_id` junto com o lead.
-- Buscar `telefone_recepcao` em `unidade_whatsapp_config` (mesma tabela usada por `send-confirmacao-recepcao`) filtrando por `unidade_id` e `ativo = true`.
-- Enviar a mensagem para o telefone da recepção daquela unidade (já normalizado).
-- Reformular o texto como **notificação interna** (não é mais mensagem direta ao lead). Exemplo:
+Isso também quebra silenciosamente qualquer outra edge function que use `has_role` com service-role (potencialmente outras checagens de permissão no projeto).
 
-  ```
-  📞 *Feedback pós-aula experimental*
+### Por que isso é incorreto
 
-  Lead: {nome}
-  Telefone: {telefone formatado}
-  Aula: hoje, {hora}
-  
-  Entrar em contato para coletar feedback e oferecer o plano.
-  ```
+O padrão canônico da memória do projeto e da documentação Supabase é:
 
-- Manter o `update` em `feedback_pos_aula_enviado_em` e o cancelamento do D+1 (a lógica de evitar duplicidade continua válida).
-- Se a unidade não tiver `telefone_recepcao` configurado, logar warning e marcar como erro (não enviar).
+```sql
+CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = _user_id AND role = _role
+  )
+$$;
+```
 
-## 3. `notify-boas-vindas-matricula` → recepção da unidade
+`SECURITY DEFINER` já evita recursão em RLS; não cabe filtro por `auth.uid()` dentro dela. Quem precisa restringir "só admin vê roles dos outros" deve fazer isso na **policy** da tabela `user_roles`, não dentro do helper.
 
-Mesma estratégia da #2:
-- Buscar `unidade_id` do lead.
-- Resolver `telefone_recepcao` via `unidade_whatsapp_config`.
-- Reformular para notificação interna:
+## Plano
 
-  ```
-  🎉 *Nova matrícula*
+### 1. Migração: restaurar `has_role`
+Recriar a função sem a cláusula `auth.uid()`:
 
-  Aluno: {nome}
-  Telefone: {telefone formatado}
-  Fechada há: 2h
-  
-  Enviar boas-vindas e iniciar onboarding.
-  ```
+```sql
+CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = _user_id AND role = _role
+  )
+$$;
+```
 
-- Manter `boas_vindas_enviada_em` para idempotência.
+### 2. Verificar RLS de `user_roles`
+Listar policies atuais de `public.user_roles` para confirmar que leituras de roles alheios continuam bloqueadas para não-admins (a restrição que estava embutida em `has_role` provavelmente foi posta lá para isso). Se as policies já são adequadas, nada muda. Se não, adicionar policy `SELECT` que só permita ao próprio usuário ver seu role, e admins verem todos — usando `has_role(auth.uid(),'admin')`.
 
-## Notas técnicas
+### 3. Validação
+- Recarregar `/admin-users` logado como `emanuel.paes@gmail.com` → lista deve carregar sem o card vermelho.
+- Conferir logs de `list-users` → deve aparecer `Successfully listed N users`.
+- Sanity-check em outras edge functions que usam `has_role` (rotinas, comissões, cronograma admin) — devem continuar funcionando porque o comportamento volta a ser o esperado.
 
-- Tabela usada: `unidade_whatsapp_config (unidade_id, telefone_recepcao, ativo)`.
-- Z-API: continua `send-text` com `phone` = telefone da recepção (sufixo `-group` apenas para o caso #1).
-- Sem mudanças de schema, RLS ou migrations.
-- Sem mudanças no frontend.
+## Detalhes técnicos
 
-## Pós-deploy
-
-Testar com `dry_run: true` (#2 e #3 já suportam) para validar destino antes de liberar envios reais.
+**Arquivos tocados:** apenas uma migração SQL nova (nenhum código TS muda).
+**Risco:** baixo. A função volta ao padrão original que outras 50+ policies do projeto assumem. Quem confiava na guarda extra era — pelo que vejo — somente quem chamava `has_role` em contexto autenticado, e nesses casos `auth.uid()` é o próprio usuário ou admin, então o comportamento de retorno não muda.
