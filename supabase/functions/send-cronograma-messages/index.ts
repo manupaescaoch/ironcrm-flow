@@ -238,6 +238,8 @@ Deno.serve(async (req) => {
           funcionario_id: funcionarioId,
           unidade_id: atividade.unidade_id,
           status: 'erro',
+          enviado_em: new Date().toISOString(),
+        });
         await supabase.from('whatsapp_envios_log').insert({
           funcao: 'send-cronograma-messages',
           destino: normalizedPhone,
@@ -251,6 +253,7 @@ Deno.serve(async (req) => {
         offlineErrorCount++;
         continue;
       }
+
 
 
       const zapiUrl = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}/send-text`;
