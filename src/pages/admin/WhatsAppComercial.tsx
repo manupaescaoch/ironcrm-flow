@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Loader2, Save, Send, RefreshCw, ArrowLeft, Eye } from 'lucide-react';
+import { Loader2, Save, Send, RefreshCw, ArrowLeft, Eye, Activity, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, Link } from 'react-router-dom';
@@ -36,6 +37,28 @@ export default function WhatsAppComercial() {
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [groupSearch, setGroupSearch] = useState('');
   const [preview, setPreview] = useState<{ title: string; content: string } | null>(null);
+  const [health, setHealth] = useState<any | null>(null);
+  const [healthLoading, setHealthLoading] = useState(false);
+
+  const loadHealth = async () => {
+    setHealthLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('zapi-health');
+      if (error) throw error;
+      setHealth(data);
+    } catch (e: any) {
+      toast.error('Falha ao carregar saúde: ' + (e?.message ?? ''));
+    } finally {
+      setHealthLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    loadHealth();
+    const t = setInterval(loadHealth, 60_000);
+    return () => clearInterval(t);
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!isAdmin) return;
