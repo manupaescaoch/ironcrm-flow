@@ -77,6 +77,8 @@ export default function WhatsAppComercial() {
           unidade_id: un.id,
           grupo_fu_id: r?.grupo_fu_id ?? '',
           grupo_fu_nome: r?.grupo_fu_nome ?? '',
+          grupo_anamnese_id: r?.grupo_anamnese_id ?? '',
+          grupo_anamnese_nome: r?.grupo_anamnese_nome ?? '',
           telefone_recepcao: r?.telefone_recepcao ?? '',
           ativo: r?.ativo ?? true,
         };
