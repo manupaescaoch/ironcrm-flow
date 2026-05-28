@@ -30,12 +30,15 @@ export async function checkZapiStatus(creds: ZapiCreds): Promise<{ connected: bo
     const url = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}/status`;
     const resp = await fetch(url, { headers: { 'Client-Token': creds.clientToken } });
     const raw = await resp.json().catch(() => ({}));
+    // Z-API quirk: o /status às vezes retorna session:false com error "You are already connected"
+    // mesmo com o chip ativo. O indicador confiável é connected + smartphoneConnected.
+    const alreadyConnectedQuirk =
+      typeof raw?.error === 'string' && /already connected/i.test(raw.error);
     const healthy =
       resp.ok &&
       raw?.connected === true &&
       raw?.smartphoneConnected === true &&
-      raw?.session === true &&
-      !raw?.error;
+      (raw?.session === true || alreadyConnectedQuirk);
     return { connected: healthy, raw };
   } catch (e) {
     return { connected: false, raw: { error: String(e) } };
