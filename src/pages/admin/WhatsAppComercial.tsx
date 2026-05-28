@@ -20,6 +20,8 @@ interface ConfigRow {
   unidade_id: string;
   grupo_fu_id: string;
   grupo_fu_nome: string;
+  grupo_anamnese_id: string;
+  grupo_anamnese_nome: string;
   telefone_recepcao: string;
   ativo: boolean;
 }
@@ -75,6 +77,8 @@ export default function WhatsAppComercial() {
           unidade_id: un.id,
           grupo_fu_id: r?.grupo_fu_id ?? '',
           grupo_fu_nome: r?.grupo_fu_nome ?? '',
+          grupo_anamnese_id: r?.grupo_anamnese_id ?? '',
+          grupo_anamnese_nome: r?.grupo_anamnese_nome ?? '',
           telefone_recepcao: r?.telefone_recepcao ?? '',
           ativo: r?.ativo ?? true,
         };
@@ -108,6 +112,8 @@ export default function WhatsAppComercial() {
       unidade_id: id,
       grupo_fu_id: r.grupo_fu_id || null,
       grupo_fu_nome: r.grupo_fu_nome || null,
+      grupo_anamnese_id: r.grupo_anamnese_id || null,
+      grupo_anamnese_nome: r.grupo_anamnese_nome || null,
       telefone_recepcao: r.telefone_recepcao.replace(/\D/g, '') || null,
       ativo: r.ativo,
     }, { onConflict: 'unidade_id' });
@@ -313,7 +319,7 @@ export default function WhatsAppComercial() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-3 gap-4">
                   {/* Grupo FU */}
                   <div className="space-y-2 border rounded-lg p-3">
                     <Label className="text-sm font-semibold">Grupo Comercial — Follow-ups</Label>
@@ -397,6 +403,60 @@ export default function WhatsAppComercial() {
                         Enviar agora
                       </Button>
                     </div>
+                  </div>
+
+                  {/* Grupo Anamnese */}
+                  <div className="space-y-2 border rounded-lg p-3">
+                    <Label className="text-sm font-semibold">Grupo — Respostas de Anamnese</Label>
+                    <div className="flex gap-1">
+                      <Input
+                        value={r.grupo_anamnese_id}
+                        onChange={(e) => update(u.id, { grupo_anamnese_id: e.target.value.trim() })}
+                        placeholder="120363xxxxxxxxxxx@g.us"
+                        className="font-mono text-sm h-9 flex-1"
+                      />
+                      {groups.length > 0 && (
+                        <Select
+                          value={r.grupo_anamnese_id || undefined}
+                          onValueChange={(v) => {
+                            const g = groups.find((x) => x.phone === v);
+                            update(u.id, { grupo_anamnese_id: v, grupo_anamnese_nome: r.grupo_anamnese_nome || g?.name || '' });
+                            setGroupSearch('');
+                          }}
+                        >
+                          <SelectTrigger className="h-9 w-[140px] shrink-0"><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+                          <SelectContent className="max-h-72 overflow-y-auto w-80">
+                            <div className="p-2 sticky top-0 bg-popover z-10">
+                              <Input
+                                placeholder="Pesquisar grupo..."
+                                value={groupSearch}
+                                onChange={(e) => setGroupSearch(e.target.value)}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            {(() => {
+                              const q = groupSearch.trim().toLowerCase();
+                              const filtered = q
+                                ? groups.filter((g) => (g.name || '').toLowerCase().includes(q) || g.phone.toLowerCase().includes(q))
+                                : groups;
+                              if (filtered.length === 0) return <div className="px-2 py-3 text-sm text-muted-foreground text-center">Nenhum grupo encontrado</div>;
+                              return filtered.map((g) => (
+                                <SelectItem key={g.phone} value={g.phone}>
+                                  <span className="truncate">{g.name || g.phone}</span>
+                                </SelectItem>
+                              ));
+                            })()}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                    <Input
+                      value={r.grupo_anamnese_nome}
+                      onChange={(e) => update(u.id, { grupo_anamnese_nome: e.target.value })}
+                      placeholder="Apelido (ex: Anamnese ZN)"
+                      className="h-9"
+                    />
+                    <p className="text-xs text-muted-foreground">As respostas das anamneses preenchidas pela recepção vão para este grupo.</p>
                   </div>
                 </div>
 

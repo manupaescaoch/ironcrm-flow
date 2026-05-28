@@ -113,12 +113,19 @@ ${fmt(a.observacoes)}
 ———
 _Anamnese preenchida pela recepção no momento da chegada do lead._`;
 
-    // Seleciona o grupo de WhatsApp conforme a unidade do lead
+    // Seleciona o grupo de WhatsApp configurado para a unidade (tabela unidade_whatsapp_config)
+    const { data: cfg } = await supabase
+      .from('unidade_whatsapp_config')
+      .select('grupo_anamnese_id, ativo')
+      .eq('unidade_id', a.unidade_id)
+      .maybeSingle();
+
     const nomeUnidade = (unidade?.nome ?? '').toUpperCase();
     const isZS = nomeUnidade.includes('SUL');
     const isZN = nomeUnidade.includes('NORTE');
 
     const grupo =
+      (cfg?.ativo !== false && cfg?.grupo_anamnese_id) ||
       (isZS && Deno.env.get('WHATSAPP_GRUPO_ANAMNESE_ZS')) ||
       (isZN && Deno.env.get('WHATSAPP_GRUPO_ANAMNESE_ZN')) ||
       Deno.env.get('WHATSAPP_GRUPO_ANAMNESE'); // fallback legado
