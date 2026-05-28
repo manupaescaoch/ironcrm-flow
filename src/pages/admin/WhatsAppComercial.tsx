@@ -303,6 +303,62 @@ export default function WhatsAppComercial() {
         </CardContent>
       </Card>
 
+      {/* ============= Painel Unificado — Envios de Hoje (Cronograma + Rotinas) ============= */}
+      <Card className="border-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Operacional Hoje — Cronograma + Rotinas</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {(['cronograma', 'rotinas', 'outros'] as const).map((cat) => {
+              const r = health?.resumoHoje?.[cat] ?? { ok: 0, err: 0, skip: 0, total: 0 };
+              const labels = { cronograma: '📅 Cronograma', rotinas: '🔄 Rotinas', outros: '✉️ Outros' };
+              return (
+                <div key={cat} className="border rounded-lg p-3">
+                  <div className="text-xs font-semibold text-muted-foreground">{labels[cat]}</div>
+                  <div className="text-2xl font-bold">{r.total}</div>
+                  <div className="flex gap-2 text-xs mt-1">
+                    <span className="text-green-600">✓ {r.ok}</span>
+                    <span className="text-destructive">✗ {r.err}</span>
+                    <span className="text-amber-500">⏭ {r.skip}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {(['cronograma', 'rotinas'] as const).map((cat) => {
+            const items: any[] = health?.enviosHoje?.[cat] ?? [];
+            if (items.length === 0) return (
+              <div key={cat}>
+                <div className="text-xs font-semibold text-muted-foreground mb-2 uppercase">{cat}</div>
+                <div className="text-sm text-muted-foreground italic">Nenhum envio hoje.</div>
+              </div>
+            );
+            return (
+              <div key={cat}>
+                <div className="text-xs font-semibold text-muted-foreground mb-2 uppercase">{cat} ({items.length})</div>
+                <div className="space-y-1 max-h-64 overflow-y-auto border rounded-md">
+                  {items.map((e, i) => {
+                    const hora = new Date(e.em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+                    const statusIcon = e.skip ? '⏭' : e.sucesso ? '✓' : '✗';
+                    const statusColor = e.skip ? 'text-amber-500' : e.sucesso ? 'text-green-600' : 'text-destructive';
+                    return (
+                      <div key={i} className="flex items-center gap-2 text-xs py-1 px-2 border-b last:border-b-0">
+                        <span className={`font-bold ${statusColor}`}>{statusIcon}</span>
+                        <span className="font-mono w-12">{hora}</span>
+                        <span className="font-mono text-muted-foreground truncate flex-1" title={e.funcao}>{e.funcao}</span>
+                        <span className="font-mono text-muted-foreground truncate max-w-[140px]" title={e.destino}>{e.destino || '—'}</span>
+                        {e.erro && <span className="text-destructive truncate max-w-[200px]" title={e.erro}>{e.erro}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+      </Card>
+
       {loading ? (
         <div className="py-12 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>
       ) : (
