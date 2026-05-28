@@ -51,16 +51,28 @@ export async function checkZapiStatus(creds: ZapiCreds): Promise<{ connected: bo
 
 
 export async function phoneExists(creds: ZapiCreds, phone: string): Promise<boolean | null> {
+  const result = await lookupWhatsAppPhone(creds, phone);
+  return result.exists;
+}
+
+export async function lookupWhatsAppPhone(
+  creds: ZapiCreds,
+  phone: string,
+): Promise<{ exists: boolean | null; phone: string | null; raw: any }> {
   try {
     const url = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}/phone-exists/${phone}`;
     const resp = await fetch(url, { headers: { 'Client-Token': creds.clientToken } });
-    if (!resp.ok) return null;
+    if (!resp.ok) {
+      return { exists: null, phone: null, raw: null };
+    }
     const raw = await resp.json().catch(() => ({}));
-    // Z-API retorna { exists: true/false } ou { exists: true, phone: ... }
-    if (typeof raw?.exists === 'boolean') return raw.exists;
-    return null;
+    return {
+      exists: typeof raw?.exists === 'boolean' ? raw.exists : null,
+      phone: typeof raw?.phone === 'string' ? raw.phone.replace(/\D/g, '') : null,
+      raw,
+    };
   } catch {
-    return null;
+    return { exists: null, phone: null, raw: null };
   }
 }
 
