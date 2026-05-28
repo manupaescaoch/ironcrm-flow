@@ -97,10 +97,28 @@ Deno.serve(async (req) => {
   try {
     const { dryRun = false } = await req.json().catch(() => ({}));
 
+    const creds = getZapiCreds();
+    if (!creds) {
+      return new Response(JSON.stringify({ error: 'Z-API não configurada' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
+
+    if (!dryRun) {
+      const st = await checkZapiStatus(creds);
+      if (!st.connected) {
+        await logEnvio(supabase, { funcao: FUNC, sucesso: false, motivo_skip: 'zapi_offline', erro_msg: JSON.stringify(st.raw).slice(0, 500) });
+        return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: st.raw }), {
+          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
 
     // Busca leads candidatos com aula nas próximas 25h
     const agora = new Date();
@@ -133,6 +151,23 @@ Deno.serve(async (req) => {
     }
 
     const resultados: any[] = [];
+    let envios = 0;
+    let isFirstSend = true;
+    const checkedPhones = new Map<string, boolean>();
+
+    async function ensurePhoneOk(phone: string): Promise<boolean> {
+      if (checkedPhones.has(phone)) return checkedPhones.get(phone)!;
+      const ex = await phoneExists(creds!, phone);
+      const ok = ex !== false; // null (incerto) → permitir
+      checkedPhones.set(phone, ok);
+      return ok;
+    }
+
+    async function rateGate() {
+      if (!isFirstSend) await sleep(RATE_LIMIT_MS);
+      isFirstSend = false;
+    }
+
 
     for (const lead of leads || []) {
       // GUARDA 1: pré-filtro em lote — leads com compareceu=true em qualquer interação
