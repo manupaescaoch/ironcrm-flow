@@ -30,21 +30,25 @@ export async function checkZapiStatus(creds: ZapiCreds): Promise<{ connected: bo
     const url = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}/status`;
     const resp = await fetch(url, { headers: { 'Client-Token': creds.clientToken } });
     const raw = await resp.json().catch(() => ({}));
-    // CRITICAL: session: true é obrigatório. session: false com "You are already connected"
-    // era tratado como quirk, mas na prática a Z-API não entrega mensagens nesse estado.
+    // Quirk conhecido desta instância Z-API: /status retorna { connected:true, smartphoneConnected:true,
+    // session:false, error:"You are already connected." } como ESTADO SAUDÁVEL. Mensagens são entregues
+    // normalmente (messageId válido) nesse estado. Tratamos como conectado.
+    const alreadyConnectedQuirk =
+      raw?.connected === true &&
+      raw?.smartphoneConnected === true &&
+      typeof raw?.error === 'string' &&
+      raw.error.toLowerCase().includes('already connected');
     const healthy =
       resp.ok &&
       raw?.connected === true &&
       raw?.smartphoneConnected === true &&
-      raw?.session === true;
-    if (!healthy && raw?.session === false) {
-      console.warn('[checkZapiStatus] session=false — chip não pode enviar mensagens agora:', raw);
-    }
+      (raw?.session === true || alreadyConnectedQuirk);
     return { connected: healthy, raw };
   } catch (e) {
     return { connected: false, raw: { error: String(e) } };
   }
 }
+
 
 export async function phoneExists(creds: ZapiCreds, phone: string): Promise<boolean | null> {
   try {
