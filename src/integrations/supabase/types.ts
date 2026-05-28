@@ -2347,6 +2347,8 @@ export type Database = {
         Row: {
           ativo: boolean
           created_at: string
+          grupo_anamnese_id: string | null
+          grupo_anamnese_nome: string | null
           grupo_fu_id: string | null
           grupo_fu_nome: string | null
           telefone_recepcao: string | null
@@ -2356,6 +2358,8 @@ export type Database = {
         Insert: {
           ativo?: boolean
           created_at?: string
+          grupo_anamnese_id?: string | null
+          grupo_anamnese_nome?: string | null
           grupo_fu_id?: string | null
           grupo_fu_nome?: string | null
           telefone_recepcao?: string | null
@@ -2365,6 +2369,8 @@ export type Database = {
         Update: {
           ativo?: boolean
           created_at?: string
+          grupo_anamnese_id?: string | null
+          grupo_anamnese_nome?: string | null
           grupo_fu_id?: string | null
           grupo_fu_nome?: string | null
           telefone_recepcao?: string | null
