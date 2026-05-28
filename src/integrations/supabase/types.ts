@@ -2474,6 +2474,45 @@ export type Database = {
           },
         ]
       }
+      whatsapp_envios_log: {
+        Row: {
+          created_at: string
+          destino: string | null
+          erro_msg: string | null
+          funcao: string
+          id: string
+          motivo_skip: string | null
+          sucesso: boolean
+          tipo_destino: string | null
+          unidade_id: string | null
+          zapi_status_code: number | null
+        }
+        Insert: {
+          created_at?: string
+          destino?: string | null
+          erro_msg?: string | null
+          funcao: string
+          id?: string
+          motivo_skip?: string | null
+          sucesso?: boolean
+          tipo_destino?: string | null
+          unidade_id?: string | null
+          zapi_status_code?: number | null
+        }
+        Update: {
+          created_at?: string
+          destino?: string | null
+          erro_msg?: string | null
+          funcao?: string
+          id?: string
+          motivo_skip?: string | null
+          sucesso?: boolean
+          tipo_destino?: string | null
+          unidade_id?: string | null
+          zapi_status_code?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
