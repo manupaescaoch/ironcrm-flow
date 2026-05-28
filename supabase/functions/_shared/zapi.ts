@@ -5,7 +5,7 @@
 // - sleep / RATE_LIMIT_MS: intervalo mínimo entre envios sequenciais.
 // - logEnvio: registra cada envio na tabela whatsapp_envios_log.
 
-export const RATE_LIMIT_MS = 4000; // 4s entre envios — equilíbrio segurança × throughput.
+export const RATE_LIMIT_MS = 10000; // 10s entre envios — mais seguro para evitar bloqueios do chip.
 
 export interface ZapiCreds {
   instanceId: string;
