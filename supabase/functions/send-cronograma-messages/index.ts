@@ -314,6 +314,9 @@ Deno.serve(async (req) => {
       } catch (err) {
         console.error(`[send-cronograma] ❌ Erro ao enviar para ${resp.nome}:`, err);
         errors.push(`Erro envio: ${resp.nome} - ${atividade.titulo}`);
+      }
+    }
+
     console.log(`[send-cronograma] Concluído: ${sentCount} enviado(s), ${errors.length} erro(s) (${offlineErrorCount} por Z-API offline)`);
 
     // Dispara alerta por e-mail se Z-API offline impactou 2+ envios (com throttle de 30min)
@@ -326,9 +329,6 @@ Deno.serve(async (req) => {
       });
     }
 
-
-
-    console.log(`[send-cronograma] Concluído: ${sentCount} enviado(s), ${errors.length} erro(s)`);
 
     return new Response(
       JSON.stringify({
