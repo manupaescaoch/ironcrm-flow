@@ -248,7 +248,10 @@ Deno.serve(async (req) => {
       if (!user) return null;
       const profile = userProfiles?.find(p => p.user_id === user.id);
       return profile?.telefone || null;
+    }
+
     // 6. Enviar mensagens (rate-limited, com validação de messageId)
+
     let sentCount = 0;
     let skippedNotificada = 0;
     let skippedConcluida = 0;
