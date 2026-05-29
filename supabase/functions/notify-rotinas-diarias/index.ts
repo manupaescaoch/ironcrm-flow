@@ -195,14 +195,16 @@ Deno.serve(async (req) => {
 
     const rotinaIds = eligibleByTime.map(r => r.id);
 
-    // 3. Verificar já notificadas hoje (rotina_notificacoes)
+    // 3. Verificar já notificadas com sucesso hoje (não bloquear retries de falhas)
     const { data: notificacoesHoje } = await supabase
       .from('rotina_notificacoes')
       .select('rotina_id')
       .in('rotina_id', rotinaIds)
-      .eq('data_envio', todayStr);
+      .eq('data_envio', todayStr)
+      .eq('status', 'enviado');
 
     const jaNotificadas = new Set((notificacoesHoje || []).map(n => n.rotina_id));
+
 
     // 4. Verificar já concluídas hoje (rotina_execucoes)
     const { data: execucoes } = await supabase
