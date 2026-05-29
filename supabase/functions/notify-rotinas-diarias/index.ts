@@ -248,13 +248,14 @@ Deno.serve(async (req) => {
       if (!user) return null;
       const profile = userProfiles?.find(p => p.user_id === user.id);
       return profile?.telefone || null;
-    }
-
-    // 6. Enviar mensagens
+    // 6. Enviar mensagens (rate-limited, com validação de messageId)
     let sentCount = 0;
     let skippedNotificada = 0;
     let skippedConcluida = 0;
     const errors: string[] = [];
+    const RATE_LIMIT_MS = 10000; // 10s entre envios — protege o chip
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    let isFirstSend = true;
 
     for (const rotina of eligibleByTime) {
       if (jaNotificadas.has(rotina.id)) {
@@ -314,6 +315,12 @@ Deno.serve(async (req) => {
         message += rotinaAtividades.join('\n');
       }
 
+      // Rate-limit antes do envio (exceto primeiro)
+      if (!isFirstSend) {
+        await sleep(RATE_LIMIT_MS);
+      }
+      isFirstSend = false;
+
       console.log(`[notify-rotinas] Enviando para ${responsavel} (${normalizedPhone}): ${rotina.nome}`);
 
       const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
@@ -325,34 +332,38 @@ Deno.serve(async (req) => {
             'Content-Type': 'application/json',
             'Client-Token': ZAPI_CLIENT_TOKEN || '',
           },
-          body: JSON.stringify({
-            phone: normalizedPhone,
-            message,
-          }),
+          body: JSON.stringify({ phone: normalizedPhone, message }),
         });
 
         const zapiResult = await zapiResponse.json().catch(() => ({}));
+        const messageId = zapiResult?.messageId || zapiResult?.id || null;
+        const zapiError = zapiResult?.error || (typeof zapiResult?.message === 'string' ? zapiResult.message : null);
+        const reallyOk = zapiResponse.ok && !!messageId && !zapiError;
 
-        console.log(`[notify-rotinas] Z-API status=${zapiResponse.status} para ${rotina.nome}:`, JSON.stringify(zapiResult));
+        console.log(`[notify-rotinas] Z-API status=${zapiResponse.status} messageId=${messageId} para ${rotina.nome}`);
 
-        if (zapiResponse.ok) {
+        await supabase.from('rotina_notificacoes').insert({
+          rotina_id: rotina.id,
+          data_envio: todayStr,
+          status: reallyOk ? 'enviado' : 'falhou',
+        });
+
+        await supabase.from('whatsapp_envios_log').insert({
+          funcao: 'notify-rotinas-diarias',
+          destino: normalizedPhone,
+          tipo_destino: 'funcionario',
+          unidade_id: rotina.unidade_id,
+          sucesso: reallyOk,
+          erro_msg: reallyOk ? null : (zapiError || `sem messageId (HTTP ${zapiResponse.status})`),
+          zapi_status_code: zapiResponse.status,
+        });
+
+        if (reallyOk) {
           sentCount++;
-          console.log(`[notify-rotinas] ✅ Enviado: ${rotina.nome}`);
-
-          await supabase.from('rotina_notificacoes').insert({
-            rotina_id: rotina.id,
-            data_envio: todayStr,
-            status: 'enviado',
-          });
+          console.log(`[notify-rotinas] ✅ Enviado: ${rotina.nome} messageId=${messageId}`);
         } else {
-          console.error(`[notify-rotinas] ❌ Erro Zapi (${zapiResponse.status}): ${rotina.nome}`, zapiResult);
-          errors.push(`Erro Zapi (${zapiResponse.status}): ${responsavel} - ${rotina.nome}`);
-
-          await supabase.from('rotina_notificacoes').insert({
-            rotina_id: rotina.id,
-            data_envio: todayStr,
-            status: 'falhou',
-          });
+          console.error(`[notify-rotinas] ❌ Z-API NÃO entregou: ${rotina.nome}`, zapiResult);
+          errors.push(`Z-API erro: ${responsavel} - ${rotina.nome} - ${zapiError || 'sem messageId'}`);
         }
       } catch (err) {
         console.error(`[notify-rotinas] ❌ Erro envio: ${rotina.nome}`, err);
@@ -363,6 +374,17 @@ Deno.serve(async (req) => {
           data_envio: todayStr,
           status: 'falhou',
         });
+        await supabase.from('whatsapp_envios_log').insert({
+          funcao: 'notify-rotinas-diarias',
+          destino: normalizedPhone,
+          tipo_destino: 'funcionario',
+          unidade_id: rotina.unidade_id,
+          sucesso: false,
+          erro_msg: String(err).slice(0, 500),
+        });
+      }
+    }
+
       }
     }
 
