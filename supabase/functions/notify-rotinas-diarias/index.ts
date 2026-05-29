@@ -385,8 +385,6 @@ Deno.serve(async (req) => {
       }
     }
 
-      }
-    }
 
     console.log(`[notify-rotinas] Concluído: ${sentCount} enviado(s), ${skippedNotificada} já notificada(s), ${skippedConcluida} já concluída(s), ${errors.length} erro(s)`);
 
