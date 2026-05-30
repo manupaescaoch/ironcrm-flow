@@ -195,6 +195,10 @@ export default function Dashboard() {
           stats={stats}
           periodStats={periodStats}
           experimentaisSemanaCount={experimentaisSemanaCount}
+          faturamentoPeriodo={matriculasDetalhadas.reduce(
+            (sum, m) => sum + Number(m.interacao?.valor_plano || 0),
+            0
+          )}
           followUpPendingCount={followUpPendingCount}
           followUpD1Count={followUpD1Count}
           showExperimentaisSection={showExperimentaisSection}
