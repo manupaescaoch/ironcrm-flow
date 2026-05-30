@@ -1,11 +1,10 @@
 import React, { memo } from 'react';
-import { Users, CalendarCheck, Calendar, Award, AlertTriangle, UserCheck, CheckCircle2, Zap, UserX, PieChart } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Users, CalendarCheck, Calendar, Award, CheckCircle2, Zap, UserX } from 'lucide-react';
 import { KPICard } from '@/components/ui/kpi-card';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
 import { TaxaComparecimentoKPI } from '@/components/dashboard/TaxaComparecimentoKPI';
 import { Stats, PeriodStats } from '@/components/dashboard/constants';
-import { useVencimentosData, VencimentosSummary } from '@/hooks/useVencimentosData';
+
 
 interface DashboardKPIGridProps {
   stats: Stats;
@@ -21,74 +20,6 @@ interface DashboardKPIGridProps {
   onFollowUpClick: () => void;
 }
 
-const AlunosAtivosKPI = memo(function AlunosAtivosKPI({ summary }: { summary: VencimentosSummary }) {
-  const navigate = useNavigate();
-  
-  // Alunos ativos = total - vencidos (todos que ainda têm plano válido ou próximo de vencer)
-  const alunosAtivos = summary.total - summary.vencidos;
-  const emDia = summary.ok;
-  const precisamAtencao = summary.urgentes + summary.atencao + summary.proximos;
-  
-  const handleClick = () => navigate('/vencimentos');
-
-  return (
-    <KPICard
-      variant="dashboard"
-      title="Alunos Ativos"
-      value={alunosAtivos}
-      icon={UserCheck}
-      iconColor="text-green-500"
-      valueColor="text-green-600"
-      subtitle={`${emDia} em dia, ${precisamAtencao} em atenção`}
-      onClick={handleClick}
-    />
-  );
-});
-
-const VencimentosKPI = memo(function VencimentosKPI({ summary }: { summary: VencimentosSummary }) {
-  const navigate = useNavigate();
-  const urgentCount = summary.vencidos + summary.urgentes;
-  const attentionCount = summary.atencao;
-  
-  const handleClick = () => {
-    navigate('/vencimentos');
-  };
-
-  // Determine color based on urgency
-  const getColor = () => {
-    if (summary.vencidos > 0) return 'red';
-    if (summary.urgentes > 0) return 'orange';
-    if (summary.atencao > 0) return 'yellow';
-    return 'green';
-  };
-
-  const color = getColor();
-  const colorClasses = {
-    red: { icon: 'text-red-500', value: 'text-red-600' },
-    orange: { icon: 'text-orange-500', value: 'text-orange-600' },
-    yellow: { icon: 'text-yellow-500', value: 'text-yellow-600' },
-    green: { icon: 'text-green-500', value: 'text-green-600' },
-  };
-
-  const subtitle = urgentCount > 0 
-    ? `${summary.vencidos} vencidos, ${summary.urgentes} em 7 dias`
-    : attentionCount > 0 
-    ? `${attentionCount} em 15 dias`
-    : 'Todos em dia';
-
-  return (
-    <KPICard
-      variant="dashboard"
-      title="Planos Vencendo"
-      value={urgentCount + attentionCount}
-      icon={AlertTriangle}
-      iconColor={colorClasses[color].icon}
-      valueColor={colorClasses[color].value}
-      subtitle={subtitle}
-      onClick={handleClick}
-    />
-  );
-});
 
 export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   stats,
@@ -103,8 +34,6 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   onMatriculasClick,
   onFollowUpClick,
 }: DashboardKPIGridProps) {
-  const { summary } = useVencimentosData();
-
   const taxaConversaoMesmoDia = periodStats.comparecimentosPeriodo > 0
     ? Math.round((periodStats.conversaoMesmoDia / periodStats.comparecimentosPeriodo) * 100)
     : 0;
@@ -196,8 +125,6 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
           onClick={onFollowUpClick}
           isActive={showFollowUpSection}
         />
-
-        <VencimentosKPI summary={summary} />
 
         <KPICard
           variant="dashboard"
