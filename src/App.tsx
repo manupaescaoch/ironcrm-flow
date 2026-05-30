@@ -330,6 +330,14 @@ const AppRoutes = () => (
         </AdminOrComercialRoute>
       }
     />
+    <Route
+      path="/gestao-operacional"
+      element={
+        <AdminRoute>
+          <GestaoOperacional />
+        </AdminRoute>
+      }
+    />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
