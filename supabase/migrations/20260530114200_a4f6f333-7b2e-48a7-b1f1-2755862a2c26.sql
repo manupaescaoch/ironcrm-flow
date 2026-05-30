@@ -1,0 +1,1 @@
+ALTER TABLE public.gestao_metas ADD COLUMN IF NOT EXISTS alunos_ativos_manual integer NOT NULL DEFAULT 0;
