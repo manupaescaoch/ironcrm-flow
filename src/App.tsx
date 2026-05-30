@@ -323,14 +323,6 @@ const AppRoutes = () => (
       }
     />
     <Route
-      path="/agente-atendimento"
-      element={
-        <AdminOrComercialRoute>
-          <AgenteAtendimento />
-        </AdminOrComercialRoute>
-      }
-    />
-    <Route
       path="/gestao-operacional"
       element={
         <AdminRoute>
