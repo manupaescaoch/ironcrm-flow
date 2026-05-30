@@ -219,31 +219,52 @@ function MetaBar({ label, current, meta, suffix = '', isCurrency = false }: { la
 
 function LancamentoSemanal({ unidades, onSaved }: { unidades: UnidadeKPIs[]; onSaved: () => void }) {
   const thisMonday = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
-  const [form, setForm] = useState({
-    unidade_id: unidades[0]?.unidade_id ?? '',
-    semana_referencia: thisMonday,
-    total_alunos_ativos: 0,
-    experimentais_agendados: 0,
-    comparecimentos: 0,
-    matriculas_fechadas: 0,
-    cancelamentos: 0,
-    follow_ups_pendentes: 0,
-    receita_semana: 0,
-    observacoes: '',
-  });
+  const [unidadeId, setUnidadeId] = useState(unidades[0]?.unidade_id ?? '');
+  const [semana, setSemana] = useState(thisMonday);
+  const [totalAtivos, setTotalAtivos] = useState(0);
+  const [observacoes, setObservacoes] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const unidade = useMemo(() => unidades.find(u => u.unidade_id === unidadeId), [unidades, unidadeId]);
+
+  // Auto-populate manual ativos from current KPIs and reset observações when unidade changes
   useEffect(() => {
-    if (!form.unidade_id && unidades[0]) setForm(f => ({ ...f, unidade_id: unidades[0].unidade_id }));
+    if (unidade) setTotalAtivos(unidade.alunos_ativos);
+  }, [unidade?.unidade_id, unidade?.alunos_ativos]);
+
+  useEffect(() => {
+    if (!unidadeId && unidades[0]) setUnidadeId(unidades[0].unidade_id);
   }, [unidades]);
+
+  const autoFields = unidade ? {
+    experimentais_agendados: unidade.experimentais_semana,
+    comparecimentos: unidade.comparecimentos_semana,
+    matriculas_fechadas: unidade.matriculas_semana,
+    cancelamentos: unidade.cancelamentos_semana,
+    follow_ups_pendentes: unidade.follow_ups_pendentes,
+    receita_semana: unidade.receita_mes, // receita do mês como proxy
+  } : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!unidade || !autoFields) return;
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
+
+    // 1. Persist total_alunos_ativos in gestao_metas (registro permanente)
+    if (unidade.meta?.id) {
+      await supabase.from('gestao_metas')
+        .update({ alunos_ativos_manual: totalAtivos })
+        .eq('id', unidade.meta.id);
+    }
+
+    // 2. Upsert do lançamento semanal (snapshot histórico)
     const { error } = await supabase.from('gestao_lancamentos_semanais').upsert({
-      ...form,
-      observacoes: form.observacoes ? form.observacoes.toUpperCase() : null,
+      unidade_id: unidadeId,
+      semana_referencia: semana,
+      total_alunos_ativos: totalAtivos,
+      ...autoFields,
+      observacoes: observacoes ? observacoes.toUpperCase() : null,
       created_by: user?.id,
     }, { onConflict: 'unidade_id,semana_referencia' });
     setSaving(false);
@@ -252,17 +273,26 @@ function LancamentoSemanal({ unidades, onSaved }: { unidades: UnidadeKPIs[]; onS
     onSaved();
   };
 
+  const ReadOnlyField = ({ label, value }: { label: string; value: string | number }) => (
+    <div>
+      <Label className="text-muted-foreground">{label}</Label>
+      <Input value={value} readOnly disabled className="bg-muted/40" />
+    </div>
+  );
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Lançamento Semanal</CardTitle>
-        <CardDescription>Use toda segunda-feira para registrar os números da semana anterior.</CardDescription>
+        <CardDescription>
+          Os números são preenchidos automaticamente a partir do CRM. Apenas o total de alunos ativos é inserido manualmente. Ao salvar, fica registrado um snapshot da semana.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label>Unidade</Label>
-            <Select value={form.unidade_id} onValueChange={v => setForm({ ...form, unidade_id: v })}>
+            <Select value={unidadeId} onValueChange={setUnidadeId}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {unidades.map(u => <SelectItem key={u.unidade_id} value={u.unidade_id}>{u.unidade_nome}</SelectItem>)}
@@ -271,18 +301,40 @@ function LancamentoSemanal({ unidades, onSaved }: { unidades: UnidadeKPIs[]; onS
           </div>
           <div>
             <Label>Semana de Referência (segunda)</Label>
-            <Input type="date" value={form.semana_referencia} onChange={e => setForm({ ...form, semana_referencia: e.target.value })} required />
+            <Input type="date" value={semana} onChange={e => setSemana(e.target.value)} required />
           </div>
-          <div><Label>Total de alunos ativos</Label><Input type="number" value={form.total_alunos_ativos} onChange={e => setForm({ ...form, total_alunos_ativos: +e.target.value })} /></div>
-          <div><Label>Experimentais agendados</Label><Input type="number" value={form.experimentais_agendados} onChange={e => setForm({ ...form, experimentais_agendados: +e.target.value })} /></div>
-          <div><Label>Comparecimentos</Label><Input type="number" value={form.comparecimentos} onChange={e => setForm({ ...form, comparecimentos: +e.target.value })} /></div>
-          <div><Label>Matrículas fechadas</Label><Input type="number" value={form.matriculas_fechadas} onChange={e => setForm({ ...form, matriculas_fechadas: +e.target.value })} /></div>
-          <div><Label>Cancelamentos</Label><Input type="number" value={form.cancelamentos} onChange={e => setForm({ ...form, cancelamentos: +e.target.value })} /></div>
-          <div><Label>Follow-ups pendentes</Label><Input type="number" value={form.follow_ups_pendentes} onChange={e => setForm({ ...form, follow_ups_pendentes: +e.target.value })} /></div>
-          <div><Label>Receita da semana (R$)</Label><Input type="number" step="0.01" value={form.receita_semana} onChange={e => setForm({ ...form, receita_semana: +e.target.value })} /></div>
-          <div className="md:col-span-2"><Label>Observações</Label><Input value={form.observacoes} onChange={e => setForm({ ...form, observacoes: e.target.value.toUpperCase() })} /></div>
+
+          <div className="md:col-span-2 border-t pt-4">
+            <Label className="text-base font-semibold">Entrada manual</Label>
+          </div>
           <div className="md:col-span-2">
-            <Button type="submit" disabled={saving} className="w-full md:w-auto">
+            <Label>Total de alunos ativos</Label>
+            <Input type="number" value={totalAtivos} onChange={e => setTotalAtivos(+e.target.value)} required />
+            <p className="text-xs text-muted-foreground mt-1">
+              Este valor também atualiza o card "Alunos Ativos" da unidade.
+            </p>
+          </div>
+
+          {autoFields && (
+            <>
+              <div className="md:col-span-2 border-t pt-4">
+                <Label className="text-base font-semibold">Calculado automaticamente do CRM</Label>
+              </div>
+              <ReadOnlyField label="Experimentais agendados (semana)" value={autoFields.experimentais_agendados} />
+              <ReadOnlyField label="Comparecimentos (semana)" value={autoFields.comparecimentos} />
+              <ReadOnlyField label="Matrículas fechadas (semana)" value={autoFields.matriculas_fechadas} />
+              <ReadOnlyField label="Cancelamentos (semana)" value={autoFields.cancelamentos} />
+              <ReadOnlyField label="Follow-ups pendentes" value={autoFields.follow_ups_pendentes} />
+              <ReadOnlyField label="Receita do mês (R$)" value={fmtBRL(autoFields.receita_semana)} />
+            </>
+          )}
+
+          <div className="md:col-span-2">
+            <Label>Observações</Label>
+            <Input value={observacoes} onChange={e => setObservacoes(e.target.value.toUpperCase())} />
+          </div>
+          <div className="md:col-span-2">
+            <Button type="submit" disabled={saving || !unidade} className="w-full md:w-auto">
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Salvar Lançamento
             </Button>
