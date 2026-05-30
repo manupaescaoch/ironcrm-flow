@@ -1,6 +1,5 @@
 import React, { memo } from 'react';
-import { Users, CalendarCheck, Calendar, Award, UserCheck, CheckCircle2, Zap, UserX, PieChart } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Users, CalendarCheck, Calendar, Award, CheckCircle2, Zap, UserX } from 'lucide-react';
 import { KPICard } from '@/components/ui/kpi-card';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
 import { TaxaComparecimentoKPI } from '@/components/dashboard/TaxaComparecimentoKPI';
