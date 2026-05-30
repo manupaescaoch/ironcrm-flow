@@ -25,8 +25,7 @@ import {
   CheckSquare,
   Phone,
   ClipboardList,
-  Bot,
-  Building2 as Building2Icon
+  Bot
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/logo.png';
