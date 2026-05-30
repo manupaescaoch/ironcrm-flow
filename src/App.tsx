@@ -39,6 +39,7 @@ import GruposWhatsApp from "./pages/admin/GruposWhatsApp";
 import WhatsAppComercial from "./pages/admin/WhatsAppComercial";
 import DashboardOperacional from "./pages/DashboardOperacional";
 import AgenteAtendimento from "./pages/AgenteAtendimento";
+import GestaoOperacional from "./pages/GestaoOperacional";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
