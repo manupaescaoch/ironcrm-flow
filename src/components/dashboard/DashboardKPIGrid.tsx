@@ -127,8 +127,6 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
           isActive={showFollowUpSection}
         />
 
-        <VencimentosKPI summary={summary} />
-
         <KPICard
           variant="dashboard"
           title="Não Compareceram"
