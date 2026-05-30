@@ -24,8 +24,7 @@ import {
   Menu,
   CheckSquare,
   Phone,
-  ClipboardList,
-  Bot
+  ClipboardList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/logo.png';
@@ -47,7 +46,7 @@ const MASTER_ADMIN_EMAIL = 'emanuel.paes@gmail.com';
 const allNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/crm', label: 'CRM', icon: Users, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
-  { href: '/agente-atendimento', label: 'Agente de Atendimento', icon: Bot, roles: ['admin', 'comercial'], masterOnly: false },
+  
   { href: '/vencimentos', label: 'Vencimentos', icon: CalendarClock, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/indicacoes', label: 'Indicações', icon: Gift, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
