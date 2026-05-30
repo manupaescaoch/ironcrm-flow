@@ -21,29 +21,6 @@ interface DashboardKPIGridProps {
   onFollowUpClick: () => void;
 }
 
-const AlunosAtivosKPI = memo(function AlunosAtivosKPI({ summary }: { summary: VencimentosSummary }) {
-  const navigate = useNavigate();
-  
-  // Alunos ativos = total - vencidos (todos que ainda têm plano válido ou próximo de vencer)
-  const alunosAtivos = summary.total - summary.vencidos;
-  const emDia = summary.ok;
-  const precisamAtencao = summary.urgentes + summary.atencao + summary.proximos;
-  
-  const handleClick = () => navigate('/vencimentos');
-
-  return (
-    <KPICard
-      variant="dashboard"
-      title="Alunos Ativos"
-      value={alunosAtivos}
-      icon={UserCheck}
-      iconColor="text-green-500"
-      valueColor="text-green-600"
-      subtitle={`${emDia} em dia, ${precisamAtencao} em atenção`}
-      onClick={handleClick}
-    />
-  );
-});
 
 export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   stats,
