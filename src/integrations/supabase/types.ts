@@ -1267,6 +1267,112 @@ export type Database = {
           },
         ]
       }
+      gestao_lancamentos_semanais: {
+        Row: {
+          cancelamentos: number
+          comparecimentos: number
+          created_at: string
+          created_by: string | null
+          experimentais_agendados: number
+          follow_ups_pendentes: number
+          id: string
+          matriculas_fechadas: number
+          observacoes: string | null
+          receita_semana: number
+          semana_referencia: string
+          total_alunos_ativos: number
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          cancelamentos?: number
+          comparecimentos?: number
+          created_at?: string
+          created_by?: string | null
+          experimentais_agendados?: number
+          follow_ups_pendentes?: number
+          id?: string
+          matriculas_fechadas?: number
+          observacoes?: string | null
+          receita_semana?: number
+          semana_referencia: string
+          total_alunos_ativos?: number
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          cancelamentos?: number
+          comparecimentos?: number
+          created_at?: string
+          created_by?: string | null
+          experimentais_agendados?: number
+          follow_ups_pendentes?: number
+          id?: string
+          matriculas_fechadas?: number
+          observacoes?: string | null
+          receita_semana?: number
+          semana_referencia?: string
+          total_alunos_ativos?: number
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gestao_lancamentos_semanais_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gestao_metas: {
+        Row: {
+          capacidade_alunos: number
+          created_at: string
+          id: string
+          meta_matriculas_semana: number
+          meta_ocupacao_pct: number
+          meta_receita_mes: number
+          meta_taxa_comparecimento_pct: number
+          meta_taxa_conversao_pct: number
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          capacidade_alunos?: number
+          created_at?: string
+          id?: string
+          meta_matriculas_semana?: number
+          meta_ocupacao_pct?: number
+          meta_receita_mes?: number
+          meta_taxa_comparecimento_pct?: number
+          meta_taxa_conversao_pct?: number
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          capacidade_alunos?: number
+          created_at?: string
+          id?: string
+          meta_matriculas_semana?: number
+          meta_ocupacao_pct?: number
+          meta_receita_mes?: number
+          meta_taxa_comparecimento_pct?: number
+          meta_taxa_conversao_pct?: number
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gestao_metas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: true
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       insumos: {
         Row: {
           ativo: boolean

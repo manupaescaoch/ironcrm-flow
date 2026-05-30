@@ -56,6 +56,7 @@ const allNavItems = [
   { href: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/estoque', label: 'Estoque', icon: Package, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/dashboard-executivo', label: 'Executivo', icon: BarChart3, roles: ['admin'], masterOnly: false },
+  { href: '/gestao-operacional', label: 'Gestão Operacional', icon: Building2, roles: ['admin'], masterOnly: false },
   
   { href: '/backups', label: 'Backups', icon: Database, roles: ['admin'], masterOnly: false },
   { href: '/admin-users', label: 'Usuários', icon: Settings, roles: ['admin'], masterOnly: true },
