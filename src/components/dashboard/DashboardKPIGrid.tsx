@@ -35,8 +35,6 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   onMatriculasClick,
   onFollowUpClick,
 }: DashboardKPIGridProps) {
-  const { summary } = useVencimentosData();
-
   const taxaConversaoMesmoDia = periodStats.comparecimentosPeriodo > 0
     ? Math.round((periodStats.conversaoMesmoDia / periodStats.comparecimentosPeriodo) * 100)
     : 0;
