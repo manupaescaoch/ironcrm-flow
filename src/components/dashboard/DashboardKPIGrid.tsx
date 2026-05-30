@@ -45,51 +45,6 @@ const AlunosAtivosKPI = memo(function AlunosAtivosKPI({ summary }: { summary: Ve
   );
 });
 
-const VencimentosKPI = memo(function VencimentosKPI({ summary }: { summary: VencimentosSummary }) {
-  const navigate = useNavigate();
-  const urgentCount = summary.vencidos + summary.urgentes;
-  const attentionCount = summary.atencao;
-  
-  const handleClick = () => {
-    navigate('/vencimentos');
-  };
-
-  // Determine color based on urgency
-  const getColor = () => {
-    if (summary.vencidos > 0) return 'red';
-    if (summary.urgentes > 0) return 'orange';
-    if (summary.atencao > 0) return 'yellow';
-    return 'green';
-  };
-
-  const color = getColor();
-  const colorClasses = {
-    red: { icon: 'text-red-500', value: 'text-red-600' },
-    orange: { icon: 'text-orange-500', value: 'text-orange-600' },
-    yellow: { icon: 'text-yellow-500', value: 'text-yellow-600' },
-    green: { icon: 'text-green-500', value: 'text-green-600' },
-  };
-
-  const subtitle = urgentCount > 0 
-    ? `${summary.vencidos} vencidos, ${summary.urgentes} em 7 dias`
-    : attentionCount > 0 
-    ? `${attentionCount} em 15 dias`
-    : 'Todos em dia';
-
-  return (
-    <KPICard
-      variant="dashboard"
-      title="Planos Vencendo"
-      value={urgentCount + attentionCount}
-      icon={AlertTriangle}
-      iconColor={colorClasses[color].icon}
-      valueColor={colorClasses[color].value}
-      subtitle={subtitle}
-      onClick={handleClick}
-    />
-  );
-});
-
 export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   stats,
   periodStats,
