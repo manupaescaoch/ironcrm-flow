@@ -49,7 +49,30 @@ function KPIBlock({ icon: Icon, label, value, sub, delta }: any) {
   );
 }
 
-function UnidadeCard({ k }: { k: UnidadeKPIs }) {
+function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(k.alunos_ativos);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setValue(k.alunos_ativos); }, [k.alunos_ativos]);
+
+  const handleSave = async () => {
+    if (!k.meta?.id) {
+      toast.error('Meta da unidade não encontrada.');
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from('gestao_metas')
+      .update({ alunos_ativos_manual: value })
+      .eq('id', k.meta.id);
+    setSaving(false);
+    if (error) { toast.error('Erro ao salvar: ' + error.message); return; }
+    toast.success('Alunos ativos atualizado');
+    setEditing(false);
+    onRefetch();
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -68,7 +91,33 @@ function UnidadeCard({ k }: { k: UnidadeKPIs }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
-          <KPIBlock icon={Users} label="Alunos Ativos" value={k.alunos_ativos} sub="matriculados ativos" />
+          <div className="rounded-lg border bg-card p-4">
+            <div className="flex items-center gap-2 mb-2 text-muted-foreground text-xs uppercase tracking-wider">
+              <Users className="w-3.5 h-3.5" />
+              Alunos Ativos
+            </div>
+            {editing ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  value={value}
+                  onChange={e => setValue(+e.target.value)}
+                  className="h-8"
+                  autoFocus
+                />
+                <Button size="sm" onClick={handleSave} disabled={saving}>
+                  {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : 'OK'}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setValue(k.alunos_ativos); }}>X</Button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold text-foreground">{k.alunos_ativos}</div>
+                <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>Editar</Button>
+              </div>
+            )}
+            <div className="text-xs text-muted-foreground mt-1">informado manualmente</div>
+          </div>
           <KPIBlock icon={UserPlus} label="Matrículas (Sem.)" value={k.matriculas_semana}
             sub={`Sem. anterior: ${k.matriculas_semana_anterior}`}
             delta={<Delta current={k.matriculas_semana} previous={k.matriculas_semana_anterior} />} />
@@ -320,7 +369,7 @@ export default function GestaoOperacional() {
 
             <TabsContent value="visao-geral" className="space-y-4 mt-4">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {kpis.map(k => <UnidadeCard key={k.unidade_id} k={k} />)}
+                {kpis.map(k => <UnidadeCard key={k.unidade_id} k={k} onRefetch={refetch} />)}
               </div>
             </TabsContent>
 
