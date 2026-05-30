@@ -11,6 +11,7 @@ export interface MetaUnidade {
   meta_receita_mes: number;
   meta_taxa_comparecimento_pct: number;
   meta_taxa_conversao_pct: number;
+  alunos_ativos_manual: number;
 }
 
 export interface UnidadeKPIs {
@@ -60,13 +61,8 @@ async function fetchUnidadeKPIs(unidade_id: string, unidade_nome: string, meta: 
   const iso = (d: Date) => d.toISOString();
   const dateOnly = (d: Date) => format(d, 'yyyy-MM-dd');
 
-  // Alunos ativos = leads matriculados ativos
-  const { count: alunosAtivos } = await supabase
-    .from('leads')
-    .select('id', { count: 'exact', head: true })
-    .eq('unidade_id', unidade_id)
-    .eq('is_matriculado', true)
-    .eq('ativo', true);
+  // Alunos ativos = valor manual definido em gestao_metas
+  const alunosAtivos = meta?.alunos_ativos_manual ?? 0;
 
   // Matrículas (semana atual e anterior) — usar data_fechamento
   const { data: matrSem } = await supabase
