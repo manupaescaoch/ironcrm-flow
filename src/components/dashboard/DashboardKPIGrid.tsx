@@ -1,8 +1,10 @@
 import React, { memo } from 'react';
-import { Users, CalendarCheck, Calendar, Award, CheckCircle2, Zap, UserX } from 'lucide-react';
+import { Users, CalendarCheck, Calendar, Award, CheckCircle2, DollarSign, Filter, UserX } from 'lucide-react';
 import { KPICard } from '@/components/ui/kpi-card';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
 import { TaxaComparecimentoKPI } from '@/components/dashboard/TaxaComparecimentoKPI';
+import { FunilComercialCard } from '@/components/dashboard/FunilComercialCard';
+import { DiagnosticoSemanaCard } from '@/components/dashboard/DiagnosticoSemanaCard';
 import { Stats, PeriodStats } from '@/components/dashboard/constants';
 
 
@@ -10,6 +12,7 @@ interface DashboardKPIGridProps {
   stats: Stats;
   periodStats: PeriodStats;
   experimentaisSemanaCount: number;
+  faturamentoPeriodo: number;
   followUpPendingCount: number;
   followUpD1Count: number;
   showExperimentaisSection: boolean;
@@ -25,6 +28,7 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   stats,
   periodStats,
   experimentaisSemanaCount,
+  faturamentoPeriodo,
   followUpPendingCount,
   followUpD1Count,
   showExperimentaisSection,
@@ -34,21 +38,24 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   onMatriculasClick,
   onFollowUpClick,
 }: DashboardKPIGridProps) {
-  const taxaConversaoMesmoDia = periodStats.comparecimentosPeriodo > 0
-    ? Math.round((periodStats.conversaoMesmoDia / periodStats.comparecimentosPeriodo) * 100)
-    : 0;
-
   const naoCompareceram = Math.max(
     0,
     periodStats.experimentaisPeriodo - periodStats.comparecimentosPeriodo
   );
-  const taxaComparecimento = periodStats.experimentaisPeriodo > 0
-    ? Math.round((periodStats.comparecimentosPeriodo / periodStats.experimentaisPeriodo) * 100)
+
+  const taxaConversao = stats.total > 0
+    ? Math.round((periodStats.matriculasPeriodo / stats.total) * 100)
     : 0;
+
+  const faturamentoFormatado = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    maximumFractionDigits: 0,
+  }).format(faturamentoPeriodo || 0);
 
   return (
     <div className="space-y-4 mb-8">
-      {/* Linha 1 — Funil principal (6 KPIs) */}
+      {/* Linha 1 — KPIs principais (6) */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <KPICard
           variant="dashboard"
@@ -72,35 +79,12 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
 
         <KPICard
           variant="dashboard"
-          title="Experimentais da Semana"
-          value={experimentaisSemanaCount}
-          icon={Calendar}
-          iconColor="text-purple-500"
-          valueColor="text-purple-600"
-          subtitle="Esta semana"
-          onClick={onExperimentaisClick}
-          isActive={showExperimentaisSection}
-          activeColor="purple"
-        />
-
-        <KPICard
-          variant="dashboard"
           title={"Compareci\u00ADmentos"}
           value={periodStats.comparecimentosPeriodo}
           icon={CheckCircle2}
           iconColor="text-emerald-500"
           valueColor="text-emerald-600"
           subtitle="Compareceram à experimental"
-        />
-
-        <KPICard
-          variant="dashboard"
-          title="Fechamento no Dia"
-          value={`${taxaConversaoMesmoDia}%`}
-          icon={Zap}
-          iconColor="text-pink-500"
-          valueColor="text-pink-600"
-          subtitle={`${periodStats.conversaoMesmoDia} fechou no mesmo dia`}
         />
 
         <KPICard
@@ -115,31 +99,83 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
           isActive={showMatriculasSection}
           activeColor="amber"
         />
-      </div>
 
-      {/* Linha 2 — Operacional / Retenção */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <FollowUpKPI
-          pendingCount={followUpPendingCount}
-          d1Count={followUpD1Count}
-          onClick={onFollowUpClick}
-          isActive={showFollowUpSection}
+        <KPICard
+          variant="dashboard"
+          title="Faturamento"
+          value={faturamentoFormatado}
+          icon={DollarSign}
+          iconColor="text-purple-500"
+          valueColor="text-purple-600"
+          subtitle="Período selecionado"
         />
 
         <KPICard
           variant="dashboard"
-          title="Não Compareceram"
-          value={naoCompareceram}
-          icon={UserX}
-          iconColor="text-blue-500"
-          valueColor="text-blue-600"
-          subtitle="No período"
+          title="Taxa de Conversão"
+          value={`${taxaConversao}%`}
+          icon={Filter}
+          iconColor="text-pink-500"
+          valueColor="text-pink-600"
+          subtitle="Leads → Matrículas"
         />
+      </div>
 
-        <TaxaComparecimentoKPI
+      {/* Linha 2 — Funil Comercial + Diagnóstico da Semana */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <FunilComercialCard
+          leads={stats.total}
+          agendamentos={periodStats.experimentaisPeriodo}
           comparecimentos={periodStats.comparecimentosPeriodo}
-          agendados={periodStats.experimentaisPeriodo}
+          matriculas={periodStats.matriculasPeriodo}
         />
+        <DiagnosticoSemanaCard
+          leads={stats.total}
+          agendamentos={periodStats.experimentaisPeriodo}
+          comparecimentos={periodStats.comparecimentosPeriodo}
+          matriculas={periodStats.matriculasPeriodo}
+        />
+      </div>
+
+      {/* Linha 3 — Operação do Dia */}
+      <div>
+        <h2 className="text-sm font-semibold text-foreground/80 mb-3 px-1">Operação do Dia</h2>
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <FollowUpKPI
+            pendingCount={followUpPendingCount}
+            d1Count={followUpD1Count}
+            onClick={onFollowUpClick}
+            isActive={showFollowUpSection}
+          />
+
+          <KPICard
+            variant="dashboard"
+            title="Não Compareceram"
+            value={naoCompareceram}
+            icon={UserX}
+            iconColor="text-blue-500"
+            valueColor="text-blue-600"
+            subtitle="No período"
+          />
+
+          <KPICard
+            variant="dashboard"
+            title="Experimentais da Semana"
+            value={experimentaisSemanaCount}
+            icon={Calendar}
+            iconColor="text-purple-500"
+            valueColor="text-purple-600"
+            subtitle="Esta semana"
+            onClick={onExperimentaisClick}
+            isActive={showExperimentaisSection}
+            activeColor="purple"
+          />
+
+          <TaxaComparecimentoKPI
+            comparecimentos={periodStats.comparecimentosPeriodo}
+            agendados={periodStats.experimentaisPeriodo}
+          />
+        </div>
       </div>
     </div>
   );
