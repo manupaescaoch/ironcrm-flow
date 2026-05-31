@@ -2654,6 +2654,7 @@ export type Database = {
         Args: { p_lead_id: string }
         Returns: undefined
       }
+      get_cron_secret: { Args: never; Returns: string }
       get_user_phone_by_name: { Args: { p_name: string }; Returns: string }
       get_user_role: { Args: { p_user_id: string }; Returns: string }
       get_user_unidades: { Args: { _user_id: string }; Returns: string[] }
