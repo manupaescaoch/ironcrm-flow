@@ -69,10 +69,17 @@ Deno.serve(async (req) => {
     }
     const normalizedPhone = digits.startsWith('55') ? digits : `55${digits}`;
 
+    // Canal de envio (default operacional). Valida estritamente.
+    const channelRaw = typeof body?.channel === 'string' ? body.channel : 'operacional';
+    if (channelRaw !== 'comercial' && channelRaw !== 'operacional') {
+      return json({ error: "channel deve ser 'comercial' ou 'operacional'" }, 400);
+    }
+    const channel = channelRaw as 'comercial' | 'operacional';
+
     // 4) Z-API — secrets só do ambiente
-    const creds = getZapiCreds();
+    const creds = getZapiCreds(channel);
     if (!creds) {
-      return json({ error: 'credenciais Z-API ausentes' }, 500);
+      return json({ error: `credenciais Z-API ausentes para canal ${channel}` }, 500);
     }
 
     const [status, lookup] = await Promise.all([
@@ -93,7 +100,9 @@ Deno.serve(async (req) => {
       sucesso: reallyOk,
       erro_msg: reallyOk ? null : (result.body?.error ? String(result.body.error).slice(0, 500) : null),
       zapi_status_code: result.status,
+      canal: channel,
     });
+
 
     return json({
       ok: reallyOk,
