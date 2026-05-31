@@ -55,14 +55,25 @@ Deno.serve(async (req) => {
     const channels: ('comercial' | 'operacional')[] = channelParam
       ? [channelParam]
       : ['comercial', 'operacional'];
-    const zapiByChannel: Record<string, { connected: boolean; raw: any; configured: boolean }> = {};
+    const maskInstance = (id: string) => (!id || id.length < 6 ? '***' : id.slice(0, 4) + '***' + id.slice(-3));
+    const zapiByChannel: Record<string, { connected: boolean; raw: any; configured: boolean; instanceIdMasked: string | null; checkedAt: string }> = {};
     for (const ch of channels) {
       const creds = getZapiCreds(ch);
       if (!creds) {
-        zapiByChannel[ch] = { connected: false, raw: { error: 'sem credenciais' }, configured: false };
+        zapiByChannel[ch] = { connected: false, raw: { error: 'sem credenciais' }, configured: false, instanceIdMasked: null, checkedAt: new Date().toISOString() };
       } else {
         const st = await checkZapiStatus(creds);
-        zapiByChannel[ch] = { connected: st.connected, raw: st.raw, configured: true };
+        // Sanitiza qualquer eco de token/secret/password vindo da Z-API.
+        const safeRaw = st.raw && typeof st.raw === 'object' && !Array.isArray(st.raw)
+          ? Object.fromEntries(Object.entries(st.raw).filter(([k]) => !/token|secret|password/i.test(k)))
+          : st.raw;
+        zapiByChannel[ch] = {
+          connected: st.connected,
+          raw: safeRaw,
+          configured: true,
+          instanceIdMasked: maskInstance(creds.instanceId),
+          checkedAt: new Date().toISOString(),
+        };
       }
     }
     // Compatibilidade retro: campo `zapi` espelha a primeira instância pedida.
