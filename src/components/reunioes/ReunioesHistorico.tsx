@@ -23,7 +23,7 @@ function stripHtml(s: string | null | undefined) {
 }
 
 export function ReunioesHistorico() {
-  const { reunioes, loading, deleteReuniao } = useReunioesData();
+  const { reunioes, loading, deleteReuniao, updateReuniao } = useReunioesData();
   const { unidades, unidadesPermitidas, hasMultipleUnidades } = useUnidade();
   const { isAdmin } = useAuth();
   const unidadesFiltro = isAdmin ? unidades : unidadesPermitidas;
@@ -164,6 +164,7 @@ export function ReunioesHistorico() {
         open={open}
         onOpenChange={setOpen}
         onDelete={deleteReuniao}
+        onUpdate={updateReuniao}
       />
     </div>
   );
