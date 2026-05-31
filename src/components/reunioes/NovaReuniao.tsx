@@ -18,6 +18,7 @@ import {
   isAnexoValido,
   uploadReuniaoAnexo,
 } from '@/hooks/useReuniaoAnexos';
+import { useUnidadeUsers } from '@/hooks/useUnidadeUsers';
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -32,6 +33,7 @@ interface Props {
 export function NovaReuniao({ onSaved }: Props) {
   const { unidadeAtual, unidadesPermitidas } = useUnidade();
   const { createReuniao } = useReunioesData();
+  const { users, loading: loadingUsers } = useUnidadeUsers();
 
   const [tipo, setTipo] = useState<string>('');
   const [data, setData] = useState<string>(new Date().toISOString().slice(0, 10));
@@ -145,11 +147,24 @@ export function NovaReuniao({ onSaved }: Props) {
 
       <div className="space-y-1.5">
         <Label>Responsável pela reunião *</Label>
-        <Input
-          value={responsavel}
-          onChange={(e) => setResponsavel(e.target.value.toUpperCase())}
-          placeholder="Nome do responsável"
-        />
+        {users.length > 0 ? (
+          <Select value={responsavel} onValueChange={setResponsavel}>
+            <SelectTrigger>
+              <SelectValue placeholder={loadingUsers ? 'Carregando...' : 'Selecione o responsável'} />
+            </SelectTrigger>
+            <SelectContent className="max-h-[280px]">
+              {users.map((u) => (
+                <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <Input
+            value={responsavel}
+            onChange={(e) => setResponsavel(e.target.value.toUpperCase())}
+            placeholder={loadingUsers ? 'Carregando usuários...' : 'Nome do responsável'}
+          />
+        )}
       </div>
 
       <div className="space-y-1.5">
