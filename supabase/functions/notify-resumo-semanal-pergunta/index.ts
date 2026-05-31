@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     if (insErr) throw insErr
 
     // Enviar pergunta via Z-API
-    const instanceId = Deno.env.get('ZAPI_INSTANCE_ID')!
+    const instanceId = (Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'))!
     const token = Deno.env.get('ZAPI_TOKEN')!
     const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN')!
 

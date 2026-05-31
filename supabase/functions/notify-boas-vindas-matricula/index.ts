@@ -28,7 +28,7 @@ const HOURS_AFTER_MATRICULA = 2;
 
 
 async function __zapiStatusCheck() {
-  const id = Deno.env.get('ZAPI_INSTANCE_ID'); const tk = Deno.env.get('ZAPI_TOKEN');
+  const id = (Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID')); const tk = Deno.env.get('ZAPI_TOKEN');
   const ct = Deno.env.get('ZAPI_CLIENT_TOKEN') || '';
   if (!id || !tk) return { connected: false, raw: { error: 'sem credenciais' } };
   try {
@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
+    const ZAPI_INSTANCE_ID = (Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'));
     const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
     const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN');
 
@@ -78,8 +78,7 @@ Deno.serve(async (req) => {
           await __sb.from('whatsapp_envios_log').insert({
             funcao: 'notify-boas-vindas-matricula',
             sucesso: false, motivo_skip: 'zapi_offline',
-            erro_msg: JSON.stringify(__st.raw).slice(0, 500),
-          });
+            erro_msg: JSON.stringify(__st.raw).slice(0, 500), canal: 'comercial' });
         } catch {}
         console.warn('[zapi] offline — abortando', __st.raw);
         return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: __st.raw }), {

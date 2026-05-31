@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
   try {
     const { dryRun = false } = await req.json().catch(() => ({}));
 
-    const creds = getZapiCreds();
+    const creds = getZapiCreds('comercial');
     if (!creds) {
       return new Response(JSON.stringify({ error: 'Z-API não configurada' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
     if (!dryRun) {
       const st = await checkZapiStatus(creds);
       if (!st.connected) {
-        await logEnvio(supabase, { funcao: FUNC, sucesso: false, motivo_skip: 'zapi_offline', erro_msg: JSON.stringify(st.raw).slice(0, 500) });
+        await logEnvio(supabase, { funcao: FUNC, sucesso: false, motivo_skip: 'zapi_offline', erro_msg: JSON.stringify(st.raw).slice(0, 500), canal: 'comercial' });
         return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: st.raw }), {
           status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -242,7 +242,7 @@ Deno.serve(async (req) => {
           resultados.push({ lead_id: lead.id, tipo: '24h', dryRun: true, phone, preview: message });
         } else {
           if (!(await ensurePhoneOk(phone))) {
-            await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, motivo_skip: 'phone_nao_existe' });
+            await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, motivo_skip: 'phone_nao_existe', canal: 'comercial' });
             resultados.push({ lead_id: lead.id, tipo: '24h', skipped: 'phone_nao_existe' });
           } else {
             await rateGate();
@@ -250,9 +250,9 @@ Deno.serve(async (req) => {
             if (r.ok) {
               envios++;
               await supabase.from('leads').update({ confirmacao_24h_enviada_em: new Date().toISOString() }).eq('id', lead.id);
-              await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: true, zapi_status_code: r.status });
+              await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: true, zapi_status_code: r.status, canal: 'comercial' });
             } else {
-              await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, zapi_status_code: r.status, erro_msg: JSON.stringify(r.body).slice(0, 500) });
+              await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, zapi_status_code: r.status, erro_msg: JSON.stringify(r.body).slice(0, 500), canal: 'comercial' });
             }
             resultados.push({ lead_id: lead.id, tipo: '24h', sent: r.ok, status: r.status });
           }
@@ -269,7 +269,7 @@ Deno.serve(async (req) => {
           resultados.push({ lead_id: lead.id, tipo: '2h', dryRun: true, phone, preview: message });
         } else {
           if (!(await ensurePhoneOk(phone))) {
-            await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, motivo_skip: 'phone_nao_existe' });
+            await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, motivo_skip: 'phone_nao_existe', canal: 'comercial' });
             resultados.push({ lead_id: lead.id, tipo: '2h', skipped: 'phone_nao_existe' });
           } else {
             await rateGate();
@@ -277,9 +277,9 @@ Deno.serve(async (req) => {
             if (r.ok) {
               envios++;
               await supabase.from('leads').update({ confirmacao_2h_enviada_em: new Date().toISOString() }).eq('id', lead.id);
-              await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: true, zapi_status_code: r.status });
+              await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: true, zapi_status_code: r.status, canal: 'comercial' });
             } else {
-              await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, zapi_status_code: r.status, erro_msg: JSON.stringify(r.body).slice(0, 500) });
+              await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, zapi_status_code: r.status, erro_msg: JSON.stringify(r.body).slice(0, 500), canal: 'comercial' });
             }
             resultados.push({ lead_id: lead.id, tipo: '2h', sent: r.ok, status: r.status });
           }

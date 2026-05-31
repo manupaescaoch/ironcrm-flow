@@ -311,9 +311,13 @@ export async function resolveGrupo(
 // ---------------------- Z-API dispatch ----------------------
 
 async function sendZapi(grupoId: string, message: string): Promise<{ ok: boolean; status: number }> {
-  const instance = Deno.env.get('ZAPI_INSTANCE_ID');
-  const token = Deno.env.get('ZAPI_TOKEN');
-  const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN') || '';
+  // Formulários operacionais → instância OPERACIONAL.
+  const instance =
+    Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID');
+  const token =
+    Deno.env.get('ZAPI_OPERACIONAL_TOKEN') ?? Deno.env.get('ZAPI_TOKEN');
+  const clientToken =
+    Deno.env.get('ZAPI_OPERACIONAL_CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN') ?? '';
   if (!instance || !token) return { ok: false, status: 500 };
   const url = `https://api.z-api.io/instances/${instance}/token/${token}/send-text`;
   const resp = await fetch(url, {
@@ -324,6 +328,7 @@ async function sendZapi(grupoId: string, message: string): Promise<{ ok: boolean
   try { await resp.text(); } catch { /* ignore */ }
   return { ok: resp.ok, status: resp.status };
 }
+
 
 // ---------------------- Main orchestration ----------------------
 

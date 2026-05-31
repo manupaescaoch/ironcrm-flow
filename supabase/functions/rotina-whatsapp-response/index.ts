@@ -92,7 +92,9 @@ async function audit(
       motivo_bloqueio: data.motivoBloqueio,
       auth_method: data.authMethod,
       payload_resumo: data.payloadResumo,
+      canal_origem: (data.payloadResumo?.canalOrigem as string | null | undefined) ?? null,
     });
+
   } catch (err) {
     console.error('[rotina-response] Falha auditoria:', err);
   }
@@ -106,16 +108,26 @@ Deno.serve(async (req) => {
     });
   }
 
-  // CAMADA 0 — config fail-closed
-  const expectedInstanceId = Deno.env.get('ZAPI_INSTANCE_ID');
+  // CAMADA 0 — config fail-closed.
+  // Aceita as 3 fontes possíveis de instância: comercial, operacional ou legacy.
+  const instanceComercial = Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID') || '';
+  const instanceOperacional = Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') || '';
+  const instanceLegacy = Deno.env.get('ZAPI_INSTANCE_ID') || '';
+  const acceptedInstances: { id: string; canal: 'comercial' | 'operacional' | 'legacy' }[] = [];
+  if (instanceComercial) acceptedInstances.push({ id: instanceComercial, canal: 'comercial' });
+  if (instanceOperacional) acceptedInstances.push({ id: instanceOperacional, canal: 'operacional' });
+  if (instanceLegacy && !acceptedInstances.find((x) => x.id === instanceLegacy)) {
+    acceptedInstances.push({ id: instanceLegacy, canal: 'legacy' });
+  }
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!expectedInstanceId || !supabaseUrl || !serviceKey) {
+  if (acceptedInstances.length === 0 || !supabaseUrl || !serviceKey) {
     return new Response(JSON.stringify({ error: 'Server misconfigured' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
   const supabase = createClient(supabaseUrl, serviceKey);
+
 
   // CAMADA 1 — parse + Zod
   let rawPayload: unknown;
@@ -145,6 +157,12 @@ Deno.serve(async (req) => {
 
   const messageId = payload.messageId || payload.zaapId || null;
   const instanceId = payload.instanceId || null;
+  // Identifica o canal de origem comparando contra as instâncias aceitas (constant-time).
+  const matchedInstance = instanceId
+    ? acceptedInstances.find((x) => constantTimeEqual(x.id, instanceId))
+    : undefined;
+  const canalOrigem: 'comercial' | 'operacional' | 'legacy' | null =
+    matchedInstance?.canal ?? null;
   const senderPhone = normalizePhone(payload.phone || payload.chatId || payload.from || '');
   const telefoneMascarado = senderPhone ? maskPhone(senderPhone) : null;
   const payloadResumo = {
@@ -154,6 +172,7 @@ Deno.serve(async (req) => {
     isGroup: payload.isGroup ?? null,
     hasButton: !!(payload.buttonsResponseMessage || payload.buttonResponseMessage),
     hasText: !!(payload.text?.message || payload.message || payload.body),
+    canalOrigem,
   };
   const baseAudit = {
     messageId, instanceId, telefoneMascarado,
@@ -176,7 +195,7 @@ Deno.serve(async (req) => {
     }
     authMethod = 'header_secret';
   } else {
-    if (!instanceId || !constantTimeEqual(instanceId, expectedInstanceId)) {
+    if (!matchedInstance) {
       await audit(supabase, { ...baseAudit, autorizado: false, motivoBloqueio: 'instanceId divergente', authMethod: 'canonical' });
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -190,6 +209,7 @@ Deno.serve(async (req) => {
     }
     authMethod = 'canonical';
   }
+
 
   // CAMADA 3 — idempotência (autorizados anteriores com mesmo messageId)
   if (messageId) {
@@ -365,14 +385,19 @@ Deno.serve(async (req) => {
       autorizado: true, motivoBloqueio: null, authMethod,
     });
 
-    // Confirmação best-effort
-    const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
-    const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN');
-    if (ZAPI_TOKEN) {
+    // Confirmação best-effort — sempre pela instância OPERACIONAL (canal de equipe).
+    const opInstance =
+      Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID');
+    const ZAPI_TOKEN =
+      Deno.env.get('ZAPI_OPERACIONAL_TOKEN') ?? Deno.env.get('ZAPI_TOKEN');
+    const ZAPI_CLIENT_TOKEN =
+      Deno.env.get('ZAPI_OPERACIONAL_CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN');
+    if (opInstance && ZAPI_TOKEN) {
       const confirmMessage = concluida
         ? `✅ *Rotina concluída*\n\n🔹 *${rotina.nome}*\n👤 *Registrado por:* ${matchedUserName}`
         : `⚠️ *Rotina não realizada*\n\n🔹 *${rotina.nome}*\n👤 *Registrado por:* ${matchedUserName}`;
-      const zapiUrl = `https://api.z-api.io/instances/${expectedInstanceId}/token/${ZAPI_TOKEN}/send-text`;
+      const zapiUrl = `https://api.z-api.io/instances/${opInstance}/token/${ZAPI_TOKEN}/send-text`;
+
       try {
         await fetch(zapiUrl, {
           method: 'POST',

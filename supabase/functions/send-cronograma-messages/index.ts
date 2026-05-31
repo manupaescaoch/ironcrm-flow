@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const creds = getZapiCreds();
+    const creds = getZapiCreds('operacional');
 
     if (!creds) {
       return new Response(

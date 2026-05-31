@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
+    const ZAPI_INSTANCE_ID = (Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'));
     const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
     const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN') || '';
     const supabase = createClient(
@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
       const sr = await fetch(`https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/status`, { headers: { 'Client-Token': ZAPI_CLIENT_TOKEN } });
       const sj = await sr.json().catch(() => ({}));
       if (!sr.ok || sj?.connected !== true) {
-        await supabase.from('whatsapp_envios_log').insert({ funcao: 'send-confirmacao-recepcao', sucesso: false, motivo_skip: 'zapi_offline', erro_msg: JSON.stringify(sj).slice(0, 500) });
+        await supabase.from('whatsapp_envios_log').insert({ funcao: 'send-confirmacao-recepcao', sucesso: false, motivo_skip: 'zapi_offline', erro_msg: JSON.stringify(sj).slice(0, 500), canal: 'comercial' });
         return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: sj }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
     }

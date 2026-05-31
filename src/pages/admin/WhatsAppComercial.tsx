@@ -204,19 +204,42 @@ export default function WhatsAppComercial() {
       {/* ============= Saúde do Chip ============= */}
       <Card className="border-2">
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
+          <CardTitle className="text-base flex items-center gap-2 flex-wrap">
             <Activity className="w-4 h-4" />
-            Saúde do Chip Z-API
-            {health?.zapi?.connected ? (
-              <Badge variant="default" className="bg-green-600 hover:bg-green-700">Conectado</Badge>
-            ) : (
-              <Badge variant="destructive">Desconectado</Badge>
+            Saúde dos Chips Z-API
+            {(['comercial', 'operacional'] as const).map((ch) => {
+              const st = health?.zapiByChannel?.[ch];
+              const label = ch === 'comercial' ? 'Iron Comercial' : 'Iron Operacional';
+              if (!st) {
+                return health?.zapi ? null : (
+                  <Badge key={ch} variant="outline">{label}: —</Badge>
+                );
+              }
+              if (!st.configured) {
+                return <Badge key={ch} variant="outline">{label}: não configurado</Badge>;
+              }
+              return st.connected ? (
+                <Badge key={ch} variant="default" className="bg-green-600 hover:bg-green-700">
+                  {label}: Conectado
+                </Badge>
+              ) : (
+                <Badge key={ch} variant="destructive">{label}: Desconectado</Badge>
+              );
+            })}
+            {/* Fallback (legado): se backend ainda não responder zapiByChannel */}
+            {!health?.zapiByChannel && health?.zapi && (
+              health.zapi.connected ? (
+                <Badge variant="default" className="bg-green-600 hover:bg-green-700">Conectado</Badge>
+              ) : (
+                <Badge variant="destructive">Desconectado</Badge>
+              )
             )}
           </CardTitle>
           <Button variant="ghost" size="sm" onClick={loadHealth} disabled={healthLoading}>
             {healthLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
           </Button>
         </CardHeader>
+
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="border rounded-lg p-3">

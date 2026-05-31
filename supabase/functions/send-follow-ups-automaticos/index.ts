@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
     }
 
   try {
-    const creds = getZapiCreds();
+    const creds = getZapiCreds('comercial');
     if (!creds) {
       return new Response(
         JSON.stringify({ error: 'ZAPI credentials not configured' }),
@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
     if (!dryRun) {
       const st = await checkZapiStatus(creds);
       if (!st.connected) {
-        await logEnvio(supabase, { funcao: FUNC, sucesso: false, motivo_skip: 'zapi_offline', erro_msg: JSON.stringify(st.raw).slice(0, 500) });
+        await logEnvio(supabase, { funcao: FUNC, sucesso: false, motivo_skip: 'zapi_offline', erro_msg: JSON.stringify(st.raw).slice(0, 500), canal: 'comercial' });
         return new Response(
           JSON.stringify({ error: 'Z-API desconectado', zapi: st.raw }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 }
@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
         continue;
       }
       if (!lead.telefone) {
-        await logEnvio(supabase, { funcao: FUNC, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, motivo_skip: 'sem_telefone' });
+        await logEnvio(supabase, { funcao: FUNC, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, motivo_skip: 'sem_telefone', canal: 'comercial' });
         errors.push(`Sem telefone: ${lead.nome}`);
         continue;
       }
@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
       // Validação phone-exists no WhatsApp
       const exists = await phoneExists(creds, phone);
       if (exists === false) {
-        await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, motivo_skip: 'phone_nao_existe' });
+        await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, motivo_skip: 'phone_nao_existe', canal: 'comercial' });
         await supabase.from('follow_ups')
           .update({ status: 'cancelado', cancelado_motivo: 'phone_invalido', updated_at: new Date().toISOString() })
           .eq('id', fu.id);
@@ -219,14 +219,14 @@ Deno.serve(async (req) => {
             data_interacao: nowIso,
             atendido_por: 'SISTEMA',
           });
-          await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: true, zapi_status_code: r.status });
+          await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: true, zapi_status_code: r.status, canal: 'comercial' });
           results.push({ tipo: fu.tipo, lead: lead.nome, status: 'sent' });
         } else {
-          await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, zapi_status_code: r.status, erro_msg: JSON.stringify(r.body).slice(0, 500) });
+          await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, zapi_status_code: r.status, erro_msg: JSON.stringify(r.body).slice(0, 500), canal: 'comercial' });
           errors.push(`Z-API ${r.status}: ${fu.tipo} ${lead.nome}`);
         }
       } catch (e: any) {
-        await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, erro_msg: e?.message ?? String(e) });
+        await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, erro_msg: e?.message ?? String(e), canal: 'comercial' });
         errors.push(`Erro envio: ${fu.tipo} ${lead.nome} - ${e?.message ?? e}`);
       }
     }

@@ -152,7 +152,7 @@ _Anamnese preenchida pela recepção no momento da chegada do lead._`;
     }
 
 
-    const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
+    const ZAPI_INSTANCE_ID = (Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'));
     const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
     const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN') || '';
     if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) throw new Error('Z-API não configurada');
@@ -165,7 +165,7 @@ _Anamnese preenchida pela recepção no momento da chegada do lead._`;
         console.warn('[notify-anamnese] Z-API offline', sj);
         try {
           const sb = (await import('https://esm.sh/@supabase/supabase-js@2')).createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-          await sb.from('whatsapp_envios_log').insert({ funcao: 'notify-anamnese-experimental', sucesso: false, motivo_skip: 'zapi_offline', erro_msg: JSON.stringify(sj).slice(0, 500) });
+          await sb.from('whatsapp_envios_log').insert({ funcao: 'notify-anamnese-experimental', sucesso: false, motivo_skip: 'zapi_offline', erro_msg: JSON.stringify(sj).slice(0, 500), canal: 'comercial' });
         } catch {}
         return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: sj }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
