@@ -196,7 +196,7 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete }: 
                   <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                 </div>
               ) : anexos.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Nenhum PDF anexado.</p>
+                <p className="text-xs text-muted-foreground">Nenhum arquivo anexado.</p>
               ) : (
                 <ul className="space-y-1.5">
                   {anexos.map((a: ReuniaoAnexo) => {
