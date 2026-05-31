@@ -2164,6 +2164,48 @@ export type Database = {
           },
         ]
       }
+      rotina_webhook_auditoria: {
+        Row: {
+          auth_method: string | null
+          autorizado: boolean
+          created_at: string
+          id: string
+          instance_id: string | null
+          message_id: string | null
+          motivo_bloqueio: string | null
+          payload_resumo: Json | null
+          rotina_id: string | null
+          status_aplicado: string | null
+          telefone_mascarado: string | null
+        }
+        Insert: {
+          auth_method?: string | null
+          autorizado: boolean
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          message_id?: string | null
+          motivo_bloqueio?: string | null
+          payload_resumo?: Json | null
+          rotina_id?: string | null
+          status_aplicado?: string | null
+          telefone_mascarado?: string | null
+        }
+        Update: {
+          auth_method?: string | null
+          autorizado?: boolean
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          message_id?: string | null
+          motivo_bloqueio?: string | null
+          payload_resumo?: Json | null
+          rotina_id?: string | null
+          status_aplicado?: string | null
+          telefone_mascarado?: string | null
+        }
+        Relationships: []
+      }
       rotinas: {
         Row: {
           arquivada: boolean
