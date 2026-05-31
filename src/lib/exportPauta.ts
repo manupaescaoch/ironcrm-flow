@@ -1,5 +1,4 @@
 import DOMPurify from 'dompurify';
-import html2pdf from 'html2pdf.js';
 
 function safeFilename(name: string) {
   return name.replace(/[^\w\-]+/g, '_').replace(/_+/g, '_').slice(0, 80);
