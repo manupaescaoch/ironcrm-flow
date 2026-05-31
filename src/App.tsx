@@ -149,6 +149,7 @@ const AppRoutes = () => (
     <Route path="/relatorio-diario-comercial" element={<RelatorioDiarioComercial />} />
     <Route path="/admin/grupos-whatsapp" element={<ProtectedRoute><GruposWhatsApp /></ProtectedRoute>} />
     <Route path="/admin/whatsapp-comercial" element={<ProtectedRoute><WhatsAppComercial /></ProtectedRoute>} />
+    <Route path="/admin/zapi-conexoes" element={<AdminRoute><ZapiConexoes /></AdminRoute>} />
 
     <Route path="/dashboard-operacional" element={<ProtectedRoute><DashboardOperacional /></ProtectedRoute>} />
     <Route path="/anamnese-publica/:id" element={<AnamnesePublica />} />
