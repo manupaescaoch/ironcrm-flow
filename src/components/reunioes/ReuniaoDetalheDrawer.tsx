@@ -8,6 +8,14 @@ import type { Reuniao } from '@/hooks/useReunioesData';
 import { ReuniaoStatusBadge } from './EncaminhamentoStatusBadge';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import DOMPurify from 'dompurify';
+
+function renderRich(value: string) {
+  // Pautas antigas podem ser texto puro; renderiza como HTML sanitizado.
+  const looksLikeHtml = /<[a-z][\s\S]*>/i.test(value);
+  const html = looksLikeHtml ? value : value.replace(/\n/g, '<br />');
+  return DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
+}
 
 interface Props {
   reuniao: Reuniao | null;
@@ -77,7 +85,10 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete }: 
                 <Separator />
                 <section>
                   <h4 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Pauta da reunião</h4>
-                  <p className="text-sm whitespace-pre-wrap">{reuniao.pauta}</p>
+                  <div
+                    className="tiptap-editor prose prose-sm max-w-none text-foreground"
+                    dangerouslySetInnerHTML={{ __html: renderRich(reuniao.pauta) }}
+                  />
                 </section>
               </>
             )}
