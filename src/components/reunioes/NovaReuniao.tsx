@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,12 +6,24 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, Paperclip, Upload, FileType } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useReunioesData } from '@/hooks/useReunioesData';
 import { TIPOS_REUNIAO } from './constants';
 import { RichTextEditor, isRichTextEmpty } from '@/components/ui/rich-text-editor';
+import {
+  ACCEPTED_ANEXO_ATTR,
+  ACCEPTED_ANEXO_LABEL,
+  isAnexoValido,
+  uploadReuniaoAnexo,
+} from '@/hooks/useReuniaoAnexos';
+
+function formatSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
 
 interface Props {
   onSaved?: () => void;
@@ -29,7 +41,9 @@ export function NovaReuniao({ onSaved }: Props) {
   const [participanteInput, setParticipanteInput] = useState('');
   const [pauta, setPauta] = useState('');
   const [feedback, setFeedback] = useState('');
+  const [anexos, setAnexos] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addParticipante = () => {
     const v = participanteInput.trim().toUpperCase();
@@ -37,6 +51,20 @@ export function NovaReuniao({ onSaved }: Props) {
       setParticipantes([...participantes, v]);
     }
     setParticipanteInput('');
+  };
+
+  const handleFiles = (files: FileList | null) => {
+    if (!files) return;
+    const novos: File[] = [];
+    Array.from(files).forEach((f) => {
+      const v = isAnexoValido(f);
+      if (!v.ok) {
+        toast({ title: `Arquivo "${f.name}" ignorado`, description: v.reason, variant: 'destructive' });
+        return;
+      }
+      novos.push(f);
+    });
+    if (novos.length) setAnexos((prev) => [...prev, ...novos]);
   };
 
   const handleSubmit = async () => {
@@ -49,7 +77,7 @@ export function NovaReuniao({ onSaved }: Props) {
 
     setSaving(true);
     try {
-      await createReuniao({
+      const created: any = await createReuniao({
         tipo,
         unidade_id: unidadeId,
         data,
@@ -59,12 +87,27 @@ export function NovaReuniao({ onSaved }: Props) {
         feedback: feedback.trim() || null,
         status: 'aberta',
       });
+
+      if (anexos.length && created?.id) {
+        let okCount = 0;
+        for (const f of anexos) {
+          try {
+            await uploadReuniaoAnexo(created.id, unidadeId, f);
+            okCount++;
+          } catch (err: any) {
+            toast({ title: `Falha ao anexar ${f.name}`, description: err.message, variant: 'destructive' });
+          }
+        }
+        if (okCount) toast({ title: `${okCount} arquivo(s) anexado(s)` });
+      }
+
       toast({ title: 'Reunião registrada com sucesso' });
       setTipo('');
       setResponsavel('');
       setParticipantes([]);
       setPauta('');
       setFeedback('');
+      setAnexos([]);
       onSaved?.();
     } catch (err: any) {
       toast({ title: 'Erro ao salvar', description: err.message, variant: 'destructive' });
@@ -152,6 +195,56 @@ export function NovaReuniao({ onSaved }: Props) {
       <div className="space-y-1.5">
         <Label>Feedback da reunião</Label>
         <Textarea rows={5} value={feedback} onChange={(e) => setFeedback(e.target.value)} />
+      </div>
+
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <Label className="flex items-center gap-1.5">
+            <Paperclip className="w-3.5 h-3.5" /> Anexos
+          </Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="w-3.5 h-3.5" /> Anexar arquivo
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={ACCEPTED_ANEXO_ATTR}
+            multiple
+            className="hidden"
+            onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
+          />
+        </div>
+        {anexos.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground">
+            {ACCEPTED_ANEXO_LABEL} • até 15 MB cada
+          </p>
+        ) : (
+          <ul className="space-y-1.5">
+            {anexos.map((f, i) => (
+              <li key={i} className="flex items-center gap-2 rounded-md border border-border/60 px-2.5 py-1.5 bg-muted/30">
+                <FileType className="w-4 h-4 text-primary shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm truncate">{f.name}</div>
+                  <div className="text-[11px] text-muted-foreground">{formatSize(f.size)}</div>
+                </div>
+                <Button
+                  size="sm" variant="ghost"
+                  className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                  onClick={() => setAnexos((prev) => prev.filter((_, idx) => idx !== i))}
+                  title="Remover"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="flex justify-end pt-2 border-t">
