@@ -33,6 +33,7 @@ interface Props {
 export function NovaReuniao({ onSaved }: Props) {
   const { unidadeAtual, unidadesPermitidas } = useUnidade();
   const { createReuniao } = useReunioesData();
+  const { users, loading: loadingUsers } = useUnidadeUsers();
 
   const [tipo, setTipo] = useState<string>('');
   const [data, setData] = useState<string>(new Date().toISOString().slice(0, 10));
