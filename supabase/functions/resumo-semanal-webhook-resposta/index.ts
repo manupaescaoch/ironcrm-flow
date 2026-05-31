@@ -211,7 +211,7 @@ ${blocoUnidade('Zona Sul', 'ZS', zs)}
 • 🌟 *Taxa geral de comparecimento:* ${fmtPct(taxaCompGeral)}`
 
     // Enviar resposta
-    const instanceId = Deno.env.get('ZAPI_INSTANCE_ID')!
+    const instanceId = (Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'))!
     const tokenZ = Deno.env.get('ZAPI_TOKEN')!
     const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN')!
 

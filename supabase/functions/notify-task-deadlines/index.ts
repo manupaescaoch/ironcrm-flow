@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 // ZAPI credentials
-const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
+const ZAPI_INSTANCE_ID = (Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'));
 const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
 const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN");
 

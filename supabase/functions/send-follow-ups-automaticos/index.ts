@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
     }
 
   try {
-    const creds = getZapiCreds();
+    const creds = getZapiCreds('comercial');
     if (!creds) {
       return new Response(
         JSON.stringify({ error: 'ZAPI credentials not configured' }),

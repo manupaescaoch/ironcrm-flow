@@ -152,7 +152,7 @@ _Anamnese preenchida pela recepção no momento da chegada do lead._`;
     }
 
 
-    const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
+    const ZAPI_INSTANCE_ID = (Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'));
     const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
     const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN') || '';
     if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) throw new Error('Z-API não configurada');

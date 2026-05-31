@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
   try {
     const { dryRun = false } = await req.json().catch(() => ({}));
 
-    const creds = getZapiCreds();
+    const creds = getZapiCreds('comercial');
     if (!creds) {
       return new Response(JSON.stringify({ error: 'Z-API não configurada' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
