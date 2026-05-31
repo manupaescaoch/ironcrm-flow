@@ -88,5 +88,17 @@ export function useReunioesData() {
     await fetchReunioes();
   }, [fetchReunioes]);
 
-  return { reunioes, loading, refetch: fetchReunioes, createReuniao, deleteReuniao };
+  const updateReuniao = useCallback(async (id: string, input: Partial<ReuniaoInput>) => {
+    const { data, error } = await supabase
+      .from('reunioes')
+      .update(input as any)
+      .eq('id', id)
+      .select('*')
+      .single();
+    if (error) throw error;
+    await fetchReunioes();
+    return data as Reuniao;
+  }, [fetchReunioes]);
+
+  return { reunioes, loading, refetch: fetchReunioes, createReuniao, deleteReuniao, updateReuniao };
 }
