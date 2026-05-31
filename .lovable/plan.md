@@ -1,44 +1,85 @@
+
 ## Objetivo
-Transformar o campo **Pauta da reunião** num editor estilo bloco de notas com formatação (negrito, itálico, listas, títulos, etc.) e suporte a **tabelas**.
 
-## Stack
-Usar **Tiptap** (já é padrão React + Tailwind, leve, headless), com extensões:
-- `@tiptap/react`, `@tiptap/starter-kit` (negrito, itálico, sublinhado, listas, headings, blockquote, código)
-- `@tiptap/extension-table`, `table-row`, `table-cell`, `table-header` (tabelas com add/remove linhas/colunas)
-- `@tiptap/extension-underline`, `@tiptap/extension-link`, `@tiptap/extension-placeholder`
+Melhorar a tela de detalhes da reunião (drawer) deixando a leitura mais clara e organizada, e adicionar um sistema de **comentários** persistidos, com histórico de quem comentou e quando.
 
-O conteúdo é salvo como **HTML** no mesmo campo `pauta` (text) — sem migração de banco. Pautas antigas em texto puro continuam aparecendo normalmente (HTML aceita texto livre).
+---
 
-## Mudanças
+## 1. Redesenho do drawer de detalhes (`ReuniaoDetalheDrawer.tsx`)
 
-### 1. Novo componente `src/components/ui/rich-text-editor.tsx`
-- Editor Tiptap reutilizável com toolbar fixa no topo.
-- Toolbar: Negrito · Itálico · Sublinhado · H2/H3 · Lista · Lista numerada · Citação · Link · **Inserir tabela** · Adicionar linha/coluna · Remover linha/coluna · Desfazer/Refazer.
-- Visual estilo "bloco de notas": fundo `bg-background`, borda sutil, padding generoso, fonte do projeto, `prose prose-sm` para estilizar conteúdo.
-- Props: `value`, `onChange`, `placeholder`, `minHeight`.
+Layout mais escaneável, dividido em blocos visuais bem separados:
 
-### 2. `src/components/reunioes/NovaReuniao.tsx`
-- Trocar o `<Textarea>` da pauta pelo `<RichTextEditor>`.
-- Validação: usar `editor.getText().trim()` para checar se está vazio (HTML pode ter `<p></p>` vazio).
-- Salvar `editor.getHTML()` em `pauta`.
+- **Cabeçalho destacado**: tipo da reunião em destaque, badge de status à direita, linha secundária com data formatada por extenso (ex.: "31 de maio de 2026"), unidade e responsável com ícones.
+- **Cards de resumo** no topo (grid 2 colunas): Responsável • Participantes (contagem + chips) • Data • Status.
+- **Abas** (Tabs do shadcn) para reduzir scroll vertical:
+  1. **Pauta** — pauta renderizada (já existe), com botões PDF/TXT.
+  2. **Feedback** — feedback da reunião.
+  3. **Anexos** — lista de arquivos (já existe).
+  4. **Comentários** — novo (ver seção 2).
+- Footer fixo com ação de excluir (somente admin/coordenador), igual ao atual.
 
-### 3. `src/components/reunioes/ReuniaoDetalheDrawer.tsx`
-- Renderizar `reuniao.pauta` como HTML com `dangerouslySetInnerHTML` dentro de um wrapper `prose prose-sm` para estilo de tabelas/listas/títulos.
-- Sanitizar com **DOMPurify** antes de injetar (segurança XSS).
+Sem mudanças de regra de negócio — apenas reorganização visual usando tokens do design system.
 
-### 4. `src/components/reunioes/ReunioesHistorico.tsx`
-- Preview da coluna "Pauta" na tabela: extrair texto puro (strip de tags) e truncar — evita HTML solto na linha.
-- Busca (`hay`) também usa o texto puro.
+---
 
-### 5. CSS — `src/index.css`
-- Adicionar estilos `.tiptap-editor` para tabelas (borda, header destacado, células com padding), placeholder e foco. Tudo via tokens semânticos do tema.
+## 2. Novo recurso: comentários na reunião
 
-## Detalhes técnicos
-- Dependências novas: `@tiptap/react`, `@tiptap/pm`, `@tiptap/starter-kit`, `@tiptap/extension-table`, `@tiptap/extension-table-row`, `@tiptap/extension-table-cell`, `@tiptap/extension-table-header`, `@tiptap/extension-underline`, `@tiptap/extension-link`, `@tiptap/extension-placeholder`, `dompurify`, `@types/dompurify`.
-- Coluna `pauta` permanece `text` — sem migração.
-- Compatibilidade retroativa: registros antigos (texto puro) renderizam corretamente como HTML.
-- Acessibilidade: botões da toolbar com `aria-label` e estado `aria-pressed` quando ativo.
+### Banco de dados (migration)
 
-## Fora do escopo
-- Não mexer no campo `feedback` (também é texto). Posso aplicar o mesmo editor a ele depois, se quiser.
-- Sem upload de imagem no editor nesta entrega.
+Nova tabela `reuniao_comentarios`:
+
+- `id` (uuid PK)
+- `reuniao_id` (uuid, FK lógico para `reunioes.id`, ON DELETE CASCADE)
+- `unidade_id` (uuid) — para RLS por unidade
+- `autor_id` (uuid) — `auth.uid()` do autor
+- `autor_nome` (text) — snapshot do nome do autor (igual ao padrão de anexos)
+- `conteudo` (text, NOT NULL)
+- `created_at` / `updated_at` (timestamptz)
+
+GRANTs:
+- `GRANT SELECT, INSERT, UPDATE, DELETE ON public.reuniao_comentarios TO authenticated`
+- `GRANT ALL ... TO service_role`
+
+RLS (mesmo modelo das outras tabelas do módulo):
+- **SELECT**: admin OR `unidade_id IN get_user_unidades(auth.uid())`
+- **INSERT**: mesmo escopo + `autor_id = auth.uid()`
+- **UPDATE**: admin/coordenador OR `autor_id = auth.uid()` (autor pode editar o próprio)
+- **DELETE**: admin/coordenador OR `autor_id = auth.uid()`
+
+Trigger de `updated_at` reutilizando `public.update_updated_at_column()`.
+
+### Hook `useReuniaoComentarios.ts` (novo)
+
+API: `{ comentarios, loading, adicionar(texto), editar(id, texto), remover(id) }`. Busca por `reuniao_id` ordenando por `created_at asc`.
+
+### UI dentro da aba "Comentários" do drawer
+
+- Lista cronológica de comentários: avatar/iniciais do autor, nome, data/hora relativa, conteúdo (whitespace-pre-wrap).
+- Ações por comentário: editar/remover para o próprio autor e para admin/coordenador.
+- Campo de novo comentário no rodapé da aba: `Textarea` + botão "Comentar" (desabilitado se vazio). Envia com Ctrl/⌘+Enter.
+- Estado vazio amigável ("Nenhum comentário ainda. Seja o primeiro a comentar.").
+- Contador de comentários no rótulo da aba (ex.: "Comentários (3)").
+
+### Histórico
+
+Os comentários ficam vinculados à reunião e aparecem automaticamente no histórico (`ReunioesHistorico`) ao reabrir o detalhe. Adicionalmente:
+
+- Na tabela do histórico, novo indicador discreto na coluna "Pauta" ou ao lado do status: ícone `MessageSquare` + contagem (quando > 0), para sinalizar reuniões com discussão.
+
+---
+
+## Arquivos afetados
+
+- **Migration nova**: criar tabela `reuniao_comentarios` + GRANTs + RLS + trigger.
+- **Novo**: `src/hooks/useReuniaoComentarios.ts`.
+- **Novo**: `src/components/reunioes/ReuniaoComentarios.tsx` (lista + form).
+- **Editar**: `src/components/reunioes/ReuniaoDetalheDrawer.tsx` — novo layout em abas + integração da aba de comentários.
+- **Editar (opcional)**: `src/components/reunioes/ReunioesHistorico.tsx` — badge de contagem de comentários na linha.
+
+---
+
+## Pontos a confirmar
+
+1. Comentários devem ser **editáveis** pelo próprio autor depois de enviados, ou somente leitura após postar?
+2. Admin/coordenador podem excluir comentários de outros usuários? (proposta acima: sim.)
+3. Deseja indicador de contagem de comentários na tabela de histórico? (proposta acima: sim.)
