@@ -170,7 +170,7 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete }: 
             <section>
               <div className="flex items-center justify-between gap-2 mb-2">
                 <h4 className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <Paperclip className="w-3.5 h-3.5" /> Anexos PDF
+                  <Paperclip className="w-3.5 h-3.5" /> Anexos
                 </h4>
                 <Button
                   size="sm"
@@ -180,12 +180,12 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete }: 
                   disabled={uploading}
                 >
                   {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                  Anexar PDF
+                  Anexar arquivo
                 </Button>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="application/pdf"
+                  accept={ACCEPTED_ANEXO_ATTR}
                   className="hidden"
                   onChange={handleFile}
                 />
