@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
       }
 
       supabase.functions
-        .invoke("notify-anamnese-experimental", { body: { anamnese_id: saved.id } })
+        .invoke("notify-anamnese-experimental", { body: { anamnese_id: saved.id }, headers: { "x-cron-secret": Deno.env.get("BACKUP_CRON_SECRET") ?? "" } })
         .catch((e) => console.warn("[anamnese-publica] notify falhou", e));
 
       return json({ ok: true });
@@ -247,7 +247,7 @@ Deno.serve(async (req) => {
       }
 
       supabase.functions
-        .invoke("notify-anamnese-experimental", { body: { anamnese_id: saved.id } })
+        .invoke("notify-anamnese-experimental", { body: { anamnese_id: saved.id }, headers: { "x-cron-secret": Deno.env.get("BACKUP_CRON_SECRET") ?? "" } })
         .catch((e) => console.warn("[anamnese-publica] notify falhou", e));
 
       return json({ ok: true, lead_id: foundLeadId, created: !lead });

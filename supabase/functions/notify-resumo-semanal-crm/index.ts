@@ -1,8 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
 };
 
 const ZN_ID = 'b4df0ba8-7fa8-4f28-8924-d5ce6a9b50c6';
@@ -128,6 +129,17 @@ async function __zapiStatusCheck() {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+
+    // SECURITY: require cron secret header OR valid Supabase JWT.
+    {
+      const __auth = await authorizeCronOrJwt(req);
+      if (!__auth.ok) {
+        return new Response(
+          JSON.stringify({ error: __auth.error || 'Unauthorized' }),
+          { status: __auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
 
   try {
     const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');

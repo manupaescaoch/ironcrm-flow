@@ -1,8 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.0'
+import { authorizeCronOrJwt } from '../_shared/cronAuth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
 }
 
 const TARGET_PHONE = '5581996392285'
@@ -23,6 +24,18 @@ function getPreviousWeekRange(now: Date) {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  // SECURITY: require cron secret header OR valid Supabase JWT.
+  {
+    const __auth = await authorizeCronOrJwt(req)
+    if (!__auth.ok) {
+      return new Response(
+        JSON.stringify({ error: __auth.error || 'Unauthorized' }),
+        { status: __auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+  }
+
 
   try {
     const supabase = createClient(

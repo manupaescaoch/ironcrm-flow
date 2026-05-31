@@ -1,10 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 // ZAPI credentials
@@ -80,6 +81,17 @@ async function getPhoneByName(
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
+
+    // SECURITY: require cron secret header OR valid Supabase JWT.
+    {
+      const __auth = await authorizeCronOrJwt(req);
+      if (!__auth.ok) {
+        return new Response(
+          JSON.stringify({ error: __auth.error || 'Unauthorized' }),
+          { status: __auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
     return new Response(null, { headers: corsHeaders });
   }
 

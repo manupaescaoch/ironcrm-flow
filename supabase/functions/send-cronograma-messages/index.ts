@@ -1,11 +1,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
 import { checkZapiStatus, getZapiCreds, lookupWhatsAppPhone } from '../_shared/zapi.ts';
 import { maybeSendZapiOfflineAlert } from '../_shared/zapi-alert.ts';
 
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 function normalizePhone(phone: string): string {
@@ -51,6 +52,17 @@ function getBrasiliaTime() {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
+
+    // SECURITY: require cron secret header OR valid Supabase JWT.
+    {
+      const __auth = await authorizeCronOrJwt(req);
+      if (!__auth.ok) {
+        return new Response(
+          JSON.stringify({ error: __auth.error || 'Unauthorized' }),
+          { status: __auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
     return new Response(null, { headers: corsHeaders });
   }
 
