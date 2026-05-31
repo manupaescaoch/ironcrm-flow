@@ -18,6 +18,7 @@ import {
   isAnexoValido,
   uploadReuniaoAnexo,
 } from '@/hooks/useReuniaoAnexos';
+import { useUnidadeUsers } from '@/hooks/useUnidadeUsers';
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
