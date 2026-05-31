@@ -1,26 +1,79 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
-import { checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendText } from '../_shared/zapi.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendText, logEnvio } from '../_shared/zapi.ts';
+
+const MAX_MESSAGE_LEN = 1000;
+
+function maskPhone(p: string): string {
+  const d = p.replace(/\D/g, '');
+  if (d.length < 4) return '***';
+  return d.slice(0, 4) + '***' + d.slice(-2);
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
   try {
-    const { phone, message } = await req.json();
-    if (!phone || !message) {
-      return new Response(JSON.stringify({ error: 'phone e message obrigatórios' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    // 1) Auth — exigir JWT válido
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return json({ error: 'Unauthorized' }, 401);
     }
-    const creds = getZapiCreds();
-    if (!creds) {
-      return new Response(JSON.stringify({ error: 'credenciais Z-API ausentes' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const token = authHeader.replace('Bearer ', '');
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
+      return json({ error: 'Unauthorized' }, 401);
+    }
+    const userId = claimsData.claims.sub as string;
+
+    // 2) Role — somente admin pode disparar testes de WhatsApp
+    const { data: isAdmin, error: roleErr } = await supabase.rpc('has_role', {
+      _user_id: userId,
+      _role: 'admin',
+    });
+    if (roleErr || isAdmin !== true) {
+      return json({ error: 'Forbidden' }, 403);
     }
 
-    const normalizedPhone = (() => {
-      const digits = phone.replace(/\D/g, '');
-      return digits.startsWith('55') ? digits : `55${digits}`;
-    })();
+    // 3) Payload validation
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return json({ error: 'Invalid JSON' }, 400);
+    }
+
+    const phoneRaw = typeof body?.phone === 'string' ? body.phone : '';
+    const message = typeof body?.message === 'string' ? body.message : '';
+    if (!phoneRaw || !message) {
+      return json({ error: 'phone e message obrigatórios' }, 400);
+    }
+    if (message.length > MAX_MESSAGE_LEN) {
+      return json({ error: `message excede ${MAX_MESSAGE_LEN} caracteres` }, 400);
+    }
+    const digits = phoneRaw.replace(/\D/g, '');
+    if (digits.length < 10 || digits.length > 15) {
+      return json({ error: 'telefone inválido' }, 400);
+    }
+    const normalizedPhone = digits.startsWith('55') ? digits : `55${digits}`;
+
+    // 4) Z-API — secrets só do ambiente
+    const creds = getZapiCreds();
+    if (!creds) {
+      return json({ error: 'credenciais Z-API ausentes' }, 500);
+    }
 
     const [status, lookup] = await Promise.all([
       checkZapiStatus(creds),
@@ -32,23 +85,24 @@ Deno.serve(async (req) => {
     const messageId = result.body?.messageId || result.body?.id || null;
     const reallyOk = result.ok && !!messageId;
 
-    return new Response(JSON.stringify({
+    // 5) Auditoria
+    await logEnvio(supabase, {
+      funcao: 'send-zapi-test',
+      destino: maskPhone(sendPhone),
+      tipo_destino: 'interno',
+      sucesso: reallyOk,
+      erro_msg: reallyOk ? null : (result.body?.error ? String(result.body.error).slice(0, 500) : null),
+      zapi_status_code: result.status,
+    });
+
+    return json({
       ok: reallyOk,
       status: result.status,
-      sendPhone,
       zapiConnected: status.connected,
-      lookup: {
-        exists: lookup.exists,
-        phone: lookup.phone,
-      },
-      body: result.body,
+      lookup: { exists: lookup.exists },
       messageId,
-    }), {
-      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return json({ error: String(e) }, 500);
   }
 });
