@@ -123,7 +123,7 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
       </div>
 
       {/* Linha 2 — Funil Comercial + Diagnóstico da Semana */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
         <FunilComercialCard
           leads={stats.total}
           agendamentos={periodStats.experimentaisPeriodo}
@@ -141,8 +141,9 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
 
       {/* Linha 3 — Operação do Dia */}
       <div>
-        <h2 className="text-xs font-semibold text-foreground/80 mb-2 px-1">Operação do Dia</h2>
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <h2 className="text-xs font-semibold text-foreground/80 mb-1 px-1">Operação do Dia</h2>
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2">
+
           <FollowUpKPI
             pendingCount={followUpPendingCount}
             d1Count={followUpD1Count}
