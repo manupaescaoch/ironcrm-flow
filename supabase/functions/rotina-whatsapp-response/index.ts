@@ -106,16 +106,26 @@ Deno.serve(async (req) => {
     });
   }
 
-  // CAMADA 0 — config fail-closed
-  const expectedInstanceId = Deno.env.get('ZAPI_INSTANCE_ID');
+  // CAMADA 0 — config fail-closed.
+  // Aceita as 3 fontes possíveis de instância: comercial, operacional ou legacy.
+  const instanceComercial = Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID') || '';
+  const instanceOperacional = Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') || '';
+  const instanceLegacy = Deno.env.get('ZAPI_INSTANCE_ID') || '';
+  const acceptedInstances: { id: string; canal: 'comercial' | 'operacional' | 'legacy' }[] = [];
+  if (instanceComercial) acceptedInstances.push({ id: instanceComercial, canal: 'comercial' });
+  if (instanceOperacional) acceptedInstances.push({ id: instanceOperacional, canal: 'operacional' });
+  if (instanceLegacy && !acceptedInstances.find((x) => x.id === instanceLegacy)) {
+    acceptedInstances.push({ id: instanceLegacy, canal: 'legacy' });
+  }
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!expectedInstanceId || !supabaseUrl || !serviceKey) {
+  if (acceptedInstances.length === 0 || !supabaseUrl || !serviceKey) {
     return new Response(JSON.stringify({ error: 'Server misconfigured' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
   const supabase = createClient(supabaseUrl, serviceKey);
+
 
   // CAMADA 1 — parse + Zod
   let rawPayload: unknown;
