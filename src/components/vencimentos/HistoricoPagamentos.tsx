@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { cn } from '@/lib/utils';
+import { parseDateOnly } from '@/lib/brasilia';
 
 interface PagamentoHistorico {
   id: string;
@@ -77,8 +78,8 @@ export function HistoricoPagamentos() {
           nomeAluno: lead?.nome || 'N/A',
           telefone: lead?.telefone || null,
           plano: interacao?.plano_escolhido || 'N/A',
-          dataVencimento: new Date(p.data_vencimento),
-          dataConfirmacao: new Date(p.data_confirmacao),
+          dataVencimento: parseDateOnly(p.data_vencimento) as Date,
+          dataConfirmacao: parseDateOnly(p.data_confirmacao) as Date,
           confirmadoPor: p.confirmado_por,
           observacao: p.observacao,
         };
