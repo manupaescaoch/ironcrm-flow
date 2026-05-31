@@ -11,6 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useReunioesData } from '@/hooks/useReunioesData';
 import { TIPOS_REUNIAO } from './constants';
+import { RichTextEditor, isRichTextEmpty } from '@/components/ui/rich-text-editor';
 
 interface Props {
   onSaved?: () => void;
@@ -44,7 +45,7 @@ export function NovaReuniao({ onSaved }: Props) {
     if (!unidadeId) return toast({ title: 'Selecione a unidade', variant: 'destructive' });
     if (!responsavel.trim()) return toast({ title: 'Informe o responsável pela reunião', variant: 'destructive' });
     if (participantes.length === 0) return toast({ title: 'Adicione ao menos um participante', variant: 'destructive' });
-    if (!pauta.trim()) return toast({ title: 'Informe a pauta', variant: 'destructive' });
+    if (isRichTextEmpty(pauta)) return toast({ title: 'Informe a pauta', variant: 'destructive' });
 
     setSaving(true);
     try {
@@ -54,7 +55,7 @@ export function NovaReuniao({ onSaved }: Props) {
         data,
         responsavel: responsavel.trim().toUpperCase(),
         participantes,
-        pauta: pauta.trim(),
+        pauta,
         feedback: feedback.trim() || null,
         status: 'aberta',
       });
@@ -140,7 +141,12 @@ export function NovaReuniao({ onSaved }: Props) {
 
       <div className="space-y-1.5">
         <Label>Pauta da reunião *</Label>
-        <Textarea rows={5} value={pauta} onChange={(e) => setPauta(e.target.value)} />
+        <RichTextEditor
+          value={pauta}
+          onChange={setPauta}
+          placeholder="Digite a pauta. Use a barra de ferramentas para formatar e inserir tabelas..."
+          minHeight={220}
+        />
       </div>
 
       <div className="space-y-1.5">

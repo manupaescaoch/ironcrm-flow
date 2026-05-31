@@ -138,3 +138,48 @@ All colors MUST be HSL.
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 }
+
+/* Tiptap editor — bloco de notas */
+.tiptap-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground) / 0.6);
+  pointer-events: none;
+  height: 0;
+}
+.tiptap-editor table,
+.prose .tiptap-table {
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  width: 100%;
+  table-layout: fixed;
+  overflow: hidden;
+}
+.tiptap-editor th,
+.tiptap-editor td,
+.prose .tiptap-table th,
+.prose .tiptap-table td {
+  border: 1px solid hsl(var(--border));
+  padding: 0.4rem 0.6rem;
+  vertical-align: top;
+  position: relative;
+  min-width: 2rem;
+}
+.tiptap-editor th,
+.prose .tiptap-table th {
+  background: hsl(var(--muted));
+  font-weight: 600;
+  text-align: left;
+}
+.tiptap-editor .selectedCell:after {
+  content: "";
+  position: absolute; inset: 0;
+  background: hsl(var(--primary) / 0.12);
+  pointer-events: none;
+}
+.tiptap-editor blockquote {
+  border-left: 3px solid hsl(var(--border));
+  padding-left: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0.5rem 0;
+}

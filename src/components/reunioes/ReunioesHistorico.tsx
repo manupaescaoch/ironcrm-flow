@@ -17,6 +17,11 @@ function formatDate(iso: string) {
   return new Date(y, m - 1, d).toLocaleDateString('pt-BR');
 }
 
+function stripHtml(s: string | null | undefined) {
+  if (!s) return '';
+  return s.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 export function ReunioesHistorico() {
   const { reunioes, loading, deleteReuniao } = useReunioesData();
   const { unidades } = useUnidade();
@@ -41,7 +46,7 @@ export function ReunioesHistorico() {
       if (dataFim && r.data > dataFim) return false;
       if (search) {
         const q = search.toLowerCase();
-        const hay = `${r.tipo} ${r.responsavel ?? ''} ${r.pauta ?? ''} ${r.feedback ?? ''} ${r.participantes.join(' ')}`.toLowerCase();
+        const hay = `${r.tipo} ${r.responsavel ?? ''} ${stripHtml(r.pauta)} ${stripHtml(r.feedback)} ${r.participantes.join(' ')}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -141,7 +146,7 @@ export function ReunioesHistorico() {
                       </div>
                     </TableCell>
                     <TableCell className="max-w-[280px] truncate text-sm text-muted-foreground">
-                      {r.pauta || '—'}
+                      {stripHtml(r.pauta) || '—'}
                     </TableCell>
                     <TableCell><ReuniaoStatusBadge status={r.status} /></TableCell>
                   </TableRow>
