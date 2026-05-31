@@ -1,8 +1,9 @@
 export const TIPOS_REUNIAO = [
+  'COORDENAÇÃO GERAL',
   'COMERCIAL',
-  'OPERACIONAL',
-  'COORDENAÇÃO',
-  'GERAL',
+  'COORDENADOR DE TURNO',
+  'ESTAGIÁRIO',
+  'SERVIÇOS GERAIS',
   'OUTRO',
 ] as const;
 
