@@ -227,23 +227,23 @@ export const KPICard = memo(function KPICard({
         )}
         onClick={onClick}
       >
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className={iconBgClass}>
-              <Icon className={cn('w-5 h-5', resolvedIconColor)} />
+        <CardContent className="p-3">
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className={cn(iconBgClass, '!w-8 !h-8 !rounded-lg')}>
+              <Icon className={cn('w-4 h-4', resolvedIconColor)} />
             </div>
             <p
               lang="pt-BR"
-              className="text-xs font-medium text-muted-foreground leading-tight min-w-0 flex-1 hyphens-auto [word-break:normal] [overflow-wrap:break-word]"
+              className="text-[11px] font-medium text-muted-foreground leading-tight min-w-0 flex-1 hyphens-auto [word-break:normal] [overflow-wrap:break-word]"
             >
               {title}
             </p>
           </div>
-          <p className={cn('text-3xl font-bold leading-none mb-2 truncate', resolvedValueColor)}>
+          <p className={cn('text-2xl font-bold leading-none mb-1 truncate', resolvedValueColor)}>
             {value}
           </p>
           {subtitle && (
-            <p className="text-xs text-muted-foreground leading-snug line-clamp-2">{subtitle}</p>
+            <p className="text-[11px] text-muted-foreground leading-tight line-clamp-1">{subtitle}</p>
           )}
           {VariacaoDisplay}
         </CardContent>
