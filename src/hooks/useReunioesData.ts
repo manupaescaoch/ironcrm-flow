@@ -31,7 +31,7 @@ export interface ReuniaoInput {
 }
 
 export function useReunioesData() {
-  const { unidadeAtual } = useUnidade();
+  const { unidadeAtual, unidadesPermitidas } = useUnidade();
   const { isAdmin } = useAuth();
   const [reunioes, setReunioes] = useState<Reuniao[]>([]);
   const [loading, setLoading] = useState(true);
