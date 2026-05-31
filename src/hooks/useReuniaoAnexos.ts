@@ -17,6 +17,56 @@ export interface ReuniaoAnexo {
 
 const BUCKET = 'reuniao-anexos';
 
+export const ACCEPTED_ANEXO_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx'];
+export const ACCEPTED_ANEXO_ATTR =
+  '.pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+export const ACCEPTED_ANEXO_LABEL = 'PDF, DOC, DOCX, XLS, XLSX';
+const MAX_BYTES = 15 * 1024 * 1024;
+
+export function isAnexoValido(file: File): { ok: boolean; reason?: string } {
+  const ext = ('.' + (file.name.split('.').pop() || '').toLowerCase()) as string;
+  if (!ACCEPTED_ANEXO_EXTENSIONS.includes(ext)) {
+    return { ok: false, reason: `Formato não permitido. Aceitos: ${ACCEPTED_ANEXO_LABEL}.` };
+  }
+  if (file.size > MAX_BYTES) {
+    return { ok: false, reason: 'Arquivo muito grande. Limite de 15MB.' };
+  }
+  return { ok: true };
+}
+
+export async function uploadReuniaoAnexo(reuniaoId: string, unidadeId: string, file: File) {
+  const v = isAnexoValido(file);
+  if (!v.ok) throw new Error(v.reason);
+  const { data: userData } = await supabase.auth.getUser();
+  const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+  const path = `${reuniaoId}/${Date.now()}_${safeName}`;
+  const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, {
+    cacheControl: '3600', upsert: false, contentType: file.type || 'application/octet-stream',
+  });
+  if (upErr) throw upErr;
+
+  const userName =
+    (userData.user?.user_metadata as any)?.full_name ||
+    (userData.user?.user_metadata as any)?.name ||
+    userData.user?.email ||
+    null;
+
+  const { error: insErr } = await supabase.from('reuniao_anexos' as any).insert({
+    reuniao_id: reuniaoId,
+    unidade_id: unidadeId,
+    file_path: path,
+    file_name: file.name,
+    mime_type: file.type || null,
+    size_bytes: file.size,
+    uploaded_by: userData.user?.id ?? null,
+    uploaded_by_name: userName,
+  } as any);
+  if (insErr) {
+    await supabase.storage.from(BUCKET).remove([path]);
+    throw insErr;
+  }
+}
+
 export function useReuniaoAnexos(reuniaoId: string | null, unidadeId: string | null) {
   const [anexos, setAnexos] = useState<ReuniaoAnexo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -48,48 +98,13 @@ export function useReuniaoAnexos(reuniaoId: string | null, unidadeId: string | n
 
   const uploadAnexo = useCallback(async (file: File) => {
     if (!reuniaoId || !unidadeId) return;
-    if (file.type !== 'application/pdf') {
-      toast({ title: 'Somente PDF é permitido', variant: 'destructive' });
-      return;
-    }
-    if (file.size > 15 * 1024 * 1024) {
-      toast({ title: 'Arquivo muito grande', description: 'Limite de 15MB.', variant: 'destructive' });
-      return;
-    }
     setUploading(true);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const safeName = file.name.replace(/[^\w.\-]+/g, '_');
-      const path = `${reuniaoId}/${Date.now()}_${safeName}`;
-      const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, {
-        cacheControl: '3600', upsert: false, contentType: file.type,
-      });
-      if (upErr) throw upErr;
-
-      const userName =
-        (userData.user?.user_metadata as any)?.full_name ||
-        (userData.user?.user_metadata as any)?.name ||
-        userData.user?.email ||
-        null;
-
-      const { error: insErr } = await supabase.from('reuniao_anexos' as any).insert({
-        reuniao_id: reuniaoId,
-        unidade_id: unidadeId,
-        file_path: path,
-        file_name: file.name,
-        mime_type: file.type,
-        size_bytes: file.size,
-        uploaded_by: userData.user?.id ?? null,
-        uploaded_by_name: userName,
-      } as any);
-      if (insErr) {
-        await supabase.storage.from(BUCKET).remove([path]);
-        throw insErr;
-      }
-      toast({ title: 'PDF anexado' });
+      await uploadReuniaoAnexo(reuniaoId, unidadeId, file);
+      toast({ title: 'Arquivo anexado' });
       await fetchAnexos();
     } catch (err: any) {
-      toast({ title: 'Erro ao anexar PDF', description: err.message, variant: 'destructive' });
+      toast({ title: 'Erro ao anexar arquivo', description: err.message, variant: 'destructive' });
     } finally {
       setUploading(false);
     }
