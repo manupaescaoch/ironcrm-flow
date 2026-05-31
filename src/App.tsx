@@ -37,6 +37,7 @@ import EncerramentoHorario from "./pages/EncerramentoHorario";
 import RelatorioDiarioComercial from "./pages/RelatorioDiarioComercial";
 import GruposWhatsApp from "./pages/admin/GruposWhatsApp";
 import WhatsAppComercial from "./pages/admin/WhatsAppComercial";
+import ZapiConexoes from "./pages/admin/ZapiConexoes";
 import DashboardOperacional from "./pages/DashboardOperacional";
 
 import GestaoOperacional from "./pages/GestaoOperacional";
@@ -148,6 +149,7 @@ const AppRoutes = () => (
     <Route path="/relatorio-diario-comercial" element={<RelatorioDiarioComercial />} />
     <Route path="/admin/grupos-whatsapp" element={<ProtectedRoute><GruposWhatsApp /></ProtectedRoute>} />
     <Route path="/admin/whatsapp-comercial" element={<ProtectedRoute><WhatsAppComercial /></ProtectedRoute>} />
+    <Route path="/admin/zapi-conexoes" element={<AdminRoute><ZapiConexoes /></AdminRoute>} />
 
     <Route path="/dashboard-operacional" element={<ProtectedRoute><DashboardOperacional /></ProtectedRoute>} />
     <Route path="/anamnese-publica/:id" element={<AnamnesePublica />} />
