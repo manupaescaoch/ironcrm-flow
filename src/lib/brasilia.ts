@@ -121,3 +121,16 @@ export function getBrasiliaDayBounds(dateOnly: string): { start: string; end: st
     end: `${dateOnly}T23:59:59${BRASILIA_UTC_OFFSET}`,
   };
 }
+
+/**
+ * Converte string DATE ("YYYY-MM-DD") em Date local, evitando o bug onde
+ * `new Date("2026-06-01")` é interpretado como UTC e exibido como 31/05 em
+ * Brasília (-03h). Use SEMPRE para colunas do tipo DATE do Postgres.
+ */
+export function parseDateOnly(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const [datePart] = value.split('T');
+  const [y, m, d] = datePart.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
