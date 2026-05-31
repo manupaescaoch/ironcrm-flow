@@ -1,110 +1,44 @@
-## Módulo Reuniões
+## Objetivo
+Transformar o campo **Pauta da reunião** num editor estilo bloco de notas com formatação (negrito, itálico, listas, títulos, etc.) e suporte a **tabelas**.
 
-Novo módulo administrativo/coordenação para registrar atas de reunião e acompanhar encaminhamentos. Segue o padrão visual e arquitetural do CRM (Layout + Tabs + shadcn + React Query + Supabase + filtro por `unidade_id`).
+## Stack
+Usar **Tiptap** (já é padrão React + Tailwind, leve, headless), com extensões:
+- `@tiptap/react`, `@tiptap/starter-kit` (negrito, itálico, sublinhado, listas, headings, blockquote, código)
+- `@tiptap/extension-table`, `table-row`, `table-cell`, `table-header` (tabelas com add/remove linhas/colunas)
+- `@tiptap/extension-underline`, `@tiptap/extension-link`, `@tiptap/extension-placeholder`
 
-### 1. Banco de dados (migration)
+O conteúdo é salvo como **HTML** no mesmo campo `pauta` (text) — sem migração de banco. Pautas antigas em texto puro continuam aparecendo normalmente (HTML aceita texto livre).
 
-**Tabela `reunioes`**
-- `id uuid pk`
-- `unidade_id uuid not null`
-- `tipo text not null` (ex.: COMERCIAL, OPERACIONAL, GERAL, COORDENAÇÃO, OUTRO — uppercase)
-- `data date not null`
-- `participantes text[] not null default '{}'`
-- `numeros_periodo jsonb not null default '{}'` (campos livres: leads, matrículas, faturamento, etc.)
-- `pauta text`
-- `decisoes text`
-- `resumo text` (resumo curto para a listagem)
-- `status text not null default 'aberta'` (aberta | concluida | arquivada)
-- `criado_por uuid` (auth.uid())
-- `created_at`, `updated_at` com trigger
+## Mudanças
 
-**Tabela `reunioes_encaminhamentos`**
-- `id uuid pk`
-- `reuniao_id uuid not null` → cascade delete
-- `unidade_id uuid not null` (denormalizado para RLS/filtragem)
-- `acao text not null`
-- `responsavel_id uuid` (opcional, referencia auth.users)
-- `responsavel_nome text` (snapshot uppercase)
-- `prazo date`
-- `status text not null default 'aberto'` (aberto | em_andamento | concluido | atrasado)
-- `created_at`, `updated_at`
+### 1. Novo componente `src/components/ui/rich-text-editor.tsx`
+- Editor Tiptap reutilizável com toolbar fixa no topo.
+- Toolbar: Negrito · Itálico · Sublinhado · H2/H3 · Lista · Lista numerada · Citação · Link · **Inserir tabela** · Adicionar linha/coluna · Remover linha/coluna · Desfazer/Refazer.
+- Visual estilo "bloco de notas": fundo `bg-background`, borda sutil, padding generoso, fonte do projeto, `prose prose-sm` para estilizar conteúdo.
+- Props: `value`, `onChange`, `placeholder`, `minHeight`.
 
-**Permissões** (mesmo padrão de `cronograma_atividades`):
-- `GRANT`s para `authenticated`/`service_role`.
-- RLS habilitado.
-- Policies:
-  - `select`: admin OU `unidade_id IN (get_user_unidades(auth.uid()))`.
-  - `insert/update/delete`: admin OU (`coordenador` E `unidade_id IN get_user_unidades`).
-- Trigger `updated_at` reaproveitando `public.update_updated_at_column()`.
-- Trigger para sincronizar `unidade_id` em encaminhamentos a partir da reunião.
-- Trigger automático: marcar encaminhamento como `atrasado` quando `prazo < CURRENT_DATE AND status IN ('aberto','em_andamento')` (via função `recompute_encaminhamento_status` chamada em select via view OU computado no frontend — vamos optar por computar no frontend para simplicidade, mantendo o status real no banco).
+### 2. `src/components/reunioes/NovaReuniao.tsx`
+- Trocar o `<Textarea>` da pauta pelo `<RichTextEditor>`.
+- Validação: usar `editor.getText().trim()` para checar se está vazio (HTML pode ter `<p></p>` vazio).
+- Salvar `editor.getHTML()` em `pauta`.
 
-### 2. Rota e menu
+### 3. `src/components/reunioes/ReuniaoDetalheDrawer.tsx`
+- Renderizar `reuniao.pauta` como HTML com `dangerouslySetInnerHTML` dentro de um wrapper `prose prose-sm` para estilo de tabelas/listas/títulos.
+- Sanitizar com **DOMPurify** antes de injetar (segurança XSS).
 
-- Adicionar rota `/reunioes` (ProtectedRoute) em `src/App.tsx`.
-- Em `src/components/Layout.tsx`, inserir item `{ href: '/reunioes', label: 'Reuniões', icon: Handshake, roles: ['admin','coordenador'] }` **entre** Operacional e Escala. (Recepção/comercial não veem; segue regra de coordenação/admin.)
+### 4. `src/components/reunioes/ReunioesHistorico.tsx`
+- Preview da coluna "Pauta" na tabela: extrair texto puro (strip de tags) e truncar — evita HTML solto na linha.
+- Busca (`hay`) também usa o texto puro.
 
-### 3. Páginas e componentes
+### 5. CSS — `src/index.css`
+- Adicionar estilos `.tiptap-editor` para tabelas (borda, header destacado, células com padding), placeholder e foco. Tudo via tokens semânticos do tema.
 
-```text
-src/pages/Reunioes.tsx                     # Shell com Tabs (Histórico | Nova | Pendentes)
-src/components/reunioes/
-  ReunioesHistoricoTab.tsx                 # Lista + filtros + drawer detalhe
-  ReunioesHistoricoFilters.tsx
-  ReuniaoDetalheDrawer.tsx                 # Sheet com dados gerais, números, pauta, decisões, encaminhamentos
-  NovaReuniaoTab.tsx                       # Formulário react-hook-form + zod
-  EncaminhamentosFieldArray.tsx            # Subform multi-itens (ação/responsável/prazo/status)
-  PendentesTab.tsx                         # Listagem consolidada + filtros + update inline de status
-  PendentesFilters.tsx
-  ReuniaoStatusBadge.tsx
-  EncaminhamentoStatusBadge.tsx
-  constants.ts                             # TIPOS_REUNIAO, STATUS_*, opções
-src/hooks/
-  useReunioesData.ts                       # CRUD reuniões (React Query)
-  useEncaminhamentosData.ts                # CRUD encaminhamentos + update status
-```
+## Detalhes técnicos
+- Dependências novas: `@tiptap/react`, `@tiptap/pm`, `@tiptap/starter-kit`, `@tiptap/extension-table`, `@tiptap/extension-table-row`, `@tiptap/extension-table-cell`, `@tiptap/extension-table-header`, `@tiptap/extension-underline`, `@tiptap/extension-link`, `@tiptap/extension-placeholder`, `dompurify`, `@types/dompurify`.
+- Coluna `pauta` permanece `text` — sem migração.
+- Compatibilidade retroativa: registros antigos (texto puro) renderizam corretamente como HTML.
+- Acessibilidade: botões da toolbar com `aria-label` e estado `aria-pressed` quando ativo.
 
-**Padrões reaproveitados**
-- `Layout`, `Tabs`, `Card`, `Table`, `Badge`, `Select`, `Input`, `Textarea`, `Calendar`, `Dialog`/`Sheet`, `Form` (shadcn).
-- Filtro por unidade via `useUnidade()` (`unidadeAtual.id`).
-- Uppercase automático nos inputs de texto (Core memory).
-- Datas usando `new Date(ano, mes-1, dia)` para evitar timezone.
-- Estados loading / empty / error iguais aos de `GestaoTarefas` e `Operacional`.
-
-### 4. Telas — detalhes
-
-**Histórico**
-- Tabela com colunas: Tipo, Unidade, Data, Participantes (chips), Resumo, # Encaminhamentos, # Pendentes (status ≠ concluido), Status, Ações.
-- Filtros: unidade (admin), tipo, período (date range), status.
-- Linha clicável → `ReuniaoDetalheDrawer` (Sheet lateral) com: dados gerais, números do período (renderizar `jsonb`), pauta, decisões, lista de encaminhamentos com status.
-
-**Nova Reunião**
-- Formulário validado (zod): tipo*, unidade* (preenchida com `unidadeAtual`, admin pode trocar), data*, participantes* (input com chips), números do período (campos dinâmicos chave/valor ou estrutura fixa: leads, agendamentos, matrículas, faturamento — vou usar estrutura fixa com 6 campos numéricos opcionais + observações), pauta, decisões, encaminhamentos (field array com ação*, responsável (select de usuários da unidade via `useUnidadeUsers`), prazo, status inicial padrão `aberto`).
-- Botão salvar: insere reunião e encaminhamentos em transação client-side (insert reunião → insert encaminhamentos com `reuniao_id`).
-- Após salvar, redireciona para Histórico com toast.
-
-**Pendentes**
-- Query: todos encaminhamentos com `status IN ('aberto','em_andamento','atrasado')` da unidade atual (admin: todas).
-- Tabela: Ação, Responsável, Unidade, Tipo reunião (join), Data reunião, Prazo, Status (select inline para atualizar).
-- Filtros: responsável, unidade, tipo de reunião, status, prazo (range).
-- Update inline via `useEncaminhamentosData` → invalida queries.
-
-### 5. Permissões frontend
-
-- Item de menu visível apenas para `admin` e `coordenador`.
-- Página inteira protegida via novo wrapper `AdminOrCoordenadorRoute` em `App.tsx` (similar a `AdminRoute`).
-- Edição/criação só liberadas para admin (qualquer unidade) ou coordenador (apenas unidade atual).
-
-### 6. Pontos abertos / decisões padrão
-
-- **Tipos de reunião** padrão: COMERCIAL, OPERACIONAL, COORDENAÇÃO, GERAL, OUTRO.
-- **Números do período**: estrutura fixa (leads, agendamentos, experimentais, matrículas, faturamento, cancelamentos) — todos opcionais; armazenados como `jsonb` para flexibilidade futura.
-- **Atrasados** computados em runtime no frontend (sem cron); badge fica vermelho se `prazo < hoje` e status ainda aberto/em_andamento.
-
-### 7. Entregáveis
-
-1. Migration SQL (2 tabelas + grants + RLS + triggers).
-2. Rota + item de menu.
-3. Página `Reunioes.tsx` com 3 tabs.
-4. Hooks e componentes listados acima.
-5. Memory entry resumindo o módulo.
+## Fora do escopo
+- Não mexer no campo `feedback` (também é texto). Posso aplicar o mesmo editor a ele depois, se quiser.
+- Sem upload de imagem no editor nesta entrega.
