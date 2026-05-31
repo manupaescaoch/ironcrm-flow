@@ -2036,10 +2036,12 @@ export type Database = {
           criado_por: string | null
           data: string
           decisoes: string | null
+          feedback: string | null
           id: string
           numeros_periodo: Json
           participantes: string[]
           pauta: string | null
+          responsavel: string | null
           resumo: string | null
           status: string
           tipo: string
@@ -2051,10 +2053,12 @@ export type Database = {
           criado_por?: string | null
           data: string
           decisoes?: string | null
+          feedback?: string | null
           id?: string
           numeros_periodo?: Json
           participantes?: string[]
           pauta?: string | null
+          responsavel?: string | null
           resumo?: string | null
           status?: string
           tipo: string
@@ -2066,10 +2070,12 @@ export type Database = {
           criado_por?: string | null
           data?: string
           decisoes?: string | null
+          feedback?: string | null
           id?: string
           numeros_periodo?: Json
           participantes?: string[]
           pauta?: string | null
+          responsavel?: string | null
           resumo?: string | null
           status?: string
           tipo?: string
