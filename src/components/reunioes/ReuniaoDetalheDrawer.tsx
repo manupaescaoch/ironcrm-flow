@@ -230,7 +230,7 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete }: 
                   })}
                 </ul>
               )}
-              <p className="text-[11px] text-muted-foreground mt-2">Somente PDF • até 15 MB.</p>
+              <p className="text-[11px] text-muted-foreground mt-2">{ACCEPTED_ANEXO_LABEL} • até 15 MB.</p>
             </section>
           </div>
         </ScrollArea>
