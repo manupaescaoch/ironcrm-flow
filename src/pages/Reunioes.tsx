@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Handshake, History, PlusCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Handshake, History, PlusCircle, Loader2 } from 'lucide-react';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { ReunioesHistorico } from '@/components/reunioes/ReunioesHistorico';
 import { NovaReuniao } from '@/components/reunioes/NovaReuniao';
-import { PendentesEncaminhamentos } from '@/components/reunioes/PendentesEncaminhamentos';
 
 export default function Reunioes() {
   const { unidadeAtual, loading } = useUnidade();
@@ -28,7 +27,7 @@ export default function Reunioes() {
           <Handshake className="w-6 h-6 text-primary" />
           <div>
             <h1 className="text-2xl font-bold">Reuniões</h1>
-            <p className="text-sm text-muted-foreground">Atas, decisões e encaminhamentos</p>
+            <p className="text-sm text-muted-foreground">Atas e feedbacks de reuniões</p>
           </div>
         </div>
 
@@ -40,9 +39,6 @@ export default function Reunioes() {
             <TabsTrigger value="nova" className="gap-1.5">
               <PlusCircle className="w-4 h-4" /> Nova Reunião
             </TabsTrigger>
-            <TabsTrigger value="pendentes" className="gap-1.5">
-              <AlertCircle className="w-4 h-4" /> Pendentes
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="historico" className="mt-4">
@@ -50,9 +46,6 @@ export default function Reunioes() {
           </TabsContent>
           <TabsContent value="nova" className="mt-4">
             <NovaReuniao onSaved={() => setTab('historico')} />
-          </TabsContent>
-          <TabsContent value="pendentes" className="mt-4">
-            <PendentesEncaminhamentos />
           </TabsContent>
         </Tabs>
       </div>

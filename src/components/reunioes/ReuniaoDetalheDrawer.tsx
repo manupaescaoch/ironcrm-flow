@@ -2,11 +2,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { CalendarDays, Users, Trash2 } from 'lucide-react';
+import { CalendarDays, Users, Trash2, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Reuniao } from '@/hooks/useReunioesData';
-import { NUMEROS_PERIODO_CAMPOS } from './constants';
-import { ReuniaoStatusBadge, EncaminhamentoStatusBadge } from './EncaminhamentoStatusBadge';
+import { ReuniaoStatusBadge } from './EncaminhamentoStatusBadge';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -47,7 +46,17 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete }: 
 
         <ScrollArea className="flex-1 -mx-6 px-6">
           <div className="space-y-5 py-4">
-            {/* Participantes */}
+            {reuniao.responsavel && (
+              <section>
+                <h4 className="text-xs uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <UserCheck className="w-3.5 h-3.5" /> Responsável pela reunião
+                </h4>
+                <p className="text-sm font-medium">{reuniao.responsavel}</p>
+              </section>
+            )}
+
+            <Separator />
+
             <section>
               <h4 className="text-xs uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5" /> Participantes
@@ -63,71 +72,25 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete }: 
               )}
             </section>
 
-            <Separator />
-
-            {/* Números do período */}
-            <section>
-              <h4 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Números do período</h4>
-              <div className="grid grid-cols-2 gap-2">
-                {NUMEROS_PERIODO_CAMPOS.map(({ key, label }) => {
-                  const value = reuniao.numeros_periodo?.[key];
-                  if (value === undefined || value === null || value === '') return null;
-                  return (
-                    <div key={key} className="rounded-md border bg-muted/30 px-3 py-2">
-                      <p className="text-[10px] uppercase text-muted-foreground">{label}</p>
-                      <p className="text-sm font-semibold">{String(value)}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-
             {reuniao.pauta && (
               <>
                 <Separator />
                 <section>
-                  <h4 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Pauta</h4>
+                  <h4 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Pauta da reunião</h4>
                   <p className="text-sm whitespace-pre-wrap">{reuniao.pauta}</p>
                 </section>
               </>
             )}
 
-            {reuniao.decisoes && (
+            {reuniao.feedback && (
               <>
                 <Separator />
                 <section>
-                  <h4 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Decisões</h4>
-                  <p className="text-sm whitespace-pre-wrap">{reuniao.decisoes}</p>
+                  <h4 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Feedback da reunião</h4>
+                  <p className="text-sm whitespace-pre-wrap">{reuniao.feedback}</p>
                 </section>
               </>
             )}
-
-            <Separator />
-
-            {/* Encaminhamentos */}
-            <section>
-              <h4 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
-                Encaminhamentos ({reuniao.encaminhamentos?.length ?? 0})
-              </h4>
-              {!reuniao.encaminhamentos || reuniao.encaminhamentos.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum encaminhamento.</p>
-              ) : (
-                <div className="space-y-2">
-                  {reuniao.encaminhamentos.map((e) => (
-                    <div key={e.id} className="rounded-md border p-3 space-y-1.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-medium leading-snug">{e.acao}</p>
-                        <EncaminhamentoStatusBadge status={e.status} prazo={e.prazo} />
-                      </div>
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                        {e.responsavel_nome && <span>👤 {e.responsavel_nome}</span>}
-                        {e.prazo && <span>📅 {formatDate(e.prazo)}</span>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
           </div>
         </ScrollArea>
 
@@ -138,7 +101,7 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete }: 
               size="sm"
               className="text-destructive hover:text-destructive"
               onClick={async () => {
-                if (confirm('Excluir esta reunião e todos os encaminhamentos?')) {
+                if (confirm('Excluir esta reunião?')) {
                   await onDelete(reuniao.id);
                   onOpenChange(false);
                 }
