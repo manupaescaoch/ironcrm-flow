@@ -29,16 +29,27 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
 
-    const instanceId = Deno.env.get('ZAPI_INSTANCE_ID');
-    const zapiToken = Deno.env.get('ZAPI_TOKEN');
+    // Canal: ?channel=comercial|operacional. Default: operacional.
+    const url0 = new URL(req.url);
+    const channelRaw = url0.searchParams.get('channel') ?? 'operacional';
+    if (channelRaw !== 'comercial' && channelRaw !== 'operacional') {
+      return new Response(JSON.stringify({ error: "channel inválido" }), { status: 400, headers: corsHeaders });
+    }
+    const prefix = channelRaw === 'comercial' ? 'ZAPI_COMERCIAL_' : 'ZAPI_OPERACIONAL_';
+    const instanceId =
+      Deno.env.get(prefix + 'INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID');
+    const zapiToken =
+      Deno.env.get(prefix + 'TOKEN') ?? Deno.env.get('ZAPI_TOKEN');
 
     if (!instanceId || !zapiToken) {
-      return new Response(JSON.stringify({ error: 'Z-API not configured' }), { status: 500, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: `Z-API not configured for ${channelRaw}` }), { status: 500, headers: corsHeaders });
     }
 
-    const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN');
+    const clientToken =
+      Deno.env.get(prefix + 'CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN');
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (clientToken) headers['Client-Token'] = clientToken;
+
 
     // Z-API exige paginação em /chats. Paginamos até esgotar.
     const all: any[] = [];
