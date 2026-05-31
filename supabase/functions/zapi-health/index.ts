@@ -164,6 +164,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         zapi: { connected: status.connected, raw: status.raw },
+        zapiByChannel,
         totais24,
         porFuncao24,
         serie7d,
@@ -173,6 +174,7 @@ Deno.serve(async (req) => {
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
+
   } catch (e: any) {
     console.error('[zapi-health] erro', e);
     return new Response(JSON.stringify({ error: e?.message ?? 'internal' }), {
