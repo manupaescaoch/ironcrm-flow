@@ -87,6 +87,7 @@ Deno.serve(async (req) => {
       headers: {
         'Content-Type': 'application/json',
         'x-internal-call': internalSecret,
+        'x-cron-secret': Deno.env.get('BACKUP_CRON_SECRET') ?? '',
         // Authorization is required by the platform router; use anon key.
         Authorization: `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
       },
