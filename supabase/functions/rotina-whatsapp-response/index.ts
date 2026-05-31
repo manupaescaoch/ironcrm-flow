@@ -385,14 +385,19 @@ Deno.serve(async (req) => {
       autorizado: true, motivoBloqueio: null, authMethod,
     });
 
-    // Confirmação best-effort
-    const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
-    const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN');
-    if (ZAPI_TOKEN) {
+    // Confirmação best-effort — sempre pela instância OPERACIONAL (canal de equipe).
+    const opInstance =
+      Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID');
+    const ZAPI_TOKEN =
+      Deno.env.get('ZAPI_OPERACIONAL_TOKEN') ?? Deno.env.get('ZAPI_TOKEN');
+    const ZAPI_CLIENT_TOKEN =
+      Deno.env.get('ZAPI_OPERACIONAL_CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN');
+    if (opInstance && ZAPI_TOKEN) {
       const confirmMessage = concluida
         ? `✅ *Rotina concluída*\n\n🔹 *${rotina.nome}*\n👤 *Registrado por:* ${matchedUserName}`
         : `⚠️ *Rotina não realizada*\n\n🔹 *${rotina.nome}*\n👤 *Registrado por:* ${matchedUserName}`;
-      const zapiUrl = `https://api.z-api.io/instances/${expectedInstanceId}/token/${ZAPI_TOKEN}/send-text`;
+      const zapiUrl = `https://api.z-api.io/instances/${opInstance}/token/${ZAPI_TOKEN}/send-text`;
+
       try {
         await fetch(zapiUrl, {
           method: 'POST',
