@@ -92,7 +92,9 @@ async function audit(
       motivo_bloqueio: data.motivoBloqueio,
       auth_method: data.authMethod,
       payload_resumo: data.payloadResumo,
+      canal_origem: (data.payloadResumo?.canalOrigem as string | null | undefined) ?? null,
     });
+
   } catch (err) {
     console.error('[rotina-response] Falha auditoria:', err);
   }
