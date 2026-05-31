@@ -62,10 +62,10 @@ export const FunilComercialCard = memo(function FunilComercialCard({
 
   return (
     <Card className="rounded-2xl border shadow-sm h-full">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold">Funil Comercial</CardTitle>
+      <CardHeader className="pb-1.5 pt-3 px-4">
+        <CardTitle className="text-sm font-semibold">Funil Comercial</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-2 pb-3 px-4">
         <div className="flex items-stretch gap-1">
           <Stage
             icon={Users}
