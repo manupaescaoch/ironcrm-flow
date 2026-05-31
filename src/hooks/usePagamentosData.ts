@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
-import { formatDateLocal } from '@/lib/brasilia';
+import { formatDateLocal, parseDateOnly } from '@/lib/brasilia';
 
 export interface PagamentoConfirmado {
   id: string;
