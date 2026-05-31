@@ -73,6 +73,9 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete, on
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingFeedback, setEditingFeedback] = useState(false);
+  const [feedbackDraft, setFeedbackDraft] = useState('');
+  const [savingFeedback, setSavingFeedback] = useState(false);
   const [editForm, setEditForm] = useState({
     tipo: '',
     data: '',
@@ -109,6 +112,10 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete, on
 
   const unidadeNome = unidades.find((u) => u.id === reuniao.unidade_id)?.nome ?? '—';
   const canEdit = isAdmin || userRole === 'coordenador' || user?.id === reuniao.criado_por;
+
+  const userName = (user?.user_metadata?.full_name || user?.user_metadata?.name || '').toString().trim().toUpperCase();
+  const isResponsavel = !!userName && userName === (reuniao.responsavel || '').trim().toUpperCase();
+  const canEditFeedback = !!onUpdate && (canEdit || isResponsavel);
 
   const handleExportPdf = async () => {
     try {
@@ -150,6 +157,25 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete, on
       setEditForm((prev) => ({ ...prev, participantes: [...prev.participantes, v], participanteInput: '' }));
     } else {
       setEditForm((prev) => ({ ...prev, participanteInput: '' }));
+    }
+  };
+
+  const startEditFeedback = () => {
+    setFeedbackDraft(reuniao.feedback ?? '');
+    setEditingFeedback(true);
+  };
+
+  const handleSaveFeedback = async () => {
+    if (!onUpdate) return;
+    setSavingFeedback(true);
+    try {
+      await onUpdate(reuniao.id, { feedback: feedbackDraft.trim() || null });
+      toast({ title: 'Feedback salvo' });
+      setEditingFeedback(false);
+    } catch (err: any) {
+      toast({ title: 'Erro ao salvar feedback', description: err.message, variant: 'destructive' });
+    } finally {
+      setSavingFeedback(false);
     }
   };
 
@@ -366,12 +392,49 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete, on
                 </TabsContent>
 
                 <TabsContent value="feedback" className="mt-0">
-                  {reuniao.feedback ? (
-                    <p className="text-sm whitespace-pre-wrap">{reuniao.feedback}</p>
+                  {editingFeedback ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        rows={6}
+                        value={feedbackDraft}
+                        onChange={(e) => setFeedbackDraft(e.target.value)}
+                        placeholder="Escreva o feedback pós-reunião..."
+                      />
+                      <div className="flex justify-end gap-1.5">
+                        <Button size="sm" variant="outline" onClick={() => setEditingFeedback(false)} disabled={savingFeedback}>
+                          Cancelar
+                        </Button>
+                        <Button size="sm" onClick={handleSaveFeedback} disabled={savingFeedback}>
+                          {savingFeedback && <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />}
+                          <Save className="w-3.5 h-3.5 mr-1" /> Salvar
+                        </Button>
+                      </div>
+                    </div>
                   ) : (
-                    <EmptyMsg text="Nenhum feedback registrado." />
+                    <div className="space-y-3">
+                      {canEditFeedback && (
+                        <div className="flex justify-end">
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs gap-1" onClick={startEditFeedback}>
+                            <Pencil className="w-3.5 h-3.5" />
+                            {reuniao.feedback ? 'Editar feedback' : 'Adicionar feedback'}
+                          </Button>
+                        </div>
+                      )}
+                      {reuniao.feedback ? (
+                        <p className="text-sm whitespace-pre-wrap">{reuniao.feedback}</p>
+                      ) : (
+                        <EmptyMsg
+                          text={
+                            canEditFeedback
+                              ? 'Nenhum feedback registrado. Adicione o feedback pós-reunião.'
+                              : 'Nenhum feedback registrado.'
+                          }
+                        />
+                      )}
+                    </div>
                   )}
                 </TabsContent>
+
 
                 <TabsContent value="anexos" className="mt-0">
                   <div className="flex justify-end mb-3">
