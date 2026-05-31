@@ -33,8 +33,8 @@ export function usePagamentosData() {
         id: p.id,
         interacaoId: p.interacao_id,
         leadId: p.lead_id,
-        dataVencimento: new Date(p.data_vencimento),
-        dataConfirmacao: new Date(p.data_confirmacao),
+        dataVencimento: parseDateOnly(p.data_vencimento) as Date,
+        dataConfirmacao: parseDateOnly(p.data_confirmacao) as Date,
         confirmadoPor: p.confirmado_por,
         observacao: p.observacao,
       }));
