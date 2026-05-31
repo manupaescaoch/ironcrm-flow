@@ -197,6 +197,56 @@ export function NovaReuniao({ onSaved }: Props) {
         <Textarea rows={5} value={feedback} onChange={(e) => setFeedback(e.target.value)} />
       </div>
 
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <Label className="flex items-center gap-1.5">
+            <Paperclip className="w-3.5 h-3.5" /> Anexos
+          </Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="w-3.5 h-3.5" /> Anexar arquivo
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={ACCEPTED_ANEXO_ATTR}
+            multiple
+            className="hidden"
+            onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
+          />
+        </div>
+        {anexos.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground">
+            {ACCEPTED_ANEXO_LABEL} • até 15 MB cada
+          </p>
+        ) : (
+          <ul className="space-y-1.5">
+            {anexos.map((f, i) => (
+              <li key={i} className="flex items-center gap-2 rounded-md border border-border/60 px-2.5 py-1.5 bg-muted/30">
+                <FileType className="w-4 h-4 text-primary shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm truncate">{f.name}</div>
+                  <div className="text-[11px] text-muted-foreground">{formatSize(f.size)}</div>
+                </div>
+                <Button
+                  size="sm" variant="ghost"
+                  className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                  onClick={() => setAnexos((prev) => prev.filter((_, idx) => idx !== i))}
+                  title="Remover"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <div className="flex justify-end pt-2 border-t">
         <Button onClick={handleSubmit} disabled={saving}>
           {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
