@@ -24,6 +24,3 @@ verify_jwt = false
 [functions.submit-formulario-publico]
 verify_jwt = false
 
-
-[functions.agente-atendimento-webhook]
-verify_jwt = false
