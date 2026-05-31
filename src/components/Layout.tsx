@@ -94,13 +94,13 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
 
   const SidebarContent = () => (
     <>
-      <div className="p-6 border-b border-sidebar-border">
+      <div className="px-4 py-4 border-b border-sidebar-border/60">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="Logo" className="w-10 h-10 rounded-lg" />
-            <div>
-              <h1 className="font-bold text-sidebar-foreground">IRON CLUB</h1>
-              <p className="text-xs text-muted-foreground">CRM</p>
+          <div className="flex items-center gap-2.5">
+            <img src={logo} alt="Logo" className="w-9 h-9 rounded-lg" />
+            <div className="leading-tight">
+              <h1 className="font-bold text-[15px] text-sidebar-foreground tracking-tight">IRON CLUB</h1>
+              <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider">CRM</p>
             </div>
           </div>
           <NotificationBell className="text-sidebar-foreground hover:bg-sidebar-accent/50" />
@@ -109,12 +109,12 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
 
       {/* Unit Selector - Visual cards for multiple units */}
       {hasMultipleUnidades && unidadeAtual && (
-        <div className="px-3 py-4 border-b border-sidebar-border">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3 px-1">
+        <div className="px-3 py-3 border-b border-sidebar-border/60">
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70 mb-2 px-1">
             <Building2 className="w-3 h-3" />
             <span className="uppercase tracking-wider font-medium">Unidade</span>
           </div>
-          <div className="space-y-2 max-h-32 overflow-y-auto scrollbar-hide">
+          <div className="space-y-1 max-h-32 overflow-y-auto scrollbar-hide">
             {unidadesPermitidas.map((unidade) => {
               const isSelected = unidadeAtual.id === unidade.id;
               return (
@@ -126,31 +126,28 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
                     navigate('/dashboard');
                   }}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
-                    'border text-left',
+                    'w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md transition-colors text-left',
                     isSelected
-                      ? 'bg-primary/10 border-primary/30 text-primary shadow-sm'
-                      : 'bg-sidebar-accent/30 border-transparent hover:bg-sidebar-accent/60 text-sidebar-foreground hover:border-sidebar-border'
+                      ? 'bg-primary/15 text-primary'
+                      : 'hover:bg-sidebar-accent/50 text-sidebar-foreground'
                   )}
                 >
                   <div className={cn(
-                    'w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold',
-                    isSelected 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-sidebar-accent text-muted-foreground'
+                    'w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold shrink-0',
+                    isSelected
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-sidebar-accent/70 text-muted-foreground'
                   )}>
                     {unidade.nome.substring(0, 2).toUpperCase()}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={cn(
-                      'text-sm font-medium truncate',
-                      isSelected ? 'text-primary' : 'text-sidebar-foreground'
-                    )}>
-                      {unidade.nome}
-                    </p>
-                  </div>
+                  <span className={cn(
+                    'flex-1 min-w-0 text-[13px] font-medium truncate',
+                    isSelected ? 'text-primary' : 'text-sidebar-foreground'
+                  )}>
+                    {unidade.nome}
+                  </span>
                   {isSelected && (
-                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                   )}
                 </button>
               );
@@ -161,17 +158,17 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
 
       {/* Show current unit badge if only one unit */}
       {!hasMultipleUnidades && unidadeAtual && !unidadeLoading && (
-        <div className="px-3 py-4 border-b border-sidebar-border">
-          <div className="flex items-center gap-3 px-1">
-            <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-primary" />
+        <div className="px-3 py-3 border-b border-sidebar-border/60">
+          <div className="flex items-center gap-2.5 px-1">
+            <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center">
+              <Building2 className="w-3.5 h-3.5 text-primary" />
             </div>
-            <span className="text-sm font-medium text-sidebar-foreground">{unidadeAtual.nome}</span>
+            <span className="text-[13px] font-medium text-sidebar-foreground truncate">{unidadeAtual.nome}</span>
           </div>
         </div>
       )}
 
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.href;
@@ -182,19 +179,24 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
               to={item.href}
               onClick={() => isMobile && setSidebarOpen(false)}
               className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+                'flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors',
                 isActive
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                  ? 'bg-sidebar-accent/80 text-sidebar-accent-foreground font-medium'
+                  : 'text-sidebar-foreground/85 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground'
               )}
             >
-              <Icon className="w-5 h-5" />
-              <span className="flex-1">{item.label}</span>
+              <Icon className={cn('w-4 h-4 shrink-0', isActive ? 'text-primary' : 'text-sidebar-foreground/70')} />
+              <span className="flex-1 truncate">{item.label}</span>
+              {(item as any).isNew && (
+                <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/15 text-primary">
+                  Novo
+                </span>
+              )}
               {isAdminOnly && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Shield className="w-3.5 h-3.5 text-amber-500" />
+                      <Shield className="w-3 h-3 text-amber-500/80" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Restrito a administradores</p>
@@ -207,18 +209,18 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
         })}
       </nav>
 
-      <div className="p-4 border-t border-sidebar-border">
-        <div className="mb-3 px-4">
-          <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+      <div className="px-3 py-3 border-t border-sidebar-border/60">
+        <div className="mb-2 px-2">
+          <p className="text-[11px] text-muted-foreground truncate leading-tight">{user?.email}</p>
           {userRole && (
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <p className="text-xs text-muted-foreground/70 capitalize">{userRole}</p>
+            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              <p className="text-[10px] text-muted-foreground/70 capitalize">{userRole}</p>
               {user?.email === MASTER_ADMIN_EMAIL ? (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-purple-500/10 text-purple-500 border-purple-500/30">
+                <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 bg-purple-500/10 text-purple-500 border-purple-500/30">
                   Master
                 </Badge>
               ) : userRole === 'admin' && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/10 text-amber-500 border-amber-500/30">
+                <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 bg-amber-500/10 text-amber-500 border-amber-500/30">
                   Admin
                 </Badge>
               )}
@@ -228,18 +230,19 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent/50 mb-1"
+          className="w-full justify-start gap-2.5 h-8 px-2 text-[12px] text-sidebar-foreground/85 hover:bg-sidebar-accent/50"
           onClick={() => setPhoneDialogOpen(true)}
         >
-          <Phone className="w-4 h-4" />
+          <Phone className="w-3.5 h-3.5" />
           Meu Telefone
         </Button>
         <Button
           variant="ghost"
-          className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent/50"
+          size="sm"
+          className="w-full justify-start gap-2.5 h-8 px-2 text-[12px] text-sidebar-foreground/85 hover:bg-sidebar-accent/50"
           onClick={handleSignOut}
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="w-3.5 h-3.5" />
           Sair
         </Button>
       </div>
