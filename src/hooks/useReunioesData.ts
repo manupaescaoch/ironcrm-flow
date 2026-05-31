@@ -49,7 +49,8 @@ export function useReunioesData() {
         .select('*')
         .order('data', { ascending: false });
       if (!isAdmin) {
-        query = query.eq('unidade_id', unidadeAtual.id);
+        const ids = unidadesPermitidas.map((u) => u.id);
+        query = query.in('unidade_id', ids.length ? ids : [unidadeAtual.id]);
       }
       const { data, error } = await query;
       if (error) throw error;
