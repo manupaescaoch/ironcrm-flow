@@ -2077,6 +2077,39 @@ export type Database = {
           },
         ]
       }
+      reuniao_comentarios: {
+        Row: {
+          autor_id: string
+          autor_nome: string
+          conteudo: string
+          created_at: string
+          id: string
+          reuniao_id: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          autor_id: string
+          autor_nome: string
+          conteudo: string
+          created_at?: string
+          id?: string
+          reuniao_id: string
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string
+          autor_nome?: string
+          conteudo?: string
+          created_at?: string
+          id?: string
+          reuniao_id?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       reunioes: {
         Row: {
           created_at: string
