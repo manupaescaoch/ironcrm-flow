@@ -1,5 +1,4 @@
 import DOMPurify from 'dompurify';
-import html2pdf from 'html2pdf.js';
 
 function safeFilename(name: string) {
   return name.replace(/[^\w\-]+/g, '_').replace(/_+/g, '_').slice(0, 80);
@@ -112,6 +111,8 @@ export async function exportPautaToPdf(ctx: PautaContext) {
   document.body.appendChild(container);
 
   try {
+    const mod: any = await import('html2pdf.js');
+    const html2pdf = mod.default || mod;
     await (html2pdf as any)()
       .from(container)
       .set({
