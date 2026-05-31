@@ -73,6 +73,9 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete, on
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingFeedback, setEditingFeedback] = useState(false);
+  const [feedbackDraft, setFeedbackDraft] = useState('');
+  const [savingFeedback, setSavingFeedback] = useState(false);
   const [editForm, setEditForm] = useState({
     tipo: '',
     data: '',
