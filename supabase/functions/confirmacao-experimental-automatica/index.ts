@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
 import {
   RATE_LIMIT_MS, checkZapiStatus, getZapiCreds, logEnvio, phoneExists, sendText, sleep,
 } from '../_shared/zapi.ts';
@@ -93,6 +94,17 @@ function normalizePhone(raw: string): string {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+
+    // SECURITY: require cron secret header OR valid Supabase JWT.
+    {
+      const __auth = await authorizeCronOrJwt(req);
+      if (!__auth.ok) {
+        return new Response(
+          JSON.stringify({ error: __auth.error || 'Unauthorized' }),
+          { status: __auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
 
   try {
     const { dryRun = false } = await req.json().catch(() => ({}));

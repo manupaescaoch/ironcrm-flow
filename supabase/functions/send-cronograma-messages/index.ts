@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
 import { checkZapiStatus, getZapiCreds, lookupWhatsAppPhone } from '../_shared/zapi.ts';
 import { maybeSendZapiOfflineAlert } from '../_shared/zapi-alert.ts';
 
@@ -51,6 +52,17 @@ function getBrasiliaTime() {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
+
+    // SECURITY: require cron secret header OR valid Supabase JWT.
+    {
+      const __auth = await authorizeCronOrJwt(req);
+      if (!__auth.ok) {
+        return new Response(
+          JSON.stringify({ error: __auth.error || 'Unauthorized' }),
+          { status: __auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
     return new Response(null, { headers: corsHeaders });
   }
 
