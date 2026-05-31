@@ -15,32 +15,32 @@ export const TaxaComparecimentoKPI = memo(function TaxaComparecimentoKPI({
   const taxa = agendados > 0 ? Math.round((comparecimentos / agendados) * 100) : 0;
 
   // Donut SVG
-  const size = 64;
-  const stroke = 10;
+  const size = 52;
+  const stroke = 8;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const dash = (taxa / 100) * circumference;
 
   return (
     <Card className="border shadow-sm rounded-2xl">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-teal-100 dark:bg-teal-950/40">
-            <PieIcon className="w-5 h-5 text-teal-500" />
+      <CardContent className="p-3">
+        <div className="flex items-center gap-2 mb-1.5">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-teal-100 dark:bg-teal-950/40">
+            <PieIcon className="w-4 h-4 text-teal-500" />
           </div>
           <p
             lang="pt-BR"
-            className="text-xs font-medium text-muted-foreground leading-tight min-w-0 flex-1 hyphens-auto [word-break:normal] [overflow-wrap:break-word]"
+            className="text-[11px] font-medium text-muted-foreground leading-tight min-w-0 flex-1 hyphens-auto [word-break:normal] [overflow-wrap:break-word]"
           >
             Taxa de Comparecimento
           </p>
         </div>
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <p className={cn('text-3xl font-bold leading-none mb-2', 'text-teal-600')}>
+            <p className={cn('text-2xl font-bold leading-none mb-1', 'text-teal-600')}>
               {taxa}%
             </p>
-            <p className="text-xs text-muted-foreground leading-snug">
+            <p className="text-[11px] text-muted-foreground leading-snug">
               {comparecimentos} de {agendados}
             </p>
           </div>
