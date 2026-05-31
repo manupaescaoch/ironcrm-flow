@@ -113,6 +113,10 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete, on
   const unidadeNome = unidades.find((u) => u.id === reuniao.unidade_id)?.nome ?? '—';
   const canEdit = isAdmin || userRole === 'coordenador' || user?.id === reuniao.criado_por;
 
+  const userName = (user?.user_metadata?.full_name || user?.user_metadata?.name || '').toString().trim().toUpperCase();
+  const isResponsavel = !!userName && userName === (reuniao.responsavel || '').trim().toUpperCase();
+  const canEditFeedback = !!onUpdate && (canEdit || isResponsavel);
+
   const handleExportPdf = async () => {
     try {
       await exportPautaToPdf({
