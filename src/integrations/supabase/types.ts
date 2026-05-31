@@ -1020,6 +1020,7 @@ export type Database = {
       formulario_grupos_whatsapp: {
         Row: {
           ativo: boolean
+          canal: string
           created_at: string
           formulario_key: string
           grupo_id: string | null
@@ -1030,6 +1031,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          canal?: string
           created_at?: string
           formulario_key: string
           grupo_id?: string | null
@@ -1040,6 +1042,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          canal?: string
           created_at?: string
           formulario_key?: string
           grupo_id?: string | null
@@ -2168,6 +2171,7 @@ export type Database = {
         Row: {
           auth_method: string | null
           autorizado: boolean
+          canal_origem: string | null
           created_at: string
           id: string
           instance_id: string | null
@@ -2181,6 +2185,7 @@ export type Database = {
         Insert: {
           auth_method?: string | null
           autorizado: boolean
+          canal_origem?: string | null
           created_at?: string
           id?: string
           instance_id?: string | null
@@ -2194,6 +2199,7 @@ export type Database = {
         Update: {
           auth_method?: string | null
           autorizado?: boolean
+          canal_origem?: string | null
           created_at?: string
           id?: string
           instance_id?: string | null
@@ -2633,6 +2639,7 @@ export type Database = {
       }
       whatsapp_envios_log: {
         Row: {
+          canal: string
           created_at: string
           destino: string | null
           erro_msg: string | null
@@ -2645,6 +2652,7 @@ export type Database = {
           zapi_status_code: number | null
         }
         Insert: {
+          canal?: string
           created_at?: string
           destino?: string | null
           erro_msg?: string | null
@@ -2657,6 +2665,7 @@ export type Database = {
           zapi_status_code?: number | null
         }
         Update: {
+          canal?: string
           created_at?: string
           destino?: string | null
           erro_msg?: string | null
