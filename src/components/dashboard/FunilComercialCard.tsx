@@ -8,6 +8,7 @@ interface FunilComercialCardProps {
   agendamentos: number;
   comparecimentos: number;
   matriculas: number;
+  conversaoMesmoDia?: number;
 }
 
 function Stage({
