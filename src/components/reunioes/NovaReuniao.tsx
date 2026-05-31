@@ -147,11 +147,24 @@ export function NovaReuniao({ onSaved }: Props) {
 
       <div className="space-y-1.5">
         <Label>Responsável pela reunião *</Label>
-        <Input
-          value={responsavel}
-          onChange={(e) => setResponsavel(e.target.value.toUpperCase())}
-          placeholder="Nome do responsável"
-        />
+        {users.length > 0 ? (
+          <Select value={responsavel} onValueChange={setResponsavel}>
+            <SelectTrigger>
+              <SelectValue placeholder={loadingUsers ? 'Carregando...' : 'Selecione o responsável'} />
+            </SelectTrigger>
+            <SelectContent className="max-h-[280px]">
+              {users.map((u) => (
+                <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <Input
+            value={responsavel}
+            onChange={(e) => setResponsavel(e.target.value.toUpperCase())}
+            placeholder={loadingUsers ? 'Carregando usuários...' : 'Nome do responsável'}
+          />
+        )}
       </div>
 
       <div className="space-y-1.5">
