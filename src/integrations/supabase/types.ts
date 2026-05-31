@@ -2030,6 +2030,101 @@ export type Database = {
         }
         Relationships: []
       }
+      reunioes: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          data: string
+          decisoes: string | null
+          id: string
+          numeros_periodo: Json
+          participantes: string[]
+          pauta: string | null
+          resumo: string | null
+          status: string
+          tipo: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          data: string
+          decisoes?: string | null
+          id?: string
+          numeros_periodo?: Json
+          participantes?: string[]
+          pauta?: string | null
+          resumo?: string | null
+          status?: string
+          tipo: string
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          data?: string
+          decisoes?: string | null
+          id?: string
+          numeros_periodo?: Json
+          participantes?: string[]
+          pauta?: string | null
+          resumo?: string | null
+          status?: string
+          tipo?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reunioes_encaminhamentos: {
+        Row: {
+          acao: string
+          created_at: string
+          id: string
+          prazo: string | null
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          reuniao_id: string
+          status: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          id?: string
+          prazo?: string | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          reuniao_id: string
+          status?: string
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          id?: string
+          prazo?: string | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          reuniao_id?: string
+          status?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reunioes_encaminhamentos_reuniao_id_fkey"
+            columns: ["reuniao_id"]
+            isOneToOne: false
+            referencedRelation: "reunioes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rotina_atividades: {
         Row: {
           created_at: string
