@@ -63,7 +63,7 @@ const PayloadSchema = z.object({
     selectedButtonId: z.string().max(200).optional(),
     buttonId: z.string().max(200).optional(),
   }).optional(),
-}).passthrough().strict().catch((ctx) => ctx.input as Record<string, unknown>);
+}).passthrough();
 
 type AuditInput = {
   messageId: string | null;
