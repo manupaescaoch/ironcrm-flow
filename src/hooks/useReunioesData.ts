@@ -61,7 +61,7 @@ export function useReunioesData() {
     } finally {
       setLoading(false);
     }
-  }, [unidadeAtual, isAdmin]);
+  }, [unidadeAtual, isAdmin, unidadesPermitidas]);
 
   useEffect(() => {
     fetchReunioes();
