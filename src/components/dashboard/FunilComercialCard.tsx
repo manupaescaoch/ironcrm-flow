@@ -103,15 +103,15 @@ export const FunilComercialCard = memo(function FunilComercialCard({
             bgClass="bg-amber-50 dark:bg-amber-950/30"
           />
         </div>
-        <div className="rounded-lg bg-muted/40 px-4 py-2.5 text-sm">
+        <div className="rounded-md bg-muted/40 px-3 py-1.5 text-xs">
           <span className="font-semibold">Taxa de conversão geral: {convGeral}%</span>
-          <span className="text-muted-foreground ml-3">
+          <span className="text-muted-foreground ml-2">
             {leads} Leads → {matriculas} Matrículas
           </span>
         </div>
-        <div className="rounded-lg bg-muted/40 px-4 py-2.5 text-sm">
-          <span className="font-semibold">Taxa de conversão no dia da experimental: {convMesmoDia}%</span>
-          <span className="text-muted-foreground ml-3">
+        <div className="rounded-md bg-muted/40 px-3 py-1.5 text-xs">
+          <span className="font-semibold">Taxa no dia da experimental: {convMesmoDia}%</span>
+          <span className="text-muted-foreground ml-2">
             {conversaoMesmoDia} de {comparecimentos} comparecimentos
           </span>
         </div>
