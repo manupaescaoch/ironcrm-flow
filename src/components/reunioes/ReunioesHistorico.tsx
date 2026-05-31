@@ -41,7 +41,7 @@ export function ReunioesHistorico() {
       if (dataFim && r.data > dataFim) return false;
       if (search) {
         const q = search.toLowerCase();
-        const hay = `${r.tipo} ${r.resumo ?? ''} ${r.pauta ?? ''} ${r.participantes.join(' ')}`.toLowerCase();
+        const hay = `${r.tipo} ${r.responsavel ?? ''} ${r.pauta ?? ''} ${r.feedback ?? ''} ${r.participantes.join(' ')}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -113,25 +113,23 @@ export function ReunioesHistorico() {
             <TableHeader>
               <TableRow>
                 <TableHead>Tipo</TableHead>
-                <TableHead>Unidade</TableHead>
                 <TableHead>Data</TableHead>
+                <TableHead>Unidade</TableHead>
+                <TableHead>Responsável</TableHead>
                 <TableHead>Participantes</TableHead>
-                <TableHead>Resumo</TableHead>
-                <TableHead className="text-center">Enc.</TableHead>
-                <TableHead className="text-center">Pendentes</TableHead>
+                <TableHead>Pauta</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((r) => {
-                const enc = r.encaminhamentos ?? [];
-                const pendentes = enc.filter((e) => e.status !== 'concluido').length;
                 const unidadeNome = unidades.find((u) => u.id === r.unidade_id)?.nome ?? '—';
                 return (
                   <TableRow key={r.id} onClick={() => openDetalhe(r)} className="cursor-pointer">
                     <TableCell className="font-medium">{r.tipo}</TableCell>
-                    <TableCell>{unidadeNome}</TableCell>
                     <TableCell>{formatDate(r.data)}</TableCell>
+                    <TableCell>{unidadeNome}</TableCell>
+                    <TableCell className="text-sm">{r.responsavel ?? '—'}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1 max-w-[200px]">
                         {r.participantes.slice(0, 2).map((p, i) => (
@@ -143,17 +141,7 @@ export function ReunioesHistorico() {
                       </div>
                     </TableCell>
                     <TableCell className="max-w-[280px] truncate text-sm text-muted-foreground">
-                      {r.resumo || r.pauta || '—'}
-                    </TableCell>
-                    <TableCell className="text-center">{enc.length}</TableCell>
-                    <TableCell className="text-center">
-                      {pendentes > 0 ? (
-                        <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30">
-                          {pendentes}
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">0</span>
-                      )}
+                      {r.pauta || '—'}
                     </TableCell>
                     <TableCell><ReuniaoStatusBadge status={r.status} /></TableCell>
                   </TableRow>
