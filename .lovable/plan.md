@@ -1,69 +1,108 @@
-## Diagnóstico
+# Separação Z-API: Iron Comercial × Iron Operacional
 
-A página `/admin-users` mostra "Erro no servidor" porque a edge function `list-users` retorna **403 "Sem permissão para listar usuários"** mesmo para o usuário `emanuel.paes@gmail.com`, que **é admin** (confirmado em `public.user_roles`).
+Hoje todas as Edge Functions leem um único set de secrets (`ZAPI_INSTANCE_ID`, `ZAPI_TOKEN`, `ZAPI_CLIENT_TOKEN`). Vamos introduzir dois sets de credenciais e roteá-los por **canal** (`comercial` / `operacional`), classificando cada função pelo seu propósito real.
 
-### Causa raiz
+## 1. Novos secrets (Lovable Cloud)
 
-A função `public.has_role(_user_id, _role)` foi modificada e contém uma cláusula extra que quebra o uso server-side:
+Adicionar via `add_secret`:
 
-```sql
-AND (
-  _user_id = auth.uid()
-  OR EXISTS (SELECT 1 FROM user_roles a WHERE a.user_id = auth.uid() AND a.role = 'admin')
-)
+- `ZAPI_COMERCIAL_INSTANCE_ID`, `ZAPI_COMERCIAL_TOKEN`, `ZAPI_COMERCIAL_CLIENT_TOKEN`
+- `ZAPI_OPERACIONAL_INSTANCE_ID`, `ZAPI_OPERACIONAL_TOKEN`, `ZAPI_OPERACIONAL_CLIENT_TOKEN`
+
+Manter os secrets atuais (`ZAPI_INSTANCE_ID`/`ZAPI_TOKEN`/`ZAPI_CLIENT_TOKEN`) por enquanto como **fallback** durante a migração. Em uma segunda fase eles serão removidos.
+
+## 2. Helper compartilhado (`supabase/functions/_shared/zapi.ts`)
+
+Refatorar `getZapiCreds()` para aceitar um canal:
+
+```ts
+export type ZapiChannel = 'comercial' | 'operacional';
+
+export function getZapiCreds(channel: ZapiChannel): ZapiCreds | null {
+  const prefix = channel === 'comercial' ? 'ZAPI_COMERCIAL_' : 'ZAPI_OPERACIONAL_';
+  const instanceId = Deno.env.get(prefix + 'INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID');
+  const token      = Deno.env.get(prefix + 'TOKEN')       ?? Deno.env.get('ZAPI_TOKEN');
+  const clientToken = Deno.env.get(prefix + 'CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN') ?? '';
+  if (!instanceId || !token) return null;
+  return { instanceId, token, clientToken, channel };
+}
 ```
 
-Na edge function `list-users`, `has_role` é chamado via cliente **service-role**, onde `auth.uid()` é `NULL`. Resultado:
-- `_user_id = auth.uid()` → falso (NULL)
-- subquery de admin → falso (NULL)
-- retorna `false` para TODOS os roles, mesmo do admin real
+`checkZapiStatus`, `phoneExists`, `lookupWhatsAppPhone`, `sendText` já recebem `creds` — não mudam de assinatura.
 
-Isso também quebra silenciosamente qualquer outra edge function que use `has_role` com service-role (potencialmente outras checagens de permissão no projeto).
+`logEnvio` ganha um campo `canal` (`comercial` | `operacional`) gravado em `whatsapp_envios_log` (nova coluna `canal text not null default 'operacional'`).
 
-### Por que isso é incorreto
+`_shared/zapi-alert.ts` e `_shared/notifyFormularioCore.ts` passam a usar o canal `operacional` (são alertas internos).
 
-O padrão canônico da memória do projeto e da documentação Supabase é:
+## 3. Classificação das Edge Functions
+
+**Canal Comercial (lead/aluno):**
+- `send-follow-ups-automaticos`
+- `send-fu-digest-comercial`
+- `confirmacao-experimental-automatica`
+- `send-confirmacao-recepcao`
+- `notify-anamnese-experimental`
+- `notify-feedback-experimental`
+- `notify-boas-vindas-matricula`
+
+**Canal Operacional (equipe interna):**
+- `notify-rotinas-diarias`
+- `rotina-whatsapp-response` (resposta de rotina)
+- `notify-task-deadlines`
+- `send-task-whatsapp`
+- `send-cronograma-messages`
+- `send-formulario-lembretes`
+- `notify-resumo-semanal-crm`
+- `notify-resumo-semanal-pergunta`
+- `resumo-semanal-webhook-resposta`
+- `notify-formulario-encerramento` (core compartilhado)
+
+**Multi-canal / utilitárias:**
+- `zapi-health` → aceita `?channel=comercial|operacional` (default: ambos, retorna status de cada um)
+- `list-whatsapp-groups` → idem
+- `send-zapi-test` → aceita `channel` no body (default `operacional`)
+
+Cada função terá um único ponto de mudança: substituir leitura direta de env vars por `getZapiCreds('comercial' | 'operacional')`. As que ainda fazem fetch inline para Z-API serão também migradas para `sendText(creds, …)` quando trivial; caso contrário apenas as variáveis locais são derivadas de `creds.*`.
+
+## 4. Webhook `rotina-whatsapp-response`
+
+A validação canônica de `instanceId` hoje compara contra `ZAPI_INSTANCE_ID`. Passa a aceitar **qualquer** uma das duas instâncias e grava na auditoria qual canal originou o evento (`canal_origem`). A confirmação de resposta sai pelo **canal operacional**.
+
+## 5. UI
+
+`src/pages/admin/WhatsAppComercial.tsx`:
+- Renomear o painel para "WhatsApp" com duas abas: **Comercial** e **Operacional**.
+- Cada aba consome `zapi-health?channel=…` e mostra status de conexão, último envio (lendo `whatsapp_envios_log` filtrado por `canal`), e botão de teste (`send-zapi-test` com canal correspondente).
+
+`src/pages/admin/GruposWhatsApp.tsx`:
+- Adicionar selector de canal ao listar grupos (chama `list-whatsapp-groups?channel=…`). Tabela `formulario_grupos_whatsapp` ganha coluna opcional `canal` (default `operacional`) para deixar explícito qual instância detém o grupo.
+
+## 6. Migrations
 
 ```sql
-CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
-RETURNS boolean
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.user_roles
-    WHERE user_id = _user_id AND role = _role
-  )
-$$;
+ALTER TABLE public.whatsapp_envios_log
+  ADD COLUMN canal text NOT NULL DEFAULT 'operacional';
+
+ALTER TABLE public.formulario_grupos_whatsapp
+  ADD COLUMN canal text NOT NULL DEFAULT 'operacional';
+
+ALTER TABLE public.rotina_webhook_auditoria
+  ADD COLUMN canal_origem text;
 ```
 
-`SECURITY DEFINER` já evita recursão em RLS; não cabe filtro por `auth.uid()` dentro dela. Quem precisa restringir "só admin vê roles dos outros" deve fazer isso na **policy** da tabela `user_roles`, não dentro do helper.
+(Sem novas tabelas; apenas colunas de metadado.)
 
-## Plano
+## 7. Rollout
 
-### 1. Migração: restaurar `has_role`
-Recriar a função sem a cláusula `auth.uid()`:
+1. Adicionar os 6 novos secrets (sem remover os antigos).
+2. Deploy do helper + funções refatoradas (mantêm fallback para os secrets atuais → zero downtime).
+3. Validar via `zapi-health` que ambas instâncias respondem.
+4. UI atualizada com as duas abas.
+5. Em fase posterior (não nesse plano), remover os secrets legacy e o fallback do helper.
 
-```sql
-CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
-RETURNS boolean
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.user_roles
-    WHERE user_id = _user_id AND role = _role
-  )
-$$;
-```
+## Pontos técnicos resumidos
 
-### 2. Verificar RLS de `user_roles`
-Listar policies atuais de `public.user_roles` para confirmar que leituras de roles alheios continuam bloqueadas para não-admins (a restrição que estava embutida em `has_role` provavelmente foi posta lá para isso). Se as policies já são adequadas, nada muda. Se não, adicionar policy `SELECT` que só permita ao próprio usuário ver seu role, e admins verem todos — usando `has_role(auth.uid(),'admin')`.
-
-### 3. Validação
-- Recarregar `/admin-users` logado como `emanuel.paes@gmail.com` → lista deve carregar sem o card vermelho.
-- Conferir logs de `list-users` → deve aparecer `Successfully listed N users`.
-- Sanity-check em outras edge functions que usam `has_role` (rotinas, comissões, cronograma admin) — devem continuar funcionando porque o comportamento volta a ser o esperado.
-
-## Detalhes técnicos
-
-**Arquivos tocados:** apenas uma migração SQL nova (nenhum código TS muda).
-**Risco:** baixo. A função volta ao padrão original que outras 50+ policies do projeto assumem. Quem confiava na guarda extra era — pelo que vejo — somente quem chamava `has_role` em contexto autenticado, e nesses casos `auth.uid()` é o próprio usuário ou admin, então o comportamento de retorno não muda.
+- Roteamento por canal é **estático no código da função**, não vem do request — evita que um cliente force envio pela instância errada.
+- `whatsapp_envios_log.canal` permite auditoria e dashboards por instância.
+- Webhook único continua aceitando eventos das duas instâncias, com auditoria do canal.
+- Nenhuma mudança nas regras de autenticação/autorização já implementadas anteriormente.
