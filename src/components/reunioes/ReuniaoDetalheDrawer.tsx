@@ -160,6 +160,25 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete, on
     }
   };
 
+  const startEditFeedback = () => {
+    setFeedbackDraft(reuniao.feedback ?? '');
+    setEditingFeedback(true);
+  };
+
+  const handleSaveFeedback = async () => {
+    if (!onUpdate) return;
+    setSavingFeedback(true);
+    try {
+      await onUpdate(reuniao.id, { feedback: feedbackDraft.trim() || null });
+      toast({ title: 'Feedback salvo' });
+      setEditingFeedback(false);
+    } catch (err: any) {
+      toast({ title: 'Erro ao salvar feedback', description: err.message, variant: 'destructive' });
+    } finally {
+      setSavingFeedback(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!onUpdate) return;
     if (!editForm.tipo) return toast({ title: 'Selecione o tipo da reunião', variant: 'destructive' });
