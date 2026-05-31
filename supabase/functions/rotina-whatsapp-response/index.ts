@@ -1,29 +1,72 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://esm.sh/zod@3.23.8';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret',
 };
 
 function normalizePhone(phone: string): string {
   return phone.replace(/\D/g, '');
 }
 
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const PayloadSchema = z.object({
+  buttonsResponseMessage: z.object({
+    selectedButtonId: z.string().max(200).optional(),
+    buttonId: z.string().max(200).optional(),
+  }).optional(),
+  buttonResponseMessage: z.object({
+    selectedButtonId: z.string().max(200).optional(),
+    buttonId: z.string().max(200).optional(),
+  }).optional(),
+  phone: z.string().max(40).optional(),
+  chatId: z.string().max(80).optional(),
+  from: z.string().max(80).optional(),
+}).passthrough();
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const payload = await req.json();
-    console.log('[rotina-response] Webhook recebido:', JSON.stringify(payload));
+  // SECURITY: webhook deve ter secret compartilhado (fail-closed se env ausente).
+  const expectedSecret = Deno.env.get('ZAPI_WEBHOOK_SECRET');
+  if (!expectedSecret || expectedSecret.length < 16) {
+    console.error('[rotina-response] ZAPI_WEBHOOK_SECRET não configurado');
+    return new Response(JSON.stringify({ error: 'Server misconfigured' }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  const providedSecret = req.headers.get('x-webhook-secret') || '';
+  if (!providedSecret || !constantTimeEqual(providedSecret, expectedSecret)) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 
-    // Z-API button response comes as buttonsResponseMessage
-    // The selectedButtonId contains the id we set (e.g. "feito_<rotina_id>" or "naofeito_<rotina_id>")
+  try {
+    const rawPayload = await req.json();
+    const parsed = PayloadSchema.safeParse(rawPayload);
+    if (!parsed.success) {
+      return new Response(JSON.stringify({ error: 'invalid payload' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const payload = parsed.data;
+    console.log('[rotina-response] Webhook recebido');
+
     const buttonResponse = payload.buttonsResponseMessage || payload.buttonResponseMessage;
-    
+
     if (!buttonResponse) {
-      // Not a button response, ignore
       console.log('[rotina-response] Não é resposta de botão, ignorando');
       return new Response(JSON.stringify({ ok: true, ignored: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -33,26 +76,28 @@ Deno.serve(async (req) => {
     const selectedButtonId = buttonResponse.selectedButtonId || buttonResponse.buttonId || '';
     const senderPhone = normalizePhone(payload.phone || payload.chatId || payload.from || '');
 
-    console.log(`[rotina-response] Botão: ${selectedButtonId}, Telefone: ${senderPhone}`);
-
     if (!selectedButtonId || !senderPhone) {
       return new Response(JSON.stringify({ ok: true, ignored: true, reason: 'missing data' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Parse button id: "feito_<rotina_id>" or "naofeito_<rotina_id>"
     const isFeito = selectedButtonId.startsWith('feito_');
     const isNaoFeito = selectedButtonId.startsWith('naofeito_');
 
     if (!isFeito && !isNaoFeito) {
-      console.log('[rotina-response] Botão não reconhecido:', selectedButtonId);
+      console.log('[rotina-response] Botão não reconhecido');
       return new Response(JSON.stringify({ ok: true, ignored: true, reason: 'unknown button' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const rotinaId = selectedButtonId.replace(/^(feito_|naofeito_)/, '');
+    if (!UUID_RE.test(rotinaId)) {
+      return new Response(JSON.stringify({ ok: false, error: 'invalid rotina id' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     const concluida = isFeito;
 
     const ZAPI_INSTANCE_ID = Deno.env.get('ZAPI_INSTANCE_ID');
