@@ -215,8 +215,11 @@ export function InteractionTimeline({ interacoes, onInteractionClick }: Interact
                     <div>
                       <span className="text-muted-foreground">Experimental: </span>
                       <span className="font-medium">
-                        {format(new Date(int.data_experimental), 'dd/MM/yyyy', { locale: ptBR })}
-                        {int.hora_experimental && ` às ${int.hora_experimental}`}
+                        {(() => {
+                          const [y, m, d] = int.data_experimental.split('-').map(Number);
+                          return format(new Date(y, m - 1, d), 'dd/MM/yyyy', { locale: ptBR });
+                        })()}
+                        {int.hora_experimental && ` às ${int.hora_experimental.slice(0, 5)}`}
                       </span>
                     </div>
                   )}
