@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { cn } from '@/lib/utils';
+import { parseDateOnly } from '@/lib/brasilia';
 
 interface PagamentoHistorico {
   id: string;
