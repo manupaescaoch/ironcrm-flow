@@ -164,6 +164,7 @@ export function ReunioesHistorico() {
         open={open}
         onOpenChange={setOpen}
         onDelete={deleteReuniao}
+        onUpdate={updateReuniao}
       />
     </div>
   );
