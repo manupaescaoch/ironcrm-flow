@@ -111,6 +111,8 @@ export async function exportPautaToPdf(ctx: PautaContext) {
   document.body.appendChild(container);
 
   try {
+    const mod: any = await import('html2pdf.js');
+    const html2pdf = mod.default || mod;
     await (html2pdf as any)()
       .from(container)
       .set({
