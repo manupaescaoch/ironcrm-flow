@@ -37,6 +37,7 @@ import EncerramentoHorario from "./pages/EncerramentoHorario";
 import RelatorioDiarioComercial from "./pages/RelatorioDiarioComercial";
 import GruposWhatsApp from "./pages/admin/GruposWhatsApp";
 import WhatsAppComercial from "./pages/admin/WhatsAppComercial";
+import ZapiConexoes from "./pages/admin/ZapiConexoes";
 import DashboardOperacional from "./pages/DashboardOperacional";
 
 import GestaoOperacional from "./pages/GestaoOperacional";
