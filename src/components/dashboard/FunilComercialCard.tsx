@@ -109,6 +109,12 @@ export const FunilComercialCard = memo(function FunilComercialCard({
             {leads} Leads → {matriculas} Matrículas
           </span>
         </div>
+        <div className="rounded-lg bg-muted/40 px-4 py-2.5 text-sm">
+          <span className="font-semibold">Taxa de conversão no dia da experimental: {convMesmoDia}%</span>
+          <span className="text-muted-foreground ml-3">
+            {conversaoMesmoDia} de {comparecimentos} comparecimentos
+          </span>
+        </div>
       </CardContent>
     </Card>
   );
