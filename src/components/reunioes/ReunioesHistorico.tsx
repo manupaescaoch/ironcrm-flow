@@ -83,12 +83,12 @@ export function ReunioesHistorico() {
               {STATUS_REUNIAO.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
             </SelectContent>
           </Select>
-          {isAdmin && (
+          {showUnidadeFilter && (
             <Select value={unidadeFilter} onValueChange={setUnidadeFilter}>
               <SelectTrigger><SelectValue placeholder="Unidade" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as unidades</SelectItem>
-                {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                {unidadesFiltro.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
               </SelectContent>
             </Select>
           )}
