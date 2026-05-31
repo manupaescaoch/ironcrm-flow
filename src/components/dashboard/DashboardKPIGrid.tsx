@@ -54,9 +54,10 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   }).format(faturamentoPeriodo || 0);
 
   return (
-    <div className="space-y-3 mb-4">
+    <div className="space-y-2 mb-2">
       {/* Linha 1 — KPIs principais (6) */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+
         <KPICard
           variant="dashboard"
           title="Total de Leads"
