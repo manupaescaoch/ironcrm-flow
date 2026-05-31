@@ -77,7 +77,7 @@ export function NovaReuniao({ onSaved }: Props) {
 
     setSaving(true);
     try {
-      await createReuniao({
+      const created: any = await createReuniao({
         tipo,
         unidade_id: unidadeId,
         data,
@@ -87,12 +87,27 @@ export function NovaReuniao({ onSaved }: Props) {
         feedback: feedback.trim() || null,
         status: 'aberta',
       });
+
+      if (anexos.length && created?.id) {
+        let okCount = 0;
+        for (const f of anexos) {
+          try {
+            await uploadReuniaoAnexo(created.id, unidadeId, f);
+            okCount++;
+          } catch (err: any) {
+            toast({ title: `Falha ao anexar ${f.name}`, description: err.message, variant: 'destructive' });
+          }
+        }
+        if (okCount) toast({ title: `${okCount} arquivo(s) anexado(s)` });
+      }
+
       toast({ title: 'Reunião registrada com sucesso' });
       setTipo('');
       setResponsavel('');
       setParticipantes([]);
       setPauta('');
       setFeedback('');
+      setAnexos([]);
       onSaved?.();
     } catch (err: any) {
       toast({ title: 'Erro ao salvar', description: err.message, variant: 'destructive' });
