@@ -78,8 +78,8 @@ export function HistoricoPagamentos() {
           nomeAluno: lead?.nome || 'N/A',
           telefone: lead?.telefone || null,
           plano: interacao?.plano_escolhido || 'N/A',
-          dataVencimento: new Date(p.data_vencimento),
-          dataConfirmacao: new Date(p.data_confirmacao),
+          dataVencimento: parseDateOnly(p.data_vencimento) as Date,
+          dataConfirmacao: parseDateOnly(p.data_confirmacao) as Date,
           confirmadoPor: p.confirmado_por,
           observacao: p.observacao,
         };
