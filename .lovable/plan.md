@@ -1,108 +1,110 @@
-# Separação Z-API: Iron Comercial × Iron Operacional
+## Módulo Reuniões
 
-Hoje todas as Edge Functions leem um único set de secrets (`ZAPI_INSTANCE_ID`, `ZAPI_TOKEN`, `ZAPI_CLIENT_TOKEN`). Vamos introduzir dois sets de credenciais e roteá-los por **canal** (`comercial` / `operacional`), classificando cada função pelo seu propósito real.
+Novo módulo administrativo/coordenação para registrar atas de reunião e acompanhar encaminhamentos. Segue o padrão visual e arquitetural do CRM (Layout + Tabs + shadcn + React Query + Supabase + filtro por `unidade_id`).
 
-## 1. Novos secrets (Lovable Cloud)
+### 1. Banco de dados (migration)
 
-Adicionar via `add_secret`:
+**Tabela `reunioes`**
+- `id uuid pk`
+- `unidade_id uuid not null`
+- `tipo text not null` (ex.: COMERCIAL, OPERACIONAL, GERAL, COORDENAÇÃO, OUTRO — uppercase)
+- `data date not null`
+- `participantes text[] not null default '{}'`
+- `numeros_periodo jsonb not null default '{}'` (campos livres: leads, matrículas, faturamento, etc.)
+- `pauta text`
+- `decisoes text`
+- `resumo text` (resumo curto para a listagem)
+- `status text not null default 'aberta'` (aberta | concluida | arquivada)
+- `criado_por uuid` (auth.uid())
+- `created_at`, `updated_at` com trigger
 
-- `ZAPI_COMERCIAL_INSTANCE_ID`, `ZAPI_COMERCIAL_TOKEN`, `ZAPI_COMERCIAL_CLIENT_TOKEN`
-- `ZAPI_OPERACIONAL_INSTANCE_ID`, `ZAPI_OPERACIONAL_TOKEN`, `ZAPI_OPERACIONAL_CLIENT_TOKEN`
+**Tabela `reunioes_encaminhamentos`**
+- `id uuid pk`
+- `reuniao_id uuid not null` → cascade delete
+- `unidade_id uuid not null` (denormalizado para RLS/filtragem)
+- `acao text not null`
+- `responsavel_id uuid` (opcional, referencia auth.users)
+- `responsavel_nome text` (snapshot uppercase)
+- `prazo date`
+- `status text not null default 'aberto'` (aberto | em_andamento | concluido | atrasado)
+- `created_at`, `updated_at`
 
-Manter os secrets atuais (`ZAPI_INSTANCE_ID`/`ZAPI_TOKEN`/`ZAPI_CLIENT_TOKEN`) por enquanto como **fallback** durante a migração. Em uma segunda fase eles serão removidos.
+**Permissões** (mesmo padrão de `cronograma_atividades`):
+- `GRANT`s para `authenticated`/`service_role`.
+- RLS habilitado.
+- Policies:
+  - `select`: admin OU `unidade_id IN (get_user_unidades(auth.uid()))`.
+  - `insert/update/delete`: admin OU (`coordenador` E `unidade_id IN get_user_unidades`).
+- Trigger `updated_at` reaproveitando `public.update_updated_at_column()`.
+- Trigger para sincronizar `unidade_id` em encaminhamentos a partir da reunião.
+- Trigger automático: marcar encaminhamento como `atrasado` quando `prazo < CURRENT_DATE AND status IN ('aberto','em_andamento')` (via função `recompute_encaminhamento_status` chamada em select via view OU computado no frontend — vamos optar por computar no frontend para simplicidade, mantendo o status real no banco).
 
-## 2. Helper compartilhado (`supabase/functions/_shared/zapi.ts`)
+### 2. Rota e menu
 
-Refatorar `getZapiCreds()` para aceitar um canal:
+- Adicionar rota `/reunioes` (ProtectedRoute) em `src/App.tsx`.
+- Em `src/components/Layout.tsx`, inserir item `{ href: '/reunioes', label: 'Reuniões', icon: Handshake, roles: ['admin','coordenador'] }` **entre** Operacional e Escala. (Recepção/comercial não veem; segue regra de coordenação/admin.)
 
-```ts
-export type ZapiChannel = 'comercial' | 'operacional';
+### 3. Páginas e componentes
 
-export function getZapiCreds(channel: ZapiChannel): ZapiCreds | null {
-  const prefix = channel === 'comercial' ? 'ZAPI_COMERCIAL_' : 'ZAPI_OPERACIONAL_';
-  const instanceId = Deno.env.get(prefix + 'INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID');
-  const token      = Deno.env.get(prefix + 'TOKEN')       ?? Deno.env.get('ZAPI_TOKEN');
-  const clientToken = Deno.env.get(prefix + 'CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN') ?? '';
-  if (!instanceId || !token) return null;
-  return { instanceId, token, clientToken, channel };
-}
+```text
+src/pages/Reunioes.tsx                     # Shell com Tabs (Histórico | Nova | Pendentes)
+src/components/reunioes/
+  ReunioesHistoricoTab.tsx                 # Lista + filtros + drawer detalhe
+  ReunioesHistoricoFilters.tsx
+  ReuniaoDetalheDrawer.tsx                 # Sheet com dados gerais, números, pauta, decisões, encaminhamentos
+  NovaReuniaoTab.tsx                       # Formulário react-hook-form + zod
+  EncaminhamentosFieldArray.tsx            # Subform multi-itens (ação/responsável/prazo/status)
+  PendentesTab.tsx                         # Listagem consolidada + filtros + update inline de status
+  PendentesFilters.tsx
+  ReuniaoStatusBadge.tsx
+  EncaminhamentoStatusBadge.tsx
+  constants.ts                             # TIPOS_REUNIAO, STATUS_*, opções
+src/hooks/
+  useReunioesData.ts                       # CRUD reuniões (React Query)
+  useEncaminhamentosData.ts                # CRUD encaminhamentos + update status
 ```
 
-`checkZapiStatus`, `phoneExists`, `lookupWhatsAppPhone`, `sendText` já recebem `creds` — não mudam de assinatura.
+**Padrões reaproveitados**
+- `Layout`, `Tabs`, `Card`, `Table`, `Badge`, `Select`, `Input`, `Textarea`, `Calendar`, `Dialog`/`Sheet`, `Form` (shadcn).
+- Filtro por unidade via `useUnidade()` (`unidadeAtual.id`).
+- Uppercase automático nos inputs de texto (Core memory).
+- Datas usando `new Date(ano, mes-1, dia)` para evitar timezone.
+- Estados loading / empty / error iguais aos de `GestaoTarefas` e `Operacional`.
 
-`logEnvio` ganha um campo `canal` (`comercial` | `operacional`) gravado em `whatsapp_envios_log` (nova coluna `canal text not null default 'operacional'`).
+### 4. Telas — detalhes
 
-`_shared/zapi-alert.ts` e `_shared/notifyFormularioCore.ts` passam a usar o canal `operacional` (são alertas internos).
+**Histórico**
+- Tabela com colunas: Tipo, Unidade, Data, Participantes (chips), Resumo, # Encaminhamentos, # Pendentes (status ≠ concluido), Status, Ações.
+- Filtros: unidade (admin), tipo, período (date range), status.
+- Linha clicável → `ReuniaoDetalheDrawer` (Sheet lateral) com: dados gerais, números do período (renderizar `jsonb`), pauta, decisões, lista de encaminhamentos com status.
 
-## 3. Classificação das Edge Functions
+**Nova Reunião**
+- Formulário validado (zod): tipo*, unidade* (preenchida com `unidadeAtual`, admin pode trocar), data*, participantes* (input com chips), números do período (campos dinâmicos chave/valor ou estrutura fixa: leads, agendamentos, matrículas, faturamento — vou usar estrutura fixa com 6 campos numéricos opcionais + observações), pauta, decisões, encaminhamentos (field array com ação*, responsável (select de usuários da unidade via `useUnidadeUsers`), prazo, status inicial padrão `aberto`).
+- Botão salvar: insere reunião e encaminhamentos em transação client-side (insert reunião → insert encaminhamentos com `reuniao_id`).
+- Após salvar, redireciona para Histórico com toast.
 
-**Canal Comercial (lead/aluno):**
-- `send-follow-ups-automaticos`
-- `send-fu-digest-comercial`
-- `confirmacao-experimental-automatica`
-- `send-confirmacao-recepcao`
-- `notify-anamnese-experimental`
-- `notify-feedback-experimental`
-- `notify-boas-vindas-matricula`
+**Pendentes**
+- Query: todos encaminhamentos com `status IN ('aberto','em_andamento','atrasado')` da unidade atual (admin: todas).
+- Tabela: Ação, Responsável, Unidade, Tipo reunião (join), Data reunião, Prazo, Status (select inline para atualizar).
+- Filtros: responsável, unidade, tipo de reunião, status, prazo (range).
+- Update inline via `useEncaminhamentosData` → invalida queries.
 
-**Canal Operacional (equipe interna):**
-- `notify-rotinas-diarias`
-- `rotina-whatsapp-response` (resposta de rotina)
-- `notify-task-deadlines`
-- `send-task-whatsapp`
-- `send-cronograma-messages`
-- `send-formulario-lembretes`
-- `notify-resumo-semanal-crm`
-- `notify-resumo-semanal-pergunta`
-- `resumo-semanal-webhook-resposta`
-- `notify-formulario-encerramento` (core compartilhado)
+### 5. Permissões frontend
 
-**Multi-canal / utilitárias:**
-- `zapi-health` → aceita `?channel=comercial|operacional` (default: ambos, retorna status de cada um)
-- `list-whatsapp-groups` → idem
-- `send-zapi-test` → aceita `channel` no body (default `operacional`)
+- Item de menu visível apenas para `admin` e `coordenador`.
+- Página inteira protegida via novo wrapper `AdminOrCoordenadorRoute` em `App.tsx` (similar a `AdminRoute`).
+- Edição/criação só liberadas para admin (qualquer unidade) ou coordenador (apenas unidade atual).
 
-Cada função terá um único ponto de mudança: substituir leitura direta de env vars por `getZapiCreds('comercial' | 'operacional')`. As que ainda fazem fetch inline para Z-API serão também migradas para `sendText(creds, …)` quando trivial; caso contrário apenas as variáveis locais são derivadas de `creds.*`.
+### 6. Pontos abertos / decisões padrão
 
-## 4. Webhook `rotina-whatsapp-response`
+- **Tipos de reunião** padrão: COMERCIAL, OPERACIONAL, COORDENAÇÃO, GERAL, OUTRO.
+- **Números do período**: estrutura fixa (leads, agendamentos, experimentais, matrículas, faturamento, cancelamentos) — todos opcionais; armazenados como `jsonb` para flexibilidade futura.
+- **Atrasados** computados em runtime no frontend (sem cron); badge fica vermelho se `prazo < hoje` e status ainda aberto/em_andamento.
 
-A validação canônica de `instanceId` hoje compara contra `ZAPI_INSTANCE_ID`. Passa a aceitar **qualquer** uma das duas instâncias e grava na auditoria qual canal originou o evento (`canal_origem`). A confirmação de resposta sai pelo **canal operacional**.
+### 7. Entregáveis
 
-## 5. UI
-
-`src/pages/admin/WhatsAppComercial.tsx`:
-- Renomear o painel para "WhatsApp" com duas abas: **Comercial** e **Operacional**.
-- Cada aba consome `zapi-health?channel=…` e mostra status de conexão, último envio (lendo `whatsapp_envios_log` filtrado por `canal`), e botão de teste (`send-zapi-test` com canal correspondente).
-
-`src/pages/admin/GruposWhatsApp.tsx`:
-- Adicionar selector de canal ao listar grupos (chama `list-whatsapp-groups?channel=…`). Tabela `formulario_grupos_whatsapp` ganha coluna opcional `canal` (default `operacional`) para deixar explícito qual instância detém o grupo.
-
-## 6. Migrations
-
-```sql
-ALTER TABLE public.whatsapp_envios_log
-  ADD COLUMN canal text NOT NULL DEFAULT 'operacional';
-
-ALTER TABLE public.formulario_grupos_whatsapp
-  ADD COLUMN canal text NOT NULL DEFAULT 'operacional';
-
-ALTER TABLE public.rotina_webhook_auditoria
-  ADD COLUMN canal_origem text;
-```
-
-(Sem novas tabelas; apenas colunas de metadado.)
-
-## 7. Rollout
-
-1. Adicionar os 6 novos secrets (sem remover os antigos).
-2. Deploy do helper + funções refatoradas (mantêm fallback para os secrets atuais → zero downtime).
-3. Validar via `zapi-health` que ambas instâncias respondem.
-4. UI atualizada com as duas abas.
-5. Em fase posterior (não nesse plano), remover os secrets legacy e o fallback do helper.
-
-## Pontos técnicos resumidos
-
-- Roteamento por canal é **estático no código da função**, não vem do request — evita que um cliente force envio pela instância errada.
-- `whatsapp_envios_log.canal` permite auditoria e dashboards por instância.
-- Webhook único continua aceitando eventos das duas instâncias, com auditoria do canal.
-- Nenhuma mudança nas regras de autenticação/autorização já implementadas anteriormente.
+1. Migration SQL (2 tabelas + grants + RLS + triggers).
+2. Rota + item de menu.
+3. Página `Reunioes.tsx` com 3 tabs.
+4. Hooks e componentes listados acima.
+5. Memory entry resumindo o módulo.
