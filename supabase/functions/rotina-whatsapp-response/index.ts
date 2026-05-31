@@ -155,6 +155,12 @@ Deno.serve(async (req) => {
 
   const messageId = payload.messageId || payload.zaapId || null;
   const instanceId = payload.instanceId || null;
+  // Identifica o canal de origem comparando contra as instâncias aceitas (constant-time).
+  const matchedInstance = instanceId
+    ? acceptedInstances.find((x) => constantTimeEqual(x.id, instanceId))
+    : undefined;
+  const canalOrigem: 'comercial' | 'operacional' | 'legacy' | null =
+    matchedInstance?.canal ?? null;
   const senderPhone = normalizePhone(payload.phone || payload.chatId || payload.from || '');
   const telefoneMascarado = senderPhone ? maskPhone(senderPhone) : null;
   const payloadResumo = {
@@ -164,6 +170,7 @@ Deno.serve(async (req) => {
     isGroup: payload.isGroup ?? null,
     hasButton: !!(payload.buttonsResponseMessage || payload.buttonResponseMessage),
     hasText: !!(payload.text?.message || payload.message || payload.body),
+    canalOrigem,
   };
   const baseAudit = {
     messageId, instanceId, telefoneMascarado,
@@ -186,7 +193,7 @@ Deno.serve(async (req) => {
     }
     authMethod = 'header_secret';
   } else {
-    if (!instanceId || !constantTimeEqual(instanceId, expectedInstanceId)) {
+    if (!matchedInstance) {
       await audit(supabase, { ...baseAudit, autorizado: false, motivoBloqueio: 'instanceId divergente', authMethod: 'canonical' });
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -200,6 +207,7 @@ Deno.serve(async (req) => {
     }
     authMethod = 'canonical';
   }
+
 
   // CAMADA 3 — idempotência (autorizados anteriores com mesmo messageId)
   if (messageId) {
