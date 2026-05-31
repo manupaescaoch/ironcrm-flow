@@ -13,7 +13,7 @@ import { ReuniaoStatusBadge } from './EncaminhamentoStatusBadge';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import DOMPurify from 'dompurify';
-import { useReuniaoAnexos, type ReuniaoAnexo } from '@/hooks/useReuniaoAnexos';
+import { useReuniaoAnexos, type ReuniaoAnexo, ACCEPTED_ANEXO_ATTR, ACCEPTED_ANEXO_LABEL } from '@/hooks/useReuniaoAnexos';
 import { exportPautaToPdf, exportPautaToTxt } from '@/lib/exportPauta';
 import { toast } from '@/hooks/use-toast';
 
