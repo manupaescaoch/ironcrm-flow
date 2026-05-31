@@ -41,7 +41,9 @@ export function NovaReuniao({ onSaved }: Props) {
   const [participanteInput, setParticipanteInput] = useState('');
   const [pauta, setPauta] = useState('');
   const [feedback, setFeedback] = useState('');
+  const [anexos, setAnexos] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addParticipante = () => {
     const v = participanteInput.trim().toUpperCase();
@@ -49,6 +51,20 @@ export function NovaReuniao({ onSaved }: Props) {
       setParticipantes([...participantes, v]);
     }
     setParticipanteInput('');
+  };
+
+  const handleFiles = (files: FileList | null) => {
+    if (!files) return;
+    const novos: File[] = [];
+    Array.from(files).forEach((f) => {
+      const v = isAnexoValido(f);
+      if (!v.ok) {
+        toast({ title: `Arquivo "${f.name}" ignorado`, description: v.reason, variant: 'destructive' });
+        return;
+      }
+      novos.push(f);
+    });
+    if (novos.length) setAnexos((prev) => [...prev, ...novos]);
   };
 
   const handleSubmit = async () => {
