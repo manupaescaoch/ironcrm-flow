@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,12 +6,24 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, Paperclip, Upload, FileType } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useReunioesData } from '@/hooks/useReunioesData';
 import { TIPOS_REUNIAO } from './constants';
 import { RichTextEditor, isRichTextEmpty } from '@/components/ui/rich-text-editor';
+import {
+  ACCEPTED_ANEXO_ATTR,
+  ACCEPTED_ANEXO_LABEL,
+  isAnexoValido,
+  uploadReuniaoAnexo,
+} from '@/hooks/useReuniaoAnexos';
+
+function formatSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
 
 interface Props {
   onSaved?: () => void;
