@@ -48,8 +48,27 @@ Deno.serve(async (req) => {
       });
     }
 
-    const creds = getZapiCreds();
-    const status = creds ? await checkZapiStatus(creds) : { connected: false, raw: { error: 'sem credenciais' } };
+    // Aceita ?channel=comercial|operacional para inspecionar uma instância específica.
+    // Sem parâmetro: retorna status das duas instâncias.
+    const url = new URL(req.url);
+    const channelParam = url.searchParams.get('channel') as 'comercial' | 'operacional' | null;
+    const channels: ('comercial' | 'operacional')[] = channelParam
+      ? [channelParam]
+      : ['comercial', 'operacional'];
+    const zapiByChannel: Record<string, { connected: boolean; raw: any; configured: boolean }> = {};
+    for (const ch of channels) {
+      const creds = getZapiCreds(ch);
+      if (!creds) {
+        zapiByChannel[ch] = { connected: false, raw: { error: 'sem credenciais' }, configured: false };
+      } else {
+        const st = await checkZapiStatus(creds);
+        zapiByChannel[ch] = { connected: st.connected, raw: st.raw, configured: true };
+      }
+    }
+    // Compatibilidade retro: campo `zapi` espelha a primeira instância pedida.
+    const primary = zapiByChannel[channels[0]];
+    const status = { connected: primary.connected, raw: primary.raw };
+
 
     const since24 = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
