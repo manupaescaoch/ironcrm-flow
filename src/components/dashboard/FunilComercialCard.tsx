@@ -27,13 +27,13 @@ function Stage({
   bgClass: string;
 }) {
   return (
-    <div className={cn('rounded-xl p-3 flex-1 min-w-0', bgClass)}>
-      <div className="flex items-center gap-1.5 mb-1.5 min-w-0">
-        <Icon className={cn('w-3.5 h-3.5 shrink-0', colorClass)} />
-        <span className="text-[11px] font-medium text-muted-foreground truncate">{label}</span>
+    <div className={cn('rounded-lg p-2 flex-1 min-w-0', bgClass)}>
+      <div className="flex items-center gap-1 mb-1 min-w-0">
+        <Icon className={cn('w-3 h-3 shrink-0', colorClass)} />
+        <span className="text-[10px] font-medium text-muted-foreground truncate">{label}</span>
       </div>
-      <p className="text-xl font-bold leading-none truncate">{value}</p>
-      <p className="text-[10px] text-muted-foreground mt-1 leading-tight line-clamp-2">{subtitle}</p>
+      <p className="text-lg font-bold leading-none truncate">{value}</p>
+      <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight line-clamp-1">{subtitle}</p>
     </div>
   );
 }
@@ -62,10 +62,10 @@ export const FunilComercialCard = memo(function FunilComercialCard({
 
   return (
     <Card className="rounded-2xl border shadow-sm h-full">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold">Funil Comercial</CardTitle>
+      <CardHeader className="pb-1.5 pt-3 px-4">
+        <CardTitle className="text-sm font-semibold">Funil Comercial</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-2 pb-3 px-4">
         <div className="flex items-stretch gap-1">
           <Stage
             icon={Users}
@@ -103,15 +103,15 @@ export const FunilComercialCard = memo(function FunilComercialCard({
             bgClass="bg-amber-50 dark:bg-amber-950/30"
           />
         </div>
-        <div className="rounded-lg bg-muted/40 px-4 py-2.5 text-sm">
+        <div className="rounded-md bg-muted/40 px-3 py-1.5 text-xs">
           <span className="font-semibold">Taxa de conversão geral: {convGeral}%</span>
-          <span className="text-muted-foreground ml-3">
+          <span className="text-muted-foreground ml-2">
             {leads} Leads → {matriculas} Matrículas
           </span>
         </div>
-        <div className="rounded-lg bg-muted/40 px-4 py-2.5 text-sm">
-          <span className="font-semibold">Taxa de conversão no dia da experimental: {convMesmoDia}%</span>
-          <span className="text-muted-foreground ml-3">
+        <div className="rounded-md bg-muted/40 px-3 py-1.5 text-xs">
+          <span className="font-semibold">Taxa no dia da experimental: {convMesmoDia}%</span>
+          <span className="text-muted-foreground ml-2">
             {conversaoMesmoDia} de {comparecimentos} comparecimentos
           </span>
         </div>
