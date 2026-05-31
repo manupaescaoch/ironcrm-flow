@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.sync_encaminhamento_unidade() FROM PUBLIC, anon, authenticated;
