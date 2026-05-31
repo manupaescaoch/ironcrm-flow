@@ -2030,6 +2030,53 @@ export type Database = {
         }
         Relationships: []
       }
+      reuniao_anexos: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          id: string
+          mime_type: string | null
+          reuniao_id: string
+          size_bytes: number | null
+          unidade_id: string
+          uploaded_by: string | null
+          uploaded_by_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          id?: string
+          mime_type?: string | null
+          reuniao_id: string
+          size_bytes?: number | null
+          unidade_id: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          mime_type?: string | null
+          reuniao_id?: string
+          size_bytes?: number | null
+          unidade_id?: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reuniao_anexos_reuniao_id_fkey"
+            columns: ["reuniao_id"]
+            isOneToOne: false
+            referencedRelation: "reunioes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reunioes: {
         Row: {
           created_at: string
