@@ -78,8 +78,7 @@ Deno.serve(async (req) => {
           await __sb.from('whatsapp_envios_log').insert({
             funcao: 'notify-boas-vindas-matricula',
             sucesso: false, motivo_skip: 'zapi_offline',
-            erro_msg: JSON.stringify(__st.raw).slice(0, 500),
-          });
+            erro_msg: JSON.stringify(__st.raw).slice(0, 500), canal: 'comercial' });
         } catch {}
         console.warn('[zapi] offline — abortando', __st.raw);
         return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: __st.raw }), {
