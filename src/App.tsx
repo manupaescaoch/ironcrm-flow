@@ -357,9 +357,9 @@ const AppRoutes = () => (
     <Route
       path="/reunioes"
       element={
-        <AdminOrCoordenadorRoute>
+        <AdminOrComercialRoute>
           <Reunioes />
-        </AdminOrCoordenadorRoute>
+        </AdminOrComercialRoute>
       }
     />
     <Route
