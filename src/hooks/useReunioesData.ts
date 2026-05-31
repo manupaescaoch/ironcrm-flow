@@ -31,7 +31,7 @@ export interface ReuniaoInput {
 }
 
 export function useReunioesData() {
-  const { unidadeAtual } = useUnidade();
+  const { unidadeAtual, unidadesPermitidas } = useUnidade();
   const { isAdmin } = useAuth();
   const [reunioes, setReunioes] = useState<Reuniao[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +49,8 @@ export function useReunioesData() {
         .select('*')
         .order('data', { ascending: false });
       if (!isAdmin) {
-        query = query.eq('unidade_id', unidadeAtual.id);
+        const ids = unidadesPermitidas.map((u) => u.id);
+        query = query.in('unidade_id', ids.length ? ids : [unidadeAtual.id]);
       }
       const { data, error } = await query;
       if (error) throw error;
@@ -60,7 +61,7 @@ export function useReunioesData() {
     } finally {
       setLoading(false);
     }
-  }, [unidadeAtual, isAdmin]);
+  }, [unidadeAtual, isAdmin, unidadesPermitidas]);
 
   useEffect(() => {
     fetchReunioes();
