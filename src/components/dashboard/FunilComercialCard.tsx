@@ -8,6 +8,7 @@ interface FunilComercialCardProps {
   agendamentos: number;
   comparecimentos: number;
   matriculas: number;
+  conversaoMesmoDia?: number;
 }
 
 function Stage({
@@ -51,11 +52,13 @@ export const FunilComercialCard = memo(function FunilComercialCard({
   agendamentos,
   comparecimentos,
   matriculas,
+  conversaoMesmoDia = 0,
 }: FunilComercialCardProps) {
   const convAgend = leads > 0 ? Math.round((agendamentos / leads) * 100) : 0;
   const convComp = agendamentos > 0 ? Math.round((comparecimentos / agendamentos) * 100) : 0;
   const convMatr = comparecimentos > 0 ? Math.round((matriculas / comparecimentos) * 100) : 0;
   const convGeral = leads > 0 ? Math.round((matriculas / leads) * 100) : 0;
+  const convMesmoDia = comparecimentos > 0 ? Math.round((conversaoMesmoDia / comparecimentos) * 100) : 0;
 
   return (
     <Card className="rounded-2xl border shadow-sm h-full">
@@ -104,6 +107,12 @@ export const FunilComercialCard = memo(function FunilComercialCard({
           <span className="font-semibold">Taxa de conversão geral: {convGeral}%</span>
           <span className="text-muted-foreground ml-3">
             {leads} Leads → {matriculas} Matrículas
+          </span>
+        </div>
+        <div className="rounded-lg bg-muted/40 px-4 py-2.5 text-sm">
+          <span className="font-semibold">Taxa de conversão no dia da experimental: {convMesmoDia}%</span>
+          <span className="text-muted-foreground ml-3">
+            {conversaoMesmoDia} de {comparecimentos} comparecimentos
           </span>
         </div>
       </CardContent>

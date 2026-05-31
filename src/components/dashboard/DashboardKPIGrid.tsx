@@ -128,6 +128,7 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
           agendamentos={periodStats.experimentaisPeriodo}
           comparecimentos={periodStats.comparecimentosPeriodo}
           matriculas={periodStats.matriculasPeriodo}
+          conversaoMesmoDia={periodStats.conversaoMesmoDia}
         />
         <DiagnosticoSemanaCard
           leads={stats.total}
