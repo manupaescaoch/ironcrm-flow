@@ -158,16 +158,19 @@ _Anamnese preenchida pela recepção no momento da chegada do lead._`;
     const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_COMERCIAL_CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN') ?? '';
     if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) throw new Error('Z-API comercial não configurada');
 
-    // [Z-API health] aborta cedo se o chip estiver offline
+    // [Z-API health] aborta cedo se o chip estiver offline (será retentado pelo cron retry-anamneses-pendentes)
     {
       const sr = await fetch(`https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/status`, { headers: { 'Client-Token': ZAPI_CLIENT_TOKEN } });
       const sj = await sr.json().catch(() => ({}));
       if (!sr.ok || sj?.connected !== true) {
         console.warn('[notify-anamnese] Z-API offline', sj);
         try {
-          const sb = (await import('https://esm.sh/@supabase/supabase-js@2')).createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-          await sb.from('whatsapp_envios_log').insert({ funcao: 'notify-anamnese-experimental', sucesso: false, motivo_skip: 'zapi_offline', erro_msg: JSON.stringify(sj).slice(0, 500), canal: 'comercial' });
+          await supabase.from('whatsapp_envios_log').insert({ funcao: 'notify-anamnese-experimental', sucesso: false, motivo_skip: 'zapi_offline', erro_msg: JSON.stringify(sj).slice(0, 500), canal: 'comercial' });
         } catch {}
+        await supabase.from('anamneses_experimental').update({
+          notificacao_tentativas: (a.notificacao_tentativas ?? 0) + 1,
+          notificacao_ultimo_erro: 'zapi_offline',
+        }).eq('id', anamnese_id);
         return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: sj }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
     }
@@ -179,11 +182,39 @@ _Anamnese preenchida pela recepção no momento da chegada do lead._`;
       body: JSON.stringify({ phone: grupo, message }),
     });
     const result = await resp.json().catch(() => ({}));
+    const messageId = result?.messageId || result?.id || null;
+    const zapiError = result?.error || (typeof result?.message === 'string' ? result.message : null);
+    const reallyOk = resp.ok && !!messageId && !zapiError;
+
+    await supabase.from('whatsapp_envios_log').insert({
+      funcao: 'notify-anamnese-experimental',
+      destino: String(grupo),
+      tipo_destino: 'grupo',
+      unidade_id: a.unidade_id,
+      sucesso: reallyOk,
+      erro_msg: reallyOk ? null : (zapiError || `sem messageId (HTTP ${resp.status})`),
+      zapi_status_code: resp.status,
+      canal: 'comercial',
+    });
+
+    if (reallyOk) {
+      await supabase.from('anamneses_experimental').update({
+        notificado_em: new Date().toISOString(),
+        notificacao_tentativas: (a.notificacao_tentativas ?? 0) + 1,
+        notificacao_ultimo_erro: null,
+      }).eq('id', anamnese_id);
+    } else {
+      await supabase.from('anamneses_experimental').update({
+        notificacao_tentativas: (a.notificacao_tentativas ?? 0) + 1,
+        notificacao_ultimo_erro: (zapiError || `sem messageId (HTTP ${resp.status})`).toString().slice(0, 500),
+      }).eq('id', anamnese_id);
+    }
 
     return new Response(
-      JSON.stringify({ ok: resp.ok, status: resp.status, result }),
+      JSON.stringify({ ok: reallyOk, status: resp.status, result }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
+
   } catch (e: any) {
     console.error('[notify-anamnese] erro', e);
     return new Response(JSON.stringify({ error: e?.message ?? 'erro' }), {

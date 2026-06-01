@@ -259,6 +259,9 @@ export type Database = {
           lead_id: string
           lesao_descricao: string | null
           nome: string | null
+          notificacao_tentativas: number
+          notificacao_ultimo_erro: string | null
+          notificado_em: string | null
           objetivo: string | null
           observacoes: string | null
           obstaculo: string | null
@@ -279,6 +282,9 @@ export type Database = {
           lead_id: string
           lesao_descricao?: string | null
           nome?: string | null
+          notificacao_tentativas?: number
+          notificacao_ultimo_erro?: string | null
+          notificado_em?: string | null
           objetivo?: string | null
           observacoes?: string | null
           obstaculo?: string | null
@@ -299,6 +305,9 @@ export type Database = {
           lead_id?: string
           lesao_descricao?: string | null
           nome?: string | null
+          notificacao_tentativas?: number
+          notificacao_ultimo_erro?: string | null
+          notificado_em?: string | null
           objetivo?: string | null
           observacoes?: string | null
           obstaculo?: string | null
