@@ -483,7 +483,7 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete, on
                               <Button
                                 size="sm" variant="ghost"
                                 className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                                onClick={() => { if (confirm('Remover este anexo?')) deleteAnexo(a); }}
+                                onClick={() => setAnexoToDelete(a)}
                                 title="Remover"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
