@@ -80,6 +80,7 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete, on
   const [editingFeedback, setEditingFeedback] = useState(false);
   const [feedbackDraft, setFeedbackDraft] = useState('');
   const [savingFeedback, setSavingFeedback] = useState(false);
+  const [anexoToDelete, setAnexoToDelete] = useState<ReuniaoAnexo | null>(null);
   const [editForm, setEditForm] = useState({
     tipo: '',
     data: '',
