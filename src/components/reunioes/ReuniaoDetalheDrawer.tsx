@@ -530,6 +530,31 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete, on
           )}
           {!editing && !onDelete && <div />}
         </div>
+
+        <AlertDialog open={!!anexoToDelete} onOpenChange={(open) => !open && setAnexoToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remover anexo</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja remover o anexo <strong>{anexoToDelete?.file_name}</strong>? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setAnexoToDelete(null)}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  if (anexoToDelete) {
+                    deleteAnexo(anexoToDelete);
+                    setAnexoToDelete(null);
+                  }
+                }}
+              >
+                Remover
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </SheetContent>
     </Sheet>
   );
