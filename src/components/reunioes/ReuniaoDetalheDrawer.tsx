@@ -8,6 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   CalendarDays, Users, Trash2, UserCheck, FileText, FileDown, Paperclip,
   Upload, Download, Loader2, FileType, MessageSquare, Building2,
   Pencil, X, Save,
@@ -76,6 +80,7 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete, on
   const [editingFeedback, setEditingFeedback] = useState(false);
   const [feedbackDraft, setFeedbackDraft] = useState('');
   const [savingFeedback, setSavingFeedback] = useState(false);
+  const [anexoToDelete, setAnexoToDelete] = useState<ReuniaoAnexo | null>(null);
   const [editForm, setEditForm] = useState({
     tipo: '',
     data: '',
@@ -478,7 +483,7 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete, on
                               <Button
                                 size="sm" variant="ghost"
                                 className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                                onClick={() => { if (confirm('Remover este anexo?')) deleteAnexo(a); }}
+                                onClick={() => setAnexoToDelete(a)}
                                 title="Remover"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -525,6 +530,31 @@ export function ReuniaoDetalheDrawer({ reuniao, open, onOpenChange, onDelete, on
           )}
           {!editing && !onDelete && <div />}
         </div>
+
+        <AlertDialog open={!!anexoToDelete} onOpenChange={(open) => !open && setAnexoToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remover anexo</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja remover o anexo <strong>{anexoToDelete?.file_name}</strong>? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setAnexoToDelete(null)}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  if (anexoToDelete) {
+                    deleteAnexo(anexoToDelete);
+                    setAnexoToDelete(null);
+                  }
+                }}
+              >
+                Remover
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </SheetContent>
     </Sheet>
   );
