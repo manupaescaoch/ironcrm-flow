@@ -2890,7 +2890,6 @@ export type Database = {
         Args: { new_name: string; old_name: string }
         Returns: number
       }
-      find_user_by_name: { Args: { p_name: string }; Returns: string }
       generate_follow_ups_for_lead: {
         Args: { p_lead_id: string }
         Returns: undefined
