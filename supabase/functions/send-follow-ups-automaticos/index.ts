@@ -202,6 +202,18 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // Claim atômico: evita envio duplicado em execuções concorrentes
+      const { data: claimed, error: claimErr } = await supabase
+        .from('follow_ups')
+        .update({ status: 'enviando', updated_at: new Date().toISOString() })
+        .eq('id', fu.id)
+        .eq('status', 'pendente')
+        .select('id');
+      if (claimErr || !claimed || claimed.length === 0) {
+        results.push({ tipo: fu.tipo, lead: lead.nome, status: 'skipped_already_claimed' });
+        continue;
+      }
+
       try {
         const r = await sendText(creds, phone, message);
         if (r.ok) {
@@ -222,10 +234,13 @@ Deno.serve(async (req) => {
           await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: true, zapi_status_code: r.status, canal: 'comercial' });
           results.push({ tipo: fu.tipo, lead: lead.nome, status: 'sent' });
         } else {
+          // Reverte claim para permitir retry futuro
+          await supabase.from('follow_ups').update({ status: 'pendente', updated_at: new Date().toISOString() }).eq('id', fu.id).eq('status', 'enviando');
           await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, zapi_status_code: r.status, erro_msg: JSON.stringify(r.body).slice(0, 500), canal: 'comercial' });
           errors.push(`Z-API ${r.status}: ${fu.tipo} ${lead.nome}`);
         }
       } catch (e: any) {
+        await supabase.from('follow_ups').update({ status: 'pendente', updated_at: new Date().toISOString() }).eq('id', fu.id).eq('status', 'enviando');
         await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, erro_msg: e?.message ?? String(e), canal: 'comercial' });
         errors.push(`Erro envio: ${fu.tipo} ${lead.nome} - ${e?.message ?? e}`);
       }
