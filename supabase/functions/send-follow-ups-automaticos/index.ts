@@ -202,6 +202,18 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // Claim atômico: evita envio duplicado em execuções concorrentes
+      const { data: claimed, error: claimErr } = await supabase
+        .from('follow_ups')
+        .update({ status: 'enviando', updated_at: new Date().toISOString() })
+        .eq('id', fu.id)
+        .eq('status', 'pendente')
+        .select('id');
+      if (claimErr || !claimed || claimed.length === 0) {
+        results.push({ tipo: fu.tipo, lead: lead.nome, status: 'skipped_already_claimed' });
+        continue;
+      }
+
       try {
         const r = await sendText(creds, phone, message);
         if (r.ok) {
