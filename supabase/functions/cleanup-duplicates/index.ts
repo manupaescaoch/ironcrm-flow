@@ -7,43 +7,74 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
+  // 1. OPTIONS: somente CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // SECURITY: require cron secret header OR valid Supabase JWT for any non-OPTIONS request.
-  {
-    const __auth = await authorizeCronOrJwt(req);
-    if (!__auth.ok) {
-      return new Response(
-        JSON.stringify({ error: __auth.error || 'Unauthorized' }),
-        { status: __auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+  // 2. Aceitar apenas POST
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // 3. Validar JWT (ou cron secret)
+  const auth = await authorizeCronOrJwt(req);
+  if (!auth.ok) {
+    return new Response(
+      JSON.stringify({ error: auth.error || 'Unauthorized' }),
+      { status: auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  );
+
+  // 4. Se for chamada via JWT (não cron), exigir role admin no banco
+  if (auth.method === 'jwt') {
+    if (!auth.userId) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const { data: isAdmin, error: roleError } = await supabaseAdmin.rpc('has_role', {
+      _user_id: auth.userId,
+      _role: 'admin',
+    });
+    if (roleError || !isAdmin) {
+      console.warn('cleanup-duplicates forbidden', { userId: auth.userId, roleError });
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
     // IDs of duplicate leads to deactivate (keeping the oldest ones)
     const duplicateIds = [
-      'eefcf28f-a45e-487a-b44b-f0b24b1636ee', // ANAMELIA NOVAES DE SOUZA MENEZES (newer by name)
-      '63c8b839-ee83-4ede-8533-346712fde293', // LUCAS MENDES CARBONERA (newer by name)
-      '06682eb1-2cc7-4bf7-bdaf-eba4e3402897', // KLEDSON ALMEIDA SILVA (newer by phone)
-      'f9bbb062-9842-4848-8b41-70bfa5c719b6', // ANAMELIA NOVAES DE SOUZA MENEZES (newer by phone)
-      '6f3aed98-b6e5-4fcc-9a5f-20ae7f64bd5f', // ADONIAS EVANGELISTA DO NASCIMENTO (newer by phone)
-      'fda5a0a5-21d0-4170-a556-23643cb62605', // GERALDO MARTINS DA SILVA (newer by phone)
-      'db07c3dc-82e3-4f35-8022-7f42d8eae0f1', // PEDRO ADVINCULA FALCÃO FILHO (newer by phone)
+      'eefcf28f-a45e-487a-b44b-f0b24b1636ee',
+      '63c8b839-ee83-4ede-8533-346712fde293',
+      '06682eb1-2cc7-4bf7-bdaf-eba4e3402897',
+      'f9bbb062-9842-4848-8b41-70bfa5c719b6',
+      '6f3aed98-b6e5-4fcc-9a5f-20ae7f64bd5f',
+      'fda5a0a5-21d0-4170-a556-23643cb62605',
+      'db07c3dc-82e3-4f35-8022-7f42d8eae0f1',
     ];
 
-    console.log(`Deactivating ${duplicateIds.length} duplicate leads using admin function...`);
+    console.log('cleanup-duplicates invoked', {
+      method: auth.method,
+      userId: auth.userId ?? null,
+      count: duplicateIds.length,
+    });
 
-    // Use the admin function to bypass triggers
-    const { data, error } = await supabase.rpc('admin_cleanup_duplicate_leads', {
-      lead_ids: duplicateIds
+    const { data, error } = await supabaseAdmin.rpc('admin_cleanup_duplicate_leads', {
+      lead_ids: duplicateIds,
     });
 
     if (error) {
@@ -51,23 +82,25 @@ Deno.serve(async (req) => {
       throw error;
     }
 
-    console.log(`Successfully deactivated ${data} leads`);
+    console.log('cleanup-duplicates success', {
+      userId: auth.userId ?? null,
+      affected: data,
+    });
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: `${data} leads duplicados foram desativados`,
-        count: data
+        count: data,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
-
   } catch (error: unknown) {
     console.error('Error in cleanup-duplicates:', error);
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return new Response(
       JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });
