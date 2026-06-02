@@ -206,11 +206,13 @@ export function useComissoesData() {
     filterFuncionario,
     setFilterFuncionario,
     filteredInteracoes,
+    interacoes,
     stats,
     comissoesCadastrador,
     comissoesFechador,
     bonusTreinadores,
     treinadorStats,
     totalComissoes,
+    refetch: fetchComissoes,
   };
 }
