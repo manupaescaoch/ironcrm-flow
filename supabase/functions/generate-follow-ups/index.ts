@@ -7,20 +7,20 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
+  // Handle CORS preflight requests (no auth on OPTIONS)
   if (req.method === 'OPTIONS') {
-
-    // SECURITY: require cron secret header OR valid Supabase JWT.
-    {
-      const __auth = await authorizeCronOrJwt(req);
-      if (!__auth.ok) {
-        return new Response(
-          JSON.stringify({ error: __auth.error || 'Unauthorized' }),
-          { status: __auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-    }
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // SECURITY: require cron secret header OR valid Supabase JWT for any non-OPTIONS request.
+  {
+    const __auth = await authorizeCronOrJwt(req);
+    if (!__auth.ok) {
+      return new Response(
+        JSON.stringify({ error: __auth.error || 'Unauthorized' }),
+        { status: __auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
   }
 
   try {
