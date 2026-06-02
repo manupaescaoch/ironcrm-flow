@@ -38,6 +38,7 @@ export default function Comissoes() {
     bonusTreinadores,
     treinadorStats,
     totalComissoes,
+    refetch,
   } = useComissoesData();
 
   const handlePersonClick = (name: string, type: 'cadastrador' | 'fechador') => {
