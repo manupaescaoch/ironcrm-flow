@@ -60,18 +60,83 @@ export default function Comissoes() {
     toast({ title: 'PDF exportado com sucesso!' });
   };
 
+  const handleRecalcular = async () => {
+    if (!unidadeAtual) return;
+    const mesNum = parseInt(mes);
+    const anoNum = parseInt(ano);
+    const startDate = format(new Date(anoNum, mesNum - 1, 1), 'yyyy-MM-dd');
+    const endDate = format(new Date(anoNum, mesNum, 0), 'yyyy-MM-dd');
+
+    setRecalculando(true);
+    try {
+      const { data: rows, error: fetchErr } = await supabase
+        .from('interacoes')
+        .select('id, valor_plano, comissao_comercial, comissao_recepcao')
+        .eq('fechou_matricula', true)
+        .eq('unidade_id', unidadeAtual.id)
+        .gte('data_fechamento', startDate)
+        .lte('data_fechamento', endDate);
+
+      if (fetchErr) throw fetchErr;
+
+      const round = (v: number) => Math.round(v * 100) / 100;
+      const updates = (rows || [])
+        .map((r: any) => {
+          const valor = Number(r.valor_plano || 0);
+          const novaCadastrador = round(valor * 0.03);
+          const novaFechador = round(valor * 0.02);
+          if (
+            round(Number(r.comissao_comercial || 0)) === novaCadastrador &&
+            round(Number(r.comissao_recepcao || 0)) === novaFechador
+          ) return null;
+          return { id: r.id, comissao_comercial: novaCadastrador, comissao_recepcao: novaFechador };
+        })
+        .filter(Boolean) as { id: string; comissao_comercial: number; comissao_recepcao: number }[];
+
+      let atualizadas = 0;
+      for (const u of updates) {
+        const { error } = await supabase
+          .from('interacoes')
+          .update({ comissao_comercial: u.comissao_comercial, comissao_recepcao: u.comissao_recepcao })
+          .eq('id', u.id);
+        if (!error) atualizadas++;
+      }
+
+      toast({
+        title: 'Comissões recalculadas',
+        description: `${atualizadas} de ${rows?.length || 0} matrículas atualizadas (3% cadastrador / 2% fechador).`,
+      });
+      await refetch();
+    } catch (e: any) {
+      toast({ title: 'Erro ao recalcular', description: e.message, variant: 'destructive' });
+    } finally {
+      setRecalculando(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="p-8">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Comissões do Mês</h1>
           {isAdmin && (
-            <Button onClick={handleExportPDF} disabled={loading || filteredInteracoes.length === 0}>
-              <FileDown className="w-4 h-4 mr-2" />
-              Exportar PDF
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleRecalcular}
+                disabled={recalculando || loading || filteredInteracoes.length === 0}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${recalculando ? 'animate-spin' : ''}`} />
+                {recalculando ? 'Recalculando...' : 'Recalcular Comissões'}
+              </Button>
+              <Button onClick={handleExportPDF} disabled={loading || filteredInteracoes.length === 0}>
+                <FileDown className="w-4 h-4 mr-2" />
+                Exportar PDF
+              </Button>
+            </div>
           )}
         </div>
+
 
         <ComissoesFilters
           mes={mes}
