@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileDown } from 'lucide-react';
+import { Loader2, FileDown, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,6 +13,8 @@ import { TreinadorBonusTable } from '@/components/comissoes/TreinadorBonusTable'
 import { MatriculasDetailTable } from '@/components/comissoes/MatriculasDetailTable';
 import { LeadsModal } from '@/components/comissoes/LeadsModal';
 import { exportComissoesToPDF } from '@/components/comissoes/ComissoesPDFExport';
+import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
 
 export default function Comissoes() {
   const [selectedPerson, setSelectedPerson] = useState<{ name: string; type: 'cadastrador' | 'fechador' } | null>(null);
