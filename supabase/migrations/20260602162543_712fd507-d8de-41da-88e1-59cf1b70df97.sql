@@ -1,0 +1,2 @@
+REVOKE ALL ON FUNCTION public.user_can_insert_rotina_comprovante(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.user_can_insert_rotina_comprovante(uuid, text) TO authenticated, service_role;

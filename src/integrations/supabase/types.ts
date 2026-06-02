@@ -2912,6 +2912,10 @@ export type Database = {
         Args: { _object_name: string; _user_id: string }
         Returns: boolean
       }
+      user_can_insert_rotina_comprovante: {
+        Args: { _object_name: string; _user_id: string }
+        Returns: boolean
+      }
       user_has_unidade_access: {
         Args: { _unidade_id: string; _user_id: string }
         Returns: boolean
