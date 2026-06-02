@@ -18,8 +18,9 @@ import { format } from 'date-fns';
 
 export default function Comissoes() {
   const [selectedPerson, setSelectedPerson] = useState<{ name: string; type: 'cadastrador' | 'fechador' } | null>(null);
+  const [recalculando, setRecalculando] = useState(false);
   const { toast } = useToast();
-  const { loading: unidadeLoading } = useUnidade();
+  const { unidadeAtual, loading: unidadeLoading } = useUnidade();
   const { isAdmin } = useAuth();
 
   const {
