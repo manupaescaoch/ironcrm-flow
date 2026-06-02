@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
         leads (id, nome, telefone, ativo, status_funil, is_matriculado)
       `)
       .eq('status', 'pendente')
-      .lte('data_prevista', `${todayStr}T23:59:59`)
+      .lte('data_prevista', `${todayStr}T23:59:59-03:00`)
       .in('tipo', ['D+1', 'D+7', 'D+15', 'D+30']);
 
     if (fuErr) {
