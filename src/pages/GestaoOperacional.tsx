@@ -174,7 +174,7 @@ function TopKPIsRow({ kpis }: { kpis: UnidadeKPIs[] }) {
   const totFuAtr = kpis.reduce((s, k) => s + k.follow_ups_atrasados_24h, 0);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <SummaryKPI
         icon={Users}
         label="Alunos ativos total"
@@ -191,25 +191,17 @@ function TopKPIsRow({ kpis }: { kpis: UnidadeKPIs[] }) {
         iconColor="text-emerald-600"
       />
       <SummaryKPI
-        icon={XCircle}
-        label="Cancelamentos da semana"
-        value={totCanc}
-        sub={`Semana anterior: ${totCancAnt}`}
-        delta={<Delta current={totCanc} previous={totCancAnt} invertColors />}
-        iconBg="bg-red-500/10"
-        iconColor="text-red-600"
-      />
-      <SummaryKPI
         icon={Send}
-        label="Follow-ups pendentes"
-        value={totFu}
-        sub={`Atrasados: ${totFuAtr}`}
+        label="Follow-ups atrasados"
+        value={totFuAtr}
+        sub={`Pendentes no total: ${totFu}`}
         iconBg="bg-blue-500/10"
         iconColor="text-blue-600"
       />
     </div>
   );
 }
+
 
 function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }) {
   const [editing, setEditing] = useState(false);
