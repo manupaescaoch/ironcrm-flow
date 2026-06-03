@@ -54,21 +54,25 @@ function EditarMetasDialog({ k, onSaved }: { k: UnidadeKPIs; onSaved: () => void
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [metaAlunos, setMetaAlunos] = useState(k.meta_alunos_mes);
+  const [evasao, setEvasao] = useState(k.meta?.evasao_pct_manual ?? 0);
+  const [cac, setCac] = useState(k.meta?.cac_manual ?? 0);
 
   useEffect(() => {
-    if (open) setMetaAlunos(k.meta_alunos_mes);
-  }, [open, k.meta_alunos_mes]);
+    if (open) {
+      setMetaAlunos(k.meta_alunos_mes);
+      setEvasao(k.meta?.evasao_pct_manual ?? 0);
+      setCac(k.meta?.cac_manual ?? 0);
+    }
+  }, [open, k]);
 
   const handleSave = async () => {
     setSaving(true);
+    const payload = { meta_alunos_mes: metaAlunos, evasao_pct_manual: evasao, cac_manual: cac };
     let error;
     if (k.meta?.id) {
-      ({ error } = await supabase.from('gestao_metas')
-        .update({ meta_alunos_mes: metaAlunos })
-        .eq('id', k.meta.id));
+      ({ error } = await supabase.from('gestao_metas').update(payload).eq('id', k.meta.id));
     } else {
-      ({ error } = await supabase.from('gestao_metas')
-        .insert({ unidade_id: k.unidade_id, meta_alunos_mes: metaAlunos }));
+      ({ error } = await supabase.from('gestao_metas').insert({ unidade_id: k.unidade_id, ...payload }));
     }
     setSaving(false);
     if (error) { toast.error('Erro ao salvar meta: ' + error.message); return; }
@@ -86,17 +90,22 @@ function EditarMetasDialog({ k, onSaved }: { k: UnidadeKPIs; onSaved: () => void
       </DialogTrigger>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Meta de Alunos no Mês — {k.unidade_nome}</DialogTitle>
-          <DialogDescription>Total de alunos esperado para o mês (inserido manualmente).</DialogDescription>
+          <DialogTitle>Metas — {k.unidade_nome}</DialogTitle>
+          <DialogDescription>Valores informados manualmente.</DialogDescription>
         </DialogHeader>
-        <div className="py-2">
-          <Label className="text-xs">Meta de alunos no mês</Label>
-          <Input
-            type="number"
-            value={metaAlunos}
-            onChange={e => setMetaAlunos(+e.target.value)}
-            autoFocus
-          />
+        <div className="py-2 space-y-3">
+          <div>
+            <Label className="text-xs">Meta de alunos no mês</Label>
+            <Input type="number" value={metaAlunos} onChange={e => setMetaAlunos(+e.target.value)} autoFocus />
+          </div>
+          <div>
+            <Label className="text-xs">Evasão do mês (%)</Label>
+            <Input type="number" step="0.01" value={evasao} onChange={e => setEvasao(+e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">CAC do mês (R$)</Label>
+            <Input type="number" step="0.01" value={cac} onChange={e => setCac(+e.target.value)} />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
