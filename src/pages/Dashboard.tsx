@@ -191,14 +191,19 @@ export default function Dashboard() {
           <SyncIndicator lastSyncTime={lastSyncTime ?? undefined} className="ml-4" />
         </div>
 
+        <MetaVsRealizadoCard
+          unidadeId={unidadeAtual?.id}
+          unidadeNome={unidadeAtual?.nome}
+          refreshKey={alunosAtivosRefreshKey}
+        />
+
         <DashboardKPIGrid
           stats={stats}
           periodStats={periodStats}
           experimentaisSemanaCount={experimentaisSemanaCount}
-          faturamentoPeriodo={matriculasDetalhadas.reduce(
-            (sum, m) => sum + Number(m.interacao?.valor_plano || 0),
-            0
-          )}
+          unidadeId={unidadeAtual?.id}
+          alunosAtivosRefreshKey={alunosAtivosRefreshKey}
+          onAlunosAtivosChange={() => setAlunosAtivosRefreshKey(k => k + 1)}
           followUpPendingCount={followUpPendingCount}
           followUpD1Count={followUpD1Count}
           showExperimentaisSection={showExperimentaisSection}
@@ -208,6 +213,7 @@ export default function Dashboard() {
           onMatriculasClick={handleMatriculasCardClick}
           onFollowUpClick={handleFollowUpCardClick}
         />
+
 
         {/* Follow Up Section */}
         {showFollowUpSection && (
