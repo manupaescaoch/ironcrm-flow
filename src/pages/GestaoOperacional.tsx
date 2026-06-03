@@ -156,6 +156,40 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
             delta={<Delta current={k.receita_mes} previous={k.receita_mes_anterior} />} />
           <KPIBlock icon={PieChart} label="Ocupação" value={`${k.ocupacao_pct}%`}
             sub={`Meta: ${k.meta?.meta_ocupacao_pct ?? 80}%`} />
+
+          {/* Ticket médio real (manual) */}
+          <div className="rounded-lg border bg-card p-4">
+            <div className="flex items-center gap-2 mb-2 text-muted-foreground text-xs uppercase tracking-wider">
+              <DollarSign className="w-3.5 h-3.5" />
+              Ticket Médio Real
+            </div>
+            {editingTicket ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={ticketValue}
+                  onChange={e => setTicketValue(+e.target.value)}
+                  className="h-8"
+                  autoFocus
+                />
+                <Button size="sm" onClick={handleSaveTicket} disabled={savingTicket}>
+                  {savingTicket ? <Loader2 className="w-3 h-3 animate-spin" /> : 'OK'}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => { setEditingTicket(false); setTicketValue(k.ticket_medio_real); }}>X</Button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold text-foreground">{fmtBRL(k.ticket_medio_real)}</div>
+                <Button size="sm" variant="ghost" onClick={() => setEditingTicket(true)}>Editar</Button>
+              </div>
+            )}
+            <div className="text-xs text-muted-foreground mt-1">informado manualmente</div>
+          </div>
+
+          <KPIBlock icon={TrendingUp} label="Receita Recorrente Projetada"
+            value={fmtBRL(k.receita_recorrente_projetada)}
+            sub={`${k.alunos_ativos} ativos × ${fmtBRL(k.ticket_medio_real)}`} />
         </div>
         <div>
           <div className="flex justify-between text-xs text-muted-foreground mb-1">
