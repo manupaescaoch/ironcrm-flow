@@ -1,60 +1,96 @@
-## Mudança principal
+## Objetivo
 
-O webhook **para de criar lead automaticamente**. Toda mensagem nova entra como **conversa pendente** na caixa "WhatsApp — Não atribuídas". Só vira lead quando alguém clicar manualmente em **"Transformar em Lead"**.
+Unificar tudo na página `/crm` (Funil de Vendas). Remover a página/rota `/conversas-whatsapp` e o item correspondente no menu lateral. As conversas do WhatsApp passam a viver como uma seção dentro do próprio Funil, entre os KPIs e a lista/kanban de leads.
 
----
+## Ordem visual final em `/crm`
 
-## 1. Refatorar `whatsapp-inbound-webhook`
+1. Cabeçalho — título "Funil de Vendas", subtítulo "Gestão dos leads e conversas recebidas pelo WhatsApp"
+2. Filtros existentes (período, unidade, exportar, novo lead, importar planilha) — mantidos como estão
+3. KPIs (cards existentes + 3 novos)
+4. Seção **Conversas do WhatsApp**
+5. Lista/Kanban de leads (como está hoje)
 
-Novo comportamento por telefone recebido:
+## 1. KPIs — adicionar 3 cards
 
-- **Telefone já vinculado a um lead ativo** → mesma lógica de hoje: atualiza `ultima_interacao_at`, `status_conversa`, grava mensagem em `agente_mensagens`. Nada muda no funil.
-- **Telefone NÃO encontrado em `leads`** → **não cria lead**. Apenas:
-  - Cria/atualiza um registro em `agente_atendimentos` com `unidade_id = Iron Setúbal` (caixa de entrada), `lead_id = NULL`, `nome = senderName`, `telefone`, `status = 'novo'`.
-  - Grava a mensagem em `agente_mensagens` com dedupe por `external_message_id`.
-- Mantém: validação `x-webhook-secret` em tempo constante, ignora grupos e status, normaliza telefone.
+Manter os KPIs atuais e somar:
 
-Pequeno ajuste técnico: como `agente_atendimentos.agente_id` é NOT NULL, usar o 1º agente da unidade Setúbal; se não houver, criar um agente "Caixa de entrada — WhatsApp" via seed (1 vez) na migration.
+- **Conversas WhatsApp** — total de `agente_atendimentos` no período/unidade selecionados
+- **Não vinculadas** — `agente_atendimentos` com `lead_id IS NULL` e `status != 'arquivado'`
+- **Sem resposta** — `agente_atendimentos` cuja última mensagem em `agente_mensagens` tem `role = 'user'` (i.e. ainda não respondemos)
 
-## 2. Nova página `/conversas-whatsapp` (Caixa de Entrada)
+Todos respeitam o filtro de período e unidade já usado pela página.
 
-Lista todos os `agente_atendimentos` **com `lead_id IS NULL`** ordenados por `ultima_interacao_at desc`. Cada linha mostra:
+## 2. Nova seção "Conversas do WhatsApp"
 
-- Nome (ou telefone), prévia da última mensagem, tempo desde a última interação.
-- Botão **"Ver conversa"** → abre drawer com histórico (`agente_mensagens`).
-- Botão **"Transformar em Lead"** → modal com:
-  - Nome (pré-preenchido), telefone (readonly), unidade (default Setúbal), origem (default WHATSAPP).
-  - Ao confirmar: cria lead + faz `UPDATE agente_atendimentos SET lead_id = ... WHERE id = ...`. A conversa some da caixa de entrada e passa a aparecer no Funil/Lead detail.
-- Botão **"Arquivar"** (admin) → marca `status = 'arquivado'` e some da lista.
+Componente novo `src/components/crm/ConversasWhatsAppSection.tsx`, renderizado logo abaixo do bloco de KPIs em `src/pages/CRM.tsx`.
 
-## 3. Sidebar
+Conteúdo:
 
-Adicionar item **"Conversas WhatsApp"** logo abaixo de **Funil de Vendas**, com badge mostrando contagem de conversas sem lead.
+- Título "Conversas do WhatsApp" + subtítulo "Números recebidos pelo WhatsApp ainda não vinculados ou em processo de qualificação"
+- Tabs/segmento: **Não vinculadas** (padrão) | **Vinculadas** | **Todas**
+- Busca por nome / telefone / trecho de mensagem
+- Botão "Atualizar" + realtime via `postgres_changes` em `agente_atendimentos` e `agente_mensagens`
+- Lista (limit ~50, com "Ver mais") onde cada item mostra:
+  - Nome (ou últimos 4 dígitos do telefone)
+  - Telefone
+  - Última mensagem (preview)
+  - Data/hora da última interação (`formatDistanceToNow` pt-BR)
+  - Unidade (badge)
+  - Status da conversa
+  - Badge: **Não vinculado** / **Vinculado** / **Lead criado** (quando `lead_id` aponta para lead `is_matriculado=false`/`true`)
+  - Botão **Ver conversa** → reaproveita o `Sheet` de histórico
+  - Botão **Transformar em Lead** (oculto se já vinculado)
+  - Ícone **Arquivar** (admin)
 
-## 4. Testar o webhook
+## 3. Modal "Transformar em Lead"
 
-Antes de pedir para apontar a Z-API, eu rodo `curl_edge_functions` com 3 payloads simulando Z-API e o header `x-webhook-secret` correto:
+Reaproveita a lógica que já existe em `ConversasWhatsApp.tsx`, com 1 campo a mais conforme pedido:
 
-1. Telefone novo (deve criar apenas atendimento + mensagem, **sem lead**).
-2. Mesmo telefone, 2ª mensagem (deve reusar o atendimento e gravar nova mensagem).
-3. Telefone de um lead existente (deve atualizar `ultima_interacao_at` do lead, sem criar nada novo).
+- Nome (pré-preenchido, uppercase)
+- Telefone (readonly)
+- Unidade de destino (default = unidade ativa)
+- Fonte = WHATSAPP (fixo)
+- **Responsável** (novo) — Select com usuários da unidade, default = usuário logado → grava em `leads.responsavel_id` / `cadastrado_por`
+- **Observação** (novo, opcional) — textarea; se preenchido, cria uma `lead_interactions` com tipo "observacao"
 
-E também valido:
-- POST sem `x-webhook-secret` → 401.
-- POST com `isGroup=true` → 200 ignorado.
-- Re-envio com o mesmo `messageId` → deduplicado.
+Ao confirmar:
+1. Verifica duplicidade por `telefone_normalizado` (ativo). Se existir → apenas vincula `agente_atendimentos.lead_id`.
+2. Senão `INSERT INTO leads` com `fonte='WHATSAPP'`, `status_funil='novo'`, `status_conversa='aguardando_resposta'`, `unidade_id`, `created_by`, `responsavel_id`.
+3. `UPDATE agente_atendimentos SET lead_id, unidade_id WHERE id`.
+4. Invalida queries do funil e KPIs → lead aparece imediatamente na lista/kanban abaixo e os KPIs recalculam.
 
-Mostro o resultado de cada chamada (lead_id, atendimento_id, status).
+## 4. Navegação
 
-## 5. Detalhes técnicos
+- `src/App.tsx` → remover a rota `/conversas-whatsapp` e o import de `ConversasWhatsApp`.
+- `src/components/Layout.tsx` → remover o item "Conversas WhatsApp" do sidebar e o badge de contagem.
+- Manter no menu apenas: Painel de Dados, Funil de Vendas e os demais já existentes.
+- Deletar `src/pages/ConversasWhatsApp.tsx` (toda a UI vira parte do CRM).
 
-- **Tabelas**: nenhuma nova. Só uso `agente_atendimentos` (`lead_id` já é nullable) e `agente_mensagens`. Migration mínima só para seed do agente "Caixa de entrada" da unidade Setúbal, caso não exista.
-- **RLS**: as policies atuais de `agente_atendimentos`/`agente_mensagens` já cobrem (admin + user com unidade vinculada). Como a caixa vive na unidade Setúbal, admins veem tudo; outros usuários só veem se tiverem Setúbal vinculada.
-- **Funil**: continua lendo apenas de `leads`. Nada muda na página `/crm`, exceto que leads vindos por WhatsApp agora só aparecem após ação manual.
-- **Arquivos novos**: `src/pages/ConversasWhatsApp.tsx`, `src/components/conversas/ConversaItem.tsx`, `src/components/conversas/TransformarEmLeadModal.tsx`, hook `useConversasInbox.ts`. Rota em `src/App.tsx`. Item no sidebar `src/components/Layout.tsx`.
-- **Arquivos editados**: `supabase/functions/whatsapp-inbound-webhook/index.ts` (remove o ramo de criação automática de lead).
+## 5. Arquivos
+
+**Novos**
+- `src/components/crm/ConversasWhatsAppSection.tsx` — seção principal
+- `src/components/crm/ConversaHistoricoSheet.tsx` — drawer de histórico
+- `src/components/crm/TransformarEmLeadModal.tsx` — modal (com Responsável + Observação)
+- `src/hooks/useConversasWhatsApp.ts` — fetch + realtime + filtros por período/unidade
+
+**Editados**
+- `src/pages/CRM.tsx` — montar a nova ordem (Cabeçalho → Filtros → KPIs → Conversas → Lista/Kanban) e passar período/unidade
+- `src/hooks/useDashboardStats.ts` (ou o hook de KPIs do CRM) — adicionar os 3 KPIs novos
+- `src/App.tsx` — remover rota
+- `src/components/Layout.tsx` — remover item do sidebar
+
+**Removidos**
+- `src/pages/ConversasWhatsApp.tsx`
+
+## Detalhes técnicos
+
+- Webhook `whatsapp-inbound-webhook` permanece igual: continua **não criando lead automaticamente**, só `agente_atendimentos` + `agente_mensagens`. Toda criação de lead é manual via o modal.
+- RLS atual de `agente_atendimentos`/`agente_mensagens` já cobre o uso (admin + usuários com a unidade vinculada).
+- Sem migrations novas. Nenhuma alteração de schema.
 
 ## Fora de escopo
 
-- Enviar mensagem de saída pelo CRM (apenas leitura por enquanto).
-- Anexos (imagem/áudio) — só texto nesta etapa.
+- Enviar mensagens de saída pelo CRM (continua leitura).
+- Anexos (imagem/áudio).
+- Mudar a lógica do webhook ou dos KPIs já existentes.
