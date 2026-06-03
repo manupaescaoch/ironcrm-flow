@@ -201,12 +201,9 @@ async function fetchUnidadeKPIs(unidade_id: string, unidade_nome: string, meta: 
     .eq('data_fim', dateOnly(monthEnd));
   const investimentoMes = (invRows ?? []).reduce((s, r: any) => s + Number(r.valor || 0), 0);
 
-  // Evasão % do mês: cancelamentos / (alunos ativos + cancelamentos) — base do mês
-  const baseEvasao = (alunosAtivos ?? 0) + cancelamentosMes;
-  const evasaoPctMes = baseEvasao > 0 ? Math.round((cancelamentosMes / baseEvasao) * 100) : 0;
-
-  // CAC: investimento / matrículas do mês
-  const cac = investimentoMes > 0 && matriculasMes > 0 ? investimentoMes / matriculasMes : null;
+  // Evasão % manual e CAC manual
+  const evasaoPctMes = Number(meta?.evasao_pct_manual ?? 0);
+  const cac = meta?.cac_manual ? Number(meta.cac_manual) : null;
 
   const capacidade = meta?.capacidade_alunos ?? 0;
   const ocupacaoPct = capacidade > 0 ? Math.round(((alunosAtivos ?? 0) / capacidade) * 100) : 0;
