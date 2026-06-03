@@ -212,8 +212,18 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
   const [ticketValue, setTicketValue] = useState(k.ticket_medio_real);
   const [savingTicket, setSavingTicket] = useState(false);
 
+  const [editingEvasao, setEditingEvasao] = useState(false);
+  const [evasaoValue, setEvasaoValue] = useState(k.evasao_pct_mes);
+  const [savingEvasao, setSavingEvasao] = useState(false);
+
+  const [editingCac, setEditingCac] = useState(false);
+  const [cacValue, setCacValue] = useState(k.cac ?? 0);
+  const [savingCac, setSavingCac] = useState(false);
+
   useEffect(() => { setValue(k.alunos_ativos); }, [k.alunos_ativos]);
   useEffect(() => { setTicketValue(k.ticket_medio_real); }, [k.ticket_medio_real]);
+  useEffect(() => { setEvasaoValue(k.evasao_pct_mes); }, [k.evasao_pct_mes]);
+  useEffect(() => { setCacValue(k.cac ?? 0); }, [k.cac]);
 
   const handleSave = async () => {
     if (!k.meta?.id) { toast.error('Meta da unidade não encontrada.'); return; }
@@ -236,6 +246,29 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
     setEditingTicket(false);
     onRefetch();
   };
+
+  const handleSaveEvasao = async () => {
+    if (!k.meta?.id) { toast.error('Meta da unidade não encontrada.'); return; }
+    setSavingEvasao(true);
+    const { error } = await supabase.from('gestao_metas').update({ evasao_pct_manual: evasaoValue }).eq('id', k.meta.id);
+    setSavingEvasao(false);
+    if (error) { toast.error('Erro ao salvar: ' + error.message); return; }
+    toast.success('Evasão atualizada');
+    setEditingEvasao(false);
+    onRefetch();
+  };
+
+  const handleSaveCac = async () => {
+    if (!k.meta?.id) { toast.error('Meta da unidade não encontrada.'); return; }
+    setSavingCac(true);
+    const { error } = await supabase.from('gestao_metas').update({ cac_manual: cacValue }).eq('id', k.meta.id);
+    setSavingCac(false);
+    if (error) { toast.error('Erro ao salvar: ' + error.message); return; }
+    toast.success('CAC atualizado');
+    setEditingCac(false);
+    onRefetch();
+  };
+
 
   const metaOcup = k.meta?.meta_ocupacao_pct ?? 80;
 
