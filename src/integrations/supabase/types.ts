@@ -1658,10 +1658,12 @@ export type Database = {
       leads: {
         Row: {
           atendido_por: string | null
+          atendimento_id: string | null
           ativo: boolean
           cadastrado_por: string | null
           confirmacao_24h_enviada_em: string | null
           confirmacao_2h_enviada_em: string | null
+          convertido_em_aluno_at: string | null
           created_at: string
           created_by: string | null
           data_aula_experimental: string | null
@@ -1670,6 +1672,7 @@ export type Database = {
           follow_up_enviado_em: string | null
           follow_up_responsavel: string | null
           follow_up_whatsapp_enviado: boolean | null
+          fonte: string | null
           hora_aula_experimental: string | null
           id: string
           is_matriculado: boolean
@@ -1678,19 +1681,25 @@ export type Database = {
           observacoes: string | null
           origem: string | null
           plano_escolhido: string | null
+          status_conversa: string | null
           status_funil: string
           telefone: string | null
+          telefone_normalizado: string | null
           treinador_experimental: string | null
+          ultima_interacao_at: string | null
           unidade_id: string
           updated_at: string
           user_id: string | null
+          valor_pipeline: number | null
         }
         Insert: {
           atendido_por?: string | null
+          atendimento_id?: string | null
           ativo?: boolean
           cadastrado_por?: string | null
           confirmacao_24h_enviada_em?: string | null
           confirmacao_2h_enviada_em?: string | null
+          convertido_em_aluno_at?: string | null
           created_at?: string
           created_by?: string | null
           data_aula_experimental?: string | null
@@ -1699,6 +1708,7 @@ export type Database = {
           follow_up_enviado_em?: string | null
           follow_up_responsavel?: string | null
           follow_up_whatsapp_enviado?: boolean | null
+          fonte?: string | null
           hora_aula_experimental?: string | null
           id?: string
           is_matriculado?: boolean
@@ -1707,19 +1717,25 @@ export type Database = {
           observacoes?: string | null
           origem?: string | null
           plano_escolhido?: string | null
+          status_conversa?: string | null
           status_funil?: string
           telefone?: string | null
+          telefone_normalizado?: string | null
           treinador_experimental?: string | null
+          ultima_interacao_at?: string | null
           unidade_id?: string
           updated_at?: string
           user_id?: string | null
+          valor_pipeline?: number | null
         }
         Update: {
           atendido_por?: string | null
+          atendimento_id?: string | null
           ativo?: boolean
           cadastrado_por?: string | null
           confirmacao_24h_enviada_em?: string | null
           confirmacao_2h_enviada_em?: string | null
+          convertido_em_aluno_at?: string | null
           created_at?: string
           created_by?: string | null
           data_aula_experimental?: string | null
@@ -1728,6 +1744,7 @@ export type Database = {
           follow_up_enviado_em?: string | null
           follow_up_responsavel?: string | null
           follow_up_whatsapp_enviado?: boolean | null
+          fonte?: string | null
           hora_aula_experimental?: string | null
           id?: string
           is_matriculado?: boolean
@@ -1736,14 +1753,25 @@ export type Database = {
           observacoes?: string | null
           origem?: string | null
           plano_escolhido?: string | null
+          status_conversa?: string | null
           status_funil?: string
           telefone?: string | null
+          telefone_normalizado?: string | null
           treinador_experimental?: string | null
+          ultima_interacao_at?: string | null
           unidade_id?: string
           updated_at?: string
           user_id?: string | null
+          valor_pipeline?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_atendimento_id_fkey"
+            columns: ["atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "agente_atendimentos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_unidade_id_fkey"
             columns: ["unidade_id"]
