@@ -54,7 +54,12 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
   const [value, setValue] = useState(k.alunos_ativos);
   const [saving, setSaving] = useState(false);
 
+  const [editingTicket, setEditingTicket] = useState(false);
+  const [ticketValue, setTicketValue] = useState(k.ticket_medio_real);
+  const [savingTicket, setSavingTicket] = useState(false);
+
   useEffect(() => { setValue(k.alunos_ativos); }, [k.alunos_ativos]);
+  useEffect(() => { setTicketValue(k.ticket_medio_real); }, [k.ticket_medio_real]);
 
   const handleSave = async () => {
     if (!k.meta?.id) {
@@ -70,6 +75,20 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
     if (error) { toast.error('Erro ao salvar: ' + error.message); return; }
     toast.success('Alunos ativos atualizado');
     setEditing(false);
+    onRefetch();
+  };
+
+  const handleSaveTicket = async () => {
+    if (!k.meta?.id) { toast.error('Meta da unidade não encontrada.'); return; }
+    setSavingTicket(true);
+    const { error } = await supabase
+      .from('gestao_metas')
+      .update({ ticket_medio_real: ticketValue })
+      .eq('id', k.meta.id);
+    setSavingTicket(false);
+    if (error) { toast.error('Erro ao salvar: ' + error.message); return; }
+    toast.success('Ticket médio atualizado');
+    setEditingTicket(false);
     onRefetch();
   };
 
