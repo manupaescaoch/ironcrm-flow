@@ -514,6 +514,7 @@ export default function GestaoOperacional() {
             </TabsList>
 
             <TabsContent value="visao-geral" className="space-y-4 mt-4">
+              <MetaConsolidada kpis={kpis} />
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {kpis.map(k => <UnidadeCard key={k.unidade_id} k={k} onRefetch={refetch} />)}
               </div>
