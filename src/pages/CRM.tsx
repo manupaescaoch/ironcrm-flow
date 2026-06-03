@@ -57,6 +57,8 @@ import * as XLSX from 'xlsx';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
 import { validateCsvRow, type CsvRowValidationResult } from '@/utils/csvImportValidation';
+import { ConversasWhatsAppSection } from '@/components/crm/ConversasWhatsAppSection';
+import { MessageCircle } from 'lucide-react';
 
 // Validation schema for lead creation/update
 const leadSchema = z.object({
