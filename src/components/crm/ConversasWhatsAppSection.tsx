@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Layout } from '@/components/Layout';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card } from '@/components/ui/card';
+import { useUnidadeUsers } from '@/hooks/useUnidadeUsers';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -29,11 +31,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Loader2, MessageCircle, UserPlus, Archive, RefreshCw } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, MessageCircle, UserPlus, Archive, RefreshCw, ExternalLink } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 
 interface Atendimento {
   id: string;
@@ -42,7 +45,9 @@ interface Atendimento {
   unidade_id: string;
   ultima_interacao_at: string | null;
   status: string;
+  lead_id: string | null;
   ultima_mensagem?: string | null;
+  ultima_role?: string | null;
 }
 
 interface Mensagem {
@@ -50,11 +55,6 @@ interface Mensagem {
   role: string;
   conteudo: string;
   created_at: string;
-}
-
-interface Unidade {
-  id: string;
-  nome: string;
 }
 
 const ORIGENS = [
@@ -67,12 +67,23 @@ const ORIGENS = [
   'NÃO INFORMADO',
 ];
 
-export default function ConversasWhatsApp() {
+type TabKey = 'nao_vinculadas' | 'vinculadas' | 'todas';
+
+interface Props {
+  onCountsChange?: (counts: { total: number; naoVinculadas: number; semResposta: number }) => void;
+  onLeadCreated?: () => void;
+}
+
+export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Props) {
   const { user, isAdmin } = useAuth();
-  const { unidadesPermitidas } = useUnidade();
+  const { unidadeAtual, unidadesPermitidas } = useUnidade();
+  const { users: unidadeUsers } = useUnidadeUsers();
+  const navigate = useNavigate();
+
   const [loading, setLoading] = useState(true);
   const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
   const [search, setSearch] = useState('');
+  const [tab, setTab] = useState<TabKey>('nao_vinculadas');
 
   const [drawerAtend, setDrawerAtend] = useState<Atendimento | null>(null);
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
@@ -82,77 +93,84 @@ export default function ConversasWhatsApp() {
   const [formNome, setFormNome] = useState('');
   const [formUnidade, setFormUnidade] = useState<string>('');
   const [formOrigem, setFormOrigem] = useState('WHATSAPP');
+  const [formResponsavel, setFormResponsavel] = useState<string>('');
+  const [formObservacao, setFormObservacao] = useState<string>('');
   const [saving, setSaving] = useState(false);
 
-  const fetchInbox = async () => {
+  const fetchInbox = useCallback(async () => {
+    if (!unidadeAtual) return;
     setLoading(true);
-    // 1) Atendimentos sem lead vinculado
-    const { data: atends, error } = await supabase
+
+    let query = supabase
       .from('agente_atendimentos')
-      .select('id, nome, telefone, unidade_id, ultima_interacao_at, status')
-      .is('lead_id', null)
+      .select('id, nome, telefone, unidade_id, ultima_interacao_at, status, lead_id')
       .neq('status', 'arquivado')
+      .eq('unidade_id', unidadeAtual.id)
       .order('ultima_interacao_at', { ascending: false })
       .limit(200);
 
+    const { data: atends, error } = await query;
     if (error) {
       toast({ title: 'Erro ao carregar conversas', description: error.message, variant: 'destructive' });
       setLoading(false);
       return;
     }
 
-    // 2) Pega a última mensagem de cada atendimento
     const ids = (atends || []).map((a) => a.id);
-    let preview: Record<string, string> = {};
+    const preview: Record<string, { conteudo: string; role: string }> = {};
     if (ids.length) {
       const { data: msgs } = await supabase
         .from('agente_mensagens')
-        .select('atendimento_id, conteudo, created_at')
+        .select('atendimento_id, conteudo, role, created_at')
         .in('atendimento_id', ids)
         .order('created_at', { ascending: false });
       for (const m of msgs || []) {
-        if (!preview[m.atendimento_id]) preview[m.atendimento_id] = m.conteudo;
+        if (!preview[m.atendimento_id]) preview[m.atendimento_id] = { conteudo: m.conteudo, role: m.role };
       }
     }
 
-    setAtendimentos(
-      (atends || []).map((a) => ({ ...a, ultima_mensagem: preview[a.id] ?? null })),
-    );
+    const mapped: Atendimento[] = (atends || []).map((a) => ({
+      ...a,
+      ultima_mensagem: preview[a.id]?.conteudo ?? null,
+      ultima_role: preview[a.id]?.role ?? null,
+    }));
+    setAtendimentos(mapped);
     setLoading(false);
-  };
+
+    // counts
+    if (onCountsChange) {
+      const total = mapped.length;
+      const naoVinculadas = mapped.filter((a) => !a.lead_id).length;
+      const semResposta = mapped.filter((a) => a.ultima_role === 'user').length;
+      onCountsChange({ total, naoVinculadas, semResposta });
+    }
+  }, [unidadeAtual, onCountsChange]);
 
   useEffect(() => {
     fetchInbox();
-    // realtime
     const channel = supabase
-      .channel('conversas-inbox')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'agente_atendimentos' },
-        () => fetchInbox(),
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'agente_mensagens' },
-        () => fetchInbox(),
-      )
+      .channel('crm-conversas-inbox')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agente_atendimentos' }, () => fetchInbox())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'agente_mensagens' }, () => fetchInbox())
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchInbox]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return atendimentos;
-    return atendimentos.filter(
+    let base = atendimentos;
+    if (tab === 'nao_vinculadas') base = base.filter((a) => !a.lead_id);
+    else if (tab === 'vinculadas') base = base.filter((a) => !!a.lead_id);
+    if (!q) return base;
+    return base.filter(
       (a) =>
         (a.nome || '').toLowerCase().includes(q) ||
         (a.telefone || '').includes(q) ||
         (a.ultima_mensagem || '').toLowerCase().includes(q),
     );
-  }, [atendimentos, search]);
+  }, [atendimentos, search, tab]);
 
   const openDrawer = async (atend: Atendimento) => {
     setDrawerAtend(atend);
@@ -170,15 +188,21 @@ export default function ConversasWhatsApp() {
   const openModal = (atend: Atendimento) => {
     setModalAtend(atend);
     setFormNome((atend.nome || `WHATSAPP ${(atend.telefone || '').slice(-4)}`).toUpperCase());
-    setFormUnidade(unidadesPermitidas[0]?.id || atend.unidade_id);
+    setFormUnidade(unidadeAtual?.id || atend.unidade_id);
     setFormOrigem('WHATSAPP');
+    const meName =
+      (user?.user_metadata as any)?.full_name ||
+      (user?.user_metadata as any)?.name ||
+      user?.email ||
+      '';
+    setFormResponsavel(String(meName).toUpperCase());
+    setFormObservacao('');
   };
 
   const transformarEmLead = async () => {
     if (!modalAtend || !formNome.trim() || !formUnidade) return;
     setSaving(true);
 
-    // Verificar duplicidade por telefone normalizado
     const telDigits = (modalAtend.telefone || '').replace(/\D/g, '');
     const { data: dup } = await supabase
       .from('leads')
@@ -200,6 +224,7 @@ export default function ConversasWhatsApp() {
       setSaving(false);
       setModalAtend(null);
       fetchInbox();
+      onLeadCreated?.();
       return;
     }
 
@@ -207,7 +232,7 @@ export default function ConversasWhatsApp() {
       .from('leads')
       .insert({
         nome: formNome.trim().toUpperCase(),
-        telefone: modalAtend.telefone || '',
+        telefone: telDigits,
         origem: formOrigem,
         fonte: 'WHATSAPP',
         status_funil: 'novo',
@@ -217,6 +242,7 @@ export default function ConversasWhatsApp() {
         atendimento_id: modalAtend.id,
         ativo: true,
         is_matriculado: false,
+        cadastrado_por: formResponsavel.trim().toUpperCase() || null,
         created_by: user?.id,
       })
       .select('id')
@@ -237,10 +263,20 @@ export default function ConversasWhatsApp() {
       .update({ lead_id: novoLead.id, unidade_id: formUnidade })
       .eq('id', modalAtend.id);
 
+    if (formObservacao.trim()) {
+      await supabase.from('interacoes').insert({
+        lead_id: novoLead.id,
+        tipo: 'Observação',
+        descricao: formObservacao.trim(),
+        atendido_por: formResponsavel.trim().toUpperCase() || null,
+      } as any);
+    }
+
     toast({ title: 'Lead criado', description: `${formNome} foi adicionado ao funil.` });
     setSaving(false);
     setModalAtend(null);
     fetchInbox();
+    onLeadCreated?.();
   };
 
   const arquivar = async (atend: Atendimento) => {
@@ -257,94 +293,131 @@ export default function ConversasWhatsApp() {
   };
 
   return (
-    <Layout>
-      <div className="p-6 space-y-4">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
+    <Card className="mb-6">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <MessageCircle className="w-7 h-7" />
-              Conversas WhatsApp
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              Caixa de entrada de números recebidos pelo WhatsApp ainda não vinculados a um lead.
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <MessageCircle className="w-5 h-5" />
+              Conversas do WhatsApp
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Números recebidos pelo WhatsApp ainda não vinculados ou em processo de qualificação
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Input
-              placeholder="Buscar por nome, telefone ou mensagem…"
+              placeholder="Buscar nome, telefone ou mensagem…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-72"
+              className="w-64"
             />
             <Button variant="outline" size="icon" onClick={fetchInbox} title="Atualizar">
               <RefreshCw className="w-4 h-4" />
             </Button>
           </div>
         </div>
-
-        <Card className="p-0 overflow-hidden">
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="py-16 text-center text-muted-foreground">
-              <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p className="font-medium">Nenhuma conversa pendente</p>
-              <p className="text-sm">Novas mensagens recebidas pelo WhatsApp aparecerão aqui.</p>
-            </div>
-          ) : (
-            <ul className="divide-y">
-              {filtered.map((a) => (
+        <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="mt-3">
+          <TabsList>
+            <TabsTrigger value="nao_vinculadas">
+              Não vinculadas
+              <Badge variant="secondary" className="ml-2">
+                {atendimentos.filter((a) => !a.lead_id).length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="vinculadas">
+              Vinculadas
+              <Badge variant="secondary" className="ml-2">
+                {atendimentos.filter((a) => !!a.lead_id).length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="todas">Todas</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </CardHeader>
+      <CardContent className="p-0">
+        {loading ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="py-10 text-center text-muted-foreground">
+            <MessageCircle className="w-10 h-10 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">Nenhuma conversa nesta visualização.</p>
+          </div>
+        ) : (
+          <ul className="divide-y max-h-[480px] overflow-y-auto">
+            {filtered.map((a) => {
+              const vinculado = !!a.lead_id;
+              return (
                 <li
                   key={a.id}
-                  className="p-4 hover:bg-muted/30 transition flex items-center gap-4"
+                  className="px-4 py-3 hover:bg-muted/30 transition flex items-center gap-4"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="font-medium truncate">
                         {a.nome || `WhatsApp ${(a.telefone || '').slice(-4)}`}
                       </span>
-                      <Badge variant="outline" className="text-xs">
-                        {a.telefone}
-                      </Badge>
+                      <Badge variant="outline" className="text-xs">{a.telefone}</Badge>
+                      {vinculado ? (
+                        <Badge className="text-xs bg-green-500/15 text-green-700 border-green-500/30 hover:bg-green-500/20">
+                          Vinculado
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs">
+                          Não vinculado
+                        </Badge>
+                      )}
+                      {a.ultima_role === 'user' && !vinculado && (
+                        <Badge className="text-xs bg-amber-500/15 text-amber-700 border-amber-500/30 hover:bg-amber-500/20">
+                          Sem resposta
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground truncate">
                       {a.ultima_mensagem || '(sem mensagens)'}
                     </p>
                   </div>
-                  <div className="text-xs text-muted-foreground whitespace-nowrap">
+                  <div className="text-xs text-muted-foreground whitespace-nowrap hidden md:block">
                     {a.ultima_interacao_at &&
                       formatDistanceToNow(new Date(a.ultima_interacao_at), {
                         locale: ptBR,
                         addSuffix: true,
                       })}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <Button size="sm" variant="outline" onClick={() => openDrawer(a)}>
                       Ver conversa
                     </Button>
-                    <Button size="sm" onClick={() => openModal(a)} className="gap-1">
-                      <UserPlus className="w-4 h-4" />
-                      Transformar em Lead
-                    </Button>
-                    {isAdmin && (
+                    {vinculado ? (
                       <Button
-                        size="icon"
+                        size="sm"
                         variant="ghost"
-                        onClick={() => arquivar(a)}
-                        title="Arquivar"
+                        onClick={() => navigate(`/lead/${a.lead_id}`)}
+                        className="gap-1"
                       >
+                        <ExternalLink className="w-4 h-4" />
+                        Abrir lead
+                      </Button>
+                    ) : (
+                      <Button size="sm" onClick={() => openModal(a)} className="gap-1">
+                        <UserPlus className="w-4 h-4" />
+                        Transformar em Lead
+                      </Button>
+                    )}
+                    {isAdmin && !vinculado && (
+                      <Button size="icon" variant="ghost" onClick={() => arquivar(a)} title="Arquivar">
                         <Archive className="w-4 h-4" />
                       </Button>
                     )}
                   </div>
                 </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </div>
+              );
+            })}
+          </ul>
+        )}
+      </CardContent>
 
       {/* Drawer com histórico */}
       <Sheet open={!!drawerAtend} onOpenChange={(o) => !o && setDrawerAtend(null)}>
@@ -353,7 +426,7 @@ export default function ConversasWhatsApp() {
             <SheetTitle>{drawerAtend?.nome || 'Conversa WhatsApp'}</SheetTitle>
             <SheetDescription>{drawerAtend?.telefone}</SheetDescription>
           </SheetHeader>
-          <div className="flex-1 overflow-y-auto mt-4 space-y-2 pr-2">
+          <div className="flex-1 overflow-y-auto mt-4 space-y-2 pr-2 flex flex-col">
             {loadingMsgs ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -395,23 +468,20 @@ export default function ConversasWhatsApp() {
           <div className="space-y-3">
             <div>
               <Label>Nome</Label>
-              <Input
-                value={formNome}
-                onChange={(e) => setFormNome(e.target.value.toUpperCase())}
-              />
+              <Input value={formNome} onChange={(e) => setFormNome(e.target.value.toUpperCase())} />
             </div>
             <div>
               <Label>Telefone</Label>
               <Input value={modalAtend?.telefone || ''} disabled />
             </div>
             <div>
-              <Label>Unidade</Label>
+              <Label>Unidade de destino</Label>
               <Select value={formUnidade} onValueChange={setFormUnidade}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a unidade" />
                 </SelectTrigger>
                 <SelectContent>
-                  {unidadesPermitidas.map((u: Unidade) => (
+                  {unidadesPermitidas.map((u) => (
                     <SelectItem key={u.id} value={u.id}>
                       {u.nome}
                     </SelectItem>
@@ -420,7 +490,7 @@ export default function ConversasWhatsApp() {
               </Select>
             </div>
             <div>
-              <Label>Origem</Label>
+              <Label>Fonte</Label>
               <Select value={formOrigem} onValueChange={setFormOrigem}>
                 <SelectTrigger>
                   <SelectValue />
@@ -434,6 +504,38 @@ export default function ConversasWhatsApp() {
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label>Responsável</Label>
+              {unidadeUsers.length > 0 ? (
+                <Select value={formResponsavel} onValueChange={setFormResponsavel}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o responsável" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {unidadeUsers.map((u) => (
+                      <SelectItem key={u.id} value={u.name}>
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  value={formResponsavel}
+                  onChange={(e) => setFormResponsavel(e.target.value.toUpperCase())}
+                  placeholder="Nome do responsável"
+                />
+              )}
+            </div>
+            <div>
+              <Label>Observação (opcional)</Label>
+              <Textarea
+                value={formObservacao}
+                onChange={(e) => setFormObservacao(e.target.value)}
+                placeholder="Nota inicial sobre a conversa…"
+                rows={3}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalAtend(null)} disabled={saving}>
@@ -441,11 +543,11 @@ export default function ConversasWhatsApp() {
             </Button>
             <Button onClick={transformarEmLead} disabled={saving || !formNome.trim() || !formUnidade}>
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Criar Lead
+              Confirmar e criar lead
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Layout>
+    </Card>
   );
 }

@@ -57,6 +57,8 @@ import * as XLSX from 'xlsx';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
 import { validateCsvRow, type CsvRowValidationResult } from '@/utils/csvImportValidation';
+import { ConversasWhatsAppSection } from '@/components/crm/ConversasWhatsAppSection';
+import { MessageCircle } from 'lucide-react';
 
 // Validation schema for lead creation/update
 const leadSchema = z.object({
@@ -229,6 +231,7 @@ export default function CRM() {
   // Interações no período (para KPIs de experimentais agendadas/realizadas)
   const [experimentaisAgendadasPeriodo, setExperimentaisAgendadasPeriodo] = useState(0);
   const [experimentaisRealizadasPeriodo, setExperimentaisRealizadasPeriodo] = useState(0);
+  const [conversasCounts, setConversasCounts] = useState({ total: 0, naoVinculadas: 0, semResposta: 0 });
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -941,13 +944,20 @@ export default function CRM() {
     <Layout>
       <div className="p-8">
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold">CRM - Leads</h1>
-            {unidadeAtual && (
-              <Badge variant="outline" className="text-sm font-medium px-3 py-1 bg-primary/10 text-primary border-primary/20">
-                {unidadeAtual.nome}
-              </Badge>
-            )}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div>
+              <h1 className="text-3xl font-bold flex items-center gap-3">
+                Funil de Vendas
+                {unidadeAtual && (
+                  <Badge variant="outline" className="text-sm font-medium px-3 py-1 bg-primary/10 text-primary border-primary/20">
+                    {unidadeAtual.nome}
+                  </Badge>
+                )}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Gestão dos leads e conversas recebidas pelo WhatsApp
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {/* Period Filter */}
@@ -1267,7 +1277,7 @@ export default function CRM() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
@@ -1345,7 +1355,46 @@ export default function CRM() {
               </div>
             </CardContent>
           </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-emerald-500" />
+                <div>
+                  <p className="text-2xl font-bold text-emerald-600">{conversasCounts.total}</p>
+                  <p className="text-xs text-muted-foreground">Conversas WhatsApp</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-indigo-500" />
+                <div>
+                  <p className="text-2xl font-bold text-indigo-600">{conversasCounts.naoVinculadas}</p>
+                  <p className="text-xs text-muted-foreground">Não vinculadas</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-amber-500" />
+                <div>
+                  <p className="text-2xl font-bold text-amber-600">{conversasCounts.semResposta}</p>
+                  <p className="text-xs text-muted-foreground">Sem resposta</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
+
+        <ConversasWhatsAppSection
+          onCountsChange={setConversasCounts}
+          onLeadCreated={fetchLeads}
+        />
+
 
         <Card>
           <CardHeader>
