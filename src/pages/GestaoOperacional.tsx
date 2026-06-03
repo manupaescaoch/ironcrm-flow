@@ -296,17 +296,10 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
         <SubSection icon={PieChart} title="Ocupação">
           <MiniMetric
             label="Alunos ativos"
-            value={editing ? (
-              <div className="flex items-center gap-1 w-full">
-                <Input type="number" value={value} onChange={e => setValue(+e.target.value)} className="h-7 text-base font-bold" autoFocus />
-                <Button size="sm" className="h-7 px-2" onClick={handleSave} disabled={saving}>
-                  {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : 'OK'}
-                </Button>
-              </div>
-            ) : k.alunos_ativos}
-            sub={`Semana anterior: ${k.matriculas_semana_anterior + k.alunos_ativos - k.matriculas_semana}`}
-            action={!editing && <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditing(true)}>Editar</Button>}
+            value={k.alunos_ativos}
+            sub="Editar no Dashboard"
           />
+
           <MiniMetric
             label="Ocupação"
             value={`${k.ocupacao_pct}%`}
@@ -575,16 +568,14 @@ function LancamentoSemanal({ unidades, onSaved }: { unidades: UnidadeKPIs[]; onS
             <Input type="date" value={semana} onChange={e => setSemana(e.target.value)} required />
           </div>
 
-          <div className="md:col-span-2 border-t pt-4">
-            <Label className="text-base font-semibold">Entrada manual</Label>
-          </div>
           <div className="md:col-span-2">
             <Label>Total de alunos ativos</Label>
-            <Input type="number" value={totalAtivos} onChange={e => setTotalAtivos(+e.target.value)} required />
+            <Input type="number" value={totalAtivos} readOnly disabled className="bg-muted/40" />
             <p className="text-xs text-muted-foreground mt-1">
-              Este valor também atualiza o card "Alunos Ativos" da unidade.
+              Puxado automaticamente do Dashboard. Para alterar, edite o KPI "Alunos Ativos" no Dashboard da unidade.
             </p>
           </div>
+
 
           {autoFields && (
             <>
