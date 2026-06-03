@@ -1355,7 +1355,46 @@ export default function CRM() {
               </div>
             </CardContent>
           </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-emerald-500" />
+                <div>
+                  <p className="text-2xl font-bold text-emerald-600">{conversasCounts.total}</p>
+                  <p className="text-xs text-muted-foreground">Conversas WhatsApp</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-indigo-500" />
+                <div>
+                  <p className="text-2xl font-bold text-indigo-600">{conversasCounts.naoVinculadas}</p>
+                  <p className="text-xs text-muted-foreground">Não vinculadas</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-amber-500" />
+                <div>
+                  <p className="text-2xl font-bold text-amber-600">{conversasCounts.semResposta}</p>
+                  <p className="text-xs text-muted-foreground">Sem resposta</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
+
+        <ConversasWhatsAppSection
+          onCountsChange={setConversasCounts}
+          onLeadCreated={fetchLeads}
+        />
+
 
         <Card>
           <CardHeader>
