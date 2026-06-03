@@ -181,14 +181,17 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex items-center justify-between gap-2">
           <span>{k.unidade_nome}</span>
-          {k.alertas.length > 0 && (
-            <Badge variant="destructive" className="gap-1">
-              <AlertTriangle className="w-3 h-3" />
-              {k.alertas.length}
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {k.alertas.length > 0 && (
+              <Badge variant="destructive" className="gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                {k.alertas.length}
+              </Badge>
+            )}
+            <EditarMetasDialog k={k} onSaved={onRefetch} />
+          </div>
         </CardTitle>
         <CardDescription>
           Capacidade {k.meta?.capacidade_alunos ?? '—'} alunos · Meta de ocupação {k.meta?.meta_ocupacao_pct ?? 80}%
