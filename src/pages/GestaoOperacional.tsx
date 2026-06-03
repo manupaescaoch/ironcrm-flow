@@ -490,7 +490,7 @@ function MetaConsolidada({ kpis }: { kpis: UnidadeKPIs[] }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <MetaBar label="Alunos no mês (total)" current={totalAlunos} meta={totalMeta} />
+        <MetaBar label="Alunos no mês (total)" current={totalAlunos} meta={totalMeta} showMissing />
         {kpis.map(k => (
           <MetaBar
             key={k.unidade_id}
