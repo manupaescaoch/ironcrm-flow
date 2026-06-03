@@ -497,6 +497,7 @@ function MetaConsolidada({ kpis }: { kpis: UnidadeKPIs[] }) {
             label={k.unidade_nome}
             current={k.alunos_ativos}
             meta={k.meta_alunos_mes}
+            showMissing
           />
         ))}
       </CardContent>
