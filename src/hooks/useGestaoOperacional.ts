@@ -38,6 +38,7 @@ export interface UnidadeKPIs {
   ocupacao_pct: number;
   ticket_medio_real: number;
   receita_recorrente_projetada: number;
+  meta_alunos_mes: number;
   alertas: string[];
 }
 
