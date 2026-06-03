@@ -41,6 +41,8 @@ export default function Dashboard() {
   const [showFollowUpSection, setShowFollowUpSection] = useState(false);
   const [followUpTipoFilter, setFollowUpTipoFilter] = useState<string | null>(null);
   const [followUpRefreshKey, setFollowUpRefreshKey] = useState(0);
+  const [alunosAtivosRefreshKey, setAlunosAtivosRefreshKey] = useState(0);
+
   
   // Refs for scrolling
   const experimentaisSectionRef = useRef<HTMLDivElement>(null);
