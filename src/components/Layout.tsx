@@ -45,8 +45,8 @@ interface LayoutProps {
 const MASTER_ADMIN_EMAIL = 'emanuel.paes@gmail.com';
 
 const allNavItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
-  { href: '/crm', label: 'CRM', icon: Users, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
+  { href: '/dashboard', label: 'Painel de Dados', icon: LayoutDashboard, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
+  { href: '/crm', label: 'Funil de Vendas', icon: Users, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/vencimentos', label: 'Vencimentos', icon: CalendarClock, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/indicacoes', label: 'Indicações', icon: Gift, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
