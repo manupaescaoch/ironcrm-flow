@@ -175,7 +175,7 @@ function TopKPIsRow({ kpis }: { kpis: UnidadeKPIs[] }) {
   const totFuAtr = kpis.reduce((s, k) => s + k.follow_ups_atrasados_24h, 0);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
       <SummaryKPI
         icon={Users}
         label="Alunos ativos total"
@@ -275,12 +275,12 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
 
   return (
     <Card className="shadow-sm">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2 p-3">
         <CardTitle className="flex items-center justify-between gap-2">
-          <span className="text-lg">{k.unidade_nome}</span>
+          <span className="text-base">{k.unidade_nome}</span>
           <div className="flex items-center gap-2">
             {k.alertas.length > 0 && (
-              <Badge variant="destructive" className="gap-1">
+              <Badge variant="destructive" className="gap-1 h-5 text-[10px] px-1.5">
                 <AlertTriangle className="w-3 h-3" />
                 {k.alertas.length}
               </Badge>
@@ -288,11 +288,12 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
             <EditarMetasDialog k={k} onSaved={onRefetch} />
           </div>
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-xs">
           Capacidade {k.meta?.capacidade_alunos ?? '—'} alunos · Meta de ocupação {metaOcup}%
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2 p-3 pt-0">
+
         {/* Ocupação */}
         <SubSection icon={PieChart} title="Ocupação">
           <MiniMetric
