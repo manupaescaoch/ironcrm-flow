@@ -944,13 +944,20 @@ export default function CRM() {
     <Layout>
       <div className="p-8">
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold">CRM - Leads</h1>
-            {unidadeAtual && (
-              <Badge variant="outline" className="text-sm font-medium px-3 py-1 bg-primary/10 text-primary border-primary/20">
-                {unidadeAtual.nome}
-              </Badge>
-            )}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div>
+              <h1 className="text-3xl font-bold flex items-center gap-3">
+                Funil de Vendas
+                {unidadeAtual && (
+                  <Badge variant="outline" className="text-sm font-medium px-3 py-1 bg-primary/10 text-primary border-primary/20">
+                    {unidadeAtual.nome}
+                  </Badge>
+                )}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Gestão dos leads e conversas recebidas pelo WhatsApp
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {/* Period Filter */}
