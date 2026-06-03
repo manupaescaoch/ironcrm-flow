@@ -13,6 +13,7 @@ export interface MetaUnidade {
   meta_taxa_conversao_pct: number;
   alunos_ativos_manual: number;
   ticket_medio_real: number;
+  meta_alunos_mes: number;
 }
 
 export interface UnidadeKPIs {
