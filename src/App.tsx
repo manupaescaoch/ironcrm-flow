@@ -11,6 +11,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import DashboardExecutivo from "./pages/DashboardExecutivo";
 import CRM from "./pages/CRM";
+import ConversasWhatsApp from "./pages/ConversasWhatsApp";
 import LeadDetail from "./pages/LeadDetail";
 import Kanban from "./pages/Kanban";
 import Comissoes from "./pages/Comissoes";
