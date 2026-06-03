@@ -61,6 +61,12 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
       {/* Linha 1 — KPIs principais (6) */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
 
+        <AlunosAtivosKPI
+          unidadeId={unidadeId}
+          refreshKey={alunosAtivosRefreshKey}
+          onChange={onAlunosAtivosChange}
+        />
+
         <KPICard
           variant="dashboard"
           title="Total de Leads"
@@ -103,13 +109,6 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
           isActive={showMatriculasSection}
           activeColor="amber"
         />
-
-        <AlunosAtivosKPI
-          unidadeId={unidadeId}
-          refreshKey={alunosAtivosRefreshKey}
-          onChange={onAlunosAtivosChange}
-        />
-
 
         <KPICard
           variant="dashboard"
