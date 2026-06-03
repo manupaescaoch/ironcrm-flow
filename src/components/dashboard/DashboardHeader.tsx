@@ -24,7 +24,7 @@ export const DashboardHeader = memo(function DashboardHeader({
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
       <div className="flex items-center gap-3">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <h1 className="text-3xl font-bold">Painel de Dados</h1>
         {unidadeNome && (
           <Badge variant="outline" className="text-sm font-medium px-3 py-1 bg-primary/10 text-primary border-primary/20">
             {unidadeNome}
