@@ -5,6 +5,7 @@ export const UNIDADE_NAO_DEFINIDA_ID = '00000000-0000-0000-0000-000000000000';
 
 export const STATUS_FUNIL_LABEL: Record<StatusFunil, string> = {
   novo: 'Novo lead',
+  contato_inicial: 'Em atendimento',
   aula_agendada: 'Agendado',
   aula_realizada: 'Compareceu',
   follow_up: 'Em atendimento',
@@ -15,6 +16,7 @@ export const STATUS_FUNIL_LABEL: Record<StatusFunil, string> = {
 
 export const STATUS_FUNIL_BADGE: Record<StatusFunil, string> = {
   novo: 'bg-blue-500/10 text-blue-700 border-blue-200',
+  contato_inicial: 'bg-sky-500/10 text-sky-700 border-sky-200',
   aula_agendada: 'bg-amber-500/10 text-amber-700 border-amber-200',
   aula_realizada: 'bg-orange-500/10 text-orange-700 border-orange-200',
   follow_up: 'bg-indigo-500/10 text-indigo-700 border-indigo-200',
