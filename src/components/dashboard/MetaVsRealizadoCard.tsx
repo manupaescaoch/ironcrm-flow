@@ -41,9 +41,7 @@ export function MetaVsRealizadoCard({ unidadeId, unidadeNome, refreshKey }: Prop
             <span className="text-sm font-semibold truncate">Meta vs Realizado{unidadeNome ? ` — ${unidadeNome}` : ''}</span>
           </div>
           <div className="text-xs text-muted-foreground whitespace-nowrap">
-            {ativos} de {meta || '—'} alunos {meta > 0 && (
-              <span className="ml-1">({pct}%)</span>
-            )}
+            {ativos} de {meta || '—'} alunos
           </div>
         </div>
         <Progress value={Math.min(100, pct)} />
