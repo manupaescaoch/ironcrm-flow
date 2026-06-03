@@ -1,85 +1,53 @@
+## Redesenhar Meta vs Realizado — visual e engajador
 
-## Objetivo
+Tornar o card "Meta vs Realizado" no Dashboard mais visual, destacando a quantidade de alunos que faltam para bater a meta e adicionando elementos que engajem (mensagens motivacionais dinâmicas, indicadores visuais grandes, cores reativas ao progresso).
 
-Melhorar a tela de detalhes da reunião (drawer) deixando a leitura mais clara e organizada, e adicionar um sistema de **comentários** persistidos, com histórico de quem comentou e quando.
+### Mudanças no `src/components/dashboard/MetaVsRealizadoCard.tsx`
 
----
+**Layout novo (em vez do card compacto atual):**
 
-## 1. Redesenho do drawer de detalhes (`ReuniaoDetalheDrawer.tsx`)
+```text
+┌──────────────────────────────────────────────────┐
+│ 🎯 Meta vs Realizado — Unidade X                 │
+│                                                  │
+│        ╔══════════╗                              │
+│        ║    12    ║   alunos para a meta         │
+│        ╚══════════╝   238 de 250 · 95%           │
+│                                                  │
+│  ████████████████████████████████░░  95%         │
+│                                                  │
+│  🔥 Quase lá! Falta pouco para bater a meta      │
+└──────────────────────────────────────────────────┘
+```
 
-Layout mais escaneável, dividido em blocos visuais bem separados:
+**Elementos:**
 
-- **Cabeçalho destacado**: tipo da reunião em destaque, badge de status à direita, linha secundária com data formatada por extenso (ex.: "31 de maio de 2026"), unidade e responsável com ícones.
-- **Cards de resumo** no topo (grid 2 colunas): Responsável • Participantes (contagem + chips) • Data • Status.
-- **Abas** (Tabs do shadcn) para reduzir scroll vertical:
-  1. **Pauta** — pauta renderizada (já existe), com botões PDF/TXT.
-  2. **Feedback** — feedback da reunião.
-  3. **Anexos** — lista de arquivos (já existe).
-  4. **Comentários** — novo (ver seção 2).
-- Footer fixo com ação de excluir (somente admin/coordenador), igual ao atual.
+1. **Número grande "faltam"** — destaque tipográfico (text-5xl/6xl, font-bold) ao lado da label "alunos para a meta". É o foco visual do card.
+2. **Sub-linha** com `ativos / meta · pct%` em texto menor.
+3. **Barra de progresso maior** (h-3) com cor reativa:
+   - `< 50%`: vermelho/destructive
+   - `50–79%`: laranja/amber
+   - `80–99%`: amarelo/primary
+   - `≥ 100%`: verde/success
+4. **Mensagem motivacional dinâmica** com emoji, baseada no pct:
+   - 0%: "🚀 Bora começar! Cada matrícula conta."
+   - 1–49%: "💪 Time forte, segue o ritmo!"
+   - 50–79%: "🔥 Já passou da metade, mantém a pegada!"
+   - 80–99%: `⚡ Quase lá! Faltam {N} alunos para bater a meta.`
+   - 100%+: `🏆 Meta batida! +{N} alunos acima do alvo.`
+5. **Estado "meta atingida"**: número grande vira `+N` em verde com `acima da meta`.
+6. **Animação sutil**: a barra preenche com transição (já vem do Progress shadcn); o número grande entra com `animate-in fade-in slide-in-from-bottom-1`.
 
-Sem mudanças de regra de negócio — apenas reorganização visual usando tokens do design system.
+### Tokens / cores
 
----
+- Usar tokens semânticos do `index.css` (primary, destructive, muted-foreground). Para verde/sucesso e amber, usar classes Tailwind padrão alinhadas com o tema (`text-emerald-500`, `bg-amber-500`) somente se já existirem no projeto; caso contrário, mapear via variantes do Progress com cor inline em HSL.
 
-## 2. Novo recurso: comentários na reunião
+### Sem mudanças de dados
 
-### Banco de dados (migration)
+- Continua lendo `gestao_metas.alunos_ativos_manual` e `meta_alunos_mes` por `unidade_id`. Sem migrações nem mudanças em outros componentes.
 
-Nova tabela `reuniao_comentarios`:
+### Detalhes técnicos
 
-- `id` (uuid PK)
-- `reuniao_id` (uuid, FK lógico para `reunioes.id`, ON DELETE CASCADE)
-- `unidade_id` (uuid) — para RLS por unidade
-- `autor_id` (uuid) — `auth.uid()` do autor
-- `autor_nome` (text) — snapshot do nome do autor (igual ao padrão de anexos)
-- `conteudo` (text, NOT NULL)
-- `created_at` / `updated_at` (timestamptz)
-
-GRANTs:
-- `GRANT SELECT, INSERT, UPDATE, DELETE ON public.reuniao_comentarios TO authenticated`
-- `GRANT ALL ... TO service_role`
-
-RLS (mesmo modelo das outras tabelas do módulo):
-- **SELECT**: admin OR `unidade_id IN get_user_unidades(auth.uid())`
-- **INSERT**: mesmo escopo + `autor_id = auth.uid()`
-- **UPDATE**: admin/coordenador OR `autor_id = auth.uid()` (autor pode editar o próprio)
-- **DELETE**: admin/coordenador OR `autor_id = auth.uid()`
-
-Trigger de `updated_at` reutilizando `public.update_updated_at_column()`.
-
-### Hook `useReuniaoComentarios.ts` (novo)
-
-API: `{ comentarios, loading, adicionar(texto), editar(id, texto), remover(id) }`. Busca por `reuniao_id` ordenando por `created_at asc`.
-
-### UI dentro da aba "Comentários" do drawer
-
-- Lista cronológica de comentários: avatar/iniciais do autor, nome, data/hora relativa, conteúdo (whitespace-pre-wrap).
-- Ações por comentário: editar/remover para o próprio autor e para admin/coordenador.
-- Campo de novo comentário no rodapé da aba: `Textarea` + botão "Comentar" (desabilitado se vazio). Envia com Ctrl/⌘+Enter.
-- Estado vazio amigável ("Nenhum comentário ainda. Seja o primeiro a comentar.").
-- Contador de comentários no rótulo da aba (ex.: "Comentários (3)").
-
-### Histórico
-
-Os comentários ficam vinculados à reunião e aparecem automaticamente no histórico (`ReunioesHistorico`) ao reabrir o detalhe. Adicionalmente:
-
-- Na tabela do histórico, novo indicador discreto na coluna "Pauta" ou ao lado do status: ícone `MessageSquare` + contagem (quando > 0), para sinalizar reuniões com discussão.
-
----
-
-## Arquivos afetados
-
-- **Migration nova**: criar tabela `reuniao_comentarios` + GRANTs + RLS + trigger.
-- **Novo**: `src/hooks/useReuniaoComentarios.ts`.
-- **Novo**: `src/components/reunioes/ReuniaoComentarios.tsx` (lista + form).
-- **Editar**: `src/components/reunioes/ReuniaoDetalheDrawer.tsx` — novo layout em abas + integração da aba de comentários.
-- **Editar (opcional)**: `src/components/reunioes/ReunioesHistorico.tsx` — badge de contagem de comentários na linha.
-
----
-
-## Pontos a confirmar
-
-1. Comentários devem ser **editáveis** pelo próprio autor depois de enviados, ou somente leitura após postar?
-2. Admin/coordenador podem excluir comentários de outros usuários? (proposta acima: sim.)
-3. Deseja indicador de contagem de comentários na tabela de histórico? (proposta acima: sim.)
+- Arquivo único alterado: `src/components/dashboard/MetaVsRealizadoCard.tsx`.
+- Manter mesma interface de props (`unidadeId`, `unidadeNome`, `refreshKey`).
+- Card cresce em altura (~140–170px) — encaixa acima do grid de KPIs no Dashboard sem quebrar layout.
