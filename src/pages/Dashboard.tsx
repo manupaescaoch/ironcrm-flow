@@ -20,6 +20,7 @@ import { CompactRelatorioFollowUps } from '@/components/dashboard/CompactRelator
 import { FollowUpSections } from '@/components/dashboard/FollowUpSections';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardKPIGrid } from '@/components/dashboard/DashboardKPIGrid';
+import { MetaVsRealizadoCard } from '@/components/dashboard/MetaVsRealizadoCard';
 import { ExperimentaisDetailSection } from '@/components/dashboard/ExperimentaisDetailSection';
 import { MatriculasDetailSection } from '@/components/dashboard/MatriculasDetailSection';
 import { SyncIndicator } from '@/components/dashboard/SyncIndicator';
