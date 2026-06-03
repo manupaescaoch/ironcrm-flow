@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, TrendingUp, TrendingDown, Minus, AlertTriangle, Users, UserPlus, UserMinus, CheckCircle2, Target, Clock, DollarSign, PieChart, RefreshCw, Pencil } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, Minus, AlertTriangle, Users, UserPlus, UserMinus, CheckCircle2, Target, Clock, DollarSign, PieChart, RefreshCw, Pencil, Send, GraduationCap, XCircle, Activity, Wallet, ShieldAlert } from 'lucide-react';
 import { useGestaoOperacional, UnidadeKPIs, SeriesPoint, fetchUnidadeHistorico } from '@/hooks/useGestaoOperacional';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -27,24 +27,63 @@ function Delta({ current, previous, asPercent = false, invertColors = false }: {
   const isGood = invertColors ? !up : up;
   if (diff === 0) return <span className="text-xs text-muted-foreground inline-flex items-center gap-1"><Minus className="w-3 h-3" />0%</span>;
   return (
-    <span className={`text-xs inline-flex items-center gap-1 ${isGood ? 'text-green-600' : 'text-red-600'}`}>
+    <span className={`text-xs inline-flex items-center gap-1 font-medium ${isGood ? 'text-green-600' : 'text-red-600'}`}>
       {up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
       {asPercent ? `${diff > 0 ? '+' : ''}${diff}pp` : `${diff > 0 ? '+' : ''}${pct}%`}
     </span>
   );
 }
 
-function KPIBlock({ icon: Icon, label, value, sub, delta }: any) {
+/** KPI grande no topo (ícone circular + número grande) */
+function SummaryKPI({ icon: Icon, label, value, sub, delta, iconBg = 'bg-primary/10', iconColor = 'text-primary' }: any) {
   return (
-    <div className="rounded-lg border bg-card p-4">
-      <div className="flex items-center gap-2 mb-2 text-muted-foreground text-xs uppercase tracking-wider">
-        <Icon className="w-3.5 h-3.5" />
-        {label}
+    <Card className="shadow-sm">
+      <CardContent className="p-5 flex items-start gap-4">
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}>
+          <Icon className={`w-5 h-5 ${iconColor}`} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-xs text-muted-foreground">{label}</div>
+          <div className="text-3xl font-bold leading-tight text-foreground">{value}</div>
+          <div className="flex items-center justify-between mt-1 gap-2">
+            <span className="text-xs text-muted-foreground truncate">{sub}</span>
+            {delta}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Mini métrica dentro de uma sub-seção da unidade */
+function MiniMetric({ label, value, sub, delta, action }: { label: string; value: React.ReactNode; sub?: string; delta?: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <div className="rounded-md border bg-background p-3">
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="flex items-center justify-between gap-2 mt-1">
+        <div className="text-xl font-bold text-foreground truncate">{value}</div>
+        {action}
       </div>
-      <div className="text-2xl font-bold text-foreground">{value}</div>
-      <div className="flex items-center justify-between mt-1">
-        <span className="text-xs text-muted-foreground">{sub}</span>
+      <div className="flex items-center justify-between mt-1 gap-2">
+        <span className="text-[11px] text-muted-foreground truncate">{sub}</span>
         {delta}
+      </div>
+    </div>
+  );
+}
+
+/** Sub-seção (Ocupação / Comercial / Financeiro / Retenção) */
+function SubSection({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
+          <Icon className="w-3.5 h-3.5 text-primary" />
+        </div>
+        <span className="text-sm font-semibold text-foreground">{title}</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        {children}
       </div>
     </div>
   );
@@ -85,7 +124,7 @@ function EditarMetasDialog({ k, onSaved }: { k: UnidadeKPIs; onSaved: () => void
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline" className="gap-1">
-          <Pencil className="w-3 h-3" /> Meta
+          <Pencil className="w-3 h-3" /> Editar meta
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-sm">
@@ -119,9 +158,60 @@ function EditarMetasDialog({ k, onSaved }: { k: UnidadeKPIs; onSaved: () => void
   );
 }
 
+/** Linha de 4 KPIs consolidados no topo */
+function TopKPIsRow({ kpis }: { kpis: UnidadeKPIs[] }) {
+  const totAtivos = kpis.reduce((s, k) => s + k.alunos_ativos, 0);
+  const totMeta = kpis.reduce((s, k) => s + (k.meta_alunos_mes ?? 0), 0);
+  const pctMeta = totMeta > 0 ? Math.round((totAtivos / totMeta) * 100) : 0;
+
+  const totMatr = kpis.reduce((s, k) => s + k.matriculas_semana, 0);
+  const totMatrAnt = kpis.reduce((s, k) => s + k.matriculas_semana_anterior, 0);
+
+  const totCanc = kpis.reduce((s, k) => s + k.cancelamentos_semana, 0);
+  const totCancAnt = kpis.reduce((s, k) => s + k.cancelamentos_semana_anterior, 0);
+
+  const totFu = kpis.reduce((s, k) => s + k.follow_ups_pendentes, 0);
+  const totFuAtr = kpis.reduce((s, k) => s + k.follow_ups_atrasados_24h, 0);
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <SummaryKPI
+        icon={Users}
+        label="Alunos ativos total"
+        value={totAtivos}
+        sub={totMeta > 0 ? `${pctMeta}% da meta (${totMeta})` : 'Meta não definida'}
+      />
+      <SummaryKPI
+        icon={GraduationCap}
+        label="Matrículas da semana"
+        value={totMatr}
+        sub={`Semana anterior: ${totMatrAnt}`}
+        delta={<Delta current={totMatr} previous={totMatrAnt} />}
+        iconBg="bg-emerald-500/10"
+        iconColor="text-emerald-600"
+      />
+      <SummaryKPI
+        icon={XCircle}
+        label="Cancelamentos da semana"
+        value={totCanc}
+        sub={`Semana anterior: ${totCancAnt}`}
+        delta={<Delta current={totCanc} previous={totCancAnt} invertColors />}
+        iconBg="bg-red-500/10"
+        iconColor="text-red-600"
+      />
+      <SummaryKPI
+        icon={Send}
+        label="Follow-ups pendentes"
+        value={totFu}
+        sub={`Atrasados: ${totFuAtr}`}
+        iconBg="bg-blue-500/10"
+        iconColor="text-blue-600"
+      />
+    </div>
+  );
+}
 
 function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }) {
-
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(k.alunos_ativos);
   const [saving, setSaving] = useState(false);
@@ -134,15 +224,9 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
   useEffect(() => { setTicketValue(k.ticket_medio_real); }, [k.ticket_medio_real]);
 
   const handleSave = async () => {
-    if (!k.meta?.id) {
-      toast.error('Meta da unidade não encontrada.');
-      return;
-    }
+    if (!k.meta?.id) { toast.error('Meta da unidade não encontrada.'); return; }
     setSaving(true);
-    const { error } = await supabase
-      .from('gestao_metas')
-      .update({ alunos_ativos_manual: value })
-      .eq('id', k.meta.id);
+    const { error } = await supabase.from('gestao_metas').update({ alunos_ativos_manual: value }).eq('id', k.meta.id);
     setSaving(false);
     if (error) { toast.error('Erro ao salvar: ' + error.message); return; }
     toast.success('Alunos ativos atualizado');
@@ -153,10 +237,7 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
   const handleSaveTicket = async () => {
     if (!k.meta?.id) { toast.error('Meta da unidade não encontrada.'); return; }
     setSavingTicket(true);
-    const { error } = await supabase
-      .from('gestao_metas')
-      .update({ ticket_medio_real: ticketValue })
-      .eq('id', k.meta.id);
+    const { error } = await supabase.from('gestao_metas').update({ ticket_medio_real: ticketValue }).eq('id', k.meta.id);
     setSavingTicket(false);
     if (error) { toast.error('Erro ao salvar: ' + error.message); return; }
     toast.success('Ticket médio atualizado');
@@ -164,11 +245,13 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
     onRefetch();
   };
 
+  const metaOcup = k.meta?.meta_ocupacao_pct ?? 80;
+
   return (
-    <Card>
-      <CardHeader>
+    <Card className="shadow-sm">
+      <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between gap-2">
-          <span>{k.unidade_nome}</span>
+          <span className="text-lg">{k.unidade_nome}</span>
           <div className="flex items-center gap-2">
             {k.alertas.length > 0 && (
               <Badge variant="destructive" className="gap-1">
@@ -180,105 +263,116 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
           </div>
         </CardTitle>
         <CardDescription>
-          Capacidade {k.meta?.capacidade_alunos ?? '—'} alunos · Meta de ocupação {k.meta?.meta_ocupacao_pct ?? 80}%
+          Capacidade {k.meta?.capacidade_alunos ?? '—'} alunos · Meta de ocupação {metaOcup}%
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-lg border bg-card p-4">
-            <div className="flex items-center gap-2 mb-2 text-muted-foreground text-xs uppercase tracking-wider">
-              <Users className="w-3.5 h-3.5" />
-              Alunos Ativos
-            </div>
-            {editing ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  value={value}
-                  onChange={e => setValue(+e.target.value)}
-                  className="h-8"
-                  autoFocus
-                />
-                <Button size="sm" onClick={handleSave} disabled={saving}>
+      <CardContent className="space-y-3">
+        {/* Ocupação */}
+        <SubSection icon={PieChart} title="Ocupação">
+          <MiniMetric
+            label="Alunos ativos"
+            value={editing ? (
+              <div className="flex items-center gap-1 w-full">
+                <Input type="number" value={value} onChange={e => setValue(+e.target.value)} className="h-7 text-base font-bold" autoFocus />
+                <Button size="sm" className="h-7 px-2" onClick={handleSave} disabled={saving}>
                   {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : 'OK'}
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setValue(k.alunos_ativos); }}>X</Button>
               </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold text-foreground">{k.alunos_ativos}</div>
-                <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>Editar</Button>
-              </div>
-            )}
-            <div className="text-xs text-muted-foreground mt-1">informado manualmente</div>
-          </div>
-          <KPIBlock icon={UserPlus} label="Matrículas (Sem.)" value={k.matriculas_semana}
-            sub={`Sem. anterior: ${k.matriculas_semana_anterior}`}
-            delta={<Delta current={k.matriculas_semana} previous={k.matriculas_semana_anterior} />} />
-          <KPIBlock icon={UserMinus} label="Cancelamentos (Sem.)" value={k.cancelamentos_semana}
-            sub={`Sem. anterior: ${k.cancelamentos_semana_anterior}`}
-            delta={<Delta current={k.cancelamentos_semana} previous={k.cancelamentos_semana_anterior} invertColors />} />
-          <KPIBlock icon={CheckCircle2} label="Compareci­mento" value={`${k.taxa_comparecimento}%`}
-            sub={`${k.comparecimentos_semana}/${k.experimentais_semana} exp.`}
-            delta={<Delta current={k.taxa_comparecimento} previous={k.taxa_comparecimento_anterior} asPercent />} />
-          <KPIBlock icon={Target} label="Conversão Exp→Mat" value={`${k.taxa_conversao}%`}
-            sub={`Anterior: ${k.taxa_conversao_anterior}%`}
-            delta={<Delta current={k.taxa_conversao} previous={k.taxa_conversao_anterior} asPercent />} />
-          <KPIBlock icon={Clock} label="Follow-ups Pend." value={k.follow_ups_pendentes}
-            sub={`${k.follow_ups_atrasados_24h} atrasados 24h`} />
-          <KPIBlock icon={DollarSign} label="Receita do Mês" value={fmtBRL(k.receita_mes)}
-            sub={`Mês anterior: ${fmtBRL(k.receita_mes_anterior)}`}
-            delta={<Delta current={k.receita_mes} previous={k.receita_mes_anterior} />} />
-          <KPIBlock icon={PieChart} label="Ocupação" value={`${k.ocupacao_pct}%`}
-            sub={`Meta: ${k.meta?.meta_ocupacao_pct ?? 80}%`} />
+            ) : k.alunos_ativos}
+            sub={`Semana anterior: ${k.matriculas_semana_anterior + k.alunos_ativos - k.matriculas_semana}`}
+            action={!editing && <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditing(true)}>Editar</Button>}
+          />
+          <MiniMetric
+            label="Ocupação"
+            value={`${k.ocupacao_pct}%`}
+            sub={`Meta: ${metaOcup}%`}
+            delta={<Delta current={k.ocupacao_pct} previous={metaOcup} asPercent />}
+          />
+          <MiniMetric
+            label="Receita recorrente projetada"
+            value={fmtBRL(k.receita_recorrente_projetada)}
+            sub={`${k.alunos_ativos} ativos × ${fmtBRL(k.ticket_medio_real)}`}
+          />
+        </SubSection>
 
-          {/* Ticket médio real (manual) */}
-          <div className="rounded-lg border bg-card p-4">
-            <div className="flex items-center gap-2 mb-2 text-muted-foreground text-xs uppercase tracking-wider">
-              <DollarSign className="w-3.5 h-3.5" />
-              Ticket Médio Real
-            </div>
-            {editingTicket ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={ticketValue}
-                  onChange={e => setTicketValue(+e.target.value)}
-                  className="h-8"
-                  autoFocus
-                />
-                <Button size="sm" onClick={handleSaveTicket} disabled={savingTicket}>
+        {/* Comercial da semana */}
+        <SubSection icon={GraduationCap} title="Comercial da semana">
+          <MiniMetric
+            label="Matrículas"
+            value={k.matriculas_semana}
+            sub={`Semana anterior: ${k.matriculas_semana_anterior}`}
+            delta={<Delta current={k.matriculas_semana} previous={k.matriculas_semana_anterior} />}
+          />
+          <MiniMetric
+            label="Comparecimento"
+            value={`${k.taxa_comparecimento}%`}
+            sub={`Semana anterior: ${k.taxa_comparecimento_anterior}%`}
+            delta={<Delta current={k.taxa_comparecimento} previous={k.taxa_comparecimento_anterior} asPercent />}
+          />
+          <MiniMetric
+            label="Conversão EXP→MAT"
+            value={`${k.taxa_conversao}%`}
+            sub={`Semana anterior: ${k.taxa_conversao_anterior}%`}
+            delta={<Delta current={k.taxa_conversao} previous={k.taxa_conversao_anterior} asPercent />}
+          />
+        </SubSection>
+
+        {/* Financeiro */}
+        <SubSection icon={Wallet} title="Financeiro">
+          <MiniMetric
+            label="Receita do mês"
+            value={fmtBRL(k.receita_mes)}
+            sub={`Mês anterior: ${fmtBRL(k.receita_mes_anterior)}`}
+            delta={<Delta current={k.receita_mes} previous={k.receita_mes_anterior} />}
+          />
+          <MiniMetric
+            label="Ticket médio real"
+            value={editingTicket ? (
+              <div className="flex items-center gap-1 w-full">
+                <Input type="number" step="0.01" value={ticketValue} onChange={e => setTicketValue(+e.target.value)} className="h-7 text-base font-bold" autoFocus />
+                <Button size="sm" className="h-7 px-2" onClick={handleSaveTicket} disabled={savingTicket}>
                   {savingTicket ? <Loader2 className="w-3 h-3 animate-spin" /> : 'OK'}
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => { setEditingTicket(false); setTicketValue(k.ticket_medio_real); }}>X</Button>
               </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold text-foreground">{fmtBRL(k.ticket_medio_real)}</div>
-                <Button size="sm" variant="ghost" onClick={() => setEditingTicket(true)}>Editar</Button>
-              </div>
-            )}
-            <div className="text-xs text-muted-foreground mt-1">informado manualmente</div>
-          </div>
-
-          <KPIBlock icon={TrendingUp} label="Receita Recorrente Projetada"
-            value={fmtBRL(k.receita_recorrente_projetada)}
-            sub={`${k.alunos_ativos} ativos × ${fmtBRL(k.ticket_medio_real)}`} />
-
-          <KPIBlock icon={UserMinus} label="Evasão do Mês" value={`${k.evasao_pct_mes}%`}
-            sub="informado manualmente" />
-
-          <KPIBlock icon={DollarSign} label="CAC"
+            ) : fmtBRL(k.ticket_medio_real)}
+            sub="Mês anterior: —"
+            action={!editingTicket && <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditingTicket(true)}>Editar</Button>}
+          />
+          <MiniMetric
+            label="CAC"
             value={k.cac !== null ? fmtBRL(k.cac) : '—'}
-            sub="informado manualmente" />
-        </div>
-        <div>
-          <div className="flex justify-between text-xs text-muted-foreground mb-1">
-            <span>Ocupação atual</span>
-            <span>{k.ocupacao_pct}% de {k.meta?.meta_ocupacao_pct ?? 80}% meta</span>
+            sub="informado manualmente"
+          />
+        </SubSection>
+
+        {/* Retenção e pendências */}
+        <SubSection icon={ShieldAlert} title="Retenção e pendências">
+          <MiniMetric
+            label="Cancelamentos"
+            value={k.cancelamentos_semana}
+            sub={`Semana anterior: ${k.cancelamentos_semana_anterior}`}
+            delta={<Delta current={k.cancelamentos_semana} previous={k.cancelamentos_semana_anterior} invertColors />}
+          />
+          <MiniMetric
+            label="Follow-ups pendentes"
+            value={k.follow_ups_pendentes}
+            sub={`Atrasados: ${k.follow_ups_atrasados_24h}`}
+          />
+          <MiniMetric
+            label="Evasão do mês"
+            value={`${k.evasao_pct_mes}%`}
+            sub="informado manualmente"
+          />
+        </SubSection>
+
+        {/* Barra de ocupação atual */}
+        <div className="rounded-lg border bg-muted/30 p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Target className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium flex-1">Ocupação atual</span>
+            <span className="text-sm text-muted-foreground">{k.ocupacao_pct}% de {metaOcup}% da meta</span>
           </div>
-          <Progress value={Math.min(100, (k.ocupacao_pct / (k.meta?.meta_ocupacao_pct || 80)) * 100)} />
+          <Progress value={Math.min(100, (k.ocupacao_pct / metaOcup) * 100)} />
         </div>
       </CardContent>
     </Card>
@@ -372,7 +466,6 @@ function LancamentoSemanal({ unidades, onSaved }: { unidades: UnidadeKPIs[]; onS
 
   const unidade = useMemo(() => unidades.find(u => u.unidade_id === unidadeId), [unidades, unidadeId]);
 
-  // Auto-populate manual ativos from current KPIs and reset observações when unidade changes
   useEffect(() => {
     if (unidade) setTotalAtivos(unidade.alunos_ativos);
   }, [unidade?.unidade_id, unidade?.alunos_ativos]);
@@ -387,7 +480,7 @@ function LancamentoSemanal({ unidades, onSaved }: { unidades: UnidadeKPIs[]; onS
     matriculas_fechadas: unidade.matriculas_semana,
     cancelamentos: unidade.cancelamentos_semana,
     follow_ups_pendentes: unidade.follow_ups_pendentes,
-    receita_semana: unidade.receita_mes, // receita do mês como proxy
+    receita_semana: unidade.receita_mes,
   } : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -396,14 +489,10 @@ function LancamentoSemanal({ unidades, onSaved }: { unidades: UnidadeKPIs[]; onS
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
 
-    // 1. Persist total_alunos_ativos in gestao_metas (registro permanente)
     if (unidade.meta?.id) {
-      await supabase.from('gestao_metas')
-        .update({ alunos_ativos_manual: totalAtivos })
-        .eq('id', unidade.meta.id);
+      await supabase.from('gestao_metas').update({ alunos_ativos_manual: totalAtivos }).eq('id', unidade.meta.id);
     }
 
-    // 2. Upsert do lançamento semanal (snapshot histórico)
     const { error } = await supabase.from('gestao_lancamentos_semanais').upsert({
       unidade_id: unidadeId,
       semana_referencia: semana,
@@ -490,37 +579,44 @@ function LancamentoSemanal({ unidades, onSaved }: { unidades: UnidadeKPIs[]; onS
   );
 }
 
+/** Bloco "Meta vs Realizado — Consolidado" com % grande à esquerda e barras à direita */
 function MetaConsolidada({ kpis }: { kpis: UnidadeKPIs[] }) {
   const totalAlunos = kpis.reduce((s, k) => s + k.alunos_ativos, 0);
   const totalMeta = kpis.reduce((s, k) => s + (k.meta_alunos_mes ?? 0), 0);
+  const pct = totalMeta > 0 ? Math.round((totalAlunos / totalMeta) * 100) : 0;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Target className="w-5 h-5 text-primary" />
-          Meta vs Realizado — Consolidado
-        </CardTitle>
-        <CardDescription>
-          Total de alunos vs meta do mês (somatório de todas as unidades).
-        </CardDescription>
+    <Card className="shadow-sm">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg">Meta vs Realizado — Consolidado</CardTitle>
+        <CardDescription>Total de alunos vs meta do mês (somatório de todas as unidades).</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <MetaBar label="Alunos no mês (total)" current={totalAlunos} meta={totalMeta} showMissing />
-        {kpis.map(k => (
-          <MetaBar
-            key={k.unidade_id}
-            label={k.unidade_nome}
-            current={k.alunos_ativos}
-            meta={k.meta_alunos_mes}
-            showMissing
-          />
-        ))}
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6 items-center">
+          <div>
+            <div className="text-6xl font-bold text-primary leading-none">{pct}%</div>
+            <div className="text-sm text-muted-foreground mt-2">{totalAlunos} / {totalMeta} alunos</div>
+          </div>
+          <div className="space-y-3">
+            <Progress value={Math.min(100, pct)} className="h-3" />
+            {kpis.map(k => {
+              const p = k.meta_alunos_mes > 0 ? Math.round((k.alunos_ativos / k.meta_alunos_mes) * 100) : 0;
+              return (
+                <div key={k.unidade_id} className="grid grid-cols-[140px_1fr_120px] items-center gap-3">
+                  <span className="text-sm font-medium truncate">{k.unidade_nome}</span>
+                  <Progress value={Math.min(100, p)} className="h-2" />
+                  <span className="text-sm text-muted-foreground text-right">
+                    {k.alunos_ativos} / {k.meta_alunos_mes || '—'} <span className="font-semibold text-foreground ml-1">{p}%</span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
 }
-
 
 function Alertas({ kpis }: { kpis: UnidadeKPIs[] }) {
   const total = kpis.reduce((s, k) => s + k.alertas.length, 0);
@@ -561,25 +657,35 @@ function Alertas({ kpis }: { kpis: UnidadeKPIs[] }) {
 export default function GestaoOperacional() {
   const { loading, kpis, refetch } = useGestaoOperacional();
   const [selectedUnidade, setSelectedUnidade] = useState<string>('');
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
   useEffect(() => {
     if (kpis[0] && !selectedUnidade) setSelectedUnidade(kpis[0].unidade_id);
   }, [kpis]);
+
+  useEffect(() => {
+    if (!loading) setLastUpdate(new Date());
+  }, [loading]);
 
   const detalhe = useMemo(() => kpis.find(k => k.unidade_id === selectedUnidade), [kpis, selectedUnidade]);
 
   return (
     <Layout>
       <div className="p-6 max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold">Gestão Operacional</h1>
             <p className="text-muted-foreground">Visão consolidada das unidades Iron Club</p>
           </div>
-          <Button variant="outline" onClick={refetch} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              Última atualização: hoje, {format(lastUpdate, 'HH:mm')}
+            </span>
+            <Button variant="outline" onClick={refetch} disabled={loading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+          </div>
         </div>
 
         {loading ? (
@@ -597,6 +703,7 @@ export default function GestaoOperacional() {
             </TabsList>
 
             <TabsContent value="visao-geral" className="space-y-4 mt-4">
+              <TopKPIsRow kpis={kpis} />
               <MetaConsolidada kpis={kpis} />
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {kpis.map(k => <UnidadeCard key={k.unidade_id} k={k} onRefetch={refetch} />)}
