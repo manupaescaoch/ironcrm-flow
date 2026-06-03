@@ -2,7 +2,14 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret',
+}
+
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let result = 0
+  for (let i = 0; i < a.length; i++) result |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return result === 0
 }
 
 const TARGET_PHONE = '5581996392285' // de quem recebemos a resposta
@@ -131,6 +138,17 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
+    // 1) Validar webhook secret ANTES de qualquer leitura/processamento do body
+    const expectedSecret = Deno.env.get('ZAPI_WEBHOOK_SECRET') || ''
+    const providedSecret = req.headers.get('x-webhook-secret') || ''
+    if (!expectedSecret || !constantTimeEqual(providedSecret, expectedSecret)) {
+      console.warn('Webhook rejeitado: secret ausente ou inválido')
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
