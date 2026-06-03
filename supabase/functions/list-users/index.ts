@@ -62,25 +62,20 @@ Deno.serve(async (req) => {
     const user = userData.user;
     console.log(`User ${user.id} (${user.email}) authenticated successfully`);
 
-    // 4. Check if user has an allowed role (admin, comercial, coordenador)
-    const allowedRoles = ['admin', 'user', 'coordenador'] as const;
-    let hasAccess = false;
-    
-    for (const role of allowedRoles) {
-      const { data: hasRole } = await supabaseAdmin.rpc('has_role', {
-        _user_id: user.id,
-        _role: role,
-      });
-      if (hasRole) {
-        hasAccess = true;
-        break;
-      }
-    }
+    // 4. Determine caller role: admin > coordenador > comercial (user). Others denied.
+    const checkRole = async (role: 'admin' | 'coordenador' | 'user') => {
+      const { data } = await supabaseAdmin.rpc('has_role', { _user_id: user.id, _role: role });
+      return !!data;
+    };
 
-    if (!hasAccess) {
+    const isAdmin = await checkRole('admin');
+    const isCoordenador = !isAdmin && (await checkRole('coordenador'));
+    const isComercial = !isAdmin && !isCoordenador && (await checkRole('user'));
+
+    if (!isAdmin && !isCoordenador && !isComercial) {
       console.log(`User ${user.id} does not have access, denied`);
       return new Response(
-        JSON.stringify({ error: 'Forbidden', message: 'Sem permissão para listar usuários' }), 
+        JSON.stringify({ error: 'Forbidden', message: 'Sem permissão para listar usuários' }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 403,
@@ -89,14 +84,14 @@ Deno.serve(async (req) => {
     }
 
     // 5. List all users (admin operation)
-    console.log(`Admin ${user.id} (${user.email}) listing users...`);
+    console.log(`Caller ${user.id} (${user.email}) [${isAdmin ? 'admin' : isCoordenador ? 'coordenador' : 'comercial'}] listing users...`);
 
     const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
 
     if (listError) {
       console.error('Error listing users:', listError);
       return new Response(
-        JSON.stringify({ error: 'Server error', message: 'Erro ao listar usuários' }), 
+        JSON.stringify({ error: 'Server error', message: 'Erro ao listar usuários' }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 500,
@@ -113,7 +108,6 @@ Deno.serve(async (req) => {
 
     if (rolesError) {
       console.error('Error fetching user roles:', rolesError);
-      // Continue without roles - not a critical error
     }
 
     // 7. Get unidades from user_unidades table for each user
@@ -123,28 +117,27 @@ Deno.serve(async (req) => {
 
     if (unidadesError) {
       console.error('Error fetching user unidades:', unidadesError);
-      // Continue without unidades - not a critical error
     }
 
-    // 8. Get telefones from user_profiles table
-    const { data: userProfiles, error: profilesError } = await supabaseAdmin
-      .from('user_profiles')
-      .select('user_id, telefone');
-
-    if (profilesError) {
-      console.error('Error fetching user profiles:', profilesError);
-      // Continue without profiles - not a critical error
+    // 8. Get telefones from user_profiles table (admin only)
+    let userProfiles: Array<{ user_id: string; telefone: string | null }> | null = null;
+    if (isAdmin) {
+      const { data, error: profilesError } = await supabaseAdmin
+        .from('user_profiles')
+        .select('user_id, telefone');
+      if (profilesError) console.error('Error fetching user profiles:', profilesError);
+      userProfiles = data ?? null;
     }
 
     // Map roles by user_id
     const roleMap = new Map<string, string>();
     if (userRoles && Array.isArray(userRoles)) {
       userRoles.forEach((ur: { user_id: string; role: string }) => {
-        // Convert app_role to display role
         let displayRole: string | null = null;
         if (ur.role === 'admin') displayRole = 'admin';
         else if (ur.role === 'moderator') displayRole = 'recepcao';
         else if (ur.role === 'user') displayRole = 'comercial';
+        else if (ur.role === 'coordenador') displayRole = 'coordenador';
         if (displayRole) roleMap.set(ur.user_id, displayRole);
       });
     }
@@ -159,24 +152,36 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Map telefone by user_id
+    // Map telefone by user_id (admin only)
     const phoneMap = new Map<string, string | null>();
-    if (userProfiles && Array.isArray(userProfiles)) {
-      userProfiles.forEach((up: { user_id: string; telefone: string | null }) => {
-        phoneMap.set(up.user_id, up.telefone);
-      });
+    if (userProfiles) {
+      userProfiles.forEach((up) => phoneMap.set(up.user_id, up.telefone));
     }
 
-    const formattedUsers = users.map(u => ({
-      id: u.id,
-      email: u.email || null,
-      name: u.user_metadata?.full_name || null,
-      role: roleMap.get(u.id) || null,
-      created_at: u.created_at,
-      last_sign_in_at: u.last_sign_in_at || null,
-      unidade_ids: unidadesMap.get(u.id) || [],
-      telefone: phoneMap.get(u.id) || null,
-    }));
+    // Caller unidades for non-admin scoping
+    const callerUnits = unidadesMap.get(user.id) || [];
+    const callerUnitSet = new Set(callerUnits);
+
+    let formattedUsers = users.map(u => {
+      const unidade_ids = unidadesMap.get(u.id) || [];
+      return {
+        id: u.id,
+        email: isAdmin ? (u.email || null) : null,
+        name: u.user_metadata?.full_name || null,
+        role: roleMap.get(u.id) || null,
+        created_at: u.created_at,
+        last_sign_in_at: isAdmin ? (u.last_sign_in_at || null) : null,
+        unidade_ids,
+        telefone: isAdmin ? (phoneMap.get(u.id) || null) : null,
+      };
+    });
+
+    if (!isAdmin) {
+      // Scope to users sharing at least one unidade with the caller
+      formattedUsers = formattedUsers.filter(u =>
+        u.unidade_ids.some(id => callerUnitSet.has(id))
+      );
+    }
 
     console.log(`Successfully listed ${formattedUsers.length} users`);
 
