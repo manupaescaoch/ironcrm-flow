@@ -69,7 +69,7 @@ export function AlterarUnidadeButton({ leadId, unidadeAtual, isAdmin, onChanged 
         <SelectContent>
           {opcoes.map((u) => (
             <SelectItem key={u.id} value={u.id}>
-              {u.id === UNIDADE_NAO_DEFINIDA_ID ? 'Não definida' : u.nome}
+              {u.nome}
             </SelectItem>
           ))}
         </SelectContent>
