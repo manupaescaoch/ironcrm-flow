@@ -1341,6 +1341,7 @@ export type Database = {
       gestao_metas: {
         Row: {
           alunos_ativos_manual: number
+          alunos_ativos_semana_anterior: number
           cac_manual: number
           capacidade_alunos: number
           created_at: string
@@ -1358,6 +1359,7 @@ export type Database = {
         }
         Insert: {
           alunos_ativos_manual?: number
+          alunos_ativos_semana_anterior?: number
           cac_manual?: number
           capacidade_alunos?: number
           created_at?: string
@@ -1375,6 +1377,7 @@ export type Database = {
         }
         Update: {
           alunos_ativos_manual?: number
+          alunos_ativos_semana_anterior?: number
           cac_manual?: number
           capacidade_alunos?: number
           created_at?: string
