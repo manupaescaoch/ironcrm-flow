@@ -14,7 +14,9 @@ interface DashboardKPIGridProps {
   stats: Stats;
   periodStats: PeriodStats;
   experimentaisSemanaCount: number;
-  faturamentoPeriodo: number;
+  unidadeId: string | undefined;
+  alunosAtivosRefreshKey?: number;
+  onAlunosAtivosChange?: () => void;
   followUpPendingCount: number;
   followUpD1Count: number;
   showExperimentaisSection: boolean;
@@ -24,6 +26,7 @@ interface DashboardKPIGridProps {
   onMatriculasClick: () => void;
   onFollowUpClick: () => void;
 }
+
 
 
 export const DashboardKPIGrid = memo(function DashboardKPIGrid({
