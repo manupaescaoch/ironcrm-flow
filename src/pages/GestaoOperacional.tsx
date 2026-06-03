@@ -322,14 +322,24 @@ function DetalheUnidade({ k }: { k: UnidadeKPIs }) {
   );
 }
 
-function MetaBar({ label, current, meta, suffix = '', isCurrency = false }: { label: string; current: number; meta: number; suffix?: string; isCurrency?: boolean }) {
+function MetaBar({ label, current, meta, suffix = '', isCurrency = false, showMissing = false }: { label: string; current: number; meta: number; suffix?: string; isCurrency?: boolean; showMissing?: boolean }) {
   const pct = meta > 0 ? Math.min(100, Math.round((current / meta) * 100)) : 0;
   const display = (n: number) => isCurrency ? fmtBRL(n) : `${n}${suffix}`;
+  const missing = meta - current;
   return (
     <div>
       <div className="flex justify-between text-sm mb-1">
         <span className="font-medium">{label}</span>
-        <span className="text-muted-foreground">{display(current)} / {meta > 0 ? display(meta) : '—'} ({pct}%)</span>
+        <span className="text-muted-foreground">
+          {display(current)} / {meta > 0 ? display(meta) : '—'}
+          {showMissing && meta > 0 ? (
+            <span className={missing > 0 ? 'text-orange-500 ml-1' : 'text-green-600 ml-1'}>
+              ({missing > 0 ? `faltam ${missing}` : `+${Math.abs(missing)} acima`})
+            </span>
+          ) : (
+            <span className="ml-1">({pct}%)</span>
+          )}
+        </span>
       </div>
       <Progress value={pct} />
     </div>
@@ -480,13 +490,14 @@ function MetaConsolidada({ kpis }: { kpis: UnidadeKPIs[] }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <MetaBar label="Alunos no mês (total)" current={totalAlunos} meta={totalMeta} />
+        <MetaBar label="Alunos no mês (total)" current={totalAlunos} meta={totalMeta} showMissing />
         {kpis.map(k => (
           <MetaBar
             key={k.unidade_id}
             label={k.unidade_nome}
             current={k.alunos_ativos}
             meta={k.meta_alunos_mes}
+            showMissing
           />
         ))}
       </CardContent>
