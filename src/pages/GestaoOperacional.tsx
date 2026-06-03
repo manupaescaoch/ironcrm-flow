@@ -365,9 +365,18 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
           />
           <MiniMetric
             label="CAC"
-            value={k.cac !== null ? fmtBRL(k.cac) : '—'}
+            value={editingCac ? (
+              <div className="flex items-center gap-1 w-full">
+                <Input type="number" step="0.01" value={cacValue} onChange={e => setCacValue(+e.target.value)} className="h-7 text-base font-bold" autoFocus />
+                <Button size="sm" className="h-7 px-2" onClick={handleSaveCac} disabled={savingCac}>
+                  {savingCac ? <Loader2 className="w-3 h-3 animate-spin" /> : 'OK'}
+                </Button>
+              </div>
+            ) : (k.cac !== null ? fmtBRL(k.cac) : '—')}
             sub="informado manualmente"
+            action={!editingCac && <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditingCac(true)}>Editar</Button>}
           />
+
         </SubSection>
 
         {/* Retenção e pendências */}
