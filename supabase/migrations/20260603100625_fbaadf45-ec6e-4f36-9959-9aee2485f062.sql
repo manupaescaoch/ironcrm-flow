@@ -1,0 +1,1 @@
+ALTER TABLE public.gestao_metas ADD COLUMN IF NOT EXISTS meta_alunos_mes integer NOT NULL DEFAULT 0;
