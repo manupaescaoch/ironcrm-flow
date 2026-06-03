@@ -242,6 +242,11 @@ async function fetchUnidadeKPIs(unidade_id: string, unidade_nome: string, meta: 
     ticket_medio_real: meta?.ticket_medio_real ?? 0,
     receita_recorrente_projetada: (alunosAtivos ?? 0) * Number(meta?.ticket_medio_real ?? 0),
     meta_alunos_mes: meta?.meta_alunos_mes ?? 0,
+    cancelamentos_mes: cancelamentosMes,
+    matriculas_mes: matriculasMes,
+    investimento_mes: investimentoMes,
+    evasao_pct_mes: evasaoPctMes,
+    cac,
     alertas,
   };
 }
