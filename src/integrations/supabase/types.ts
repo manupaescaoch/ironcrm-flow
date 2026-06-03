@@ -1344,6 +1344,7 @@ export type Database = {
           capacidade_alunos: number
           created_at: string
           id: string
+          meta_alunos_mes: number
           meta_matriculas_semana: number
           meta_ocupacao_pct: number
           meta_receita_mes: number
@@ -1358,6 +1359,7 @@ export type Database = {
           capacidade_alunos?: number
           created_at?: string
           id?: string
+          meta_alunos_mes?: number
           meta_matriculas_semana?: number
           meta_ocupacao_pct?: number
           meta_receita_mes?: number
@@ -1372,6 +1374,7 @@ export type Database = {
           capacidade_alunos?: number
           created_at?: string
           id?: string
+          meta_alunos_mes?: number
           meta_matriculas_semana?: number
           meta_ocupacao_pct?: number
           meta_receita_mes?: number

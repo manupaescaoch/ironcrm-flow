@@ -13,6 +13,7 @@ export interface MetaUnidade {
   meta_taxa_conversao_pct: number;
   alunos_ativos_manual: number;
   ticket_medio_real: number;
+  meta_alunos_mes: number;
 }
 
 export interface UnidadeKPIs {
@@ -37,6 +38,7 @@ export interface UnidadeKPIs {
   ocupacao_pct: number;
   ticket_medio_real: number;
   receita_recorrente_projetada: number;
+  meta_alunos_mes: number;
   alertas: string[];
 }
 
@@ -195,6 +197,7 @@ async function fetchUnidadeKPIs(unidade_id: string, unidade_nome: string, meta: 
     ocupacao_pct: ocupacaoPct,
     ticket_medio_real: meta?.ticket_medio_real ?? 0,
     receita_recorrente_projetada: (alunosAtivos ?? 0) * Number(meta?.ticket_medio_real ?? 0),
+    meta_alunos_mes: meta?.meta_alunos_mes ?? 0,
     alertas,
   };
 }

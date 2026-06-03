@@ -53,74 +53,50 @@ function KPIBlock({ icon: Icon, label, value, sub, delta }: any) {
 function EditarMetasDialog({ k, onSaved }: { k: UnidadeKPIs; onSaved: () => void }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    capacidade_alunos: k.meta?.capacidade_alunos ?? 0,
-    meta_ocupacao_pct: k.meta?.meta_ocupacao_pct ?? 80,
-    meta_matriculas_semana: k.meta?.meta_matriculas_semana ?? 0,
-    meta_receita_mes: k.meta?.meta_receita_mes ?? 0,
-    meta_taxa_comparecimento_pct: k.meta?.meta_taxa_comparecimento_pct ?? 75,
-    meta_taxa_conversao_pct: k.meta?.meta_taxa_conversao_pct ?? 0,
-  });
+  const [metaAlunos, setMetaAlunos] = useState(k.meta_alunos_mes);
 
   useEffect(() => {
-    if (open) {
-      setForm({
-        capacidade_alunos: k.meta?.capacidade_alunos ?? 0,
-        meta_ocupacao_pct: k.meta?.meta_ocupacao_pct ?? 80,
-        meta_matriculas_semana: k.meta?.meta_matriculas_semana ?? 0,
-        meta_receita_mes: k.meta?.meta_receita_mes ?? 0,
-        meta_taxa_comparecimento_pct: k.meta?.meta_taxa_comparecimento_pct ?? 75,
-        meta_taxa_conversao_pct: k.meta?.meta_taxa_conversao_pct ?? 0,
-      });
-    }
-  }, [open, k.meta]);
+    if (open) setMetaAlunos(k.meta_alunos_mes);
+  }, [open, k.meta_alunos_mes]);
 
   const handleSave = async () => {
     setSaving(true);
     let error;
     if (k.meta?.id) {
-      ({ error } = await supabase.from('gestao_metas').update(form).eq('id', k.meta.id));
+      ({ error } = await supabase.from('gestao_metas')
+        .update({ meta_alunos_mes: metaAlunos })
+        .eq('id', k.meta.id));
     } else {
-      ({ error } = await supabase.from('gestao_metas').insert({ unidade_id: k.unidade_id, ...form }));
+      ({ error } = await supabase.from('gestao_metas')
+        .insert({ unidade_id: k.unidade_id, meta_alunos_mes: metaAlunos }));
     }
     setSaving(false);
-    if (error) { toast.error('Erro ao salvar metas: ' + error.message); return; }
-    toast.success('Metas atualizadas');
+    if (error) { toast.error('Erro ao salvar meta: ' + error.message); return; }
+    toast.success('Meta atualizada');
     setOpen(false);
     onSaved();
   };
-
-  const F = ({ label, field, step = '1', suffix }: { label: string; field: keyof typeof form; step?: string; suffix?: string }) => (
-    <div>
-      <Label className="text-xs">{label}{suffix ? ` (${suffix})` : ''}</Label>
-      <Input
-        type="number"
-        step={step}
-        value={form[field]}
-        onChange={e => setForm(f => ({ ...f, [field]: +e.target.value }))}
-      />
-    </div>
-  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline" className="gap-1">
-          <Pencil className="w-3 h-3" /> Metas
+          <Pencil className="w-3 h-3" /> Meta
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Editar Metas — {k.unidade_nome}</DialogTitle>
-          <DialogDescription>Valores inseridos manualmente para cálculo de Meta vs Realizado.</DialogDescription>
+          <DialogTitle>Meta de Alunos no Mês — {k.unidade_nome}</DialogTitle>
+          <DialogDescription>Total de alunos esperado para o mês (inserido manualmente).</DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-2 gap-3 py-2">
-          <F label="Capacidade de alunos" field="capacidade_alunos" />
-          <F label="Meta de ocupação" field="meta_ocupacao_pct" suffix="%" />
-          <F label="Meta matrículas/semana" field="meta_matriculas_semana" />
-          <F label="Meta receita do mês" field="meta_receita_mes" step="0.01" suffix="R$" />
-          <F label="Meta taxa de comparecimento" field="meta_taxa_comparecimento_pct" suffix="%" />
-          <F label="Meta taxa de conversão" field="meta_taxa_conversao_pct" suffix="%" />
+        <div className="py-2">
+          <Label className="text-xs">Meta de alunos no mês</Label>
+          <Input
+            type="number"
+            value={metaAlunos}
+            onChange={e => setMetaAlunos(+e.target.value)}
+            autoFocus
+          />
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -133,6 +109,7 @@ function EditarMetasDialog({ k, onSaved }: { k: UnidadeKPIs; onSaved: () => void
     </Dialog>
   );
 }
+
 
 function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }) {
 
@@ -488,23 +465,8 @@ function LancamentoSemanal({ unidades, onSaved }: { unidades: UnidadeKPIs[]; onS
 }
 
 function MetaConsolidada({ kpis }: { kpis: UnidadeKPIs[] }) {
-  const totals = kpis.reduce((acc, k) => {
-    acc.alunosAtivos += k.alunos_ativos;
-    acc.matriculas += k.matriculas_semana;
-    acc.receita += k.receita_mes;
-    acc.receitaProjetada += k.receita_recorrente_projetada;
-    acc.metaMatriculas += k.meta?.meta_matriculas_semana ?? 0;
-    acc.metaReceita += k.meta?.meta_receita_mes ?? 0;
-    acc.capacidade += k.meta?.capacidade_alunos ?? 0;
-    acc.compSum += k.taxa_comparecimento;
-    acc.compMetaSum += k.meta?.meta_taxa_comparecimento_pct ?? 75;
-    acc.compCount += 1;
-    return acc;
-  }, { alunosAtivos: 0, matriculas: 0, receita: 0, receitaProjetada: 0, metaMatriculas: 0, metaReceita: 0, capacidade: 0, compSum: 0, compMetaSum: 0, compCount: 0 });
-
-  const ocupAtual = totals.capacidade > 0 ? Math.round((totals.alunosAtivos / totals.capacidade) * 100) : 0;
-  const compMedia = totals.compCount > 0 ? Math.round(totals.compSum / totals.compCount) : 0;
-  const compMeta = totals.compCount > 0 ? Math.round(totals.compMetaSum / totals.compCount) : 75;
+  const totalAlunos = kpis.reduce((s, k) => s + k.alunos_ativos, 0);
+  const totalMeta = kpis.reduce((s, k) => s + (k.meta_alunos_mes ?? 0), 0);
 
   return (
     <Card>
@@ -514,19 +476,24 @@ function MetaConsolidada({ kpis }: { kpis: UnidadeKPIs[] }) {
           Meta vs Realizado — Consolidado
         </CardTitle>
         <CardDescription>
-          Soma de todas as unidades. Metas inseridas manualmente em cada unidade (campo Meta).
+          Total de alunos vs meta do mês (somatório de todas as unidades).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <MetaBar label="Matrículas da semana (total)" current={totals.matriculas} meta={totals.metaMatriculas} />
-        <MetaBar label="Receita do mês (total)" current={totals.receita} meta={totals.metaReceita} isCurrency />
-        <MetaBar label="Receita recorrente projetada" current={totals.receitaProjetada} meta={totals.metaReceita} isCurrency />
-        <MetaBar label="Ocupação consolidada" current={ocupAtual} meta={80} suffix="%" />
-        <MetaBar label="Taxa de comparecimento (média)" current={compMedia} meta={compMeta} suffix="%" />
+        <MetaBar label="Alunos no mês (total)" current={totalAlunos} meta={totalMeta} />
+        {kpis.map(k => (
+          <MetaBar
+            key={k.unidade_id}
+            label={k.unidade_nome}
+            current={k.alunos_ativos}
+            meta={k.meta_alunos_mes}
+          />
+        ))}
       </CardContent>
     </Card>
   );
 }
+
 
 function Alertas({ kpis }: { kpis: UnidadeKPIs[] }) {
   const total = kpis.reduce((s, k) => s + k.alertas.length, 0);
