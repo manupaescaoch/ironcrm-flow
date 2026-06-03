@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Loader2, TrendingUp, TrendingDown, Minus, AlertTriangle, Users, UserPlus, UserMinus, CheckCircle2, Target, Clock, DollarSign, PieChart, RefreshCw } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Loader2, TrendingUp, TrendingDown, Minus, AlertTriangle, Users, UserPlus, UserMinus, CheckCircle2, Target, Clock, DollarSign, PieChart, RefreshCw, Pencil } from 'lucide-react';
 import { useGestaoOperacional, UnidadeKPIs, SeriesPoint, fetchUnidadeHistorico } from '@/hooks/useGestaoOperacional';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -49,7 +50,92 @@ function KPIBlock({ icon: Icon, label, value, sub, delta }: any) {
   );
 }
 
+function EditarMetasDialog({ k, onSaved }: { k: UnidadeKPIs; onSaved: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    capacidade_alunos: k.meta?.capacidade_alunos ?? 0,
+    meta_ocupacao_pct: k.meta?.meta_ocupacao_pct ?? 80,
+    meta_matriculas_semana: k.meta?.meta_matriculas_semana ?? 0,
+    meta_receita_mes: k.meta?.meta_receita_mes ?? 0,
+    meta_taxa_comparecimento_pct: k.meta?.meta_taxa_comparecimento_pct ?? 75,
+    meta_taxa_conversao_pct: k.meta?.meta_taxa_conversao_pct ?? 0,
+  });
+
+  useEffect(() => {
+    if (open) {
+      setForm({
+        capacidade_alunos: k.meta?.capacidade_alunos ?? 0,
+        meta_ocupacao_pct: k.meta?.meta_ocupacao_pct ?? 80,
+        meta_matriculas_semana: k.meta?.meta_matriculas_semana ?? 0,
+        meta_receita_mes: k.meta?.meta_receita_mes ?? 0,
+        meta_taxa_comparecimento_pct: k.meta?.meta_taxa_comparecimento_pct ?? 75,
+        meta_taxa_conversao_pct: k.meta?.meta_taxa_conversao_pct ?? 0,
+      });
+    }
+  }, [open, k.meta]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    let error;
+    if (k.meta?.id) {
+      ({ error } = await supabase.from('gestao_metas').update(form).eq('id', k.meta.id));
+    } else {
+      ({ error } = await supabase.from('gestao_metas').insert({ unidade_id: k.unidade_id, ...form }));
+    }
+    setSaving(false);
+    if (error) { toast.error('Erro ao salvar metas: ' + error.message); return; }
+    toast.success('Metas atualizadas');
+    setOpen(false);
+    onSaved();
+  };
+
+  const F = ({ label, field, step = '1', suffix }: { label: string; field: keyof typeof form; step?: string; suffix?: string }) => (
+    <div>
+      <Label className="text-xs">{label}{suffix ? ` (${suffix})` : ''}</Label>
+      <Input
+        type="number"
+        step={step}
+        value={form[field]}
+        onChange={e => setForm(f => ({ ...f, [field]: +e.target.value }))}
+      />
+    </div>
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="gap-1">
+          <Pencil className="w-3 h-3" /> Metas
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Editar Metas — {k.unidade_nome}</DialogTitle>
+          <DialogDescription>Valores inseridos manualmente para cálculo de Meta vs Realizado.</DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-3 py-2">
+          <F label="Capacidade de alunos" field="capacidade_alunos" />
+          <F label="Meta de ocupação" field="meta_ocupacao_pct" suffix="%" />
+          <F label="Meta matrículas/semana" field="meta_matriculas_semana" />
+          <F label="Meta receita do mês" field="meta_receita_mes" step="0.01" suffix="R$" />
+          <F label="Meta taxa de comparecimento" field="meta_taxa_comparecimento_pct" suffix="%" />
+          <F label="Meta taxa de conversão" field="meta_taxa_conversao_pct" suffix="%" />
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving && <Loader2 className="w-3 h-3 mr-2 animate-spin" />}
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }) {
+
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(k.alunos_ativos);
   const [saving, setSaving] = useState(false);
@@ -95,14 +181,17 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex items-center justify-between gap-2">
           <span>{k.unidade_nome}</span>
-          {k.alertas.length > 0 && (
-            <Badge variant="destructive" className="gap-1">
-              <AlertTriangle className="w-3 h-3" />
-              {k.alertas.length}
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {k.alertas.length > 0 && (
+              <Badge variant="destructive" className="gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                {k.alertas.length}
+              </Badge>
+            )}
+            <EditarMetasDialog k={k} onSaved={onRefetch} />
+          </div>
         </CardTitle>
         <CardDescription>
           Capacidade {k.meta?.capacidade_alunos ?? '—'} alunos · Meta de ocupação {k.meta?.meta_ocupacao_pct ?? 80}%
