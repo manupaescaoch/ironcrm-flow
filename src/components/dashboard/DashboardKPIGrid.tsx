@@ -1,11 +1,13 @@
 import React, { memo } from 'react';
-import { Users, CalendarCheck, Calendar, Award, CheckCircle2, DollarSign, Filter, UserX } from 'lucide-react';
+import { Users, CalendarCheck, Calendar, Award, CheckCircle2, Filter, UserX } from 'lucide-react';
 import { KPICard } from '@/components/ui/kpi-card';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
 import { TaxaComparecimentoKPI } from '@/components/dashboard/TaxaComparecimentoKPI';
 import { FunilComercialCard } from '@/components/dashboard/FunilComercialCard';
 import { DiagnosticoSemanaCard } from '@/components/dashboard/DiagnosticoSemanaCard';
+import { AlunosAtivosKPI } from '@/components/dashboard/AlunosAtivosKPI';
 import { Stats, PeriodStats } from '@/components/dashboard/constants';
+
 
 
 interface DashboardKPIGridProps {
