@@ -193,6 +193,8 @@ async function fetchUnidadeKPIs(unidade_id: string, unidade_nome: string, meta: 
     receita_mes: receita,
     receita_mes_anterior: receitaAnt,
     ocupacao_pct: ocupacaoPct,
+    ticket_medio_real: meta?.ticket_medio_real ?? 0,
+    receita_recorrente_projetada: (alunosAtivos ?? 0) * Number(meta?.ticket_medio_real ?? 0),
     alertas,
   };
 }
