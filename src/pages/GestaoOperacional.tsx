@@ -373,22 +373,25 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
         {/* Retenção e pendências */}
         <SubSection icon={ShieldAlert} title="Retenção e pendências">
           <MiniMetric
-            label="Cancelamentos"
-            value={k.cancelamentos_semana}
-            sub={`Semana anterior: ${k.cancelamentos_semana_anterior}`}
-            delta={<Delta current={k.cancelamentos_semana} previous={k.cancelamentos_semana_anterior} invertColors />}
-          />
-          <MiniMetric
-            label="Follow-ups pendentes"
-            value={k.follow_ups_pendentes}
-            sub={`Atrasados: ${k.follow_ups_atrasados_24h}`}
+            label="Follow-ups atrasados"
+            value={k.follow_ups_atrasados_24h}
+            sub={`Pendentes no total: ${k.follow_ups_pendentes}`}
           />
           <MiniMetric
             label="Evasão do mês"
-            value={`${k.evasao_pct_mes}%`}
+            value={editingEvasao ? (
+              <div className="flex items-center gap-1 w-full">
+                <Input type="number" step="0.01" value={evasaoValue} onChange={e => setEvasaoValue(+e.target.value)} className="h-7 text-base font-bold" autoFocus />
+                <Button size="sm" className="h-7 px-2" onClick={handleSaveEvasao} disabled={savingEvasao}>
+                  {savingEvasao ? <Loader2 className="w-3 h-3 animate-spin" /> : 'OK'}
+                </Button>
+              </div>
+            ) : `${k.evasao_pct_mes}%`}
             sub="informado manualmente"
+            action={!editingEvasao && <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditingEvasao(true)}>Editar</Button>}
           />
         </SubSection>
+
 
         {/* Barra de ocupação atual */}
         <div className="rounded-lg border bg-muted/30 p-3">
