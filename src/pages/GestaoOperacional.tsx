@@ -54,7 +54,12 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
   const [value, setValue] = useState(k.alunos_ativos);
   const [saving, setSaving] = useState(false);
 
+  const [editingTicket, setEditingTicket] = useState(false);
+  const [ticketValue, setTicketValue] = useState(k.ticket_medio_real);
+  const [savingTicket, setSavingTicket] = useState(false);
+
   useEffect(() => { setValue(k.alunos_ativos); }, [k.alunos_ativos]);
+  useEffect(() => { setTicketValue(k.ticket_medio_real); }, [k.ticket_medio_real]);
 
   const handleSave = async () => {
     if (!k.meta?.id) {
@@ -70,6 +75,20 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
     if (error) { toast.error('Erro ao salvar: ' + error.message); return; }
     toast.success('Alunos ativos atualizado');
     setEditing(false);
+    onRefetch();
+  };
+
+  const handleSaveTicket = async () => {
+    if (!k.meta?.id) { toast.error('Meta da unidade não encontrada.'); return; }
+    setSavingTicket(true);
+    const { error } = await supabase
+      .from('gestao_metas')
+      .update({ ticket_medio_real: ticketValue })
+      .eq('id', k.meta.id);
+    setSavingTicket(false);
+    if (error) { toast.error('Erro ao salvar: ' + error.message); return; }
+    toast.success('Ticket médio atualizado');
+    setEditingTicket(false);
     onRefetch();
   };
 
@@ -137,6 +156,40 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
             delta={<Delta current={k.receita_mes} previous={k.receita_mes_anterior} />} />
           <KPIBlock icon={PieChart} label="Ocupação" value={`${k.ocupacao_pct}%`}
             sub={`Meta: ${k.meta?.meta_ocupacao_pct ?? 80}%`} />
+
+          {/* Ticket médio real (manual) */}
+          <div className="rounded-lg border bg-card p-4">
+            <div className="flex items-center gap-2 mb-2 text-muted-foreground text-xs uppercase tracking-wider">
+              <DollarSign className="w-3.5 h-3.5" />
+              Ticket Médio Real
+            </div>
+            {editingTicket ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={ticketValue}
+                  onChange={e => setTicketValue(+e.target.value)}
+                  className="h-8"
+                  autoFocus
+                />
+                <Button size="sm" onClick={handleSaveTicket} disabled={savingTicket}>
+                  {savingTicket ? <Loader2 className="w-3 h-3 animate-spin" /> : 'OK'}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => { setEditingTicket(false); setTicketValue(k.ticket_medio_real); }}>X</Button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold text-foreground">{fmtBRL(k.ticket_medio_real)}</div>
+                <Button size="sm" variant="ghost" onClick={() => setEditingTicket(true)}>Editar</Button>
+              </div>
+            )}
+            <div className="text-xs text-muted-foreground mt-1">informado manualmente</div>
+          </div>
+
+          <KPIBlock icon={TrendingUp} label="Receita Recorrente Projetada"
+            value={fmtBRL(k.receita_recorrente_projetada)}
+            sub={`${k.alunos_ativos} ativos × ${fmtBRL(k.ticket_medio_real)}`} />
         </div>
         <div>
           <div className="flex justify-between text-xs text-muted-foreground mb-1">
@@ -345,6 +398,47 @@ function LancamentoSemanal({ unidades, onSaved }: { unidades: UnidadeKPIs[]; onS
   );
 }
 
+function MetaConsolidada({ kpis }: { kpis: UnidadeKPIs[] }) {
+  const totals = kpis.reduce((acc, k) => {
+    acc.alunosAtivos += k.alunos_ativos;
+    acc.matriculas += k.matriculas_semana;
+    acc.receita += k.receita_mes;
+    acc.receitaProjetada += k.receita_recorrente_projetada;
+    acc.metaMatriculas += k.meta?.meta_matriculas_semana ?? 0;
+    acc.metaReceita += k.meta?.meta_receita_mes ?? 0;
+    acc.capacidade += k.meta?.capacidade_alunos ?? 0;
+    acc.compSum += k.taxa_comparecimento;
+    acc.compMetaSum += k.meta?.meta_taxa_comparecimento_pct ?? 75;
+    acc.compCount += 1;
+    return acc;
+  }, { alunosAtivos: 0, matriculas: 0, receita: 0, receitaProjetada: 0, metaMatriculas: 0, metaReceita: 0, capacidade: 0, compSum: 0, compMetaSum: 0, compCount: 0 });
+
+  const ocupAtual = totals.capacidade > 0 ? Math.round((totals.alunosAtivos / totals.capacidade) * 100) : 0;
+  const compMedia = totals.compCount > 0 ? Math.round(totals.compSum / totals.compCount) : 0;
+  const compMeta = totals.compCount > 0 ? Math.round(totals.compMetaSum / totals.compCount) : 75;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Target className="w-5 h-5 text-primary" />
+          Meta vs Realizado — Consolidado
+        </CardTitle>
+        <CardDescription>
+          Soma de todas as unidades. Metas inseridas manualmente em cada unidade (campo Meta).
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <MetaBar label="Matrículas da semana (total)" current={totals.matriculas} meta={totals.metaMatriculas} />
+        <MetaBar label="Receita do mês (total)" current={totals.receita} meta={totals.metaReceita} isCurrency />
+        <MetaBar label="Receita recorrente projetada" current={totals.receitaProjetada} meta={totals.metaReceita} isCurrency />
+        <MetaBar label="Ocupação consolidada" current={ocupAtual} meta={80} suffix="%" />
+        <MetaBar label="Taxa de comparecimento (média)" current={compMedia} meta={compMeta} suffix="%" />
+      </CardContent>
+    </Card>
+  );
+}
+
 function Alertas({ kpis }: { kpis: UnidadeKPIs[] }) {
   const total = kpis.reduce((s, k) => s + k.alertas.length, 0);
   return (
@@ -420,6 +514,7 @@ export default function GestaoOperacional() {
             </TabsList>
 
             <TabsContent value="visao-geral" className="space-y-4 mt-4">
+              <MetaConsolidada kpis={kpis} />
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {kpis.map(k => <UnidadeCard key={k.unidade_id} k={k} onRefetch={refetch} />)}
               </div>

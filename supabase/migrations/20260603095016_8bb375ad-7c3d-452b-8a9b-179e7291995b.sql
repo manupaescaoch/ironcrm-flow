@@ -1,0 +1,1 @@
+ALTER TABLE public.gestao_metas ADD COLUMN IF NOT EXISTS ticket_medio_real numeric NOT NULL DEFAULT 0;
