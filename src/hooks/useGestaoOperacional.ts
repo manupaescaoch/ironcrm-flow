@@ -169,6 +169,43 @@ async function fetchUnidadeKPIs(unidade_id: string, unidade_nome: string, meta: 
     .lte('data_fechamento', dateOnly(prevMonthEnd));
   const receitaAnt = (receitaAntRows ?? []).reduce((s, r: any) => s + Number(r.valor_plano || 0), 0);
 
+  // Matrículas do mês
+  const { count: matrMesCount } = await supabase
+    .from('interacoes')
+    .select('id', { count: 'exact', head: true })
+    .eq('unidade_id', unidade_id)
+    .eq('fechou_matricula', true)
+    .gte('data_fechamento', dateOnly(monthStart))
+    .lte('data_fechamento', dateOnly(monthEnd));
+  const matriculasMes = matrMesCount ?? 0;
+
+  // Cancelamentos do mês (alunos matriculados inativados no mês)
+  const { count: cancMesCount } = await supabase
+    .from('leads')
+    .select('id', { count: 'exact', head: true })
+    .eq('unidade_id', unidade_id)
+    .eq('is_matriculado', true)
+    .eq('ativo', false)
+    .gte('updated_at', iso(monthStart))
+    .lte('updated_at', iso(monthEnd));
+  const cancelamentosMes = cancMesCount ?? 0;
+
+  // Investimento de marketing do mês
+  const { data: invRows } = await supabase
+    .from('investimentos_marketing')
+    .select('valor')
+    .eq('unidade_id', unidade_id)
+    .eq('data_inicio', dateOnly(monthStart))
+    .eq('data_fim', dateOnly(monthEnd));
+  const investimentoMes = (invRows ?? []).reduce((s, r: any) => s + Number(r.valor || 0), 0);
+
+  // Evasão % do mês: cancelamentos / (alunos ativos + cancelamentos) — base do mês
+  const baseEvasao = (alunosAtivos ?? 0) + cancelamentosMes;
+  const evasaoPctMes = baseEvasao > 0 ? Math.round((cancelamentosMes / baseEvasao) * 100) : 0;
+
+  // CAC: investimento / matrículas do mês
+  const cac = investimentoMes > 0 && matriculasMes > 0 ? investimentoMes / matriculasMes : null;
+
   const capacidade = meta?.capacidade_alunos ?? 0;
   const ocupacaoPct = capacidade > 0 ? Math.round(((alunosAtivos ?? 0) / capacidade) * 100) : 0;
 
@@ -179,6 +216,8 @@ async function fetchUnidadeKPIs(unidade_id: string, unidade_nome: string, meta: 
   if ((fuAtrasados ?? 0) > 0) alertas.push(`${fuAtrasados} follow-up(s) pendente(s) há mais de 24h`);
   if ((cancSem ?? 0) > matriculas) alertas.push(`Cancelamentos da semana (${cancSem}) superam as matrículas (${matriculas})`);
   if (capacidade > 0 && ocupacaoPct < metaOcup * 0.8) alertas.push(`Ocupação (${ocupacaoPct}%) abaixo de 80% da meta (${metaOcup}%)`);
+  if (evasaoPctMes > 5) alertas.push(`Evasão do mês (${evasaoPctMes}%) acima de 5%`);
+
 
   return {
     unidade_id,
