@@ -33,7 +33,9 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   stats,
   periodStats,
   experimentaisSemanaCount,
-  faturamentoPeriodo,
+  unidadeId,
+  alunosAtivosRefreshKey,
+  onAlunosAtivosChange,
   followUpPendingCount,
   followUpD1Count,
   showExperimentaisSection,
@@ -52,11 +54,7 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
     ? Math.round((periodStats.matriculasPeriodo / stats.total) * 100)
     : 0;
 
-  const faturamentoFormatado = new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    maximumFractionDigits: 0,
-  }).format(faturamentoPeriodo || 0);
+
 
   return (
     <div className="space-y-2 mb-2">
