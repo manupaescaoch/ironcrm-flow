@@ -220,6 +220,14 @@ const AppRoutes = () => (
       }
     />
     <Route
+      path="/conversas-whatsapp"
+      element={
+        <ProtectedRoute>
+          <ConversasWhatsApp />
+        </ProtectedRoute>
+      }
+    />
+    <Route
       path="/lead/:id"
       element={
         <ProtectedRoute>
