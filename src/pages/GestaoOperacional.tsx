@@ -549,8 +549,9 @@ function LancamentoSemanal({ unidades, onSaved }: { unidades: UnidadeKPIs[]; onS
       <CardHeader>
         <CardTitle>Lançamento Semanal</CardTitle>
         <CardDescription>
-          Os números são preenchidos automaticamente a partir do CRM. Apenas o total de alunos ativos é inserido manualmente. Ao salvar, fica registrado um snapshot da semana.
+          Os números são preenchidos automaticamente a partir do CRM. O total de alunos ativos é puxado do Dashboard. Ao salvar, fica registrado um snapshot da semana.
         </CardDescription>
+
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
