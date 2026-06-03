@@ -104,15 +104,12 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
           activeColor="amber"
         />
 
-        <KPICard
-          variant="dashboard"
-          title="Faturamento"
-          value={faturamentoFormatado}
-          icon={DollarSign}
-          iconColor="text-purple-500"
-          valueColor="text-purple-600"
-          subtitle="Período selecionado"
+        <AlunosAtivosKPI
+          unidadeId={unidadeId}
+          refreshKey={alunosAtivosRefreshKey}
+          onChange={onAlunosAtivosChange}
         />
+
 
         <KPICard
           variant="dashboard"
