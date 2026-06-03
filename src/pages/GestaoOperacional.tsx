@@ -174,7 +174,7 @@ function TopKPIsRow({ kpis }: { kpis: UnidadeKPIs[] }) {
   const totFuAtr = kpis.reduce((s, k) => s + k.follow_ups_atrasados_24h, 0);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <SummaryKPI
         icon={Users}
         label="Alunos ativos total"
@@ -191,25 +191,17 @@ function TopKPIsRow({ kpis }: { kpis: UnidadeKPIs[] }) {
         iconColor="text-emerald-600"
       />
       <SummaryKPI
-        icon={XCircle}
-        label="Cancelamentos da semana"
-        value={totCanc}
-        sub={`Semana anterior: ${totCancAnt}`}
-        delta={<Delta current={totCanc} previous={totCancAnt} invertColors />}
-        iconBg="bg-red-500/10"
-        iconColor="text-red-600"
-      />
-      <SummaryKPI
         icon={Send}
-        label="Follow-ups pendentes"
-        value={totFu}
-        sub={`Atrasados: ${totFuAtr}`}
+        label="Follow-ups atrasados"
+        value={totFuAtr}
+        sub={`Pendentes no total: ${totFu}`}
         iconBg="bg-blue-500/10"
         iconColor="text-blue-600"
       />
     </div>
   );
 }
+
 
 function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }) {
   const [editing, setEditing] = useState(false);
@@ -220,8 +212,18 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
   const [ticketValue, setTicketValue] = useState(k.ticket_medio_real);
   const [savingTicket, setSavingTicket] = useState(false);
 
+  const [editingEvasao, setEditingEvasao] = useState(false);
+  const [evasaoValue, setEvasaoValue] = useState(k.evasao_pct_mes);
+  const [savingEvasao, setSavingEvasao] = useState(false);
+
+  const [editingCac, setEditingCac] = useState(false);
+  const [cacValue, setCacValue] = useState(k.cac ?? 0);
+  const [savingCac, setSavingCac] = useState(false);
+
   useEffect(() => { setValue(k.alunos_ativos); }, [k.alunos_ativos]);
   useEffect(() => { setTicketValue(k.ticket_medio_real); }, [k.ticket_medio_real]);
+  useEffect(() => { setEvasaoValue(k.evasao_pct_mes); }, [k.evasao_pct_mes]);
+  useEffect(() => { setCacValue(k.cac ?? 0); }, [k.cac]);
 
   const handleSave = async () => {
     if (!k.meta?.id) { toast.error('Meta da unidade não encontrada.'); return; }
@@ -244,6 +246,29 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
     setEditingTicket(false);
     onRefetch();
   };
+
+  const handleSaveEvasao = async () => {
+    if (!k.meta?.id) { toast.error('Meta da unidade não encontrada.'); return; }
+    setSavingEvasao(true);
+    const { error } = await supabase.from('gestao_metas').update({ evasao_pct_manual: evasaoValue }).eq('id', k.meta.id);
+    setSavingEvasao(false);
+    if (error) { toast.error('Erro ao salvar: ' + error.message); return; }
+    toast.success('Evasão atualizada');
+    setEditingEvasao(false);
+    onRefetch();
+  };
+
+  const handleSaveCac = async () => {
+    if (!k.meta?.id) { toast.error('Meta da unidade não encontrada.'); return; }
+    setSavingCac(true);
+    const { error } = await supabase.from('gestao_metas').update({ cac_manual: cacValue }).eq('id', k.meta.id);
+    setSavingCac(false);
+    if (error) { toast.error('Erro ao salvar: ' + error.message); return; }
+    toast.success('CAC atualizado');
+    setEditingCac(false);
+    onRefetch();
+  };
+
 
   const metaOcup = k.meta?.meta_ocupacao_pct ?? 80;
 
@@ -340,30 +365,42 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
           />
           <MiniMetric
             label="CAC"
-            value={k.cac !== null ? fmtBRL(k.cac) : '—'}
+            value={editingCac ? (
+              <div className="flex items-center gap-1 w-full">
+                <Input type="number" step="0.01" value={cacValue} onChange={e => setCacValue(+e.target.value)} className="h-7 text-base font-bold" autoFocus />
+                <Button size="sm" className="h-7 px-2" onClick={handleSaveCac} disabled={savingCac}>
+                  {savingCac ? <Loader2 className="w-3 h-3 animate-spin" /> : 'OK'}
+                </Button>
+              </div>
+            ) : (k.cac !== null ? fmtBRL(k.cac) : '—')}
             sub="informado manualmente"
+            action={!editingCac && <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditingCac(true)}>Editar</Button>}
           />
+
         </SubSection>
 
         {/* Retenção e pendências */}
         <SubSection icon={ShieldAlert} title="Retenção e pendências">
           <MiniMetric
-            label="Cancelamentos"
-            value={k.cancelamentos_semana}
-            sub={`Semana anterior: ${k.cancelamentos_semana_anterior}`}
-            delta={<Delta current={k.cancelamentos_semana} previous={k.cancelamentos_semana_anterior} invertColors />}
-          />
-          <MiniMetric
-            label="Follow-ups pendentes"
-            value={k.follow_ups_pendentes}
-            sub={`Atrasados: ${k.follow_ups_atrasados_24h}`}
+            label="Follow-ups atrasados"
+            value={k.follow_ups_atrasados_24h}
+            sub={`Pendentes no total: ${k.follow_ups_pendentes}`}
           />
           <MiniMetric
             label="Evasão do mês"
-            value={`${k.evasao_pct_mes}%`}
+            value={editingEvasao ? (
+              <div className="flex items-center gap-1 w-full">
+                <Input type="number" step="0.01" value={evasaoValue} onChange={e => setEvasaoValue(+e.target.value)} className="h-7 text-base font-bold" autoFocus />
+                <Button size="sm" className="h-7 px-2" onClick={handleSaveEvasao} disabled={savingEvasao}>
+                  {savingEvasao ? <Loader2 className="w-3 h-3 animate-spin" /> : 'OK'}
+                </Button>
+              </div>
+            ) : `${k.evasao_pct_mes}%`}
             sub="informado manualmente"
+            action={!editingEvasao && <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditingEvasao(true)}>Editar</Button>}
           />
         </SubSection>
+
 
         {/* Barra de ocupação atual */}
         <div className="rounded-lg border bg-muted/30 p-3">
