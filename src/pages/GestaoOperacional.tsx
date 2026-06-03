@@ -256,6 +256,15 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
           <KPIBlock icon={TrendingUp} label="Receita Recorrente Projetada"
             value={fmtBRL(k.receita_recorrente_projetada)}
             sub={`${k.alunos_ativos} ativos × ${fmtBRL(k.ticket_medio_real)}`} />
+
+          <KPIBlock icon={UserMinus} label="Evasão do Mês" value={`${k.evasao_pct_mes}%`}
+            sub={`${k.cancelamentos_mes} cancel. no mês`} />
+
+          <KPIBlock icon={DollarSign} label="CAC"
+            value={k.cac !== null ? fmtBRL(k.cac) : '—'}
+            sub={k.investimento_mes > 0
+              ? `${fmtBRL(k.investimento_mes)} / ${k.matriculas_mes} mat.`
+              : 'Sem investimento registrado'} />
         </div>
         <div>
           <div className="flex justify-between text-xs text-muted-foreground mb-1">
