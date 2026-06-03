@@ -39,6 +39,11 @@ export interface UnidadeKPIs {
   ticket_medio_real: number;
   receita_recorrente_projetada: number;
   meta_alunos_mes: number;
+  cancelamentos_mes: number;
+  matriculas_mes: number;
+  investimento_mes: number;
+  evasao_pct_mes: number;
+  cac: number | null;
   alertas: string[];
 }
 
