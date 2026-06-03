@@ -1,5 +1,11 @@
-// Webhook inbound do WhatsApp (Z-API) — registra automaticamente leads novos,
-// vincula conversa a leads/alunos existentes e armazena mensagens.
+// Webhook inbound do WhatsApp (Z-API).
+//
+// NÃO cria leads automaticamente. Comportamento:
+//  - Telefone já vinculado a um lead ativo → atualiza ultima_interacao_at e status_conversa,
+//    e grava a mensagem no histórico (agente_mensagens). Nada muda no funil.
+//  - Telefone NÃO encontrado em leads → cria/atualiza um agente_atendimento na caixa
+//    de entrada (unidade Iron Setúbal, lead_id NULL) e grava a mensagem. O usuário
+//    decide manualmente em /conversas-whatsapp se vira lead.
 //
 // Auth: x-webhook-secret (ZAPI_WEBHOOK_SECRET) — validado em tempo constante ANTES
 // de qualquer leitura/processamento do body. POST sem secret válido retorna 401.
@@ -13,7 +19,7 @@ const corsHeaders = {
     'authorization, x-client-info, apikey, content-type, x-webhook-secret',
 };
 
-const UNIDADE_NAO_DEFINIDA = '00000000-0000-0000-0000-000000000000';
+const UNIDADE_CAIXA_ENTRADA = '00000000-0000-0000-0000-000000000000'; // Iron Setúbal
 
 function constantTimeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -94,12 +100,11 @@ Deno.serve(async (req) => {
     const senderName = (body.senderName || body.chatName || '').trim() || null;
     const now = new Date().toISOString();
 
-    // Status_conversa em função de quem enviou:
     // lead enviou → aguardando_resposta; equipe respondeu → respondido.
     const novoStatusConversa = fromMe ? 'respondido' : 'aguardando_resposta';
 
-    // 2) Buscar lead existente por telefone_normalizado
-    const { data: leadExistente, error: leadErr } = await supabase
+    // 2) Procurar lead existente por telefone normalizado (não cria nada novo aqui).
+    const { data: leadExistente } = await supabase
       .from('leads')
       .select('id, unidade_id, atendimento_id, is_matriculado, nome')
       .eq('telefone_normalizado', telefone)
@@ -108,18 +113,14 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    if (leadErr) {
-      console.error('Erro buscando lead:', leadErr);
-    }
-
-    let leadId: string;
     let unidadeId: string;
-    let atendimentoId: string | null = leadExistente?.atendimento_id ?? null;
+    let atendimentoId: string | null = null;
+    const leadId: string | null = leadExistente?.id ?? null;
 
     if (leadExistente) {
-      leadId = leadExistente.id;
       unidadeId = leadExistente.unidade_id;
-      // Atualiza última interação e status_conversa (não duplica lead)
+      atendimentoId = leadExistente.atendimento_id ?? null;
+
       await supabase
         .from('leads')
         .update({
@@ -127,91 +128,99 @@ Deno.serve(async (req) => {
           status_conversa: novoStatusConversa,
           updated_at: now,
         })
-        .eq('id', leadId);
+        .eq('id', leadId!);
     } else {
-      // 3) Criar lead novo na unidade "Não definida"
-      unidadeId = UNIDADE_NAO_DEFINIDA;
-      const nome = senderName || `WhatsApp ${telefone.slice(-4)}`;
-      const { data: novoLead, error: insertErr } = await supabase
-        .from('leads')
-        .insert({
-          nome: nome.toUpperCase(),
-          telefone,
-          origem: 'WHATSAPP',
-          fonte: 'WHATSAPP',
-          status_funil: 'novo',
-          status_conversa: novoStatusConversa,
-          ultima_interacao_at: now,
-          unidade_id: unidadeId,
-          ativo: true,
-          is_matriculado: false,
-        })
-        .select('id')
-        .single();
+      // Sem lead → caixa de entrada (Iron Setúbal).
+      unidadeId = UNIDADE_CAIXA_ENTRADA;
 
-      if (insertErr || !novoLead) {
-        console.error('Erro criando lead:', insertErr);
-        return new Response(
-          JSON.stringify({ error: 'lead_insert_failed', detail: insertErr?.message }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-      leadId = novoLead.id;
-    }
-
-    // 4) Garantir atendimento (1 por lead) — reabre se inexistente
-    if (!atendimentoId) {
+      // Reusar atendimento sem lead, se já existir para este telefone.
       const { data: atendExistente } = await supabase
         .from('agente_atendimentos')
         .select('id')
-        .eq('lead_id', leadId)
+        .is('lead_id', null)
+        .eq('telefone', telefone)
+        .eq('unidade_id', unidadeId)
         .order('ultima_interacao_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (atendExistente) {
         atendimentoId = atendExistente.id;
-      } else {
-        // Busca o agente da unidade (qualquer um ativo, fallback para o 1º)
-        const { data: agente } = await supabase
-          .from('agentes_atendimento')
+      }
+    }
+
+    // 3) Garantir atendimento (1 por lead OU 1 por telefone na caixa de entrada).
+    if (!atendimentoId) {
+      // Para leads existentes sem atendimento, ainda assim reaproveita se houver.
+      if (leadId) {
+        const { data: atendDoLead } = await supabase
+          .from('agente_atendimentos')
           .select('id')
-          .eq('unidade_id', unidadeId)
+          .eq('lead_id', leadId)
+          .order('ultima_interacao_at', { ascending: false })
           .limit(1)
           .maybeSingle();
+        if (atendDoLead) atendimentoId = atendDoLead.id;
+      }
+    }
 
-        if (agente) {
-          const { data: novoAtend } = await supabase
-            .from('agente_atendimentos')
-            .insert({
-              agente_id: agente.id,
-              unidade_id: unidadeId,
-              lead_id: leadId,
-              telefone,
-              nome: senderName ?? undefined,
-              canal: 'whatsapp',
-              status: 'novo',
-              primeira_interacao_at: now,
-              ultima_interacao_at: now,
-            })
-            .select('id')
-            .single();
-          if (novoAtend) atendimentoId = novoAtend.id;
-        }
+    if (!atendimentoId) {
+      // Cria novo atendimento. Precisa de um agente_id (NOT NULL).
+      const { data: agente } = await supabase
+        .from('agentes_atendimento')
+        .select('id')
+        .eq('unidade_id', unidadeId)
+        .limit(1)
+        .maybeSingle();
+
+      if (!agente) {
+        console.error('Nenhum agente cadastrado para unidade', unidadeId);
+        return new Response(
+          JSON.stringify({ error: 'no_agent_for_unit', unidade_id: unidadeId }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
       }
 
-      if (atendimentoId) {
+      const { data: novoAtend, error: atendErr } = await supabase
+        .from('agente_atendimentos')
+        .insert({
+          agente_id: agente.id,
+          unidade_id: unidadeId,
+          lead_id: leadId,
+          telefone,
+          nome: senderName ?? undefined,
+          canal: 'whatsapp',
+          status: 'novo',
+          primeira_interacao_at: now,
+          ultima_interacao_at: now,
+        })
+        .select('id')
+        .single();
+
+      if (atendErr || !novoAtend) {
+        console.error('Erro criando atendimento:', atendErr);
+        return new Response(
+          JSON.stringify({ error: 'atendimento_insert_failed', detail: atendErr?.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      atendimentoId = novoAtend.id;
+
+      // Se há lead, vincula o atendimento ao lead.
+      if (leadId) {
         await supabase.from('leads').update({ atendimento_id: atendimentoId }).eq('id', leadId);
       }
     } else {
-      // Atualiza última interação do atendimento
       await supabase
         .from('agente_atendimentos')
-        .update({ ultima_interacao_at: now })
+        .update({
+          ultima_interacao_at: now,
+          ...(senderName ? { nome: senderName } : {}),
+        })
         .eq('id', atendimentoId);
     }
 
-    // 5) Registrar mensagem (com dedupe por external_message_id)
+    // 4) Registrar mensagem (com dedupe por external_message_id).
     if (atendimentoId && messageText) {
       if (externalMessageId) {
         const { data: dup } = await supabase
@@ -221,7 +230,7 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (dup) {
           return new Response(
-            JSON.stringify({ ok: true, deduped: true, lead_id: leadId }),
+            JSON.stringify({ ok: true, deduped: true, lead_id: leadId, atendimento_id: atendimentoId }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
           );
         }
@@ -241,7 +250,7 @@ Deno.serve(async (req) => {
         ok: true,
         lead_id: leadId,
         atendimento_id: atendimentoId,
-        created_new_lead: !leadExistente,
+        in_inbox: !leadId,
         is_aluno: !!leadExistente?.is_matriculado,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
