@@ -35,6 +35,8 @@ export interface UnidadeKPIs {
   receita_mes: number;
   receita_mes_anterior: number;
   ocupacao_pct: number;
+  ticket_medio_real: number;
+  receita_recorrente_projetada: number;
   alertas: string[];
 }
 
