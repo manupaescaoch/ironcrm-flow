@@ -465,23 +465,8 @@ function LancamentoSemanal({ unidades, onSaved }: { unidades: UnidadeKPIs[]; onS
 }
 
 function MetaConsolidada({ kpis }: { kpis: UnidadeKPIs[] }) {
-  const totals = kpis.reduce((acc, k) => {
-    acc.alunosAtivos += k.alunos_ativos;
-    acc.matriculas += k.matriculas_semana;
-    acc.receita += k.receita_mes;
-    acc.receitaProjetada += k.receita_recorrente_projetada;
-    acc.metaMatriculas += k.meta?.meta_matriculas_semana ?? 0;
-    acc.metaReceita += k.meta?.meta_receita_mes ?? 0;
-    acc.capacidade += k.meta?.capacidade_alunos ?? 0;
-    acc.compSum += k.taxa_comparecimento;
-    acc.compMetaSum += k.meta?.meta_taxa_comparecimento_pct ?? 75;
-    acc.compCount += 1;
-    return acc;
-  }, { alunosAtivos: 0, matriculas: 0, receita: 0, receitaProjetada: 0, metaMatriculas: 0, metaReceita: 0, capacidade: 0, compSum: 0, compMetaSum: 0, compCount: 0 });
-
-  const ocupAtual = totals.capacidade > 0 ? Math.round((totals.alunosAtivos / totals.capacidade) * 100) : 0;
-  const compMedia = totals.compCount > 0 ? Math.round(totals.compSum / totals.compCount) : 0;
-  const compMeta = totals.compCount > 0 ? Math.round(totals.compMetaSum / totals.compCount) : 75;
+  const totalAlunos = kpis.reduce((s, k) => s + k.alunos_ativos, 0);
+  const totalMeta = kpis.reduce((s, k) => s + (k.meta_alunos_mes ?? 0), 0);
 
   return (
     <Card>
@@ -491,19 +476,24 @@ function MetaConsolidada({ kpis }: { kpis: UnidadeKPIs[] }) {
           Meta vs Realizado — Consolidado
         </CardTitle>
         <CardDescription>
-          Soma de todas as unidades. Metas inseridas manualmente em cada unidade (campo Meta).
+          Total de alunos vs meta do mês (somatório de todas as unidades).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <MetaBar label="Matrículas da semana (total)" current={totals.matriculas} meta={totals.metaMatriculas} />
-        <MetaBar label="Receita do mês (total)" current={totals.receita} meta={totals.metaReceita} isCurrency />
-        <MetaBar label="Receita recorrente projetada" current={totals.receitaProjetada} meta={totals.metaReceita} isCurrency />
-        <MetaBar label="Ocupação consolidada" current={ocupAtual} meta={80} suffix="%" />
-        <MetaBar label="Taxa de comparecimento (média)" current={compMedia} meta={compMeta} suffix="%" />
+        <MetaBar label="Alunos no mês (total)" current={totalAlunos} meta={totalMeta} />
+        {kpis.map(k => (
+          <MetaBar
+            key={k.unidade_id}
+            label={k.unidade_nome}
+            current={k.alunos_ativos}
+            meta={k.meta_alunos_mes}
+          />
+        ))}
       </CardContent>
     </Card>
   );
 }
+
 
 function Alertas({ kpis }: { kpis: UnidadeKPIs[] }) {
   const total = kpis.reduce((s, k) => s + k.alertas.length, 0);
