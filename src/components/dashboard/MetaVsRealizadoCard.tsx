@@ -57,55 +57,47 @@ export function MetaVsRealizadoCard({ unidadeId, unidadeNome, refreshKey }: Prop
   else mensagem = '🚀 Bora começar! Cada matrícula conta.';
 
   return (
-    <Card className="mb-3 overflow-hidden">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 mb-3">
+    <Card className="overflow-hidden">
+      <CardContent className="p-3">
+        <div className="flex items-center gap-1.5 mb-2">
           {atingiu ? (
-            <Trophy className="w-4 h-4 text-emerald-500 shrink-0" />
+            <Trophy className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
           ) : (
-            <Target className="w-4 h-4 text-primary shrink-0" />
+            <Target className="w-3.5 h-3.5 text-primary shrink-0" />
           )}
-          <span className="text-sm font-semibold truncate">
+          <span className="text-xs font-semibold truncate">
             Meta vs Realizado{unidadeNome ? ` — ${unidadeNome}` : ''}
-          </span>
-          <span className="ml-auto text-xs text-muted-foreground whitespace-nowrap">
-            {ativos} de {meta || '—'} · {pct}%
           </span>
         </div>
 
-        <div className="flex items-end gap-3 mb-3">
+        <div className="flex items-end gap-2 mb-2">
           <div
             key={`${faltam}-${acima}`}
-            className={`text-5xl sm:text-6xl font-bold leading-none tabular-nums ${numColor} animate-in fade-in slide-in-from-bottom-1 duration-500`}
+            className={`text-3xl font-bold leading-none tabular-nums ${numColor}`}
           >
             {atingiu ? `+${acima}` : faltam}
           </div>
-          <div className="pb-1 text-xs text-muted-foreground leading-tight">
+          <div className="pb-0.5 text-[11px] text-muted-foreground leading-tight">
             {atingiu ? (
-              <>
-                aluno{acima === 1 ? '' : 's'}
-                <br />
-                acima da meta
-              </>
+              <>aluno{acima === 1 ? '' : 's'} acima</>
             ) : (
-              <>
-                aluno{faltam === 1 ? '' : 's'}
-                <br />
-                para a meta
-              </>
+              <>aluno{faltam === 1 ? '' : 's'} para meta</>
             )}
           </div>
+          <span className="ml-auto text-[11px] text-muted-foreground whitespace-nowrap">
+            {ativos} / {meta || '—'} · {pct}%
+          </span>
         </div>
 
-        {/* Barra de progresso customizada */}
-        <div className="relative h-3 w-full rounded-full bg-muted overflow-hidden">
+        {/* Barra de progresso */}
+        <div className="relative h-2 w-full rounded-full bg-muted overflow-hidden">
           <div
             className={`h-full ${barColor} transition-all duration-700 ease-out rounded-full`}
             style={{ width: `${Math.min(100, pct)}%` }}
           />
         </div>
 
-        <div className="mt-2 text-xs font-medium text-foreground/80">
+        <div className="mt-1.5 text-[11px] font-medium text-foreground/80 truncate">
           {mensagem}
         </div>
       </CardContent>
