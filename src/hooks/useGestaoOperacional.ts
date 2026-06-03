@@ -14,6 +14,8 @@ export interface MetaUnidade {
   alunos_ativos_manual: number;
   ticket_medio_real: number;
   meta_alunos_mes: number;
+  evasao_pct_manual: number;
+  cac_manual: number;
 }
 
 export interface UnidadeKPIs {
