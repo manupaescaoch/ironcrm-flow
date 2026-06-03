@@ -1,151 +1,60 @@
-## Plano: CRM Iron Club — WhatsApp → Lead → Matrícula → Dashboard
+## Mudança principal
 
-Reaproveita 100% das estruturas existentes (tabela `leads`, `interacoes`, `is_matriculado`, páginas `/crm`, `/kanban`, `/dashboard`, agente `agente_atendimentos`/`agente_mensagens`). Sem páginas paralelas, sem tabela `alunos` nova, sem `crm_leads`.
-
----
-
-### 1. Renomear unidades
-
-Migration (UPDATE em `public.unidades`):
-- `Iron Zona Norte` → `Iron Madalena`
-- `Iron Zona Sul` → `Iron Boa Viagem`
-
-IDs preservados. Tudo (leads, interações, follow-ups, comissões, escala, estoque, dashboards) continua funcionando porque referenciam `unidade_id`.
-
-Refator de strings hardcoded:
-- `src/contexts/UnidadeContext.tsx`, `src/components/UnidadeSelector.tsx`, abas e títulos do dashboard, blocos do `resumo-semanal-webhook-resposta` (`Zona Norte` / `Zona Sul` / `ZN` / `ZS`).
-- Memórias atualizadas para refletir os novos nomes.
+O webhook **para de criar lead automaticamente**. Toda mensagem nova entra como **conversa pendente** na caixa "WhatsApp — Não atribuídas". Só vira lead quando alguém clicar manualmente em **"Transformar em Lead"**.
 
 ---
 
-### 2. Evoluir tabela `leads` (migration)
+## 1. Refatorar `whatsapp-inbound-webhook`
 
-Adicionar colunas (sem quebrar nada existente):
-- `telefone_normalizado text` + índice único parcial `(telefone_normalizado, unidade_id) WHERE ativo`
-- `fonte text` (default `WHATSAPP`) — separa "origem" (categoria de marketing) de "fonte" (canal de captura)
-- `status_conversa text` — `aguardando_resposta`, `respondido`, `em_andamento`, `urgente`, `encerrado`
-- `ultima_interacao_at timestamptz`
-- `valor_pipeline numeric(10,2)` (opcional, default 0)
-- `convertido_em_aluno_at timestamptz`
-- `atendimento_id uuid` referenciando `agente_atendimentos(id)` (vincula conversa)
+Novo comportamento por telefone recebido:
 
-Trigger BEFORE INSERT/UPDATE: popula `telefone_normalizado` a partir de `telefone` (remove `() - + espaços` via regexp_replace).
+- **Telefone já vinculado a um lead ativo** → mesma lógica de hoje: atualiza `ultima_interacao_at`, `status_conversa`, grava mensagem em `agente_mensagens`. Nada muda no funil.
+- **Telefone NÃO encontrado em `leads`** → **não cria lead**. Apenas:
+  - Cria/atualiza um registro em `agente_atendimentos` com `unidade_id = Iron Setúbal` (caixa de entrada), `lead_id = NULL`, `nome = senderName`, `telefone`, `status = 'novo'`.
+  - Grava a mensagem em `agente_mensagens` com dedupe por `external_message_id`.
+- Mantém: validação `x-webhook-secret` em tempo constante, ignora grupos e status, normaliza telefone.
 
-Status do funil: mapeamento de display (sem alterar enum atual para não quebrar follow-ups/dashboard):
-- `novo` → "Novo lead"
-- `aula_agendada` → "Agendado"
-- `aula_realizada` → "Compareceu"
-- `follow_up` → "Em atendimento"
-- `negociacao` → "Negociação"
-- `convertido` → "Matriculado"
-- `perdido` → "Perdido"
+Pequeno ajuste técnico: como `agente_atendimentos.agente_id` é NOT NULL, usar o 1º agente da unidade Setúbal; se não houver, criar um agente "Caixa de entrada — WhatsApp" via seed (1 vez) na migration.
 
----
+## 2. Nova página `/conversas-whatsapp` (Caixa de Entrada)
 
-### 3. Ingestão automática via WhatsApp
+Lista todos os `agente_atendimentos` **com `lead_id IS NULL`** ordenados por `ultima_interacao_at desc`. Cada linha mostra:
 
-Nova edge function `whatsapp-inbound-webhook` (verify_jwt=false, com `x-webhook-secret` igual ao padrão de `rotina-whatsapp-response`):
+- Nome (ou telefone), prévia da última mensagem, tempo desde a última interação.
+- Botão **"Ver conversa"** → abre drawer com histórico (`agente_mensagens`).
+- Botão **"Transformar em Lead"** → modal com:
+  - Nome (pré-preenchido), telefone (readonly), unidade (default Setúbal), origem (default WHATSAPP).
+  - Ao confirmar: cria lead + faz `UPDATE agente_atendimentos SET lead_id = ... WHERE id = ...`. A conversa some da caixa de entrada e passa a aparecer no Funil/Lead detail.
+- Botão **"Arquivar"** (admin) → marca `status = 'arquivado'` e some da lista.
 
-1. Recebe payload Z-API (`phone`, `senderName`, `text.message`, `instanceId`).
-2. Normaliza o telefone.
-3. Busca em `leads` por `telefone_normalizado` (qualquer unidade).
-4. **Se existir lead** com `is_matriculado=true` (aluno): apenas registra mensagem em `agente_mensagens` vinculada ao atendimento; atualiza `ultima_interacao_at` e `status_conversa='respondido'` se mensagem é da equipe (`fromMe`) ou `aguardando_resposta` se é do lead.
-5. **Se existir lead** comum: idem (sem criar duplicado), atualiza `ultima_interacao_at` e `status_conversa`.
-6. **Se não existir**: cria lead com `nome = senderName || 'WhatsApp ' + phone`, `telefone`, `origem='WHATSAPP'`, `fonte='WHATSAPP'`, `unidade_id = NULL`-equivalente (ver §4), `status_funil='novo'`, `status_conversa='aguardando_resposta'`, `ultima_interacao_at = now()`, `created_by = NULL`.
-7. Cria/atualiza `agente_atendimentos` + `agente_mensagens` referenciando o `lead_id`.
+## 3. Sidebar
 
-Idempotência: usa `external_message_id` da Z-API para deduplicar mensagens.
+Adicionar item **"Conversas WhatsApp"** logo abaixo de **Funil de Vendas**, com badge mostrando contagem de conversas sem lead.
 
----
+## 4. Testar o webhook
 
-### 4. Unidade "Não definida"
+Antes de pedir para apontar a Z-API, eu rodo `curl_edge_functions` com 3 payloads simulando Z-API e o header `x-webhook-secret` correto:
 
-A coluna `leads.unidade_id` hoje é NOT NULL com default `Iron Zona Norte`. Opções:
-- **Solução escolhida**: criar uma terceira unidade `Iron — Não definida` (UUID fixo) para representar "sem unidade". Mantém a constraint NOT NULL e todas as RLS por `unidade_id` continuam intactas.
-- Tornar admin a única role com acesso via `user_unidades` a essa unidade (coordenadores/comercial não veem).
-- No frontend, rótulo amigável: "Não definida".
+1. Telefone novo (deve criar apenas atendimento + mensagem, **sem lead**).
+2. Mesmo telefone, 2ª mensagem (deve reusar o atendimento e gravar nova mensagem).
+3. Telefone de um lead existente (deve atualizar `ultima_interacao_at` do lead, sem criar nada novo).
 
-Webhook usa esse UUID quando cria lead novo. Drawer do lead permite trocar para Madalena ou Boa Viagem.
+E também valido:
+- POST sem `x-webhook-secret` → 401.
+- POST com `isGroup=true` → 200 ignorado.
+- Re-envio com o mesmo `messageId` → deduplicado.
 
----
+Mostro o resultado de cada chamada (lead_id, atendimento_id, status).
 
-### 5. Página CRM (`/crm`) — evolução
+## 5. Detalhes técnicos
 
-- Adicionar coluna/filtro **Unidade** com opções: Todas / Madalena / Boa Viagem / Não definida (esta só visível para admin).
-- Adicionar filtro **Status da conversa** e **Fonte**.
-- Tabela: nova coluna "Última interação" e badge de status_conversa.
-- Botão de toggle Tabela ↔ Kanban (reutiliza `/kanban`).
+- **Tabelas**: nenhuma nova. Só uso `agente_atendimentos` (`lead_id` já é nullable) e `agente_mensagens`. Migration mínima só para seed do agente "Caixa de entrada" da unidade Setúbal, caso não exista.
+- **RLS**: as policies atuais de `agente_atendimentos`/`agente_mensagens` já cobrem (admin + user com unidade vinculada). Como a caixa vive na unidade Setúbal, admins veem tudo; outros usuários só veem se tiverem Setúbal vinculada.
+- **Funil**: continua lendo apenas de `leads`. Nada muda na página `/crm`, exceto que leads vindos por WhatsApp agora só aparecem após ação manual.
+- **Arquivos novos**: `src/pages/ConversasWhatsApp.tsx`, `src/components/conversas/ConversaItem.tsx`, `src/components/conversas/TransformarEmLeadModal.tsx`, hook `useConversasInbox.ts`. Rota em `src/App.tsx`. Item no sidebar `src/components/Layout.tsx`.
+- **Arquivos editados**: `supabase/functions/whatsapp-inbound-webhook/index.ts` (remove o ramo de criação automática de lead).
 
-### 6. Página Kanban (`/kanban`) — evolução
+## Fora de escopo
 
-- Renomear labels das colunas conforme mapeamento §2.
-- Cada card mostra: nome, telefone, unidade, fonte, responsável, última interação, valor em pipeline.
-
-### 7. Página LeadDetail (`/lead/:id`) — evolução
-
-- Exibir status da conversa, fonte, atendimento_id, histórico de mensagens (`agente_mensagens` por `atendimento_id`).
-- Botão **Alterar unidade de destino** (Madalena / Boa Viagem / Não definida).
-- Botão **Abrir conversa no WhatsApp** (`https://wa.me/<telefone>`).
-- Botão **Tornar aluno** — abre modal de matrícula.
-
-### 8. Modal "Tornar aluno"
-
-Pré-preenche nome/telefone/unidade do lead. Campos: plano, data início, data vencimento (auto-calculada por plano), valor, forma de pagamento, responsável venda, observações.
-
-Ao confirmar:
-1. Valida que não existe outro lead `is_matriculado=true` com o mesmo `telefone_normalizado`.
-2. Insere `interacoes` com `fechou_matricula=true`, `plano_fechado`, `valor_plano`, `data_fechamento`, `forma_pagamento`, `responsavel_fechamento`.
-3. Atualiza lead: `status_funil='convertido'`, `is_matriculado=true`, `convertido_em_aluno_at=now()`.
-4. Trigger existente (`cancel_follow_ups_on_status_change`) cancela follow-ups pendentes.
-5. Comissão é calculada pelas regras já existentes (3% cadastrador + 2% fechador).
-
-Botão só aparece se `is_matriculado=false`.
-
----
-
-### 9. Dashboard (`/dashboard`) — evolução
-
-Filtros no topo: **Período** (Hoje, Ontem, 7d, 30d, Este mês) + **Unidade** (Todas, Madalena, Boa Viagem, Não definida).
-
-Linha 1 — 6 cards:
-1. Mensagens recebidas (count `agente_mensagens` role=user no período)
-2. Conversas ativas (count `agente_atendimentos` com `ultima_interacao_at` no período)
-3. Chats sem resposta (leads com `status_conversa='aguardando_resposta'`)
-4. Tempo médio de resposta (avg diff entre mensagem do lead e próxima `fromMe`)
-5. Leads no período (count `leads.created_at`)
-6. Valor em pipeline (sum `valor_pipeline` em status não-final)
-
-Linha 2 — cards extras: Matrículas, Taxa de conversão, Agendamentos, Comparecimentos, Perdidos.
-
-Card grande "Atividade": line chart com mensagens/leads/matrículas por dia.
-
-Card "Fontes de Leads": donut por `fonte` + lista com count + percentual.
-
-Cada card mostra delta % vs período anterior (regras de inversão para tempo médio e chats sem resposta).
-
-Estados vazios amigáveis. Permissões: admin vê todas as unidades + "Não definida"; demais veem apenas suas unidades (já garantido por RLS).
-
----
-
-### 10. Sidebar
-
-- Renomear "CRM" → "Funil de Vendas" (mesma rota `/crm`).
-- Renomear "Dashboard" → "Painel de Dados" (mesma rota `/dashboard`).
-- Sem novos itens — "Contatos" e "Alunos" do briefing são contemplados por Funil de Vendas (com filtro `is_matriculado`).
-
----
-
-### Detalhes técnicos
-
-- **Migration** única com: rename de unidades; nova unidade "Não definida"; novas colunas em `leads`; índice de telefone normalizado; trigger de normalização; policy em `user_unidades` para escopo de "Não definida"; (opcional) ENABLE realtime para `agente_mensagens` se quiser histórico ao vivo no drawer.
-- **Edge function** `whatsapp-inbound-webhook` com validação `x-webhook-secret` antes de ler body (padrão já adotado nas funções de webhook).
-- **Tipos**: regenerados após migration (`src/integrations/supabase/types.ts` auto-gerado).
-- **Frontend**: novos hooks `useDashboardKPIs`, `useFontesLeads`, `useTimelineAtividade`; reutilizar `useUnidade` (já existe) e estender contexto para suportar "Não definida" com permissionamento por role.
-- **Sem nova tabela `alunos`**: bot "Tornar aluno" usa a tabela `interacoes` que já tem todos os campos de matrícula (`plano_fechado`, `valor_plano`, `data_fechamento`, `forma_pagamento`, `responsavel_fechamento`).
-- **Sem tabela `crm_leads`**: tudo segue em `public.leads`.
-
-### Não inclui (fora de escopo até confirmar)
-
-- Conectar a Z-API real ao webhook (precisa de URL final + secret cadastrado pelo time).
-- Backfill de `telefone_normalizado` para leads já existentes (faço junto à migration se quiser, é seguro).
-- Página separada de "Contatos" (assumido coberto pelo Funil com filtro).
+- Enviar mensagem de saída pelo CRM (apenas leitura por enquanto).
+- Anexos (imagem/áudio) — só texto nesta etapa.
