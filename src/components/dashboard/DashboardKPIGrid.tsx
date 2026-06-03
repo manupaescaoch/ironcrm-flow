@@ -1,18 +1,22 @@
 import React, { memo } from 'react';
-import { Users, CalendarCheck, Calendar, Award, CheckCircle2, DollarSign, Filter, UserX } from 'lucide-react';
+import { Users, CalendarCheck, Calendar, Award, CheckCircle2, Filter, UserX } from 'lucide-react';
 import { KPICard } from '@/components/ui/kpi-card';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
 import { TaxaComparecimentoKPI } from '@/components/dashboard/TaxaComparecimentoKPI';
 import { FunilComercialCard } from '@/components/dashboard/FunilComercialCard';
 import { DiagnosticoSemanaCard } from '@/components/dashboard/DiagnosticoSemanaCard';
+import { AlunosAtivosKPI } from '@/components/dashboard/AlunosAtivosKPI';
 import { Stats, PeriodStats } from '@/components/dashboard/constants';
+
 
 
 interface DashboardKPIGridProps {
   stats: Stats;
   periodStats: PeriodStats;
   experimentaisSemanaCount: number;
-  faturamentoPeriodo: number;
+  unidadeId: string | undefined;
+  alunosAtivosRefreshKey?: number;
+  onAlunosAtivosChange?: () => void;
   followUpPendingCount: number;
   followUpD1Count: number;
   showExperimentaisSection: boolean;
@@ -24,11 +28,14 @@ interface DashboardKPIGridProps {
 }
 
 
+
 export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   stats,
   periodStats,
   experimentaisSemanaCount,
-  faturamentoPeriodo,
+  unidadeId,
+  alunosAtivosRefreshKey,
+  onAlunosAtivosChange,
   followUpPendingCount,
   followUpD1Count,
   showExperimentaisSection,
@@ -47,11 +54,7 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
     ? Math.round((periodStats.matriculasPeriodo / stats.total) * 100)
     : 0;
 
-  const faturamentoFormatado = new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    maximumFractionDigits: 0,
-  }).format(faturamentoPeriodo || 0);
+
 
   return (
     <div className="space-y-2 mb-2">
@@ -101,15 +104,12 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
           activeColor="amber"
         />
 
-        <KPICard
-          variant="dashboard"
-          title="Faturamento"
-          value={faturamentoFormatado}
-          icon={DollarSign}
-          iconColor="text-purple-500"
-          valueColor="text-purple-600"
-          subtitle="Período selecionado"
+        <AlunosAtivosKPI
+          unidadeId={unidadeId}
+          refreshKey={alunosAtivosRefreshKey}
+          onChange={onAlunosAtivosChange}
         />
+
 
         <KPICard
           variant="dashboard"
