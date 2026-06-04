@@ -556,7 +556,7 @@ export default function DashboardExecutivo() {
           <>
             <ExecutivoKPIGrid topCards={topCards} investimentoMarketing={investimentoMarketing} />
             <EvolucaoCPLCPAChart />
-            <FunilExecutivoCard funilData={funilExecutivo} />
+            
             <OrigemLeadsCards origemData={origemData} />
             <AgendaPresencaCard agendaPresenca={agendaPresenca} />
             <PerformanceCadastradorCard data={performanceCadastrador} />
