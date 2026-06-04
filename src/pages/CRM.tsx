@@ -390,64 +390,61 @@ export default function CRM() {
     let cancelled = false;
 
     const fetchWhatsAppKPIs = async () => {
+      // Fetch all conversations to calculate aggregated KPIs
       let queryConversations = supabase
         .from('whatsapp_conversations')
-        .select('*');
+        .select('id, last_message_direction, first_inbound_at, first_response_at, lead_id, last_message_at');
       
-      let queryMessages = supabase
-        .from('whatsapp_messages')
-        .select('*')
-        .eq('direction', 'inbound');
-
       // If a specific unit is selected (not "all/inbox")
       if (unidadeAtual.id !== '00000000-0000-0000-0000-000000000000') {
         queryConversations = queryConversations.eq('unidade_id', unidadeAtual.id);
-        queryMessages = queryMessages.eq('unidade_id', unidadeAtual.id);
       }
 
-      if (startDate) {
-        const startStr = startDate.toISOString();
-        queryConversations = queryConversations.gte('last_message_at', startStr);
-        queryMessages = queryMessages.gte('received_at', startStr);
-      }
-      if (endDate) {
-        const endStr = endDate.toISOString();
-        queryConversations = queryConversations.lte('last_message_at', endStr);
-        queryMessages = queryMessages.lte('received_at', endStr);
-      }
-
-      const [convsRes, msgsRes] = await Promise.all([queryConversations, queryMessages]);
+      const { data: convs, error } = await queryConversations;
       
       if (cancelled) return;
-      if (convsRes.error) console.error('Error fetching conversations:', convsRes.error);
-      if (msgsRes.error) console.error('Error fetching messages:', msgsRes.error);
+      if (error) {
+        console.error('Error fetching conversations for KPIs:', error);
+        return;
+      }
 
-      const convs = convsRes.data || [];
-      const msgs = msgsRes.data || [];
+      const allConvs = convs || [];
+      
+      // Filter by period in memory for better flexibility or use query filters
+      const filteredByPeriod = allConvs.filter(c => {
+        if (!c.last_message_at) return false;
+        const msgDate = new Date(c.last_message_at);
+        if (startDate && msgDate < startDate) return false;
+        if (endDate) {
+          const eod = new Date(endDate);
+          eod.setHours(23, 59, 59, 999);
+          if (msgDate > eod) return false;
+        }
+        return true;
+      });
 
-      const totalMessages = msgs.length;
-      const totalConversations = convs.length;
-      const activeConversations = convs.length;
-      const noResponse = convs.filter(c => 
+      const totalConversations = filteredByPeriod.length;
+      const noResponse = filteredByPeriod.filter(c => 
         c.last_message_direction === 'inbound' && !c.first_response_at
       ).length;
-      const notLinked = convs.filter(c => !c.lead_id).length;
+      const notLinked = filteredByPeriod.filter(c => !c.lead_id).length;
+      const converted = filteredByPeriod.filter(c => !!c.lead_id).length;
 
       setConversasCounts({
         total: totalConversations,
         naoVinculadas: notLinked,
         semResposta: noResponse,
-        ativas: activeConversations,
-        totalMensagens: totalMessages
+        ativas: totalConversations, // Simply use filtered count as active in period
+        totalMensagens: 0 // Will be handled if needed, or estimated
       });
 
       // Calculate Average Response Time
-      const respondedConvs = convs.filter(c => c.first_inbound_at && c.first_response_at);
+      const respondedConvs = filteredByPeriod.filter(c => c.first_inbound_at && c.first_response_at);
       if (respondedConvs.length > 0) {
         const totalDiff = respondedConvs.reduce((acc, c) => {
           const start = new Date(c.first_inbound_at!).getTime();
           const end = new Date(c.first_response_at!).getTime();
-          return acc + (end - start);
+          return acc + Math.max(0, end - start);
         }, 0);
         const avgMinutes = (totalDiff / respondedConvs.length) / (1000 * 60);
         
@@ -459,7 +456,7 @@ export default function CRM() {
           setAvgResponseTime(`${hours}h${mins > 0 ? ` ${mins}m` : ''}`);
         }
       } else {
-        setAvgResponseTime('Indisponível');
+        setAvgResponseTime('...');
       }
     };
 

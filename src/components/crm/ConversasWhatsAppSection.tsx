@@ -106,45 +106,76 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
     if (!unidadeAtual) return;
     setLoading(true);
 
-    let query = supabase
-      .from('whatsapp_conversations')
-      .select('id, contact_name, phone, unidade_id, last_message_at, status_conversa, lead_id, is_linked_to_lead, last_message_text, last_message_direction, first_inbound_at, first_response_at, lead:leads(id, nome, is_matriculado, status_funil)')
-      .order('last_message_at', { ascending: false })
-      .limit(200);
+    try {
+      let query = supabase
+        .from('whatsapp_conversations')
+        .select(`
+          id, 
+          contact_name, 
+          phone, 
+          unidade_id, 
+          last_message_at, 
+          status_conversa, 
+          lead_id, 
+          is_linked_to_lead, 
+          last_message_text, 
+          last_message_direction, 
+          first_inbound_at, 
+          first_response_at,
+          is_cliente,
+          lead:leads(id, nome, is_matriculado, status_funil)
+        `)
+        .order('last_message_at', { ascending: false })
+        .limit(50);
 
-    // If a specific unit is selected (not "all/inbox")
-    if (unidadeAtual.id !== '00000000-0000-0000-0000-000000000000') {
-      query = query.eq('unidade_id', unidadeAtual.id);
-    }
+      // If a specific unit is selected (not "all/inbox")
+      if (unidadeAtual.id !== '00000000-0000-0000-0000-000000000000') {
+        query = query.eq('unidade_id', unidadeAtual.id);
+      }
 
-    const { data: atends, error } = await query;
-    if (error) {
-      toast({ title: 'Erro ao carregar conversas', description: error.message, variant: 'destructive' });
+      const { data: atends, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching conversations:', error);
+        toast({ title: 'Erro ao carregar conversas', description: error.message, variant: 'destructive' });
+      } else {
+        setAtendimentos((atends as unknown as Atendimento[]) || []);
+        
+        // Update counts
+        if (onCountsChange) {
+          const mapped = (atends as unknown as Atendimento[]) || [];
+          const total = mapped.length;
+          const naoVinculadas = mapped.filter((a) => !a.lead_id).length;
+          const semResposta = mapped.filter((a) => a.last_message_direction === 'inbound').length;
+          const ativas = mapped.length;
+          onCountsChange({ total, naoVinculadas, semResposta, ativas });
+        }
+      }
+    } catch (err) {
+      console.error('Unexpected error in fetchInbox:', err);
+    } finally {
       setLoading(false);
-      return;
-    }
-
-    setAtendimentos((atends as unknown as Atendimento[]) || []);
-    setLoading(false);
-
-    // counts
-    if (onCountsChange) {
-      const mapped = (atends as unknown as Atendimento[]) || [];
-      const total = mapped.length;
-      const naoVinculadas = mapped.filter((a) => !a.lead_id).length;
-      const semResposta = mapped.filter((a) => a.last_message_direction === 'inbound').length;
-      const ativas = mapped.length;
-      onCountsChange({ total, naoVinculadas, semResposta, ativas });
     }
   }, [unidadeAtual, onCountsChange]);
 
   useEffect(() => {
     fetchInbox();
+    
+    // Subscribe to REALTIME updates for both inserts and updates
     const channel = supabase
-      .channel('whatsapp-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_conversations' }, () => fetchInbox())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'whatsapp_messages' }, () => fetchInbox())
-      .subscribe();
+      .channel('whatsapp-conversations-realtime')
+      .on(
+        'postgres_changes', 
+        { event: '*', schema: 'public', table: 'whatsapp_conversations' }, 
+        (payload) => {
+          console.log('Realtime update received:', payload);
+          fetchInbox();
+        }
+      )
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
+
     return () => {
       supabase.removeChannel(channel);
     };
@@ -320,9 +351,10 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="py-10 text-center text-muted-foreground">
-            <MessageCircle className="w-10 h-10 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Nenhuma conversa nesta visualização.</p>
+          <div className="py-20 text-center text-muted-foreground bg-muted/10">
+            <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-20" />
+            <h3 className="text-lg font-medium text-foreground">Aguardando novas mensagens...</h3>
+            <p className="text-sm max-w-xs mx-auto">Nenhuma conversa encontrada para os filtros selecionados no momento.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -366,13 +398,17 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
                       </td>
                       <td className="px-4 py-3 truncate max-w-[120px]">{unidadeNome}</td>
                       <td className="px-4 py-3">
-                        {a.last_message_direction === 'inbound' && !vinculado ? (
+                        {a.is_cliente || matriculado ? (
+                          <Badge className="bg-blue-500/15 text-blue-700 border-blue-500/30">
+                            Encerrado / Cliente
+                          </Badge>
+                        ) : a.last_message_direction === 'inbound' ? (
                           <Badge className="bg-amber-500/15 text-amber-700 border-amber-500/30 hover:bg-amber-500/20">
                             Aguardando resposta
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="capitalize">
-                            {a.status_conversa === 'aguardando_resposta' ? 'Aguardando' : (a.status_conversa || 'Em andamento')}
+                            {a.status_conversa === 'convertido' ? 'Em andamento' : (a.status_conversa || 'Em andamento')}
                           </Badge>
                         )}
                       </td>
@@ -394,7 +430,17 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
                           <Button size="sm" variant="ghost" onClick={() => openDrawer(a)} title="Ver Histórico">
                             <MessageCircle className="w-4 h-4" />
                           </Button>
-                          {vinculado ? (
+                          {matriculado || a.is_cliente ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(`/lead/${a.lead_id}`)}
+                              className="gap-1 border-blue-200 text-blue-700 hover:bg-blue-50"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                              Ver Cliente
+                            </Button>
+                          ) : vinculado ? (
                             <Button
                               size="sm"
                               variant="outline"
@@ -405,7 +451,7 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
                               Ver Lead
                             </Button>
                           ) : (
-                            <Button size="sm" onClick={() => openModal(a)} className="gap-1">
+                            <Button size="sm" onClick={() => openModal(a)} className="gap-1 bg-green-600 hover:bg-green-700">
                               <UserPlus className="w-4 h-4" />
                               Converter em Cliente
                             </Button>
