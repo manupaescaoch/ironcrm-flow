@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ArrowRight, Loader2, RefreshCw, CheckCircle2, CalendarIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +12,8 @@ import { StepShell } from '@/components/anamnese/StepShell';
 import { OptionCard } from '@/components/anamnese/OptionCard';
 import { cn } from '@/lib/utils';
 import { submitFormularioPublico } from '@/lib/notifyFormularioGrupo';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUnidade } from '@/contexts/UnidadeContext';
 
 type Stage = 'intro' | 'wizard' | 'review' | 'done';
 
