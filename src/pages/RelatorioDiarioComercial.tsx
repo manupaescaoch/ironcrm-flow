@@ -72,10 +72,19 @@ const initial: Respostas = {
 
 export default function RelatorioDiarioComercial() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { unidadesPermitidas, loading: unitsLoading } = useUnidade();
   const [stage, setStage] = useState<Stage>('intro');
   const [step, setStep] = useState(0);
   const [r, setR] = useState<Respostas>(initial);
   const [saving, setSaving] = useState(false);
+
+  // Prefill user name if available
+  useEffect(() => {
+    if (user?.email && !r.nome) {
+      set('nome', user.email.split('@')[0].toUpperCase());
+    }
+  }, [user]);
 
   const set = <K extends keyof Respostas>(k: K, v: Respostas[K]) =>
     setR((prev) => ({ ...prev, [k]: v }));
