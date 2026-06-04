@@ -331,7 +331,7 @@ export default function DashboardOperacional() {
               ) : (
                 <AlunosAtivosKPI 
                   unidadeId={unidade === 'ZN' ? 'b4df0ba8-7fa8-4f28-8924-d5ce6a9b50c6' : 'f3d048da-31d7-48df-b1f1-7e2a809c9a9a'} 
-                  onChange={() => live && (live as any).refetch?.()}
+                  onChange={refetch}
                 />
               )}
               <KpiCard icon={Calendar} label="Experimentais hoje" value={expHoje} sub={unidade === 'todas' ? `ZN ${v.experimentaisHoje.ZN} · ZS ${v.experimentaisHoje.ZS}` : ''} />
