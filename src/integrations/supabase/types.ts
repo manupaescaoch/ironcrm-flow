@@ -1915,9 +1915,11 @@ export type Database = {
           plano_amanha: string | null
           precisa_suporte: boolean | null
           renovacoes: number | null
+          submitted_by: string | null
           suporte_descricao: string | null
           total_alunos_ativos: number | null
           unidade: string
+          unidade_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1937,9 +1939,11 @@ export type Database = {
           plano_amanha?: string | null
           precisa_suporte?: boolean | null
           renovacoes?: number | null
+          submitted_by?: string | null
           suporte_descricao?: string | null
           total_alunos_ativos?: number | null
           unidade: string
+          unidade_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1959,12 +1963,22 @@ export type Database = {
           plano_amanha?: string | null
           precisa_suporte?: boolean | null
           renovacoes?: number | null
+          submitted_by?: string | null
           suporte_descricao?: string | null
           total_alunos_ativos?: number | null
           unidade?: string
+          unidade_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "relatorio_diario_comercial_respostas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       relatorio_gerencial_zn: {
         Row: {
