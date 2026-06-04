@@ -299,8 +299,16 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
         <SubSection icon={PieChart} title="Ocupação">
           <MiniMetric
             label="Alunos ativos"
-            value={k.alunos_ativos}
-            sub="Editar no Dashboard"
+            value={editing ? (
+              <div className="flex items-center gap-1 w-full">
+                <Input type="number" value={value} onChange={e => setValue(+e.target.value)} className="h-7 text-base font-bold" autoFocus />
+                <Button size="sm" className="h-7 px-2" onClick={handleSave} disabled={saving}>
+                  {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : 'OK'}
+                </Button>
+              </div>
+            ) : k.alunos_ativos}
+            sub={editing ? "manual" : "Editar valor"}
+            action={!editing && <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditing(true)}>Editar</Button>}
           />
 
           <MiniMetric
