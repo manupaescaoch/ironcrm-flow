@@ -463,7 +463,12 @@ export default function CRM() {
 
     fetchWhatsAppKPIs();
     
-    // Subscribe to real-time updates for KPIs
+    // Polling de 15 segundos para os KPIs
+    const interval = setInterval(() => {
+      fetchWhatsAppKPIs();
+    }, 15000);
+
+    // Opcionalmente manter realtime para KPIs se não houver problemas
     const channel = supabase
       .channel('whatsapp-kpis-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_conversations' }, () => fetchWhatsAppKPIs())
@@ -472,6 +477,7 @@ export default function CRM() {
 
     return () => { 
       cancelled = true;
+      clearInterval(interval);
       supabase.removeChannel(channel);
     };
   }, [unidadeAtual, startDate, endDate]);
