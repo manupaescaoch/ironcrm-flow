@@ -30,7 +30,8 @@ const ATIVIDADES = [
 
 interface Respostas {
   nome: string;
-  unidade: '' | 'ZONA NORTE' | 'ZONA SUL';
+  unidade: string;
+  unidadeId: string;
   data: Date | null;
   totalAtivos: string;
   leads: string;
