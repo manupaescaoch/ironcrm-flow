@@ -1577,7 +1577,13 @@ export default function CRM() {
         </div>
 
         <ConversasWhatsAppSection
-          onCountsChange={setConversasCounts}
+              onCountsChange={(counts) => setConversasCounts({
+                total: counts.total,
+                naoVinculadas: counts.naoVinculadas,
+                semResposta: counts.semResposta,
+                ativas: counts.ativas,
+                totalMensagens: counts.totalMensagens ?? conversasCounts.totalMensagens
+              })}
           onLeadCreated={fetchLeads}
         />
 
