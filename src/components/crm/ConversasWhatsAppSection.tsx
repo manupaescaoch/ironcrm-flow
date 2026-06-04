@@ -162,22 +162,24 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
   useEffect(() => {
     fetchInbox();
     
-    // Subscribe to REALTIME updates for both inserts and updates
+    // Configura polling a cada 15 segundos como fallback ao realtime
+    const interval = setInterval(() => {
+      fetchInbox();
+    }, 15000);
+
+    // O realtime pode ser mantido se não travar a UI, 
+    // mas a query inicial agora é garantida pelo fetchInbox e polling.
     const channel = supabase
       .channel('whatsapp-conversations-realtime')
       .on(
         'postgres_changes', 
         { event: '*', schema: 'public', table: 'whatsapp_conversations' }, 
-        (payload) => {
-          console.log('Realtime update received:', payload);
-          fetchInbox();
-        }
+        () => fetchInbox()
       )
-      .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
+      clearInterval(interval);
       supabase.removeChannel(channel);
     };
   }, [fetchInbox]);
@@ -347,15 +349,24 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
         </Tabs>
       </CardHeader>
       <CardContent className="p-0">
-        {loading ? (
-          <div className="flex items-center justify-center py-10">
-            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        {loading && atendimentos.length === 0 ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Carregando conversas...</p>
+            </div>
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-20 text-center text-muted-foreground bg-muted/10">
             <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-20" />
-            <h3 className="text-lg font-medium text-foreground">Aguardando novas mensagens...</h3>
-            <p className="text-sm max-w-xs mx-auto">Nenhuma conversa encontrada para os filtros selecionados no momento.</p>
+            <h3 className="text-lg font-medium text-foreground">Nenhuma conversa recebida ainda</h3>
+            <p className="text-sm max-w-xs mx-auto">
+              Assim que uma nova mensagem chegar pelo WhatsApp, ela aparecerá aqui.
+            </p>
+            <Button variant="outline" size="sm" onClick={fetchInbox} className="mt-4 gap-2">
+              <RefreshCw className="w-4 h-4" />
+              Atualizar agora
+            </Button>
           </div>
         ) : (
           <div className="overflow-x-auto">
