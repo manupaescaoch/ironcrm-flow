@@ -135,7 +135,7 @@ export function useDashboardOperacionalData(periodo: Periodo, unidade: UnidadeFi
         .select('*')
         .gte('data', startDate)
         .lte('data', endDate)
-        .in('unidade', labelsAlvo)
+        .in('unidade_id', idsAlvo)
         .order('data', { ascending: false });
 
       const recepcao = {
