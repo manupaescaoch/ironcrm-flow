@@ -1500,141 +1500,27 @@ export default function CRM() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-8">
-          <Card className="bg-primary/5 border-primary/20">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-2xl font-bold">{kpis.leadsWhatsApp}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Leads WhatsApp</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-8">
+          {stats.map((stat, idx) => (
+            <Card key={idx} className={cn("transition-all hover:shadow-md", stat.bg?.replace('bg-', 'bg-opacity-10 bg-'))}>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn("p-2 rounded-lg", stat.bg)}>
+                    <stat.icon className={cn("w-5 h-5", stat.color)} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-2xl font-bold truncate">{stat.value}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold truncate">
+                      {stat.title}
+                    </p>
+                    {stat.description && (
+                      <p className="text-[9px] text-muted-foreground/70 truncate">{stat.description}</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-emerald-500" />
-                <div>
-                  <p className="text-2xl font-bold">{conversasCounts.ativas}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Conversas Ativas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-amber-500" />
-                <div>
-                  <p className="text-2xl font-bold text-amber-600">{conversasCounts.semResposta}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Chats sem Resposta</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-sky-500" />
-                <div>
-                  <p className="text-2xl font-bold">{avgResponseTime}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Tempo Médio Resposta</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-500" />
-                <div>
-                  <p className="text-2xl font-bold">{kpis.total}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Leads no Período</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-green-600" />
-                <div>
-                  <p className="text-2xl font-bold text-green-700">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(kpis.valorPipeline)}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Valor em Pipeline</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <UserCheck className="w-5 h-5 text-green-500" />
-                <div>
-                  <p className="text-2xl font-bold text-green-600">{kpis.convertidos}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Convertidos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-2xl font-bold">{kpis.taxaConversao}%</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Taxa Conversão</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-amber-500" />
-                <div>
-                  <p className="text-2xl font-bold text-amber-600">{kpis.emNegociacao}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Em Negociação</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <UserX className="w-5 h-5 text-red-500" />
-                <div>
-                  <p className="text-2xl font-bold text-red-600">{kpis.perdidos}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Perdidos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-indigo-500" />
-                <div>
-                  <p className="text-2xl font-bold text-indigo-600">{conversasCounts.naoVinculadas}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Não Vinculadas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-emerald-500" />
-                <div>
-                  <p className="text-2xl font-bold text-emerald-600">{conversasCounts.total}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Conversas WhatsApp</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         {/* Charts Section */}
