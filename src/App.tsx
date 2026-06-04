@@ -10,9 +10,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import DashboardExecutivo from "./pages/DashboardExecutivo";
-import CRM from "./pages/CRM";
 import LeadDetail from "./pages/LeadDetail";
-import Kanban from "./pages/Kanban";
 import Comissoes from "./pages/Comissoes";
 
 import GestaoTarefas from "./pages/GestaoTarefas";
@@ -210,15 +208,8 @@ const AppRoutes = () => (
         </AdminRoute>
       }
     />
-    <Route
-      path="/crm"
-      element={
-        <ProtectedRoute>
-          <CRM />
-        </ProtectedRoute>
-      }
-    />
-    <Route path="/conversas-whatsapp" element={<Navigate to="/crm" replace />} />
+    <Route path="/crm" element={<Navigate to="/dashboard" replace />} />
+    <Route path="/conversas-whatsapp" element={<Navigate to="/dashboard" replace />} />
     <Route
       path="/lead/:id"
       element={
@@ -235,14 +226,7 @@ const AppRoutes = () => (
         </ProtectedRoute>
       }
     />
-    <Route
-      path="/kanban"
-      element={
-        <ProtectedRoute>
-          <Kanban />
-        </ProtectedRoute>
-      }
-    />
+    <Route path="/kanban" element={<Navigate to="/dashboard" replace />} />
     <Route
       path="/comissoes"
       element={

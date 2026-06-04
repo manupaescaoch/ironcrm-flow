@@ -47,7 +47,7 @@ export default function AnamneseExperimental() {
           description: 'Não foi possível carregar este lead.',
           variant: 'destructive',
         });
-        navigate('/crm');
+        navigate('/dashboard');
         return;
       }
 
