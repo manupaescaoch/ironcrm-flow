@@ -55,6 +55,7 @@ interface Atendimento {
     is_matriculado: boolean;
     status_funil: string;
   } | null;
+  is_cliente?: boolean;
 }
 
 interface Mensagem {
