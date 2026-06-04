@@ -1329,14 +1329,14 @@ export default function CRM() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
-          <Card>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-8">
+          <Card className="bg-primary/5 border-primary/20">
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-500" />
+                <Users className="w-5 h-5 text-primary" />
                 <div>
-                  <p className="text-2xl font-bold">{kpis.total}</p>
-                  <p className="text-xs text-muted-foreground">Total Leads</p>
+                  <p className="text-2xl font-bold">{kpis.leadsWhatsApp}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Leads WhatsApp</p>
                 </div>
               </div>
             </CardContent>
@@ -1344,87 +1344,10 @@ export default function CRM() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <UserCheck className="w-5 h-5 text-green-500" />
+                <Activity className="w-5 h-5 text-emerald-500" />
                 <div>
-                  <p className="text-2xl font-bold text-green-600">{kpis.convertidos}</p>
-                  <p className="text-xs text-muted-foreground">Convertidos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-amber-500" />
-                <div>
-                  <p className="text-2xl font-bold text-amber-600">{kpis.emNegociacao}</p>
-                  <p className="text-xs text-muted-foreground">Em Negociação</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <UserX className="w-5 h-5 text-red-500" />
-                <div>
-                  <p className="text-2xl font-bold text-red-600">{kpis.perdidos}</p>
-                  <p className="text-xs text-muted-foreground">Perdidos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <CalendarCheck className="w-5 h-5 text-sky-500" />
-                <div>
-                  <p className="text-2xl font-bold text-sky-600">{experimentaisAgendadasPeriodo}</p>
-                  <p className="text-xs text-muted-foreground">Exp. Agendadas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-purple-500" />
-                <div>
-                  <p className="text-2xl font-bold text-purple-600">{experimentaisRealizadasPeriodo}</p>
-                  <p className="text-xs text-muted-foreground">Exp. Realizadas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-2xl font-bold">{kpis.taxaConversao}%</p>
-                  <p className="text-xs text-muted-foreground">Taxa Conversão</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-emerald-500" />
-                <div>
-                  <p className="text-2xl font-bold text-emerald-600">{conversasCounts.total}</p>
-                  <p className="text-xs text-muted-foreground">Conversas WhatsApp</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-indigo-500" />
-                <div>
-                  <p className="text-2xl font-bold text-indigo-600">{conversasCounts.naoVinculadas}</p>
-                  <p className="text-xs text-muted-foreground">Não vinculadas</p>
+                  <p className="text-2xl font-bold">{conversasCounts.ativas}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Conversas Ativas</p>
                 </div>
               </div>
             </CardContent>
@@ -1435,9 +1358,163 @@ export default function CRM() {
                 <MessageCircle className="w-5 h-5 text-amber-500" />
                 <div>
                   <p className="text-2xl font-bold text-amber-600">{conversasCounts.semResposta}</p>
-                  <p className="text-xs text-muted-foreground">Sem resposta</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Chats sem Resposta</p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-sky-500" />
+                <div>
+                  <p className="text-2xl font-bold">{avgResponseTime}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Tempo Médio Resposta</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-500" />
+                <div>
+                  <p className="text-2xl font-bold">{kpis.total}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Leads no Período</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="text-2xl font-bold text-green-700">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(kpis.valorPipeline)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Valor em Pipeline</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <UserCheck className="w-5 h-5 text-green-500" />
+                <div>
+                  <p className="text-2xl font-bold text-green-600">{kpis.convertidos}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Convertidos</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="text-2xl font-bold">{kpis.taxaConversao}%</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Taxa Conversão</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-amber-500" />
+                <div>
+                  <p className="text-2xl font-bold text-amber-600">{kpis.emNegociacao}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Em Negociação</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <UserX className="w-5 h-5 text-red-500" />
+                <div>
+                  <p className="text-2xl font-bold text-red-600">{kpis.perdidos}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Perdidos</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-indigo-500" />
+                <div>
+                  <p className="text-2xl font-bold text-indigo-600">{conversasCounts.naoVinculadas}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Não Vinculadas</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-emerald-500" />
+                <div>
+                  <p className="text-2xl font-bold text-emerald-600">{conversasCounts.total}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Conversas WhatsApp</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Activity className="w-5 h-5 text-primary" />
+                Atividade (Novos Leads por Dia)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData.activity}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="day" />
+                  <YAxis />
+                  <RechartsTooltip />
+                  <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <PieChartIcon className="w-5 h-5 text-primary" />
+                Distribuição por Fonte
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-[300px] flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData.sources}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {chartData.sources.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip />
+                </PieChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>
