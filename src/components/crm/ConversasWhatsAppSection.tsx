@@ -76,7 +76,7 @@ const ORIGENS = [
 type TabKey = 'nao_vinculadas' | 'vinculadas' | 'todas';
 
 interface Props {
-  onCountsChange?: (counts: { total: number; naoVinculadas: number; semResposta: number }) => void;
+  onCountsChange?: (counts: { total: number; naoVinculadas: number; semResposta: number; ativas: number }) => void;
   onLeadCreated?: () => void;
 }
 
@@ -148,7 +148,8 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
       const total = mapped.length;
       const naoVinculadas = mapped.filter((a) => !a.lead_id).length;
       const semResposta = mapped.filter((a) => a.ultima_role === 'user').length;
-      onCountsChange({ total, naoVinculadas, semResposta });
+      const ativas = mapped.filter((a) => a.status !== 'arquivado').length;
+      onCountsChange({ total, naoVinculadas, semResposta, ativas });
     }
   }, [unidadeAtual, onCountsChange]);
 
