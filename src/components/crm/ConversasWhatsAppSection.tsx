@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, MessageCircle, UserPlus, Archive, RefreshCw, ExternalLink } from 'lucide-react';
+import { Loader2, MessageCircle, UserPlus, RefreshCw, ExternalLink } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -40,14 +40,15 @@ import { useNavigate } from 'react-router-dom';
 
 interface Atendimento {
   id: string;
-  nome: string | null;
-  telefone: string | null;
+  contact_name: string | null;
+  phone: string | null;
   unidade_id: string;
-  ultima_interacao_at: string | null;
-  status: string;
+  last_message_at: string | null;
+  status_conversa: string;
   lead_id: string | null;
-  ultima_mensagem?: string | null;
-  ultima_role?: string | null;
+  is_linked_to_lead: boolean;
+  last_message_text?: string | null;
+  last_message_direction?: string | null;
   lead?: {
     id: string;
     nome: string;
@@ -58,19 +59,17 @@ interface Atendimento {
 
 interface Mensagem {
   id: string;
-  role: string;
-  conteudo: string;
-  created_at: string;
+  direction: string;
+  message_text: string;
+  received_at: string;
 }
 
 const ORIGENS = [
-  'WHATSAPP',
-  'INSTAGRAM',
-  'TRÁFEGO PAGO',
-  'INDICAÇÃO',
-  'VISITA PRESENCIAL',
-  'TERCEIROS',
-  'NÃO INFORMADO',
+  'WhatsApp',
+  'Instagram',
+  'Tráfego Pago',
+  'Indicação',
+  'Visita Presencial',
 ];
 
 type TabKey = 'nao_vinculadas' | 'vinculadas' | 'todas';
@@ -81,7 +80,7 @@ interface Props {
 }
 
 export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Props) {
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const { unidadeAtual, unidadesPermitidas } = useUnidade();
   const { users: unidadeUsers } = useUnidadeUsers();
   const navigate = useNavigate();
@@ -98,7 +97,7 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
   const [modalAtend, setModalAtend] = useState<Atendimento | null>(null);
   const [formNome, setFormNome] = useState('');
   const [formUnidade, setFormUnidade] = useState<string>('');
-  const [formOrigem, setFormOrigem] = useState('WHATSAPP');
+  const [formOrigem, setFormOrigem] = useState('WhatsApp');
   const [formResponsavel, setFormResponsavel] = useState<string>('');
   const [formObservacao, setFormObservacao] = useState<string>('');
   const [saving, setSaving] = useState(false);
@@ -110,10 +109,13 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
     let query = supabase
       .from('whatsapp_conversations')
       .select('id, contact_name, phone, unidade_id, last_message_at, status_conversa, lead_id, is_linked_to_lead, last_message_text, last_message_direction, lead:leads(id, nome, is_matriculado, status_funil)')
-      .neq('status', 'arquivado')
-      .eq('unidade_id', unidadeAtual.id)
-      .order('ultima_interacao_at', { ascending: false })
+      .order('last_message_at', { ascending: false })
       .limit(200);
+
+    // If a specific unit is selected (not "all/inbox")
+    if (unidadeAtual.id !== '00000000-0000-0000-0000-000000000000') {
+      query = query.eq('unidade_id', unidadeAtual.id);
+    }
 
     const { data: atends, error } = await query;
     if (error) {
@@ -122,33 +124,16 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
       return;
     }
 
-    const ids = (atends || []).map((a) => a.id);
-    const preview: Record<string, { conteudo: string; role: string }> = {};
-    if (ids.length) {
-      const { data: msgs } = await supabase
-        .from('agente_mensagens')
-        .select('atendimento_id, conteudo, role, created_at')
-        .in('atendimento_id', ids)
-        .order('created_at', { ascending: false });
-      for (const m of msgs || []) {
-        if (!preview[m.atendimento_id]) preview[m.atendimento_id] = { conteudo: m.conteudo, role: m.role };
-      }
-    }
-
-    const mapped: Atendimento[] = (atends || []).map((a: any) => ({
-      ...a,
-      ultima_mensagem: preview[a.id]?.conteudo ?? null,
-      ultima_role: preview[a.id]?.role ?? null,
-    }));
-    setAtendimentos(mapped);
+    setAtendimentos((atends as unknown as Atendimento[]) || []);
     setLoading(false);
 
     // counts
     if (onCountsChange) {
+      const mapped = (atends as unknown as Atendimento[]) || [];
       const total = mapped.length;
       const naoVinculadas = mapped.filter((a) => !a.lead_id).length;
-      const semResposta = mapped.filter((a) => a.ultima_role === 'user').length;
-      const ativas = mapped.filter((a) => a.status !== 'arquivado').length;
+      const semResposta = mapped.filter((a) => a.last_message_direction === 'inbound').length;
+      const ativas = mapped.length;
       onCountsChange({ total, naoVinculadas, semResposta, ativas });
     }
   }, [unidadeAtual, onCountsChange]);
@@ -156,9 +141,9 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
   useEffect(() => {
     fetchInbox();
     const channel = supabase
-      .channel('crm-conversas-inbox')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'agente_atendimentos' }, () => fetchInbox())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'agente_mensagens' }, () => fetchInbox())
+      .channel('whatsapp-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_conversations' }, () => fetchInbox())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'whatsapp_messages' }, () => fetchInbox())
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -173,9 +158,9 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
     if (!q) return base;
     return base.filter(
       (a) =>
-        (a.nome || '').toLowerCase().includes(q) ||
-        (a.telefone || '').includes(q) ||
-        (a.ultima_mensagem || '').toLowerCase().includes(q),
+        (a.contact_name || '').toLowerCase().includes(q) ||
+        (a.phone || '').includes(q) ||
+        (a.last_message_text || '').toLowerCase().includes(q),
     );
   }, [atendimentos, search, tab]);
 
@@ -183,20 +168,20 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
     setDrawerAtend(atend);
     setLoadingMsgs(true);
     const { data } = await supabase
-      .from('agente_mensagens')
-      .select('id, role, conteudo, created_at')
-      .eq('atendimento_id', atend.id)
-      .order('created_at', { ascending: true })
-      .limit(500);
+      .from('whatsapp_messages')
+      .select('id, direction, message_text, received_at')
+      .eq('phone', atend.phone)
+      .order('received_at', { ascending: true })
+      .limit(100);
     setMensagens((data || []) as Mensagem[]);
     setLoadingMsgs(false);
   };
 
   const openModal = (atend: Atendimento) => {
     setModalAtend(atend);
-    setFormNome((atend.nome || `WHATSAPP ${(atend.telefone || '').slice(-4)}`).toUpperCase());
-    setFormUnidade(unidadeAtual?.id || atend.unidade_id);
-    setFormOrigem('WHATSAPP');
+    setFormNome((atend.contact_name || `WhatsApp ${(atend.phone || '').slice(-4)}`).toUpperCase());
+    setFormUnidade(unidadeAtual?.id === '00000000-0000-0000-0000-000000000000' ? '' : (unidadeAtual?.id || atend.unidade_id || ''));
+    setFormOrigem('WhatsApp');
     const meName =
       (user?.user_metadata as any)?.full_name ||
       (user?.user_metadata as any)?.name ||
@@ -210,7 +195,7 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
     if (!modalAtend || !formNome.trim() || !formUnidade) return;
     setSaving(true);
 
-    const telDigits = (modalAtend.telefone || '').replace(/\D/g, '');
+    const telDigits = (modalAtend.phone || '').replace(/\D/g, '');
     const { data: dup } = await supabase
       .from('leads')
       .select('id')
@@ -224,10 +209,10 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
         description: 'Já existe um lead ativo com este telefone. Vinculando a conversa…',
       });
       await supabase
-        .from('agente_atendimentos')
-        .update({ lead_id: dup.id, unidade_id: formUnidade })
+        .from('whatsapp_conversations')
+        .update({ lead_id: dup.id, unidade_id: formUnidade, is_linked_to_lead: true, status_conversa: 'convertido' })
         .eq('id', modalAtend.id);
-      await supabase.from('leads').update({ atendimento_id: modalAtend.id }).eq('id', dup.id);
+      
       setSaving(false);
       setModalAtend(null);
       fetchInbox();
@@ -240,13 +225,13 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
       .insert({
         nome: formNome.trim().toUpperCase(),
         telefone: telDigits,
+        telefone_normalizado: telDigits,
         origem: formOrigem,
-        fonte: 'WHATSAPP',
+        fonte: 'WhatsApp',
         status_funil: 'novo',
-        status_conversa: 'aguardando_resposta',
+        status_conversa: 'convertido',
         ultima_interacao_at: new Date().toISOString(),
         unidade_id: formUnidade,
-        atendimento_id: modalAtend.id,
         ativo: true,
         is_matriculado: false,
         cadastrado_por: formResponsavel.trim().toUpperCase() || null,
@@ -266,8 +251,8 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
     }
 
     await supabase
-      .from('agente_atendimentos')
-      .update({ lead_id: novoLead.id, unidade_id: formUnidade })
+      .from('whatsapp_conversations')
+      .update({ lead_id: novoLead.id, unidade_id: formUnidade, is_linked_to_lead: true, status_conversa: 'convertido' })
       .eq('id', modalAtend.id);
 
     if (formObservacao.trim()) {
@@ -286,19 +271,6 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
     onLeadCreated?.();
   };
 
-  const arquivar = async (atend: Atendimento) => {
-    if (!isAdmin) return;
-    const { error } = await supabase
-      .from('agente_atendimentos')
-      .update({ status: 'arquivado' })
-      .eq('id', atend.id);
-    if (error) {
-      toast({ title: 'Erro ao arquivar', description: error.message, variant: 'destructive' });
-      return;
-    }
-    fetchInbox();
-  };
-
   return (
     <Card className="mb-6">
       <CardHeader className="pb-3">
@@ -306,10 +278,10 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
           <div>
             <CardTitle className="flex items-center gap-2 text-lg">
               <MessageCircle className="w-5 h-5" />
-              Conversas do WhatsApp
+              Conversas do WhatsApp em tempo real
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Números recebidos pelo WhatsApp ainda não vinculados ou em processo de qualificação
+              Números que chegaram pelo WhatsApp e ainda podem ser convertidos em cliente
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -357,49 +329,51 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
             <table className="w-full text-sm">
               <thead className="bg-muted/50 text-muted-foreground font-medium border-y">
                 <tr>
-                  <th className="px-4 py-3 text-left">Nome / Telefone</th>
+                  <th className="px-4 py-3 text-left">Contato</th>
                   <th className="px-4 py-3 text-left">Última mensagem</th>
-                  <th className="px-4 py-3 text-left">Última interação</th>
+                  <th className="px-4 py-3 text-left">Tempo</th>
                   <th className="px-4 py-3 text-left">Unidade</th>
                   <th className="px-4 py-3 text-left">Status</th>
                   <th className="px-4 py-3 text-left">Vínculo</th>
-                  <th className="px-4 py-3 text-right">Ações</th>
+                  <th className="px-4 py-3 text-right">Ação</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {filtered.map((a) => {
                   const vinculado = !!a.lead_id;
                   const matriculado = a.lead?.is_matriculado;
-                  const unidadeNome = unidadesPermitidas.find(u => u.id === a.unidade_id)?.nome || 'N/A';
+                  const unidadeNome = unidadesPermitidas.find(u => u.id === a.unidade_id)?.nome || 'Não definida';
                   
                   return (
                     <tr key={a.id} className="hover:bg-muted/30 transition">
                       <td className="px-4 py-3">
                         <div className="font-medium truncate max-w-[150px]">
-                          {a.nome || `WhatsApp ${(a.telefone || '').slice(-4)}`}
+                          {a.contact_name || `WhatsApp ${(a.phone || '').slice(-4)}`}
                         </div>
-                        <div className="text-xs text-muted-foreground">{a.telefone}</div>
+                        <div className="text-xs text-muted-foreground">{a.phone}</div>
                       </td>
                       <td className="px-4 py-3 max-w-[200px]">
                         <p className="truncate text-muted-foreground">
-                          {a.ultima_mensagem || '(sem mensagens)'}
+                          {a.last_message_text || '(sem mensagens)'}
                         </p>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                        {a.ultima_interacao_at &&
-                          formatDistanceToNow(new Date(a.ultima_interacao_at), {
+                        {a.last_message_at &&
+                          formatDistanceToNow(new Date(a.last_message_at), {
                             locale: ptBR,
                             addSuffix: true,
                           })}
                       </td>
                       <td className="px-4 py-3 truncate max-w-[120px]">{unidadeNome}</td>
                       <td className="px-4 py-3">
-                        {a.ultima_role === 'user' && !vinculado ? (
+                        {a.last_message_direction === 'inbound' && !vinculado ? (
                           <Badge className="bg-amber-500/15 text-amber-700 border-amber-500/30 hover:bg-amber-500/20">
-                            Sem resposta
+                            Aguardando resposta
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="capitalize">{a.status}</Badge>
+                          <Badge variant="outline" className="capitalize">
+                            {a.status_conversa === 'aguardando_resposta' ? 'Aguardando' : (a.status_conversa || 'Em andamento')}
+                          </Badge>
                         )}
                       </td>
                       <td className="px-4 py-3">
@@ -433,12 +407,7 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
                           ) : (
                             <Button size="sm" onClick={() => openModal(a)} className="gap-1">
                               <UserPlus className="w-4 h-4" />
-                              Transformar em Lead
-                            </Button>
-                          )}
-                          {isAdmin && !vinculado && (
-                            <Button size="icon" variant="ghost" onClick={() => arquivar(a)} title="Arquivar">
-                              <Archive className="w-4 h-4" />
+                              Converter em Cliente
                             </Button>
                           )}
                         </div>
@@ -452,12 +421,11 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
         )}
       </CardContent>
 
-      {/* Drawer com histórico */}
       <Sheet open={!!drawerAtend} onOpenChange={(o) => !o && setDrawerAtend(null)}>
         <SheetContent className="w-full sm:max-w-md flex flex-col">
           <SheetHeader>
-            <SheetTitle>{drawerAtend?.nome || 'Conversa WhatsApp'}</SheetTitle>
-            <SheetDescription>{drawerAtend?.telefone}</SheetDescription>
+            <SheetTitle>{drawerAtend?.contact_name || 'Conversa WhatsApp'}</SheetTitle>
+            <SheetDescription>{drawerAtend?.phone}</SheetDescription>
           </SheetHeader>
           <div className="flex-1 overflow-y-auto mt-4 space-y-2 pr-2 flex flex-col">
             {loadingMsgs ? (
@@ -473,14 +441,14 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
                 <div
                   key={m.id}
                   className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
-                    m.role === 'user'
+                    m.direction === 'inbound'
                       ? 'bg-muted self-start'
                       : 'bg-primary text-primary-foreground self-end ml-auto'
                   }`}
                 >
-                  <p className="whitespace-pre-wrap break-words">{m.conteudo}</p>
+                  <p className="whitespace-pre-wrap break-words">{m.message_text}</p>
                   <p className="text-[10px] opacity-70 mt-1">
-                    {new Date(m.created_at).toLocaleString('pt-BR')}
+                    {new Date(m.received_at).toLocaleString('pt-BR')}
                   </p>
                 </div>
               ))
@@ -489,11 +457,10 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
         </SheetContent>
       </Sheet>
 
-      {/* Modal transformar em lead */}
       <Dialog open={!!modalAtend} onOpenChange={(o) => !o && setModalAtend(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Transformar em Lead</DialogTitle>
+            <DialogTitle>Converter em Cliente</DialogTitle>
             <DialogDescription>
               A conversa será vinculada ao lead criado e aparecerá no Funil de Vendas.
             </DialogDescription>
@@ -505,14 +472,13 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
             </div>
             <div className="space-y-2">
               <Label>Telefone</Label>
-              <Input value={modalAtend?.telefone || ''} disabled />
+              <Input value={modalAtend?.phone || ''} disabled />
             </div>
             <div className="space-y-2">
               <Label>Unidade de destino</Label>
               <Select value={formUnidade} onValueChange={setFormUnidade}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a unidade" />
-
                 </SelectTrigger>
                 <SelectContent>
                   {unidadesPermitidas.map((u) => (
@@ -561,7 +527,7 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
                 />
               )}
             </div>
-            <div>
+            <div className="md:col-span-2">
               <Label>Observação (opcional)</Label>
               <Textarea
                 value={formObservacao}
@@ -577,7 +543,7 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
             </Button>
             <Button onClick={transformarEmLead} disabled={saving || !formNome.trim() || !formUnidade}>
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Confirmar e criar lead
+              Confirmar conversão
             </Button>
           </DialogFooter>
         </DialogContent>
