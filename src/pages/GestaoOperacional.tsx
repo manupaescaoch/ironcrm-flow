@@ -714,20 +714,22 @@ export default function GestaoOperacional() {
             <span className="text-xs text-muted-foreground hidden sm:inline">
               Última atualização: hoje, {format(lastUpdate, 'HH:mm')}
             </span>
-            <Button
-              variant="outline"
-              onClick={async () => {
-                const t = toast.loading('Enviando resumo para Manu...');
-                const { data, error } = await supabase.functions.invoke('send-gestao-operacional-manu', { body: {} });
-                toast.dismiss(t);
-                if (error || (data as any)?.error) toast.error('Falha no envio: ' + (error?.message || (data as any)?.error));
-                else toast.success('Resumo enviado para Manu via WhatsApp');
-              }}
-              disabled={loading}
-            >
-              <Send className="w-4 h-4 mr-2" />
-              Enviar resumo p/ Manu
-            </Button>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const t = toast.loading('Enviando resumo para Manu...');
+                  const { data, error } = await supabase.functions.invoke('send-gestao-operacional-manu', { body: {} });
+                  toast.dismiss(t);
+                  if (error || (data as any)?.error) toast.error('Falha no envio: ' + (error?.message || (data as any)?.error));
+                  else toast.success('Resumo enviado para Manu via WhatsApp');
+                }}
+                disabled={loading}
+              >
+                <Send className="w-4 h-4 mr-2" />
+                Enviar resumo p/ Manu
+              </Button>
+            )}
             <Button variant="outline" onClick={refetch} disabled={loading}>
               <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Atualizar
