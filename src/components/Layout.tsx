@@ -47,7 +47,7 @@ const MASTER_ADMIN_EMAIL = 'emanuel.paes@gmail.com';
 
 const allNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
-  { href: '/dashboard-operacional', label: 'Dashboard Operacional', icon: BarChart3, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
+  { href: '/dashboard-operacional', label: 'Dashboard Operacional', icon: Activity, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/vencimentos', label: 'Vencimentos', icon: CalendarClock, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/indicacoes', label: 'Indicações', icon: Gift, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
