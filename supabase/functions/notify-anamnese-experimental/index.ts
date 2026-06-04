@@ -152,9 +152,9 @@ _Anamnese preenchida pela recepção no momento da chegada do lead._`;
       });
     }
 
-    // Usar o chip OPERACIONAL para grupos "GERAL" (configurado para anamnese)
-    const creds = getZapiCreds('operacional');
-    if (!creds) throw new Error('Z-API operacional não configurada');
+    // Alterado para o chip COMERCIAL (agora as respostas das anamneses devem ser enviadas por ele)
+    const creds = getZapiCreds('comercial');
+    if (!creds) throw new Error('Z-API comercial não configurada');
 
     // [Z-API health]
     const st = await checkZapiStatus(creds);
