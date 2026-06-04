@@ -384,50 +384,88 @@ export default function CRM() {
     };
   }, [unidadeAtual, startDate, endDate]);
 
-  // Fetch Average Response Time
+  // Fetch WhatsApp based KPIs for the selected period
   useEffect(() => {
     if (!unidadeAtual) return;
+    let cancelled = false;
 
-    const fetchAvgResponseTime = async () => {
-      // Get messages from the last 7 days to estimate average response time
-      const sevenDaysAgo = subDays(new Date(), 7).toISOString();
+    const fetchWhatsAppKPIs = async () => {
+      let queryConversations = supabase
+        .from('whatsapp_conversations')
+        .select('*');
       
-      const { data: msgs, error } = await supabase
-        .from('agente_mensagens')
-        .select('atendimento_id, role, created_at')
-        .gte('created_at', sevenDaysAgo)
-        .order('created_at', { ascending: true });
+      let queryMessages = supabase
+        .from('whatsapp_messages')
+        .select('*')
+        .eq('direction', 'inbound');
 
-      if (error || !msgs || msgs.length === 0) return;
+      if (unidadeAtual.id !== '00000000-0000-0000-0000-000000000000') {
+        queryConversations = queryConversations.eq('unidade_id', unidadeAtual.id);
+        queryMessages = queryMessages.eq('unidade_id', unidadeAtual.id);
+      }
 
-      const responseTimes: number[] = [];
-      const lastUserMsgTime: Record<string, number> = {};
+      if (startDate) {
+        const startStr = startDate.toISOString();
+        queryConversations = queryConversations.gte('last_message_at', startStr);
+        queryMessages = queryMessages.gte('received_at', startStr);
+      }
+      if (endDate) {
+        const endStr = endDate.toISOString();
+        queryConversations = queryConversations.lte('last_message_at', endStr);
+        queryMessages = queryMessages.lte('received_at', endStr);
+      }
 
-      msgs.forEach(m => {
-        const time = new Date(m.created_at).getTime();
-        if (m.role === 'user') {
-          lastUserMsgTime[m.atendimento_id] = time;
-        } else if (m.role === 'assistant' || m.role === 'agent') {
-          if (lastUserMsgTime[m.atendimento_id]) {
-            const diff = (time - lastUserMsgTime[m.atendimento_id]) / (1000 * 60); // in minutes
-            if (diff > 0 && diff < 1440) { // filter out outliers > 24h
-              responseTimes.push(diff);
-            }
-            delete lastUserMsgTime[m.atendimento_id];
-          }
-        }
+      const [convsRes, msgsRes] = await Promise.all([queryConversations, queryMessages]);
+      
+      if (cancelled) return;
+      if (convsRes.error) console.error('Error fetching conversations:', convsRes.error);
+      if (msgsRes.error) console.error('Error fetching messages:', msgsRes.error);
+
+      const convs = convsRes.data || [];
+      const msgs = msgsRes.data || [];
+
+      const totalMessages = msgs.length;
+      const totalConversations = convs.length;
+      const activeConversations = convs.filter(c => c.status_conversa !== 'encerrado').length;
+      const noResponse = convs.filter(c => 
+        c.last_message_direction === 'inbound' && 
+        (c.status_conversa === 'aguardando_resposta' || !c.first_response_at)
+      ).length;
+      const notLinked = convs.filter(c => !c.lead_id || !c.is_linked_to_lead).length;
+
+      setConversasCounts({
+        total: totalConversations,
+        naoVinculadas: notLinked,
+        semResposta: noResponse,
+        ativas: activeConversations,
+        totalMensagens: totalMessages
       });
 
-      if (responseTimes.length > 0) {
-        const avg = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
-        if (avg < 1) setAvgResponseTime('< 1 min');
-        else if (avg < 60) setAvgResponseTime(`${Math.round(avg)} min`);
-        else setAvgResponseTime(`${(avg / 60).toFixed(1)} h`);
+      // Calculate Average Response Time
+      const respondedConvs = convs.filter(c => c.first_inbound_at && c.first_response_at);
+      if (respondedConvs.length > 0) {
+        const totalDiff = respondedConvs.reduce((acc, c) => {
+          const start = new Date(c.first_inbound_at!).getTime();
+          const end = new Date(c.first_response_at!).getTime();
+          return acc + (end - start);
+        }, 0);
+        const avgMinutes = (totalDiff / respondedConvs.length) / (1000 * 60);
+        
+        if (avgMinutes < 1) setAvgResponseTime('< 1 min');
+        else if (avgMinutes < 60) setAvgResponseTime(`${Math.round(avgMinutes)} min`);
+        else {
+          const hours = Math.floor(avgMinutes / 60);
+          const mins = Math.round(avgMinutes % 60);
+          setAvgResponseTime(`${hours}h${mins > 0 ? ` ${mins}m` : ''}`);
+        }
+      } else {
+        setAvgResponseTime('0 min');
       }
     };
 
-    fetchAvgResponseTime();
-  }, [unidadeAtual]);
+    fetchWhatsAppKPIs();
+    return () => { cancelled = true; };
+  }, [unidadeAtual, startDate, endDate]);
 
   const uniqueOrigens = useMemo(() => {
     const origens = leads.map(l => l.origem).filter(Boolean) as string[];
