@@ -2880,6 +2880,7 @@ export type Database = {
           first_inbound_at: string | null
           first_response_at: string | null
           id: string
+          is_cliente: boolean | null
           is_linked_to_lead: boolean | null
           last_message_at: string | null
           last_message_direction: string | null
@@ -2897,6 +2898,7 @@ export type Database = {
           first_inbound_at?: string | null
           first_response_at?: string | null
           id?: string
+          is_cliente?: boolean | null
           is_linked_to_lead?: boolean | null
           last_message_at?: string | null
           last_message_direction?: string | null
@@ -2914,6 +2916,7 @@ export type Database = {
           first_inbound_at?: string | null
           first_response_at?: string | null
           id?: string
+          is_cliente?: boolean | null
           is_linked_to_lead?: boolean | null
           last_message_at?: string | null
           last_message_direction?: string | null

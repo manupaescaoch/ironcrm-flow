@@ -399,6 +399,7 @@ export default function CRM() {
         .select('*')
         .eq('direction', 'inbound');
 
+      // If a specific unit is selected (not "all/inbox")
       if (unidadeAtual.id !== '00000000-0000-0000-0000-000000000000') {
         queryConversations = queryConversations.eq('unidade_id', unidadeAtual.id);
         queryMessages = queryMessages.eq('unidade_id', unidadeAtual.id);
@@ -426,12 +427,11 @@ export default function CRM() {
 
       const totalMessages = msgs.length;
       const totalConversations = convs.length;
-      const activeConversations = convs.filter(c => c.status_conversa !== 'encerrado').length;
+      const activeConversations = convs.length;
       const noResponse = convs.filter(c => 
-        c.last_message_direction === 'inbound' && 
-        (c.status_conversa === 'aguardando_resposta' || !c.first_response_at)
+        c.last_message_direction === 'inbound' && !c.first_response_at
       ).length;
-      const notLinked = convs.filter(c => !c.lead_id || !c.is_linked_to_lead).length;
+      const notLinked = convs.filter(c => !c.lead_id).length;
 
       setConversasCounts({
         total: totalConversations,
@@ -459,9 +459,10 @@ export default function CRM() {
           setAvgResponseTime(`${hours}h${mins > 0 ? ` ${mins}m` : ''}`);
         }
       } else {
-        setAvgResponseTime('0 min');
+        setAvgResponseTime('Indisponível');
       }
     };
+
 
     fetchWhatsAppKPIs();
     return () => { cancelled = true; };
