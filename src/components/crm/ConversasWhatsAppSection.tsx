@@ -48,6 +48,12 @@ interface Atendimento {
   lead_id: string | null;
   ultima_mensagem?: string | null;
   ultima_role?: string | null;
+  lead?: {
+    id: string;
+    nome: string;
+    is_matriculado: boolean;
+    status_funil: string;
+  } | null;
 }
 
 interface Mensagem {
@@ -70,7 +76,7 @@ const ORIGENS = [
 type TabKey = 'nao_vinculadas' | 'vinculadas' | 'todas';
 
 interface Props {
-  onCountsChange?: (counts: { total: number; naoVinculadas: number; semResposta: number }) => void;
+  onCountsChange?: (counts: { total: number; naoVinculadas: number; semResposta: number; ativas: number }) => void;
   onLeadCreated?: () => void;
 }
 
@@ -103,7 +109,7 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
 
     let query = supabase
       .from('agente_atendimentos')
-      .select('id, nome, telefone, unidade_id, ultima_interacao_at, status, lead_id')
+      .select('id, nome, telefone, unidade_id, ultima_interacao_at, status, lead_id, lead:leads(id, nome, is_matriculado, status_funil)')
       .neq('status', 'arquivado')
       .eq('unidade_id', unidadeAtual.id)
       .order('ultima_interacao_at', { ascending: false })
@@ -129,7 +135,7 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
       }
     }
 
-    const mapped: Atendimento[] = (atends || []).map((a) => ({
+    const mapped: Atendimento[] = (atends || []).map((a: any) => ({
       ...a,
       ultima_mensagem: preview[a.id]?.conteudo ?? null,
       ultima_role: preview[a.id]?.role ?? null,
@@ -142,7 +148,8 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
       const total = mapped.length;
       const naoVinculadas = mapped.filter((a) => !a.lead_id).length;
       const semResposta = mapped.filter((a) => a.ultima_role === 'user').length;
-      onCountsChange({ total, naoVinculadas, semResposta });
+      const ativas = mapped.filter((a) => a.status !== 'arquivado').length;
+      onCountsChange({ total, naoVinculadas, semResposta, ativas });
     }
   }, [unidadeAtual, onCountsChange]);
 
@@ -346,76 +353,102 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
             <p className="text-sm">Nenhuma conversa nesta visualização.</p>
           </div>
         ) : (
-          <ul className="divide-y max-h-[480px] overflow-y-auto">
-            {filtered.map((a) => {
-              const vinculado = !!a.lead_id;
-              return (
-                <li
-                  key={a.id}
-                  className="px-4 py-3 hover:bg-muted/30 transition flex items-center gap-4"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="font-medium truncate">
-                        {a.nome || `WhatsApp ${(a.telefone || '').slice(-4)}`}
-                      </span>
-                      <Badge variant="outline" className="text-xs">{a.telefone}</Badge>
-                      {vinculado ? (
-                        <Badge className="text-xs bg-green-500/15 text-green-700 border-green-500/30 hover:bg-green-500/20">
-                          Vinculado
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-xs">
-                          Não vinculado
-                        </Badge>
-                      )}
-                      {a.ultima_role === 'user' && !vinculado && (
-                        <Badge className="text-xs bg-amber-500/15 text-amber-700 border-amber-500/30 hover:bg-amber-500/20">
-                          Sem resposta
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {a.ultima_mensagem || '(sem mensagens)'}
-                    </p>
-                  </div>
-                  <div className="text-xs text-muted-foreground whitespace-nowrap hidden md:block">
-                    {a.ultima_interacao_at &&
-                      formatDistanceToNow(new Date(a.ultima_interacao_at), {
-                        locale: ptBR,
-                        addSuffix: true,
-                      })}
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button size="sm" variant="outline" onClick={() => openDrawer(a)}>
-                      Ver conversa
-                    </Button>
-                    {vinculado ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => navigate(`/lead/${a.lead_id}`)}
-                        className="gap-1"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        Abrir lead
-                      </Button>
-                    ) : (
-                      <Button size="sm" onClick={() => openModal(a)} className="gap-1">
-                        <UserPlus className="w-4 h-4" />
-                        Transformar em Lead
-                      </Button>
-                    )}
-                    {isAdmin && !vinculado && (
-                      <Button size="icon" variant="ghost" onClick={() => arquivar(a)} title="Arquivar">
-                        <Archive className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-muted-foreground font-medium border-y">
+                <tr>
+                  <th className="px-4 py-3 text-left">Nome / Telefone</th>
+                  <th className="px-4 py-3 text-left">Última mensagem</th>
+                  <th className="px-4 py-3 text-left">Última interação</th>
+                  <th className="px-4 py-3 text-left">Unidade</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">Vínculo</th>
+                  <th className="px-4 py-3 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {filtered.map((a) => {
+                  const vinculado = !!a.lead_id;
+                  const matriculado = a.lead?.is_matriculado;
+                  const unidadeNome = unidadesPermitidas.find(u => u.id === a.unidade_id)?.nome || 'N/A';
+                  
+                  return (
+                    <tr key={a.id} className="hover:bg-muted/30 transition">
+                      <td className="px-4 py-3">
+                        <div className="font-medium truncate max-w-[150px]">
+                          {a.nome || `WhatsApp ${(a.telefone || '').slice(-4)}`}
+                        </div>
+                        <div className="text-xs text-muted-foreground">{a.telefone}</div>
+                      </td>
+                      <td className="px-4 py-3 max-w-[200px]">
+                        <p className="truncate text-muted-foreground">
+                          {a.ultima_mensagem || '(sem mensagens)'}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                        {a.ultima_interacao_at &&
+                          formatDistanceToNow(new Date(a.ultima_interacao_at), {
+                            locale: ptBR,
+                            addSuffix: true,
+                          })}
+                      </td>
+                      <td className="px-4 py-3 truncate max-w-[120px]">{unidadeNome}</td>
+                      <td className="px-4 py-3">
+                        {a.ultima_role === 'user' && !vinculado ? (
+                          <Badge className="bg-amber-500/15 text-amber-700 border-amber-500/30 hover:bg-amber-500/20">
+                            Sem resposta
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="capitalize">{a.status}</Badge>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {matriculado ? (
+                          <Badge className="bg-primary/15 text-primary border-primary/30">
+                            Matriculado
+                          </Badge>
+                        ) : vinculado ? (
+                          <Badge className="bg-green-500/15 text-green-700 border-green-500/30">
+                            Lead criado
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">Não vinculado</Badge>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button size="sm" variant="ghost" onClick={() => openDrawer(a)} title="Ver Histórico">
+                            <MessageCircle className="w-4 h-4" />
+                          </Button>
+                          {vinculado ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(`/lead/${a.lead_id}`)}
+                              className="gap-1"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                              Ver Lead
+                            </Button>
+                          ) : (
+                            <Button size="sm" onClick={() => openModal(a)} className="gap-1">
+                              <UserPlus className="w-4 h-4" />
+                              Transformar em Lead
+                            </Button>
+                          )}
+                          {isAdmin && !vinculado && (
+                            <Button size="icon" variant="ghost" onClick={() => arquivar(a)} title="Arquivar">
+                              <Archive className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </CardContent>
 
@@ -465,20 +498,21 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
               A conversa será vinculada ao lead criado e aparecerá no Funil de Vendas.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label>Nome</Label>
               <Input value={formNome} onChange={(e) => setFormNome(e.target.value.toUpperCase())} />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label>Telefone</Label>
               <Input value={modalAtend?.telefone || ''} disabled />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label>Unidade de destino</Label>
               <Select value={formUnidade} onValueChange={setFormUnidade}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a unidade" />
+
                 </SelectTrigger>
                 <SelectContent>
                   {unidadesPermitidas.map((u) => (

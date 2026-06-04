@@ -49,7 +49,7 @@ import { useUnidade } from '@/contexts/UnidadeContext';
 import { Lead, StatusFunil, PlanoEscolhido } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/utils/errorMessages';
-import { Plus, Search, Eye, Trash2, Loader2, Pencil, Filter, Upload, FileSpreadsheet, Users, TrendingUp, UserCheck, UserX, CalendarIcon, CalendarCheck, CheckCircle, Download } from 'lucide-react';
+import { Plus, Search, Eye, Trash2, Loader2, Pencil, Filter, Upload, FileSpreadsheet, Users, TrendingUp, UserCheck, UserX, CalendarIcon, CalendarCheck, CheckCircle, Download, DollarSign } from 'lucide-react';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format, startOfMonth, endOfMonth, subMonths, subDays, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -58,7 +58,21 @@ import { z } from 'zod';
 import { cn } from '@/lib/utils';
 import { validateCsvRow, type CsvRowValidationResult } from '@/utils/csvImportValidation';
 import { ConversasWhatsAppSection } from '@/components/crm/ConversasWhatsAppSection';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Clock, PieChart as PieChartIcon, Activity } from 'lucide-react';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip as RechartsTooltip, 
+  ResponsiveContainer, 
+  PieChart, 
+  Pie, 
+  Cell,
+  LineChart,
+  Line
+} from 'recharts';
 
 // Validation schema for lead creation/update
 const leadSchema = z.object({
@@ -231,7 +245,8 @@ export default function CRM() {
   // Interações no período (para KPIs de experimentais agendadas/realizadas)
   const [experimentaisAgendadasPeriodo, setExperimentaisAgendadasPeriodo] = useState(0);
   const [experimentaisRealizadasPeriodo, setExperimentaisRealizadasPeriodo] = useState(0);
-  const [conversasCounts, setConversasCounts] = useState({ total: 0, naoVinculadas: 0, semResposta: 0 });
+  const [conversasCounts, setConversasCounts] = useState({ total: 0, naoVinculadas: 0, semResposta: 0, ativas: 0 });
+  const [avgResponseTime, setAvgResponseTime] = useState<string>('0 min');
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -368,6 +383,51 @@ export default function CRM() {
       cancelled = true;
     };
   }, [unidadeAtual, startDate, endDate]);
+
+  // Fetch Average Response Time
+  useEffect(() => {
+    if (!unidadeAtual) return;
+
+    const fetchAvgResponseTime = async () => {
+      // Get messages from the last 7 days to estimate average response time
+      const sevenDaysAgo = subDays(new Date(), 7).toISOString();
+      
+      const { data: msgs, error } = await supabase
+        .from('agente_mensagens')
+        .select('atendimento_id, role, created_at')
+        .gte('created_at', sevenDaysAgo)
+        .order('created_at', { ascending: true });
+
+      if (error || !msgs || msgs.length === 0) return;
+
+      const responseTimes: number[] = [];
+      const lastUserMsgTime: Record<string, number> = {};
+
+      msgs.forEach(m => {
+        const time = new Date(m.created_at).getTime();
+        if (m.role === 'user') {
+          lastUserMsgTime[m.atendimento_id] = time;
+        } else if (m.role === 'assistant' || m.role === 'agent') {
+          if (lastUserMsgTime[m.atendimento_id]) {
+            const diff = (time - lastUserMsgTime[m.atendimento_id]) / (1000 * 60); // in minutes
+            if (diff > 0 && diff < 1440) { // filter out outliers > 24h
+              responseTimes.push(diff);
+            }
+            delete lastUserMsgTime[m.atendimento_id];
+          }
+        }
+      });
+
+      if (responseTimes.length > 0) {
+        const avg = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+        if (avg < 1) setAvgResponseTime('< 1 min');
+        else if (avg < 60) setAvgResponseTime(`${Math.round(avg)} min`);
+        else setAvgResponseTime(`${(avg / 60).toFixed(1)} h`);
+      }
+    };
+
+    fetchAvgResponseTime();
+  }, [unidadeAtual]);
 
   const uniqueOrigens = useMemo(() => {
     const origens = leads.map(l => l.origem).filter(Boolean) as string[];
@@ -906,8 +966,45 @@ export default function CRM() {
     const novos = filteredLeads.filter(l => l.status_funil === 'novo').length;
     const taxaConversao = total > 0 ? ((convertidos / total) * 100).toFixed(1) : '0';
     
-    return { total, convertidos, perdidos, emNegociacao, novos, taxaConversao };
+    const leadsWhatsApp = filteredLeads.filter(l => l.origem === 'WhatsApp').length;
+    const valorPipeline = filteredLeads.reduce((acc, l) => acc + (Number(l.valor_pipeline) || 0), 0);
+    
+    return { 
+      total, 
+      convertidos, 
+      perdidos, 
+      emNegociacao, 
+      novos, 
+      taxaConversao,
+      leadsWhatsApp,
+      valorPipeline
+    };
   }, [filteredLeads]);
+
+  // Chart data
+  const chartData = useMemo(() => {
+    // Activity by day
+    const last30Days = Array.from({ length: 30 }, (_, i) => {
+      const d = subDays(new Date(), 29 - i);
+      return format(d, 'yyyy-MM-dd');
+    });
+
+    const activity = last30Days.map(day => {
+      const count = filteredLeads.filter(l => format(new Date(l.created_at), 'yyyy-MM-dd') === day).length;
+      return { day: format(new Date(day), 'dd/MM'), count };
+    });
+
+    // Sources distribution
+    const sourceMap: Record<string, number> = {};
+    filteredLeads.forEach(l => {
+      sourceMap[l.origem] = (sourceMap[l.origem] || 0) + 1;
+    });
+    const sources = Object.entries(sourceMap).map(([name, value]) => ({ name, value }));
+
+    return { activity, sources };
+  }, [filteredLeads]);
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
@@ -1277,14 +1374,14 @@ export default function CRM() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
-          <Card>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-8">
+          <Card className="bg-primary/5 border-primary/20">
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-500" />
+                <Users className="w-5 h-5 text-primary" />
                 <div>
-                  <p className="text-2xl font-bold">{kpis.total}</p>
-                  <p className="text-xs text-muted-foreground">Total Leads</p>
+                  <p className="text-2xl font-bold">{kpis.leadsWhatsApp}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Leads WhatsApp</p>
                 </div>
               </div>
             </CardContent>
@@ -1292,87 +1389,10 @@ export default function CRM() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <UserCheck className="w-5 h-5 text-green-500" />
+                <Activity className="w-5 h-5 text-emerald-500" />
                 <div>
-                  <p className="text-2xl font-bold text-green-600">{kpis.convertidos}</p>
-                  <p className="text-xs text-muted-foreground">Convertidos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-amber-500" />
-                <div>
-                  <p className="text-2xl font-bold text-amber-600">{kpis.emNegociacao}</p>
-                  <p className="text-xs text-muted-foreground">Em Negociação</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <UserX className="w-5 h-5 text-red-500" />
-                <div>
-                  <p className="text-2xl font-bold text-red-600">{kpis.perdidos}</p>
-                  <p className="text-xs text-muted-foreground">Perdidos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <CalendarCheck className="w-5 h-5 text-sky-500" />
-                <div>
-                  <p className="text-2xl font-bold text-sky-600">{experimentaisAgendadasPeriodo}</p>
-                  <p className="text-xs text-muted-foreground">Exp. Agendadas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-purple-500" />
-                <div>
-                  <p className="text-2xl font-bold text-purple-600">{experimentaisRealizadasPeriodo}</p>
-                  <p className="text-xs text-muted-foreground">Exp. Realizadas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-2xl font-bold">{kpis.taxaConversao}%</p>
-                  <p className="text-xs text-muted-foreground">Taxa Conversão</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-emerald-500" />
-                <div>
-                  <p className="text-2xl font-bold text-emerald-600">{conversasCounts.total}</p>
-                  <p className="text-xs text-muted-foreground">Conversas WhatsApp</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-indigo-500" />
-                <div>
-                  <p className="text-2xl font-bold text-indigo-600">{conversasCounts.naoVinculadas}</p>
-                  <p className="text-xs text-muted-foreground">Não vinculadas</p>
+                  <p className="text-2xl font-bold">{conversasCounts.ativas}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Conversas Ativas</p>
                 </div>
               </div>
             </CardContent>
@@ -1383,9 +1403,163 @@ export default function CRM() {
                 <MessageCircle className="w-5 h-5 text-amber-500" />
                 <div>
                   <p className="text-2xl font-bold text-amber-600">{conversasCounts.semResposta}</p>
-                  <p className="text-xs text-muted-foreground">Sem resposta</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Chats sem Resposta</p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-sky-500" />
+                <div>
+                  <p className="text-2xl font-bold">{avgResponseTime}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Tempo Médio Resposta</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-500" />
+                <div>
+                  <p className="text-2xl font-bold">{kpis.total}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Leads no Período</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="text-2xl font-bold text-green-700">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(kpis.valorPipeline)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Valor em Pipeline</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <UserCheck className="w-5 h-5 text-green-500" />
+                <div>
+                  <p className="text-2xl font-bold text-green-600">{kpis.convertidos}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Convertidos</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="text-2xl font-bold">{kpis.taxaConversao}%</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Taxa Conversão</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-amber-500" />
+                <div>
+                  <p className="text-2xl font-bold text-amber-600">{kpis.emNegociacao}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Em Negociação</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <UserX className="w-5 h-5 text-red-500" />
+                <div>
+                  <p className="text-2xl font-bold text-red-600">{kpis.perdidos}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Perdidos</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-indigo-500" />
+                <div>
+                  <p className="text-2xl font-bold text-indigo-600">{conversasCounts.naoVinculadas}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Não Vinculadas</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-emerald-500" />
+                <div>
+                  <p className="text-2xl font-bold text-emerald-600">{conversasCounts.total}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Conversas WhatsApp</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Activity className="w-5 h-5 text-primary" />
+                Atividade (Novos Leads por Dia)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData.activity}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="day" />
+                  <YAxis />
+                  <RechartsTooltip />
+                  <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <PieChartIcon className="w-5 h-5 text-primary" />
+                Distribuição por Fonte
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-[300px] flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData.sources}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {chartData.sources.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip />
+                </PieChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>
