@@ -76,7 +76,7 @@ const ORIGENS = [
 type TabKey = 'nao_vinculadas' | 'vinculadas' | 'todas';
 
 interface Props {
-  onCountsChange?: (counts: { total: number; naoVinculadas: number; semResposta: number; ativas: number }) => void;
+  onCountsChange?: (counts: { total: number; naoVinculadas: number; semResposta: number; ativas: number; totalMensagens?: number }) => void;
   onLeadCreated?: () => void;
 }
 

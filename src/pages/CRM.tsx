@@ -245,7 +245,7 @@ export default function CRM() {
   // Interações no período (para KPIs de experimentais agendadas/realizadas)
   const [experimentaisAgendadasPeriodo, setExperimentaisAgendadasPeriodo] = useState(0);
   const [experimentaisRealizadasPeriodo, setExperimentaisRealizadasPeriodo] = useState(0);
-  const [conversasCounts, setConversasCounts] = useState({ total: 0, naoVinculadas: 0, semResposta: 0, ativas: 0 });
+  const [conversasCounts, setConversasCounts] = useState({ total: 0, naoVinculadas: 0, semResposta: 0, ativas: 0, totalMensagens: 0 });
   const [avgResponseTime, setAvgResponseTime] = useState<string>('0 min');
 
   const [formData, setFormData] = useState({
@@ -384,50 +384,88 @@ export default function CRM() {
     };
   }, [unidadeAtual, startDate, endDate]);
 
-  // Fetch Average Response Time
+  // Fetch WhatsApp based KPIs for the selected period
   useEffect(() => {
     if (!unidadeAtual) return;
+    let cancelled = false;
 
-    const fetchAvgResponseTime = async () => {
-      // Get messages from the last 7 days to estimate average response time
-      const sevenDaysAgo = subDays(new Date(), 7).toISOString();
+    const fetchWhatsAppKPIs = async () => {
+      let queryConversations = supabase
+        .from('whatsapp_conversations')
+        .select('*');
       
-      const { data: msgs, error } = await supabase
-        .from('agente_mensagens')
-        .select('atendimento_id, role, created_at')
-        .gte('created_at', sevenDaysAgo)
-        .order('created_at', { ascending: true });
+      let queryMessages = supabase
+        .from('whatsapp_messages')
+        .select('*')
+        .eq('direction', 'inbound');
 
-      if (error || !msgs || msgs.length === 0) return;
+      if (unidadeAtual.id !== '00000000-0000-0000-0000-000000000000') {
+        queryConversations = queryConversations.eq('unidade_id', unidadeAtual.id);
+        queryMessages = queryMessages.eq('unidade_id', unidadeAtual.id);
+      }
 
-      const responseTimes: number[] = [];
-      const lastUserMsgTime: Record<string, number> = {};
+      if (startDate) {
+        const startStr = startDate.toISOString();
+        queryConversations = queryConversations.gte('last_message_at', startStr);
+        queryMessages = queryMessages.gte('received_at', startStr);
+      }
+      if (endDate) {
+        const endStr = endDate.toISOString();
+        queryConversations = queryConversations.lte('last_message_at', endStr);
+        queryMessages = queryMessages.lte('received_at', endStr);
+      }
 
-      msgs.forEach(m => {
-        const time = new Date(m.created_at).getTime();
-        if (m.role === 'user') {
-          lastUserMsgTime[m.atendimento_id] = time;
-        } else if (m.role === 'assistant' || m.role === 'agent') {
-          if (lastUserMsgTime[m.atendimento_id]) {
-            const diff = (time - lastUserMsgTime[m.atendimento_id]) / (1000 * 60); // in minutes
-            if (diff > 0 && diff < 1440) { // filter out outliers > 24h
-              responseTimes.push(diff);
-            }
-            delete lastUserMsgTime[m.atendimento_id];
-          }
-        }
+      const [convsRes, msgsRes] = await Promise.all([queryConversations, queryMessages]);
+      
+      if (cancelled) return;
+      if (convsRes.error) console.error('Error fetching conversations:', convsRes.error);
+      if (msgsRes.error) console.error('Error fetching messages:', msgsRes.error);
+
+      const convs = convsRes.data || [];
+      const msgs = msgsRes.data || [];
+
+      const totalMessages = msgs.length;
+      const totalConversations = convs.length;
+      const activeConversations = convs.filter(c => c.status_conversa !== 'encerrado').length;
+      const noResponse = convs.filter(c => 
+        c.last_message_direction === 'inbound' && 
+        (c.status_conversa === 'aguardando_resposta' || !c.first_response_at)
+      ).length;
+      const notLinked = convs.filter(c => !c.lead_id || !c.is_linked_to_lead).length;
+
+      setConversasCounts({
+        total: totalConversations,
+        naoVinculadas: notLinked,
+        semResposta: noResponse,
+        ativas: activeConversations,
+        totalMensagens: totalMessages
       });
 
-      if (responseTimes.length > 0) {
-        const avg = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
-        if (avg < 1) setAvgResponseTime('< 1 min');
-        else if (avg < 60) setAvgResponseTime(`${Math.round(avg)} min`);
-        else setAvgResponseTime(`${(avg / 60).toFixed(1)} h`);
+      // Calculate Average Response Time
+      const respondedConvs = convs.filter(c => c.first_inbound_at && c.first_response_at);
+      if (respondedConvs.length > 0) {
+        const totalDiff = respondedConvs.reduce((acc, c) => {
+          const start = new Date(c.first_inbound_at!).getTime();
+          const end = new Date(c.first_response_at!).getTime();
+          return acc + (end - start);
+        }, 0);
+        const avgMinutes = (totalDiff / respondedConvs.length) / (1000 * 60);
+        
+        if (avgMinutes < 1) setAvgResponseTime('< 1 min');
+        else if (avgMinutes < 60) setAvgResponseTime(`${Math.round(avgMinutes)} min`);
+        else {
+          const hours = Math.floor(avgMinutes / 60);
+          const mins = Math.round(avgMinutes % 60);
+          setAvgResponseTime(`${hours}h${mins > 0 ? ` ${mins}m` : ''}`);
+        }
+      } else {
+        setAvgResponseTime('0 min');
       }
     };
 
-    fetchAvgResponseTime();
-  }, [unidadeAtual]);
+    fetchWhatsAppKPIs();
+    return () => { cancelled = true; };
+  }, [unidadeAtual, startDate, endDate]);
 
   const uniqueOrigens = useMemo(() => {
     const origens = leads.map(l => l.origem).filter(Boolean) as string[];
@@ -957,52 +995,140 @@ export default function CRM() {
     });
   }, [leads, search, filterOrigem, filterCadastradoPor, filterStatus, startDate, endDate]);
 
-  // KPI calculations
-  const kpis = useMemo(() => {
-    const total = filteredLeads.length;
-    const convertidos = filteredLeads.filter(l => l.status_funil === 'convertido').length;
-    const perdidos = filteredLeads.filter(l => l.status_funil === 'perdido').length;
-    const emNegociacao = filteredLeads.filter(l => ['aula_agendada', 'aula_realizada', 'negociacao', 'follow_up'].includes(l.status_funil)).length;
-    const novos = filteredLeads.filter(l => l.status_funil === 'novo').length;
-    const taxaConversao = total > 0 ? ((convertidos / total) * 100).toFixed(1) : '0';
-    
-    const leadsWhatsApp = filteredLeads.filter(l => l.origem === 'WhatsApp').length;
-    const valorPipeline = filteredLeads.reduce((acc, l) => acc + (Number(l.valor_pipeline) || 0), 0);
-    
-    return { 
-      total, 
-      convertidos, 
-      perdidos, 
-      emNegociacao, 
-      novos, 
-      taxaConversao,
-      leadsWhatsApp,
-      valorPipeline
-    };
-  }, [filteredLeads]);
-
-  // Chart data
+  // Chart data based on WhatsApp and Leads activity
   const chartData = useMemo(() => {
-    // Activity by day
     const last30Days = Array.from({ length: 30 }, (_, i) => {
       const d = subDays(new Date(), 29 - i);
       return format(d, 'yyyy-MM-dd');
     });
 
+    // Activity: Received WhatsApp Messages vs New Leads from WhatsApp
     const activity = last30Days.map(day => {
-      const count = filteredLeads.filter(l => format(new Date(l.created_at), 'yyyy-MM-dd') === day).length;
-      return { day: format(new Date(day), 'dd/MM'), count };
+      const leadsOnDay = leads.filter(l => 
+        format(new Date(l.created_at), 'yyyy-MM-dd') === day && 
+        (l.origem === 'WhatsApp' || l.fonte === 'WhatsApp')
+      ).length;
+      
+      return { 
+        day: format(new Date(day), 'dd/MM'), 
+        leads: leadsOnDay 
+      };
     });
 
-    // Sources distribution
+    // Sources distribution (Leads table)
     const sourceMap: Record<string, number> = {};
     filteredLeads.forEach(l => {
-      sourceMap[l.origem] = (sourceMap[l.origem] || 0) + 1;
+      const src = l.origem || 'Outros';
+      sourceMap[src] = (sourceMap[src] || 0) + 1;
     });
     const sources = Object.entries(sourceMap).map(([name, value]) => ({ name, value }));
 
     return { activity, sources };
-  }, [filteredLeads]);
+  }, [leads, filteredLeads]);
+
+  // WhatsApp-centric stats for KPI cards
+  const stats = useMemo(() => {
+    const leadsWhatsApp = leads.filter(l => {
+      let match = (l.origem === 'WhatsApp' || l.fonte === 'WhatsApp');
+      if (startDate) match = match && new Date(l.created_at) >= startDate;
+      if (endDate) match = match && new Date(l.created_at) <= endDate;
+      return match;
+    });
+
+    const matriculadosWhatsApp = leadsWhatsApp.filter(l => l.is_matriculado).length;
+    const leadsWhatsAppCount = leadsWhatsApp.length;
+    
+    const convLead = conversasCounts.total > 0 
+      ? Math.round((leadsWhatsAppCount / conversasCounts.total) * 100) 
+      : 0;
+    
+    const convMatricula = leadsWhatsAppCount > 0 
+      ? Math.round((matriculadosWhatsApp / leadsWhatsAppCount) * 100) 
+      : 0;
+
+    return [
+      {
+        title: 'Mensagens Recebidas',
+        value: conversasCounts.totalMensagens.toString(),
+        icon: MessageCircle,
+        color: 'text-blue-600',
+        bg: 'bg-blue-100',
+        description: 'Recebidas no período'
+      },
+      {
+        title: 'Conversas WhatsApp',
+        value: conversasCounts.total.toString(),
+        icon: Users,
+        color: 'text-green-600',
+        bg: 'bg-green-100',
+        description: 'Conversas únicas'
+      },
+      {
+        title: 'Conversas Ativas',
+        value: conversasCounts.ativas.toString(),
+        icon: Activity,
+        color: 'text-purple-600',
+        bg: 'bg-purple-100',
+        description: 'Em aberto'
+      },
+      {
+        title: 'Sem Resposta',
+        value: conversasCounts.semResposta.toString(),
+        icon: Clock,
+        color: 'text-amber-600',
+        bg: 'bg-amber-100',
+        description: 'Aguardando equipe'
+      },
+      {
+        title: 'Tempo Médio Resposta',
+        value: avgResponseTime,
+        icon: Clock,
+        color: 'text-indigo-600',
+        bg: 'bg-indigo-100',
+        description: 'Média de resposta'
+      },
+      {
+        title: 'Não Vinculadas',
+        value: conversasCounts.naoVinculadas.toString(),
+        icon: UserX,
+        color: 'text-red-600',
+        bg: 'bg-red-100',
+        description: 'Sem lead'
+      },
+      {
+        title: 'Leads WhatsApp',
+        value: leadsWhatsAppCount.toString(),
+        icon: UserCheck,
+        color: 'text-emerald-600',
+        bg: 'bg-emerald-100',
+        description: 'Viraram lead'
+      },
+      {
+        title: 'Conversão para Lead',
+        value: `${convLead}%`,
+        icon: TrendingUp,
+        color: 'text-cyan-600',
+        bg: 'bg-cyan-100',
+        description: 'Conversa -> Lead'
+      },
+      {
+        title: 'Matrículas WhatsApp',
+        value: matriculadosWhatsApp.toString(),
+        icon: CheckCircle,
+        color: 'text-green-600',
+        bg: 'bg-green-100',
+        description: 'Matriculados'
+      },
+      {
+        title: 'Conversão p/ Matrícula',
+        value: `${convMatricula}%`,
+        icon: TrendingUp,
+        color: 'text-green-600',
+        bg: 'bg-green-100',
+        description: 'Lead -> Matrícula'
+      }
+    ];
+  }, [leads, conversasCounts, avgResponseTime, startDate, endDate]);
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -1374,141 +1500,27 @@ export default function CRM() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-8">
-          <Card className="bg-primary/5 border-primary/20">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-2xl font-bold">{kpis.leadsWhatsApp}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Leads WhatsApp</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-8">
+          {stats.map((stat, idx) => (
+            <Card key={idx} className={cn("transition-all hover:shadow-md", stat.bg?.replace('bg-', 'bg-opacity-10 bg-'))}>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn("p-2 rounded-lg", stat.bg)}>
+                    <stat.icon className={cn("w-5 h-5", stat.color)} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-2xl font-bold truncate">{stat.value}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold truncate">
+                      {stat.title}
+                    </p>
+                    {stat.description && (
+                      <p className="text-[9px] text-muted-foreground/70 truncate">{stat.description}</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-emerald-500" />
-                <div>
-                  <p className="text-2xl font-bold">{conversasCounts.ativas}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Conversas Ativas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-amber-500" />
-                <div>
-                  <p className="text-2xl font-bold text-amber-600">{conversasCounts.semResposta}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Chats sem Resposta</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-sky-500" />
-                <div>
-                  <p className="text-2xl font-bold">{avgResponseTime}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Tempo Médio Resposta</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-500" />
-                <div>
-                  <p className="text-2xl font-bold">{kpis.total}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Leads no Período</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-green-600" />
-                <div>
-                  <p className="text-2xl font-bold text-green-700">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(kpis.valorPipeline)}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Valor em Pipeline</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <UserCheck className="w-5 h-5 text-green-500" />
-                <div>
-                  <p className="text-2xl font-bold text-green-600">{kpis.convertidos}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Convertidos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-2xl font-bold">{kpis.taxaConversao}%</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Taxa Conversão</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-amber-500" />
-                <div>
-                  <p className="text-2xl font-bold text-amber-600">{kpis.emNegociacao}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Em Negociação</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <UserX className="w-5 h-5 text-red-500" />
-                <div>
-                  <p className="text-2xl font-bold text-red-600">{kpis.perdidos}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Perdidos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-indigo-500" />
-                <div>
-                  <p className="text-2xl font-bold text-indigo-600">{conversasCounts.naoVinculadas}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Não Vinculadas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-emerald-500" />
-                <div>
-                  <p className="text-2xl font-bold text-emerald-600">{conversasCounts.total}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Conversas WhatsApp</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         {/* Charts Section */}
@@ -1565,7 +1577,13 @@ export default function CRM() {
         </div>
 
         <ConversasWhatsAppSection
-          onCountsChange={setConversasCounts}
+              onCountsChange={(counts) => setConversasCounts({
+                total: counts.total,
+                naoVinculadas: counts.naoVinculadas,
+                semResposta: counts.semResposta,
+                ativas: counts.ativas,
+                totalMensagens: counts.totalMensagens ?? conversasCounts.totalMensagens
+              })}
           onLeadCreated={fetchLeads}
         />
 

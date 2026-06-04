@@ -2873,6 +2873,75 @@ export type Database = {
           },
         ]
       }
+      whatsapp_conversations: {
+        Row: {
+          contact_name: string | null
+          created_at: string | null
+          first_inbound_at: string | null
+          first_response_at: string | null
+          id: string
+          is_linked_to_lead: boolean | null
+          last_message_at: string | null
+          last_message_direction: string | null
+          last_message_text: string | null
+          lead_id: string | null
+          phone: string
+          phone_normalized: string
+          status_conversa: string | null
+          unidade_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          contact_name?: string | null
+          created_at?: string | null
+          first_inbound_at?: string | null
+          first_response_at?: string | null
+          id?: string
+          is_linked_to_lead?: boolean | null
+          last_message_at?: string | null
+          last_message_direction?: string | null
+          last_message_text?: string | null
+          lead_id?: string | null
+          phone: string
+          phone_normalized: string
+          status_conversa?: string | null
+          unidade_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          contact_name?: string | null
+          created_at?: string | null
+          first_inbound_at?: string | null
+          first_response_at?: string | null
+          id?: string
+          is_linked_to_lead?: boolean | null
+          last_message_at?: string | null
+          last_message_direction?: string | null
+          last_message_text?: string | null
+          lead_id?: string | null
+          phone?: string
+          phone_normalized?: string
+          status_conversa?: string | null
+          unidade_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_conversations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversations_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_envios_log: {
         Row: {
           canal: string
@@ -2914,6 +2983,78 @@ export type Database = {
           zapi_status_code?: number | null
         }
         Relationships: []
+      }
+      whatsapp_messages: {
+        Row: {
+          contact_name: string | null
+          created_at: string | null
+          direction: string
+          first_response_at: string | null
+          id: string
+          lead_id: string | null
+          message_id: string | null
+          message_text: string | null
+          message_type: string | null
+          phone: string
+          phone_normalized: string
+          received_at: string | null
+          replied_at: string | null
+          status: string | null
+          timestamp: string | null
+          unidade_id: string | null
+        }
+        Insert: {
+          contact_name?: string | null
+          created_at?: string | null
+          direction: string
+          first_response_at?: string | null
+          id?: string
+          lead_id?: string | null
+          message_id?: string | null
+          message_text?: string | null
+          message_type?: string | null
+          phone: string
+          phone_normalized: string
+          received_at?: string | null
+          replied_at?: string | null
+          status?: string | null
+          timestamp?: string | null
+          unidade_id?: string | null
+        }
+        Update: {
+          contact_name?: string | null
+          created_at?: string | null
+          direction?: string
+          first_response_at?: string | null
+          id?: string
+          lead_id?: string | null
+          message_id?: string | null
+          message_text?: string | null
+          message_type?: string | null
+          phone?: string
+          phone_normalized?: string
+          received_at?: string | null
+          replied_at?: string | null
+          status?: string | null
+          timestamp?: string | null
+          unidade_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
