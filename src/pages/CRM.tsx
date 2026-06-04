@@ -1720,7 +1720,7 @@ export default function CRM() {
                         <TableCell>
                           <Badge variant="outline">{statusLabels[lead.status_funil] || lead.status_funil}</Badge>
                         </TableCell>
-                        <TableCell>{unidadesPermitidas.find(u => u.id === lead.unidade_id)?.nome || '-'}</TableCell>
+                        <TableCell>{unidadeAtual?.nome || '-'}</TableCell>
                         <TableCell className="text-right">
                           <Button size="sm" variant="ghost" asChild>
                             <Link to={`/lead/${lead.id}`}>
