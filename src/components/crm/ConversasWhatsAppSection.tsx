@@ -108,8 +108,8 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
     setLoading(true);
 
     let query = supabase
-      .from('agente_atendimentos')
-      .select('id, nome, telefone, unidade_id, ultima_interacao_at, status, lead_id, lead:leads(id, nome, is_matriculado, status_funil)')
+      .from('whatsapp_conversations')
+      .select('id, contact_name, phone, unidade_id, last_message_at, status_conversa, lead_id, is_linked_to_lead, last_message_text, last_message_direction, lead:leads(id, nome, is_matriculado, status_funil)')
       .neq('status', 'arquivado')
       .eq('unidade_id', unidadeAtual.id)
       .order('ultima_interacao_at', { ascending: false })
