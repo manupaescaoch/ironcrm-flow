@@ -266,7 +266,7 @@ export default function DashboardOperacional() {
   // O acesso ao dashboard operacional agora é liberado para todos os usuários conforme solicitado
   // if (!isAdmin) return <Navigate to="/" replace />;
 
-  const { data: live } = useDashboardOperacionalData(periodo, unidade);
+  const { data: live, refetch } = useDashboardOperacionalData(periodo, unidade);
   const m: typeof mock = (live as any) ?? mock;
 
   const v = m.visaoGeral;
