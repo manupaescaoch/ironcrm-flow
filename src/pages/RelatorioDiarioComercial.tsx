@@ -135,11 +135,35 @@ export default function RelatorioDiarioComercial() {
     });
     list.push({
       key: 'unidade', categoria: 'Identificação', pergunta: 'Qual unidade?',
-      canContinue: !!r.unidade,
-      render: () => (<>
-        <OptionCard emoji="🌳" label="Zona Norte" selected={r.unidade === 'ZONA NORTE'} onClick={() => set('unidade', 'ZONA NORTE')} />
-        <OptionCard emoji="🌊" label="Zona Sul" selected={r.unidade === 'ZONA SUL'} onClick={() => set('unidade', 'ZONA SUL')} />
-      </>),
+      canContinue: !!r.unidadeId,
+      render: () => (
+        <div className="grid grid-cols-1 gap-3">
+          {unidadesPermitidas.filter(u => u.id !== '00000000-0000-0000-0000-000000000000').map((u) => {
+            const label = u.nome.toUpperCase().includes('MADALENA') || u.nome.toUpperCase().includes('NORTE') ? 'ZONA NORTE' : 
+                         u.nome.toUpperCase().includes('VIAGEM') || u.nome.toUpperCase().includes('SUL') ? 'ZONA SUL' : u.nome;
+            const emoji = label === 'ZONA NORTE' ? '🌳' : label === 'ZONA SUL' ? '🌊' : '📍';
+            
+            return (
+              <OptionCard 
+                key={u.id}
+                emoji={emoji} 
+                label={label} 
+                selected={r.unidadeId === u.id} 
+                onClick={() => {
+                  set('unidadeId', u.id);
+                  set('unidade', label);
+                }} 
+              />
+            );
+          })}
+          {unidadesPermitidas.length === 0 && !unitsLoading && (
+            <p className="text-center text-sm text-anamnese-muted-foreground">
+              Nenhuma unidade vinculada ao seu usuário.
+            </p>
+          )}
+          {unitsLoading && <Loader2 className="mx-auto h-6 w-6 animate-spin" />}
+        </div>
+      ),
     });
 
     // Métricas do dia
