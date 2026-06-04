@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Layout } from '@/components/Layout';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
