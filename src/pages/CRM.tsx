@@ -921,8 +921,45 @@ export default function CRM() {
     const novos = filteredLeads.filter(l => l.status_funil === 'novo').length;
     const taxaConversao = total > 0 ? ((convertidos / total) * 100).toFixed(1) : '0';
     
-    return { total, convertidos, perdidos, emNegociacao, novos, taxaConversao };
+    const leadsWhatsApp = filteredLeads.filter(l => l.origem === 'WhatsApp').length;
+    const valorPipeline = filteredLeads.reduce((acc, l) => acc + (Number(l.valor_pipeline) || 0), 0);
+    
+    return { 
+      total, 
+      convertidos, 
+      perdidos, 
+      emNegociacao, 
+      novos, 
+      taxaConversao,
+      leadsWhatsApp,
+      valorPipeline
+    };
   }, [filteredLeads]);
+
+  // Chart data
+  const chartData = useMemo(() => {
+    // Activity by day
+    const last30Days = Array.from({ length: 30 }, (_, i) => {
+      const d = subDays(new Date(), 29 - i);
+      return format(d, 'yyyy-MM-dd');
+    });
+
+    const activity = last30Days.map(day => {
+      const count = filteredLeads.filter(l => format(new Date(l.created_at), 'yyyy-MM-dd') === day).length;
+      return { day: format(new Date(day), 'dd/MM'), count };
+    });
+
+    // Sources distribution
+    const sourceMap: Record<string, number> = {};
+    filteredLeads.forEach(l => {
+      sourceMap[l.origem] = (sourceMap[l.origem] || 0) + 1;
+    });
+    const sources = Object.entries(sourceMap).map(([name, value]) => ({ name, value }));
+
+    return { activity, sources };
+  }, [filteredLeads]);
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
