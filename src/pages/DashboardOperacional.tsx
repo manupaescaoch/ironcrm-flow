@@ -326,7 +326,14 @@ export default function DashboardOperacional() {
           {/* === VISÃO GERAL === */}
           <TabsContent value="visao" className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard icon={Users} label="Alunos ativos" value={ativos} sub={unidade === 'todas' ? `ZN ${v.alunosAtivosZN} · ZS ${v.alunosAtivosZS}` : ''} />
+              {unidade === 'todas' ? (
+                <KpiCard icon={Users} label="Alunos ativos" value={ativos} sub={`ZN ${v.alunosAtivosZN} · ZS ${v.alunosAtivosZS}`} />
+              ) : (
+                <AlunosAtivosKPI 
+                  unidadeId={unidade === 'ZN' ? 'b4df0ba8-7fa8-4f28-8924-d5ce6a9b50c6' : 'f3d048da-31d7-48df-b1f1-7e2a809c9a9a'} 
+                  onChange={() => live && (live as any).refetch?.()}
+                />
+              )}
               <KpiCard icon={Calendar} label="Experimentais hoje" value={expHoje} sub={unidade === 'todas' ? `ZN ${v.experimentaisHoje.ZN} · ZS ${v.experimentaisHoje.ZS}` : ''} />
               <KpiCard icon={DollarSign} label="Novos fechamentos" value={fechHoje} sub={unidade === 'todas' ? `ZN ${v.fechamentosHoje.ZN} · ZS ${v.fechamentosHoje.ZS}` : ''} />
               <KpiCard icon={UserMinus} label="Cancelamentos" value={cancHoje} sub="Hoje" accent="#DC2626" />
