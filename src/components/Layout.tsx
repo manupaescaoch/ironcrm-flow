@@ -47,14 +47,12 @@ const MASTER_ADMIN_EMAIL = 'emanuel.paes@gmail.com';
 
 const allNavItems = [
   { href: '/dashboard', label: 'Painel de Dados', icon: LayoutDashboard, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
-  
-  
   { href: '/vencimentos', label: 'Vencimentos', icon: CalendarClock, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/indicacoes', label: 'Indicações', icon: Gift, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/tarefas', label: 'Tarefas', icon: CheckSquare, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/operacional', label: 'Operacional', icon: ClipboardList, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
-  { href: '/reunioes', label: 'Reuniões', icon: Handshake, roles: ['admin', 'comercial', 'coordenador'], masterOnly: false, isNew: true },
+  { href: '/reunioes', label: 'Reuniões', icon: Handshake, roles: ['admin', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/estoque', label: 'Estoque', icon: Package, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/dashboard-executivo', label: 'Executivo', icon: BarChart3, roles: ['admin'], masterOnly: false },
