@@ -52,6 +52,7 @@ interface Respostas {
 const initial: Respostas = {
   nome: '',
   unidade: '',
+  unidadeId: '',
   data: new Date(),
   totalAtivos: '',
   leads: '',
