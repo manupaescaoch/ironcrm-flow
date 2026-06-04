@@ -16,6 +16,7 @@ import {
   CartesianGrid, Tooltip as RTooltip, Legend,
 } from 'recharts';
 import { useDashboardOperacionalData } from '@/hooks/useDashboardOperacionalData';
+import { AlunosAtivosKPI } from '@/components/dashboard/AlunosAtivosKPI';
 
 // ============ MOCK DATA ============
 const mock = {
