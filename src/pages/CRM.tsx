@@ -995,52 +995,140 @@ export default function CRM() {
     });
   }, [leads, search, filterOrigem, filterCadastradoPor, filterStatus, startDate, endDate]);
 
-  // KPI calculations
-  const kpis = useMemo(() => {
-    const total = filteredLeads.length;
-    const convertidos = filteredLeads.filter(l => l.status_funil === 'convertido').length;
-    const perdidos = filteredLeads.filter(l => l.status_funil === 'perdido').length;
-    const emNegociacao = filteredLeads.filter(l => ['aula_agendada', 'aula_realizada', 'negociacao', 'follow_up'].includes(l.status_funil)).length;
-    const novos = filteredLeads.filter(l => l.status_funil === 'novo').length;
-    const taxaConversao = total > 0 ? ((convertidos / total) * 100).toFixed(1) : '0';
-    
-    const leadsWhatsApp = filteredLeads.filter(l => l.origem === 'WhatsApp').length;
-    const valorPipeline = filteredLeads.reduce((acc, l) => acc + (Number(l.valor_pipeline) || 0), 0);
-    
-    return { 
-      total, 
-      convertidos, 
-      perdidos, 
-      emNegociacao, 
-      novos, 
-      taxaConversao,
-      leadsWhatsApp,
-      valorPipeline
-    };
-  }, [filteredLeads]);
-
-  // Chart data
+  // Chart data based on WhatsApp and Leads activity
   const chartData = useMemo(() => {
-    // Activity by day
     const last30Days = Array.from({ length: 30 }, (_, i) => {
       const d = subDays(new Date(), 29 - i);
       return format(d, 'yyyy-MM-dd');
     });
 
+    // Activity: Received WhatsApp Messages vs New Leads from WhatsApp
     const activity = last30Days.map(day => {
-      const count = filteredLeads.filter(l => format(new Date(l.created_at), 'yyyy-MM-dd') === day).length;
-      return { day: format(new Date(day), 'dd/MM'), count };
+      const leadsOnDay = leads.filter(l => 
+        format(new Date(l.created_at), 'yyyy-MM-dd') === day && 
+        (l.origem === 'WhatsApp' || l.fonte === 'WhatsApp')
+      ).length;
+      
+      return { 
+        day: format(new Date(day), 'dd/MM'), 
+        leads: leadsOnDay 
+      };
     });
 
-    // Sources distribution
+    // Sources distribution (Leads table)
     const sourceMap: Record<string, number> = {};
     filteredLeads.forEach(l => {
-      sourceMap[l.origem] = (sourceMap[l.origem] || 0) + 1;
+      const src = l.origem || 'Outros';
+      sourceMap[src] = (sourceMap[src] || 0) + 1;
     });
     const sources = Object.entries(sourceMap).map(([name, value]) => ({ name, value }));
 
     return { activity, sources };
-  }, [filteredLeads]);
+  }, [leads, filteredLeads]);
+
+  // WhatsApp-centric stats for KPI cards
+  const stats = useMemo(() => {
+    const leadsWhatsApp = leads.filter(l => {
+      let match = (l.origem === 'WhatsApp' || l.fonte === 'WhatsApp');
+      if (startDate) match = match && new Date(l.created_at) >= startDate;
+      if (endDate) match = match && new Date(l.created_at) <= endDate;
+      return match;
+    });
+
+    const matriculadosWhatsApp = leadsWhatsApp.filter(l => l.is_matriculado).length;
+    const leadsWhatsAppCount = leadsWhatsApp.length;
+    
+    const convLead = conversasCounts.total > 0 
+      ? Math.round((leadsWhatsAppCount / conversasCounts.total) * 100) 
+      : 0;
+    
+    const convMatricula = leadsWhatsAppCount > 0 
+      ? Math.round((matriculadosWhatsApp / leadsWhatsAppCount) * 100) 
+      : 0;
+
+    return [
+      {
+        title: 'Mensagens Recebidas',
+        value: conversasCounts.totalMensagens.toString(),
+        icon: MessageCircle,
+        color: 'text-blue-600',
+        bg: 'bg-blue-100',
+        description: 'Recebidas no período'
+      },
+      {
+        title: 'Conversas WhatsApp',
+        value: conversasCounts.total.toString(),
+        icon: Users,
+        color: 'text-green-600',
+        bg: 'bg-green-100',
+        description: 'Conversas únicas'
+      },
+      {
+        title: 'Conversas Ativas',
+        value: conversasCounts.ativas.toString(),
+        icon: Activity,
+        color: 'text-purple-600',
+        bg: 'bg-purple-100',
+        description: 'Em aberto'
+      },
+      {
+        title: 'Sem Resposta',
+        value: conversasCounts.semResposta.toString(),
+        icon: Clock,
+        color: 'text-amber-600',
+        bg: 'bg-amber-100',
+        description: 'Aguardando equipe'
+      },
+      {
+        title: 'Tempo Médio Resposta',
+        value: avgResponseTime,
+        icon: Clock,
+        color: 'text-indigo-600',
+        bg: 'bg-indigo-100',
+        description: 'Média de resposta'
+      },
+      {
+        title: 'Não Vinculadas',
+        value: conversasCounts.naoVinculadas.toString(),
+        icon: UserX,
+        color: 'text-red-600',
+        bg: 'bg-red-100',
+        description: 'Sem lead'
+      },
+      {
+        title: 'Leads WhatsApp',
+        value: leadsWhatsAppCount.toString(),
+        icon: UserCheck,
+        color: 'text-emerald-600',
+        bg: 'bg-emerald-100',
+        description: 'Viraram lead'
+      },
+      {
+        title: 'Conversão para Lead',
+        value: `${convLead}%`,
+        icon: TrendingUp,
+        color: 'text-cyan-600',
+        bg: 'bg-cyan-100',
+        description: 'Conversa -> Lead'
+      },
+      {
+        title: 'Matrículas WhatsApp',
+        value: matriculadosWhatsApp.toString(),
+        icon: CheckCircle,
+        color: 'text-green-600',
+        bg: 'bg-green-100',
+        description: 'Matriculados'
+      },
+      {
+        title: 'Conversão p/ Matrícula',
+        value: `${convMatricula}%`,
+        icon: TrendingUp,
+        color: 'text-green-600',
+        bg: 'bg-green-100',
+        description: 'Lead -> Matrícula'
+      }
+    ];
+  }, [leads, conversasCounts, avgResponseTime, startDate, endDate]);
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
