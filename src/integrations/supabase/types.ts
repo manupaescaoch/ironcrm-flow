@@ -3115,6 +3115,10 @@ export type Database = {
         Args: { _object_name: string; _user_id: string }
         Returns: boolean
       }
+      user_can_access_rotina_comprovante_by_unidade: {
+        Args: { _object_name: string; _user_id: string }
+        Returns: boolean
+      }
       user_can_insert_rotina_comprovante: {
         Args: { _object_name: string; _user_id: string }
         Returns: boolean
