@@ -3,7 +3,7 @@ import { Users, CalendarCheck, Calendar, Award, CheckCircle2, Filter, UserX } fr
 import { KPICard } from '@/components/ui/kpi-card';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
 import { TaxaComparecimentoKPI } from '@/components/dashboard/TaxaComparecimentoKPI';
-
+import { FunilComercialCard } from '@/components/dashboard/FunilComercialCard';
 import { DiagnosticoSemanaCard } from '@/components/dashboard/DiagnosticoSemanaCard';
 import { AlunosAtivosKPI } from '@/components/dashboard/AlunosAtivosKPI';
 import { Stats, PeriodStats } from '@/components/dashboard/constants';
@@ -123,6 +123,13 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
 
       {/* Linha 2 — Funil Comercial + Diagnóstico da Semana */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+        <FunilComercialCard
+          leads={stats.total}
+          agendamentos={periodStats.experimentaisPeriodo}
+          comparecimentos={periodStats.comparecimentosPeriodo}
+          matriculas={periodStats.matriculasPeriodo}
+          conversaoMesmoDia={periodStats.conversaoMesmoDia}
+        />
         <DiagnosticoSemanaCard
           leads={stats.total}
           agendamentos={periodStats.experimentaisPeriodo}

@@ -10,7 +10,9 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import DashboardExecutivo from "./pages/DashboardExecutivo";
+import CRM from "./pages/CRM";
 import LeadDetail from "./pages/LeadDetail";
+import Kanban from "./pages/Kanban";
 import Comissoes from "./pages/Comissoes";
 
 import GestaoTarefas from "./pages/GestaoTarefas";
@@ -36,7 +38,7 @@ import RelatorioDiarioComercial from "./pages/RelatorioDiarioComercial";
 import GruposWhatsApp from "./pages/admin/GruposWhatsApp";
 import WhatsAppComercial from "./pages/admin/WhatsAppComercial";
 import ZapiConexoes from "./pages/admin/ZapiConexoes";
-
+import DashboardOperacional from "./pages/DashboardOperacional";
 
 import GestaoOperacional from "./pages/GestaoOperacional";
 import Reunioes from "./pages/Reunioes";
@@ -174,12 +176,12 @@ const AppRoutes = () => (
     <Route path="/encerramento-turno" element={<EncerramentoTurno />} />
     <Route path="/encerramento-coordenador" element={<EncerramentoCoordenador />} />
     <Route path="/encerramento-horario" element={<EncerramentoHorario />} />
-    <Route path="/relatorio-diario-comercial" element={<ProtectedRoute><RelatorioDiarioComercial /></ProtectedRoute>} />
+    <Route path="/relatorio-diario-comercial" element={<RelatorioDiarioComercial />} />
     <Route path="/admin/grupos-whatsapp" element={<ProtectedRoute><GruposWhatsApp /></ProtectedRoute>} />
     <Route path="/admin/whatsapp-comercial" element={<ProtectedRoute><WhatsAppComercial /></ProtectedRoute>} />
     <Route path="/admin/zapi-conexoes" element={<AdminRoute><ZapiConexoes /></AdminRoute>} />
 
-    
+    <Route path="/dashboard-operacional" element={<ProtectedRoute><DashboardOperacional /></ProtectedRoute>} />
     <Route path="/anamnese-publica/:id" element={<AnamnesePublica />} />
     <Route path="/" element={<Navigate to="/dashboard" replace />} />
     <Route
@@ -208,8 +210,14 @@ const AppRoutes = () => (
         </AdminRoute>
       }
     />
-    <Route path="/crm" element={<Navigate to="/dashboard" replace />} />
-    <Route path="/conversas-whatsapp" element={<Navigate to="/dashboard" replace />} />
+    <Route
+      path="/crm"
+      element={
+        <ProtectedRoute>
+          <CRM />
+        </ProtectedRoute>
+      }
+    />
     <Route
       path="/lead/:id"
       element={
@@ -226,7 +234,14 @@ const AppRoutes = () => (
         </ProtectedRoute>
       }
     />
-    <Route path="/kanban" element={<Navigate to="/dashboard" replace />} />
+    <Route
+      path="/kanban"
+      element={
+        <ProtectedRoute>
+          <Kanban />
+        </ProtectedRoute>
+      }
+    />
     <Route
       path="/comissoes"
       element={
@@ -350,9 +365,9 @@ const AppRoutes = () => (
     <Route
       path="/gestao-operacional"
       element={
-        <ProtectedRoute>
+        <AdminRoute>
           <GestaoOperacional />
-        </ProtectedRoute>
+        </AdminRoute>
       }
     />
     <Route path="*" element={<NotFound />} />

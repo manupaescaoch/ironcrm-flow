@@ -207,7 +207,7 @@ export default function LeadDetail() {
 
     if (error || !data) {
       toast({ title: 'Lead não encontrado', variant: 'destructive' });
-      navigate('/dashboard');
+      navigate('/crm');
       return;
     }
     setLead(data as unknown as Lead);
@@ -583,7 +583,7 @@ export default function LeadDetail() {
       <div className="p-8">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
+            <Button variant="ghost" size="icon" onClick={() => navigate('/crm')}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>

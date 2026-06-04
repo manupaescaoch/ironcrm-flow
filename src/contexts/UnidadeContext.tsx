@@ -56,21 +56,17 @@ export function UnidadeProvider({ children }: { children: ReactNode }) {
       // If admin, has access to all units
       if (isAdmin) {
         setUnidadesPermitidas(todasUnidades || []);
-
-        // Restore from localStorage or default to first unit (excluindo "Não definida")
+        
+        // Restore from localStorage or default to first unit
         const savedUnidadeId = localStorage.getItem(STORAGE_KEY);
         const savedUnidade = todasUnidades?.find(u => u.id === savedUnidadeId);
-        const NAO_DEFINIDA_ID = '00000000-0000-0000-0000-000000000000';
-        const unidadesReais = (todasUnidades || []).filter(u => u.id !== NAO_DEFINIDA_ID);
-
+        
         if (savedUnidade) {
           setUnidadeAtualState(savedUnidade);
-        } else if (unidadesReais.length > 0) {
-          setUnidadeAtualState(unidadesReais[0]);
         } else if (todasUnidades && todasUnidades.length > 0) {
           setUnidadeAtualState(todasUnidades[0]);
         }
-
+        
         setLoading(false);
         return;
       }

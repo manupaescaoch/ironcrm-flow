@@ -1,96 +1,69 @@
-## Objetivo
+## Nova arquitetura de envio (corrigida pelo usuário)
 
-Unificar tudo na página `/crm` (Funil de Vendas). Remover a página/rota `/conversas-whatsapp` e o item correspondente no menu lateral. As conversas do WhatsApp passam a viver como uma seção dentro do próprio Funil, entre os KPIs e a lista/kanban de leads.
+| Tipo | Destino | Chip |
+|---|---|---|
+| Confirmação experimental (24h e 2h antes) | **Telefone do lead** | Comercial |
+| Follow-up (D+1/D+7/D+15/D+30) | **Telefone do lead** | Comercial |
+| Respostas de anamnese | **Grupo da unidade** | Comercial |
 
-## Ordem visual final em `/crm`
+Isso **revoga** a regra core anterior que dizia "chip nunca manda direto ao lead". A nova regra: confirmação e FU vão direto ao aluno; só anamnese vai pro grupo.
 
-1. Cabeçalho — título "Funil de Vendas", subtítulo "Gestão dos leads e conversas recebidas pelo WhatsApp"
-2. Filtros existentes (período, unidade, exportar, novo lead, importar planilha) — mantidos como estão
-3. KPIs (cards existentes + 3 novos)
-4. Seção **Conversas do WhatsApp**
-5. Lista/Kanban de leads (como está hoje)
+## Bug 1 — Cron está chamando a função certa, mas ela estava silenciosa
 
-## 1. KPIs — adicionar 3 cards
+`confirmacao-experimental-cada-15min` chama `confirmacao-experimental-automatica`, que já envia direto ao lead pelo chip comercial. **Manter assim.** O motivo de não ter saído nada desde 31/05 é o Bug 2 abaixo + o guard `phoneExists` falhando porque o token estava errado.
 
-Manter os KPIs atuais e somar:
+Ações:
+- **Não trocar** o cron para `send-confirmacao-recepcao`.
+- Marcar `send-confirmacao-recepcao` como descontinuada (comentário no topo do arquivo) para evitar uso futuro acidental.
 
-- **Conversas WhatsApp** — total de `agente_atendimentos` no período/unidade selecionados
-- **Não vinculadas** — `agente_atendimentos` com `lead_id IS NULL` e `status != 'arquivado'`
-- **Sem resposta** — `agente_atendimentos` cuja última mensagem em `agente_mensagens` tem `role = 'user'` (i.e. ainda não respondemos)
+## Bug 2 — Mistura de credenciais (instance comercial + token legado)
 
-Todos respeitam o filtro de período e unidade já usado pela página.
+Quatro funções carregam o `ZAPI_INSTANCE_ID` da comercial mas o `ZAPI_TOKEN` / `ZAPI_CLIENT_TOKEN` da instância legada. Como instance + token precisam casar na Z-API, isso gera `{"error":"Instance not found"}` — exatamente o erro nos logs de `notify-feedback-experimental` e `notify-boas-vindas-matricula` em 02/06. Também faz o `phoneExists` da confirmação retornar `false`, bloqueando todos os envios silenciosamente.
 
-## 2. Nova seção "Conversas do WhatsApp"
+Padrão atual (errado):
+```
+ZAPI_INSTANCE_ID  = ZAPI_COMERCIAL_INSTANCE_ID ?? ZAPI_INSTANCE_ID
+ZAPI_TOKEN        = ZAPI_TOKEN                     // legacy
+ZAPI_CLIENT_TOKEN = ZAPI_CLIENT_TOKEN              // legacy
+```
 
-Componente novo `src/components/crm/ConversasWhatsAppSection.tsx`, renderizado logo abaixo do bloco de KPIs em `src/pages/CRM.tsx`.
+Padrão correto (já usado em `notify-anamnese-experimental`):
+```
+ZAPI_INSTANCE_ID  = ZAPI_COMERCIAL_INSTANCE_ID  ?? ZAPI_INSTANCE_ID
+ZAPI_TOKEN        = ZAPI_COMERCIAL_TOKEN        ?? ZAPI_TOKEN
+ZAPI_CLIENT_TOKEN = ZAPI_COMERCIAL_CLIENT_TOKEN ?? ZAPI_CLIENT_TOKEN
+```
 
-Conteúdo:
+Funções a corrigir:
+- `supabase/functions/send-fu-digest-comercial/index.ts`
+- `supabase/functions/notify-feedback-experimental/index.ts`
+- `supabase/functions/notify-boas-vindas-matricula/index.ts`
+- `supabase/functions/send-confirmacao-recepcao/index.ts` (mesmo descontinuada, deixar consistente)
 
-- Título "Conversas do WhatsApp" + subtítulo "Números recebidos pelo WhatsApp ainda não vinculados ou em processo de qualificação"
-- Tabs/segmento: **Não vinculadas** (padrão) | **Vinculadas** | **Todas**
-- Busca por nome / telefone / trecho de mensagem
-- Botão "Atualizar" + realtime via `postgres_changes` em `agente_atendimentos` e `agente_mensagens`
-- Lista (limit ~50, com "Ver mais") onde cada item mostra:
-  - Nome (ou últimos 4 dígitos do telefone)
-  - Telefone
-  - Última mensagem (preview)
-  - Data/hora da última interação (`formatDistanceToNow` pt-BR)
-  - Unidade (badge)
-  - Status da conversa
-  - Badge: **Não vinculado** / **Vinculado** / **Lead criado** (quando `lead_id` aponta para lead `is_matriculado=false`/`true`)
-  - Botão **Ver conversa** → reaproveita o `Sheet` de histórico
-  - Botão **Transformar em Lead** (oculto se já vinculado)
-  - Ícone **Arquivar** (admin)
+OK e não serão tocadas:
+- `notify-anamnese-experimental` (padrão correto, envia ao grupo da unidade)
+- `confirmacao-experimental-automatica`, `send-follow-ups-automaticos` (usam `getZapiCreds('comercial')` no helper, que já compõe instance+token+client_token coerentes)
 
-## 3. Modal "Transformar em Lead"
+## Atualização de memória
 
-Reaproveita a lógica que já existe em `ConversasWhatsApp.tsx`, com 1 campo a mais conforme pedido:
+Substituir a regra core atual:
+> "Z-API chip never messages leads directly. FU → grupo comercial da unidade; Confirmação experimental → telefone da recepção."
 
-- Nome (pré-preenchido, uppercase)
-- Telefone (readonly)
-- Unidade de destino (default = unidade ativa)
-- Fonte = WHATSAPP (fixo)
-- **Responsável** (novo) — Select com usuários da unidade, default = usuário logado → grava em `leads.responsavel_id` / `cadastrado_por`
-- **Observação** (novo, opcional) — textarea; se preenchido, cria uma `lead_interactions` com tipo "observacao"
+Por:
+> "Confirmação experimental (24h/2h) e FU (D+1/D+7/D+15/D+30) → telefone do lead, chip comercial. Respostas de anamnese → grupo da unidade, chip comercial."
 
-Ao confirmar:
-1. Verifica duplicidade por `telefone_normalizado` (ativo). Se existir → apenas vincula `agente_atendimentos.lead_id`.
-2. Senão `INSERT INTO leads` com `fonte='WHATSAPP'`, `status_funil='novo'`, `status_conversa='aguardando_resposta'`, `unidade_id`, `created_by`, `responsavel_id`.
-3. `UPDATE agente_atendimentos SET lead_id, unidade_id WHERE id`.
-4. Invalida queries do funil e KPIs → lead aparece imediatamente na lista/kanban abaixo e os KPIs recalculam.
+Atualizar também as memórias detalhadas referenciadas:
+- `mem://features/whatsapp-comercial-architecture`
+- `mem://features/confirmacao-experimental-automatica`
+- `mem://features/follow-ups-automation`
+- `mem://features/whatsapp-chip-protection` (manter rate limit, status check, phone-exists)
 
-## 4. Navegação
+## Validação
 
-- `src/App.tsx` → remover a rota `/conversas-whatsapp` e o import de `ConversasWhatsApp`.
-- `src/components/Layout.tsx` → remover o item "Conversas WhatsApp" do sidebar e o badge de contagem.
-- Manter no menu apenas: Painel de Dados, Funil de Vendas e os demais já existentes.
-- Deletar `src/pages/ConversasWhatsApp.tsx` (toda a UI vira parte do CRM).
+1. Disparar `confirmacao-experimental-automatica` manualmente — esperar envios bem-sucedidos para os leads de hoje/amanhã na janela.
+2. Disparar `notify-feedback-experimental` num caso recente — confirmar que `{"error":"Instance not found"}` desapareceu.
+3. Conferir `whatsapp_envios_log` com `sucesso=true, canal=comercial, tipo_destino=lead` nas próximas execuções.
 
-## 5. Arquivos
+## Fora do escopo
 
-**Novos**
-- `src/components/crm/ConversasWhatsAppSection.tsx` — seção principal
-- `src/components/crm/ConversaHistoricoSheet.tsx` — drawer de histórico
-- `src/components/crm/TransformarEmLeadModal.tsx` — modal (com Responsável + Observação)
-- `src/hooks/useConversasWhatsApp.ts` — fetch + realtime + filtros por período/unidade
-
-**Editados**
-- `src/pages/CRM.tsx` — montar a nova ordem (Cabeçalho → Filtros → KPIs → Conversas → Lista/Kanban) e passar período/unidade
-- `src/hooks/useDashboardStats.ts` (ou o hook de KPIs do CRM) — adicionar os 3 KPIs novos
-- `src/App.tsx` — remover rota
-- `src/components/Layout.tsx` — remover item do sidebar
-
-**Removidos**
-- `src/pages/ConversasWhatsApp.tsx`
-
-## Detalhes técnicos
-
-- Webhook `whatsapp-inbound-webhook` permanece igual: continua **não criando lead automaticamente**, só `agente_atendimentos` + `agente_mensagens`. Toda criação de lead é manual via o modal.
-- RLS atual de `agente_atendimentos`/`agente_mensagens` já cobre o uso (admin + usuários com a unidade vinculada).
-- Sem migrations novas. Nenhuma alteração de schema.
-
-## Fora de escopo
-
-- Enviar mensagens de saída pelo CRM (continua leitura).
-- Anexos (imagem/áudio).
-- Mudar a lógica do webhook ou dos KPIs já existentes.
+Nada de UI, RLS, schema, templates, ou novos crons.

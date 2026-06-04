@@ -44,15 +44,6 @@ export interface Lead {
   data_perda: string | null;
   // Matricula status (security field)
   is_matriculado: boolean;
-  // Unidade / CRM extras
-  unidade_id: string;
-  telefone_normalizado?: string | null;
-  fonte?: string | null;
-  status_conversa?: string | null;
-  ultima_interacao_at?: string | null;
-  valor_pipeline?: number | null;
-  convertido_em_aluno_at?: string | null;
-  atendimento_id?: string | null;
 }
 
 export type StatusAvaliacao = 'agendada' | 'realizada' | 'faltou' | 'reagendada';

@@ -694,7 +694,7 @@ export default function AdminUsers() {
                   <span className="font-semibold text-red-600">Admin</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Acesso total: Dashboard, Executivo, Vencimentos, Comissões, Relatórios, Usuários e Gestão
+                  Acesso total: Dashboard, Executivo, CRM, Funil, Comissões, Relatório, Usuários
                 </p>
               </div>
               <div className="p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
@@ -703,7 +703,7 @@ export default function AdminUsers() {
                   <span className="font-semibold text-blue-600">Recepção</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Acesso: Dashboard, Vencimentos, Comissões e Tarefas. Edita apenas leads próprios.
+                  Acesso: Dashboard, CRM, Funil. Edita apenas leads próprios.
                 </p>
               </div>
               <div className="p-4 rounded-lg bg-green-500/5 border border-green-500/20">
@@ -712,7 +712,7 @@ export default function AdminUsers() {
                   <span className="font-semibold text-green-600">Comercial</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Acesso: Dashboard, Vencimentos, Comissões e Tarefas. Edita apenas leads próprios.
+                  Acesso: Dashboard, CRM, Funil. Edita apenas leads próprios.
                 </p>
               </div>
             </div>

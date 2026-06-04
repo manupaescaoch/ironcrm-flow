@@ -7,8 +7,8 @@ export type TipoFormulario =
   | 'relatorio_comercial';
 
 /**
- * Fluxo — usado pelas páginas /encerramento-* e /relatorio-diario-comercial.
- * O Relatório Diário Comercial exige autenticação e RLS escopado.
+ * Fluxo PÚBLICO — usado pelas páginas /encerramento-* e /relatorio-diario-comercial,
+ * que rodam sem usuário autenticado.
  *
  * A página primeiro insere a resposta na tabela canônica (`encerramento_*_respostas`
  * ou `relatorio_diario_comercial_respostas`) via RLS pública e depois passa apenas

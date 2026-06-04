@@ -1,1 +1,0 @@
-ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS confirmacao_imediata_enviada_em TIMESTAMP WITH TIME ZONE;
