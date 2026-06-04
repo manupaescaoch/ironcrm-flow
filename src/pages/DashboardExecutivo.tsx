@@ -27,7 +27,7 @@ import { useExecutivoMetrics } from '@/hooks/useExecutivoMetrics';
 
 // Components
 import { ExecutivoKPIGrid } from '@/components/executivo/ExecutivoKPIGrid';
-import { FunilExecutivoCard } from '@/components/executivo/FunilExecutivoCard';
+
 import { OrigemLeadsCards } from '@/components/executivo/OrigemLeadsCards';
 import { AgendaPresencaCard } from '@/components/executivo/AgendaPresencaCard';
 import { PerformanceCadastradorCard, PerformanceFechadorCard } from '@/components/executivo/PerformanceCards';
