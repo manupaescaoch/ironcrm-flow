@@ -83,11 +83,11 @@ export function useDashboardOperacionalData(periodo: Periodo, unidade: UnidadeFi
       const cancHojePorUnidade: Record<string, number> = { ZN: 0, ZS: 0 };
       const { data: relatHoje } = await supabase
         .from('relatorio_diario_comercial_respostas')
-        .select('unidade, cancelamentos')
+        .select('unidade_id, cancelamentos')
         .eq('data', today);
       relatHoje?.forEach((r: any) => {
-        if (r.unidade === 'ZONA NORTE') cancHojePorUnidade.ZN += r.cancelamentos || 0;
-        if (r.unidade === 'ZONA SUL') cancHojePorUnidade.ZS += r.cancelamentos || 0;
+        if (r.unidade_id === UNIDADES.ZN.id) cancHojePorUnidade.ZN += r.cancelamentos || 0;
+        if (r.unidade_id === UNIDADES.ZS.id) cancHojePorUnidade.ZS += r.cancelamentos || 0;
       });
 
       // Série semanal: leads, experimentais, fechamentos por dia (últimos 7 dias)
