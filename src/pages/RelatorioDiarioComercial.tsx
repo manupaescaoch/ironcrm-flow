@@ -334,6 +334,8 @@ export default function RelatorioDiarioComercial() {
             id: respostaId,
             nome: r.nome,
             unidade: r.unidade,
+            unidade_id: r.unidadeId,
+            submitted_by: user?.id || null,
             data: r.data ? format(r.data, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
             total_alunos_ativos: r.totalAtivos !== '' ? Number(r.totalAtivos) : null,
             leads_recebidos: r.leads !== '' ? Number(r.leads) : null,
@@ -352,7 +354,15 @@ export default function RelatorioDiarioComercial() {
           });
 
         if (error) {
-          toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
+          if (error.code === '42501') {
+            toast({ 
+              title: 'Acesso negado', 
+              description: 'Você não tem permissão para enviar relatórios para esta unidade.', 
+              variant: 'destructive' 
+            });
+          } else {
+            toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
+          }
           return;
         }
 
