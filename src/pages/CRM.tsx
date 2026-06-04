@@ -58,7 +58,21 @@ import { z } from 'zod';
 import { cn } from '@/lib/utils';
 import { validateCsvRow, type CsvRowValidationResult } from '@/utils/csvImportValidation';
 import { ConversasWhatsAppSection } from '@/components/crm/ConversasWhatsAppSection';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Clock, PieChart as PieChartIcon, Activity } from 'lucide-react';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip as RechartsTooltip, 
+  ResponsiveContainer, 
+  PieChart, 
+  Pie, 
+  Cell,
+  LineChart,
+  Line
+} from 'recharts';
 
 // Validation schema for lead creation/update
 const leadSchema = z.object({
