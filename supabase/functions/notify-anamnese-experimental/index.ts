@@ -152,9 +152,9 @@ _Anamnese preenchida pela recepção no momento da chegada do lead._`;
       });
     }
 
-    // Usar o chip OPERACIONAL para grupos "GERAL" (configurado para anamnese)
-    const creds = getZapiCreds('operacional');
-    if (!creds) throw new Error('Z-API operacional não configurada');
+    // Alterado para o chip COMERCIAL (agora as respostas das anamneses devem ser enviadas por ele)
+    const creds = getZapiCreds('comercial');
+    if (!creds) throw new Error('Z-API comercial não configurada');
 
     // [Z-API health]
     const st = await checkZapiStatus(creds);
@@ -165,7 +165,7 @@ _Anamnese preenchida pela recepção no momento da chegada do lead._`;
         sucesso: false, 
         motivo_skip: 'zapi_offline', 
         erro_msg: JSON.stringify(st.raw).slice(0, 500), 
-        canal: 'operacional' 
+        canal: 'comercial' 
       });
       await supabase.from('anamneses_experimental').update({
         notificacao_tentativas: (a.notificacao_tentativas ?? 0) + 1,
@@ -185,7 +185,7 @@ _Anamnese preenchida pela recepção no momento da chegada do lead._`;
       sucesso: reallyOk,
       erro_msg: reallyOk ? null : (zapiError || `Erro Z-API (HTTP ${respStatus})`),
       zapi_status_code: respStatus,
-      canal: 'operacional',
+      canal: 'comercial',
     });
 
     if (reallyOk) {
