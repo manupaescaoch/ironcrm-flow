@@ -1663,6 +1663,7 @@ export type Database = {
           cadastrado_por: string | null
           confirmacao_24h_enviada_em: string | null
           confirmacao_2h_enviada_em: string | null
+          confirmacao_imediata_enviada_em: string | null
           convertido_em_aluno_at: string | null
           created_at: string
           created_by: string | null
@@ -1699,6 +1700,7 @@ export type Database = {
           cadastrado_por?: string | null
           confirmacao_24h_enviada_em?: string | null
           confirmacao_2h_enviada_em?: string | null
+          confirmacao_imediata_enviada_em?: string | null
           convertido_em_aluno_at?: string | null
           created_at?: string
           created_by?: string | null
@@ -1735,6 +1737,7 @@ export type Database = {
           cadastrado_por?: string | null
           confirmacao_24h_enviada_em?: string | null
           confirmacao_2h_enviada_em?: string | null
+          confirmacao_imediata_enviada_em?: string | null
           convertido_em_aluno_at?: string | null
           created_at?: string
           created_by?: string | null
