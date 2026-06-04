@@ -384,6 +384,51 @@ export default function CRM() {
     };
   }, [unidadeAtual, startDate, endDate]);
 
+  // Fetch Average Response Time
+  useEffect(() => {
+    if (!unidadeAtual) return;
+
+    const fetchAvgResponseTime = async () => {
+      // Get messages from the last 7 days to estimate average response time
+      const sevenDaysAgo = subDays(new Date(), 7).toISOString();
+      
+      const { data: msgs, error } = await supabase
+        .from('agente_mensagens')
+        .select('atendimento_id, role, created_at')
+        .gte('created_at', sevenDaysAgo)
+        .order('created_at', { ascending: true });
+
+      if (error || !msgs || msgs.length === 0) return;
+
+      const responseTimes: number[] = [];
+      const lastUserMsgTime: Record<string, number> = {};
+
+      msgs.forEach(m => {
+        const time = new Date(m.created_at).getTime();
+        if (m.role === 'user') {
+          lastUserMsgTime[m.atendimento_id] = time;
+        } else if (m.role === 'assistant' || m.role === 'agent') {
+          if (lastUserMsgTime[m.atendimento_id]) {
+            const diff = (time - lastUserMsgTime[m.atendimento_id]) / (1000 * 60); // in minutes
+            if (diff > 0 && diff < 1440) { // filter out outliers > 24h
+              responseTimes.push(diff);
+            }
+            delete lastUserMsgTime[m.atendimento_id];
+          }
+        }
+      });
+
+      if (responseTimes.length > 0) {
+        const avg = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+        if (avg < 1) setAvgResponseTime('< 1 min');
+        else if (avg < 60) setAvgResponseTime(`${Math.round(avg)} min`);
+        else setAvgResponseTime(`${(avg / 60).toFixed(1)} h`);
+      }
+    };
+
+    fetchAvgResponseTime();
+  }, [unidadeAtual]);
+
   const uniqueOrigens = useMemo(() => {
     const origens = leads.map(l => l.origem).filter(Boolean) as string[];
     return [...new Set(origens)];
