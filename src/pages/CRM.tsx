@@ -245,7 +245,7 @@ export default function CRM() {
   // Interações no período (para KPIs de experimentais agendadas/realizadas)
   const [experimentaisAgendadasPeriodo, setExperimentaisAgendadasPeriodo] = useState(0);
   const [experimentaisRealizadasPeriodo, setExperimentaisRealizadasPeriodo] = useState(0);
-  const [conversasCounts, setConversasCounts] = useState({ total: 0, naoVinculadas: 0, semResposta: 0, ativas: 0 });
+  const [conversasCounts, setConversasCounts] = useState({ total: 0, naoVinculadas: 0, semResposta: 0, ativas: 0, totalMensagens: 0 });
   const [avgResponseTime, setAvgResponseTime] = useState<string>('0 min');
 
   const [formData, setFormData] = useState({
