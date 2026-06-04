@@ -174,7 +174,7 @@ const AppRoutes = () => (
     <Route path="/encerramento-turno" element={<EncerramentoTurno />} />
     <Route path="/encerramento-coordenador" element={<EncerramentoCoordenador />} />
     <Route path="/encerramento-horario" element={<EncerramentoHorario />} />
-    <Route path="/relatorio-diario-comercial" element={<RelatorioDiarioComercial />} />
+    <Route path="/relatorio-diario-comercial" element={<ProtectedRoute><RelatorioDiarioComercial /></ProtectedRoute>} />
     <Route path="/admin/grupos-whatsapp" element={<ProtectedRoute><GruposWhatsApp /></ProtectedRoute>} />
     <Route path="/admin/whatsapp-comercial" element={<ProtectedRoute><WhatsAppComercial /></ProtectedRoute>} />
     <Route path="/admin/zapi-conexoes" element={<AdminRoute><ZapiConexoes /></AdminRoute>} />
