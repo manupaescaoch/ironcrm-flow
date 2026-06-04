@@ -687,6 +687,7 @@ function Alertas({ kpis }: { kpis: UnidadeKPIs[] }) {
 
 export default function GestaoOperacional() {
   const { loading, kpis, refetch } = useGestaoOperacional();
+  const { isAdmin } = useAuth();
   const [selectedUnidade, setSelectedUnidade] = useState<string>('');
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
