@@ -108,7 +108,7 @@ export function ConversasWhatsAppSection({ onCountsChange, onLeadCreated }: Prop
 
     let query = supabase
       .from('whatsapp_conversations')
-      .select('id, contact_name, phone, unidade_id, last_message_at, status_conversa, lead_id, is_linked_to_lead, last_message_text, last_message_direction, lead:leads(id, nome, is_matriculado, status_funil)')
+      .select('id, contact_name, phone, unidade_id, last_message_at, status_conversa, lead_id, is_linked_to_lead, last_message_text, last_message_direction, first_inbound_at, first_response_at, lead:leads(id, nome, is_matriculado, status_funil)')
       .order('last_message_at', { ascending: false })
       .limit(200);
 

@@ -465,7 +465,18 @@ export default function CRM() {
 
 
     fetchWhatsAppKPIs();
-    return () => { cancelled = true; };
+    
+    // Subscribe to real-time updates for KPIs
+    const channel = supabase
+      .channel('whatsapp-kpis-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_conversations' }, () => fetchWhatsAppKPIs())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'whatsapp_messages' }, () => fetchWhatsAppKPIs())
+      .subscribe();
+
+    return () => { 
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
   }, [unidadeAtual, startDate, endDate]);
 
   const uniqueOrigens = useMemo(() => {
