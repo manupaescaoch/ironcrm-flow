@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Layout } from '@/components/Layout';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -298,8 +299,16 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
         <SubSection icon={PieChart} title="Ocupação">
           <MiniMetric
             label="Alunos ativos"
-            value={k.alunos_ativos}
-            sub="Editar no Dashboard"
+            value={editing ? (
+              <div className="flex items-center gap-1 w-full">
+                <Input type="number" value={value} onChange={e => setValue(+e.target.value)} className="h-7 text-base font-bold" autoFocus />
+                <Button size="sm" className="h-7 px-2" onClick={handleSave} disabled={saving}>
+                  {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : 'OK'}
+                </Button>
+              </div>
+            ) : k.alunos_ativos}
+            sub={editing ? "manual" : "Editar valor"}
+            action={!editing && <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditing(true)}>Editar</Button>}
           />
 
           <MiniMetric
@@ -687,6 +696,7 @@ function Alertas({ kpis }: { kpis: UnidadeKPIs[] }) {
 
 export default function GestaoOperacional() {
   const { loading, kpis, refetch } = useGestaoOperacional();
+  const { isAdmin } = useAuth();
   const [selectedUnidade, setSelectedUnidade] = useState<string>('');
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
@@ -712,20 +722,22 @@ export default function GestaoOperacional() {
             <span className="text-xs text-muted-foreground hidden sm:inline">
               Última atualização: hoje, {format(lastUpdate, 'HH:mm')}
             </span>
-            <Button
-              variant="outline"
-              onClick={async () => {
-                const t = toast.loading('Enviando resumo para Manu...');
-                const { data, error } = await supabase.functions.invoke('send-gestao-operacional-manu', { body: {} });
-                toast.dismiss(t);
-                if (error || (data as any)?.error) toast.error('Falha no envio: ' + (error?.message || (data as any)?.error));
-                else toast.success('Resumo enviado para Manu via WhatsApp');
-              }}
-              disabled={loading}
-            >
-              <Send className="w-4 h-4 mr-2" />
-              Enviar resumo p/ Manu
-            </Button>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const t = toast.loading('Enviando resumo para Manu...');
+                  const { data, error } = await supabase.functions.invoke('send-gestao-operacional-manu', { body: {} });
+                  toast.dismiss(t);
+                  if (error || (data as any)?.error) toast.error('Falha no envio: ' + (error?.message || (data as any)?.error));
+                  else toast.success('Resumo enviado para Manu via WhatsApp');
+                }}
+                disabled={loading}
+              >
+                <Send className="w-4 h-4 mr-2" />
+                Enviar resumo p/ Manu
+              </Button>
+            )}
             <Button variant="outline" onClick={refetch} disabled={loading}>
               <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Atualizar

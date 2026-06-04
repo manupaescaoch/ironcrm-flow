@@ -350,9 +350,9 @@ const AppRoutes = () => (
     <Route
       path="/gestao-operacional"
       element={
-        <AdminRoute>
+        <ProtectedRoute>
           <GestaoOperacional />
-        </AdminRoute>
+        </ProtectedRoute>
       }
     />
     <Route path="*" element={<NotFound />} />
