@@ -165,7 +165,7 @@ _Anamnese preenchida pela recepção no momento da chegada do lead._`;
         sucesso: false, 
         motivo_skip: 'zapi_offline', 
         erro_msg: JSON.stringify(st.raw).slice(0, 500), 
-        canal: 'operacional' 
+        canal: 'comercial' 
       });
       await supabase.from('anamneses_experimental').update({
         notificacao_tentativas: (a.notificacao_tentativas ?? 0) + 1,
