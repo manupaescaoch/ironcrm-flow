@@ -239,29 +239,31 @@ Deno.serve(async (req) => {
       (unidades ?? []).map((u: any) => computeUnidade(sb, u.id, u.nome, metaMap.get(u.id) ?? null))
     );
 
-    const zn = kpis.find(k => k.unidade_nome.toLowerCase().includes('norte'));
-    const zs = kpis.find(k => k.unidade_nome.toLowerCase().includes('sul'));
+    const zn = kpis.find(k => k.unidade_nome.toLowerCase().includes('norte') || k.unidade_nome.toLowerCase().includes('madalena'));
+    const zs = kpis.find(k => k.unidade_nome.toLowerCase().includes('sul') || k.unidade_nome.toLowerCase().includes('viagem'));
 
+    // Se não achou pelos nomes tradicionais, pega os dois primeiros ou todos
     if (!zn || !zs) {
-      return new Response(JSON.stringify({ error: 'Unidades Zona Norte/Sul não encontradas', achadas: kpis.map(k => k.unidade_nome) }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      console.warn('[gestao-operacional-manu] Unidades ZN/ZS não identificadas pelos nomes. Usando fallback.', kpis.map(k => k.unidade_nome));
     }
 
+    const principalZN = zn || kpis[0];
+    const principalZS = zs || kpis[1] || kpis[0];
+
     // Consolidado
-    const ativos_total = zn.alunos_ativos + zs.alunos_ativos;
-    const meta_total = zn.meta_alunos + zs.meta_alunos;
+    const ativos_total = kpis.reduce((s, k) => s + k.alunos_ativos, 0);
+    const meta_total = kpis.reduce((s, k) => s + k.meta_alunos, 0);
     const pct_total = meta_total > 0 ? Math.round((ativos_total / meta_total) * 100) : 0;
     const faltam_total = Math.max(0, meta_total - ativos_total);
-    const matr_total = zn.matriculas_semana + zs.matriculas_semana;
-    const matr_ant_total = zn.matriculas_semana_anterior + zs.matriculas_semana_anterior;
-    const fu_atr_total = zn.fu_atrasados + zs.fu_atrasados;
-    const fu_pend_total = zn.fu_pendentes + zs.fu_pendentes;
+    const matr_total = kpis.reduce((s, k) => s + k.matriculas_semana, 0);
+    const matr_ant_total = kpis.reduce((s, k) => s + k.matriculas_semana_anterior, 0);
+    const fu_atr_total = kpis.reduce((s, k) => s + k.fu_atrasados, 0);
+    const fu_pend_total = kpis.reduce((s, k) => s + k.fu_pendentes, 0);
 
     const { dateBR, horaBR } = brasiliaParts();
-    const foco = focoDoDia(zn, zs);
+    const foco = focoDoDia(principalZN, principalZS);
 
-    const message =
-`📊 *GESTÃO OPERACIONAL IRON CLUB*
+    let message = `📊 *GESTÃO OPERACIONAL IRON CLUB*
 Atualização: ${dateBR} ${horaBR}
 
 🏋️ *CONSOLIDADO*
@@ -278,15 +280,15 @@ Variação: ${pctVar(matr_total, matr_ant_total)}
 Follow-ups atrasados: ${fu_atr_total}
 Pendentes no total: ${fu_pend_total}
 
-━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━`;
 
-${buildBlocoUnidade('📍', 'ZONA NORTE', zn)}
+    // Adiciona blocos de todas as unidades
+    for (const k of kpis) {
+      const emoji = k.unidade_nome.toLowerCase().includes('madalena') || k.unidade_nome.toLowerCase().includes('norte') ? '📍' : '📌';
+      message += `\n\n${buildBlocoUnidade(emoji, k.unidade_nome.toUpperCase(), k)}\n\n━━━━━━━━━━━━━━`;
+    }
 
-━━━━━━━━━━━━━━
-
-${buildBlocoUnidade('📍', 'ZONA SUL', zs)}
-
-━━━━━━━━━━━━━━
+    message += `
 
 ✅ *FOCO DO DIA*
 
