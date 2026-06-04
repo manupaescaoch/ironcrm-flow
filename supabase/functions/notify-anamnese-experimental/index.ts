@@ -185,7 +185,7 @@ _Anamnese preenchida pela recepção no momento da chegada do lead._`;
       sucesso: reallyOk,
       erro_msg: reallyOk ? null : (zapiError || `Erro Z-API (HTTP ${respStatus})`),
       zapi_status_code: respStatus,
-      canal: 'operacional',
+      canal: 'comercial',
     });
 
     if (reallyOk) {
