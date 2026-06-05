@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { checkZapiStatus, getZapiCreds, logEnvio, sendText } from '../_shared/zapi.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
@@ -25,18 +26,7 @@ function formatPhoneBR(phone: string): string {
 }
 
 const HOURS_AFTER_MATRICULA = 2;
-
-
-async function __zapiStatusCheck() {
-  const id = (Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID')); const tk = (Deno.env.get('ZAPI_COMERCIAL_TOKEN') ?? Deno.env.get('ZAPI_TOKEN'));
-  const ct = (Deno.env.get('ZAPI_COMERCIAL_CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN') ?? '');
-  if (!id || !tk) return { connected: false, raw: { error: 'sem credenciais' } };
-  try {
-    const r = await fetch(`https://api.z-api.io/instances/${id}/token/${tk}/status`, { headers: { 'Client-Token': ct } });
-    const j = await r.json().catch(() => ({}));
-    return { connected: r.ok && j?.connected === true, raw: j };
-  } catch (e) { return { connected: false, raw: { error: String(e) } }; }
-}
+const FUNC = 'notify-boas-vindas-matricula';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
