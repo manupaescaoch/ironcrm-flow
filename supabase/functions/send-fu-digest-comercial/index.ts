@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
     const { data: unidades } = await supabase.from('unidades').select('id, nome').in('id', unidadeIds);
     const unidadeNome = new Map((unidades ?? []).map((u: any) => [u.id, u.nome]));
 
-    const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
+    
     const results: any[] = [];
 
     for (const cfg of configs) {
