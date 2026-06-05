@@ -1,16 +1,15 @@
 // Envia 1 mensagem por unidade ao GRUPO COMERCIAL com a lista de follow-ups
 // pendentes do dia. NÃO conclui os follow-ups — humano marca manualmente na CRM.
-//
-// Pode ser chamado:
-//  - pelo pg_cron (sem auth) — modo produção
-//  - por admin logado, com body { unidade_id?: uuid, dry_run?: bool } — para testes na UI
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { checkZapiStatus, getZapiCreds, logEnvio, sendText } from '../_shared/zapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
 };
+
+const FUNC = 'send-fu-digest-comercial';
 
 function firstName(full: string): string {
   return (full || '').trim().split(/\s+/)[0] || full;
@@ -63,10 +62,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const ZAPI_INSTANCE_ID = (Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'));
-    const ZAPI_TOKEN = (Deno.env.get('ZAPI_COMERCIAL_TOKEN') ?? Deno.env.get('ZAPI_TOKEN'));
-    const ZAPI_CLIENT_TOKEN = (Deno.env.get('ZAPI_COMERCIAL_CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN') ?? '');
-
+    const creds = getZapiCreds('comercial');
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -77,18 +73,25 @@ Deno.serve(async (req) => {
     const targetUnidadeId: string | null = body?.unidade_id ?? null;
     const dryRun: boolean = body?.dry_run === true;
 
-    if (!dryRun && (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN)) {
+    if (!dryRun && !creds) {
       return new Response(JSON.stringify({ error: 'ZAPI not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
     }
 
     // [Z-API health] aborta cedo se o chip estiver offline
-    if (!dryRun) {
-      const sr = await fetch(`https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/status`, { headers: { 'Client-Token': ZAPI_CLIENT_TOKEN } });
-      const sj = await sr.json().catch(() => ({}));
-      if (!sr.ok || sj?.connected !== true) {
-        await supabase.from('whatsapp_envios_log').insert({ funcao: 'send-fu-digest-comercial', sucesso: false, motivo_skip: 'zapi_offline', erro_msg: JSON.stringify(sj).slice(0, 500), canal: 'comercial' });
-        return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: sj }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!dryRun && creds) {
+      const st = await checkZapiStatus(creds);
+      if (!st.connected) {
+        await logEnvio(supabase, { 
+          funcao: FUNC, 
+          sucesso: false, 
+          motivo_skip: 'zapi_offline', 
+          erro_msg: JSON.stringify(st.raw).slice(0, 500), 
+          canal: 'comercial' 
+        });
+        return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: st.raw }), { 
+          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
       }
     }
 
@@ -122,7 +125,7 @@ Deno.serve(async (req) => {
     const { data: unidades } = await supabase.from('unidades').select('id, nome').in('id', unidadeIds);
     const unidadeNome = new Map((unidades ?? []).map((u: any) => [u.id, u.nome]));
 
-    const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
+    
     const results: any[] = [];
 
     for (const cfg of configs) {
@@ -177,13 +180,19 @@ ${linhas}
 
       // Envia ao grupo
       try {
-        const resp = await fetch(zapiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_CLIENT_TOKEN },
-          body: JSON.stringify({ phone: cfg.grupo_fu_id, message }),
+        const r = await sendText(creds!, cfg.grupo_fu_id, message);
+        const ok = r.ok;
+
+        await logEnvio(supabase, {
+          funcao: FUNC,
+          destino: String(cfg.grupo_fu_id),
+          tipo_destino: 'grupo',
+          unidade_id: cfg.unidade_id,
+          sucesso: ok,
+          erro_msg: ok ? null : JSON.stringify(r.body).slice(0, 500),
+          zapi_status_code: r.status,
+          canal: 'comercial',
         });
-        const ok = resp.ok;
-        await resp.text();
 
         await supabase.from('formulario_envios_log').upsert({
           idempotency_key: idemKey,
@@ -193,7 +202,7 @@ ${linhas}
           origem: 'cron',
           status: ok ? 'enviado' : 'erro',
           sent_at: ok ? new Date().toISOString() : null,
-          error_message: ok ? null : `HTTP ${resp.status}`,
+          error_message: ok ? null : `HTTP ${r.status}`,
         }, { onConflict: 'idempotency_key' });
 
         results.push({ unidade_id: cfg.unidade_id, status: ok ? 'sent' : 'error', n: fusUnidade.length });

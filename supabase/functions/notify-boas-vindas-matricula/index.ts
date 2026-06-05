@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { checkZapiStatus, getZapiCreds, logEnvio, sendText } from '../_shared/zapi.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
@@ -25,18 +26,7 @@ function formatPhoneBR(phone: string): string {
 }
 
 const HOURS_AFTER_MATRICULA = 2;
-
-
-async function __zapiStatusCheck() {
-  const id = (Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID')); const tk = (Deno.env.get('ZAPI_COMERCIAL_TOKEN') ?? Deno.env.get('ZAPI_TOKEN'));
-  const ct = (Deno.env.get('ZAPI_COMERCIAL_CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN') ?? '');
-  if (!id || !tk) return { connected: false, raw: { error: 'sem credenciais' } };
-  try {
-    const r = await fetch(`https://api.z-api.io/instances/${id}/token/${tk}/status`, { headers: { 'Client-Token': ct } });
-    const j = await r.json().catch(() => ({}));
-    return { connected: r.ok && j?.connected === true, raw: j };
-  } catch (e) { return { connected: false, raw: { error: String(e) } }; }
-}
+const FUNC = 'notify-boas-vindas-matricula';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -55,34 +45,34 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const ZAPI_INSTANCE_ID = (Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'));
-    const ZAPI_TOKEN = (Deno.env.get('ZAPI_COMERCIAL_TOKEN') ?? Deno.env.get('ZAPI_TOKEN'));
-    const ZAPI_CLIENT_TOKEN = (Deno.env.get('ZAPI_COMERCIAL_CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN'));
+    const creds = getZapiCreds('comercial');
 
-    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
+    if (!creds) {
       return new Response(
         JSON.stringify({ error: 'ZAPI credentials not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
 
     // [Z-API health] aborta cedo se o chip estiver offline (idem cronograma)
     {
-      const __st = await __zapiStatusCheck();
-      if (!__st.connected) {
-        try {
-          const __sb = (await import('https://esm.sh/@supabase/supabase-js@2')).createClient(
-            Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-          );
-          await __sb.from('whatsapp_envios_log').insert({
-            funcao: 'notify-boas-vindas-matricula',
-            sucesso: false, motivo_skip: 'zapi_offline',
-            erro_msg: JSON.stringify(__st.raw).slice(0, 500), canal: 'comercial' });
-        } catch {}
-        console.warn('[zapi] offline — abortando', __st.raw);
-        return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: __st.raw }), {
-          status: 503, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      const st = await checkZapiStatus(creds);
+      if (!st.connected) {
+        await logEnvio(supabase, {
+          funcao: FUNC,
+          sucesso: false, 
+          motivo_skip: 'zapi_offline',
+          erro_msg: JSON.stringify(st.raw).slice(0, 500), 
+          canal: 'comercial' 
+        });
+        console.warn('[zapi] offline — abortando', st.raw);
+        return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: st.raw }), {
+          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
     }
@@ -136,11 +126,6 @@ Deno.serve(async (req) => {
       .in('unidade_id', unidadeIds);
     const recepcaoMap = new Map((cfgs || []).map((c: any) => [c.unidade_id, c.telefone_recepcao]));
 
-    const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
-    let sent = 0;
-    const errors: string[] = [];
-    const results: any[] = [];
-
     for (const inter of interacoes) {
       const lead: any = leadMap.get(inter.lead_id);
       if (!lead) { errors.push(`Lead não encontrado: ${inter.lead_id}`); continue; }
@@ -167,27 +152,50 @@ Enviar boas-vindas ao aluno e iniciar onboarding.`;
       }
 
       try {
-        const resp = await fetch(zapiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_CLIENT_TOKEN || '' },
-          body: JSON.stringify({ phone, message }),
-        });
-        const result = await resp.json().catch(() => ({}));
-
-        if (resp.ok) {
+        const r = await sendText(creds, phone, message);
+        
+        if (r.ok) {
           sent++;
           await supabase
             .from('interacoes')
             .update({ boas_vindas_enviada_em: new Date().toISOString() })
             .eq('id', inter.id);
           console.log(`[boas-vindas] ✅ enviado p/ recepção (${phone}) — aluno ${lead.nome}`);
+          await logEnvio(supabase, {
+            funcao: FUNC,
+            destino: phone,
+            tipo_destino: 'recepcao',
+            unidade_id: lead.unidade_id,
+            sucesso: true,
+            zapi_status_code: r.status,
+            canal: 'comercial'
+          });
         } else {
-          console.error(`[boas-vindas] ❌ Z-API ${resp.status} ${lead.nome}`, result);
-          errors.push(`Z-API ${resp.status}: ${lead.nome}`);
+          console.error(`[boas-vindas] ❌ Z-API ${r.status} ${lead.nome}`, r.body);
+          errors.push(`Z-API ${r.status}: ${lead.nome}`);
+          await logEnvio(supabase, {
+            funcao: FUNC,
+            destino: phone,
+            tipo_destino: 'recepcao',
+            unidade_id: lead.unidade_id,
+            sucesso: false,
+            zapi_status_code: r.status,
+            erro_msg: JSON.stringify(r.body).slice(0, 500),
+            canal: 'comercial'
+          });
         }
       } catch (e: any) {
         console.error(`[boas-vindas] erro envio ${lead.nome}`, e);
         errors.push(`Erro envio: ${lead.nome} - ${e?.message ?? e}`);
+        await logEnvio(supabase, {
+          funcao: FUNC,
+          destino: phone,
+          tipo_destino: 'recepcao',
+          unidade_id: lead.unidade_id,
+          sucesso: false,
+          erro_msg: e?.message ?? String(e),
+          canal: 'comercial'
+        });
       }
     }
 
