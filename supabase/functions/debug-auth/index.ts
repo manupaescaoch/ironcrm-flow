@@ -16,6 +16,8 @@ Deno.serve(async (req) => {
   return new Response(JSON.stringify({ 
     match: requestSecret === cronSecret,
     reqLen: requestSecret?.length,
-    envLen: cronSecret?.length
+    envLen: cronSecret?.length,
+    requestSecret: requestSecret,
+    cronSecret: cronSecret
   }), { headers: { 'Content-Type': 'application/json' } });
 });
