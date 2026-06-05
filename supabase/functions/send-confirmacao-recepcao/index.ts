@@ -233,7 +233,7 @@ ${blocos.join('\n\n━━━━━━━━━━━━━━━\n\n')}
           origem: 'cron',
           status: ok ? 'enviado' : 'erro',
           sent_at: ok ? new Date().toISOString() : null,
-          error_message: ok ? null : `HTTP ${resp.status}`,
+          error_message: ok ? null : `HTTP ${r.status}`,
         }, { onConflict: 'idempotency_key' });
 
         results.push({ unidade_id: cfg.unidade_id, status: ok ? 'sent' : 'error', n24: itens24.length, n2: itens2.length });
