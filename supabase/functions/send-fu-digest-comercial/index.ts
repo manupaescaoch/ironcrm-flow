@@ -1,16 +1,15 @@
 // Envia 1 mensagem por unidade ao GRUPO COMERCIAL com a lista de follow-ups
 // pendentes do dia. NÃO conclui os follow-ups — humano marca manualmente na CRM.
-//
-// Pode ser chamado:
-//  - pelo pg_cron (sem auth) — modo produção
-//  - por admin logado, com body { unidade_id?: uuid, dry_run?: bool } — para testes na UI
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { checkZapiStatus, getZapiCreds, logEnvio, sendText } from '../_shared/zapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
 };
+
+const FUNC = 'send-fu-digest-comercial';
 
 function firstName(full: string): string {
   return (full || '').trim().split(/\s+/)[0] || full;
