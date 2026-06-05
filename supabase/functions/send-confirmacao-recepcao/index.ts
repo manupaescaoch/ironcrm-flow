@@ -209,14 +209,20 @@ ${blocos.join('\n\n━━━━━━━━━━━━━━━\n\n')}
       }
 
       try {
-        const url = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_CLIENT_TOKEN },
-          body: JSON.stringify({ phone: normalizePhone(cfg.telefone_recepcao), message }),
+        const phone = normalizePhone(cfg.telefone_recepcao);
+        const r = await sendText(creds!, phone, message);
+        const ok = r.ok;
+
+        await logEnvio(supabase, {
+          funcao: FUNC,
+          destino: phone,
+          tipo_destino: 'recepcao',
+          unidade_id: cfg.unidade_id,
+          sucesso: ok,
+          erro_msg: ok ? null : JSON.stringify(r.body).slice(0, 500),
+          zapi_status_code: r.status,
+          canal: 'comercial',
         });
-        const ok = resp.ok;
-        await resp.text();
 
         const slot = `${dateStr}T${timeBR.replace(':','')}`;
         await supabase.from('formulario_envios_log').upsert({
