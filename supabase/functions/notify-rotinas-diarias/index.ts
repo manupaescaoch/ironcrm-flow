@@ -76,7 +76,7 @@ function shouldSendToday(frequencia: string, dayOfWeek: number): boolean {
 async function __zapiStatusCheck() {
   const id = (Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'));
   const tk = Deno.env.get('ZAPI_OPERACIONAL_TOKEN') ?? Deno.env.get('ZAPI_TOKEN');
-  const ct = Deno.env.get('ZAPI_OPERACIONAL_CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN') || '';
+  const ct = (Deno.env.get('ZAPI_OPERACIONAL_CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN')) || '';
   if (!id || !tk) return { connected: false, raw: { error: 'sem credenciais' } };
   try {
     const r = await fetch(`https://api.z-api.io/instances/${id}/token/${tk}/status`, { headers: { 'Client-Token': ct } });
