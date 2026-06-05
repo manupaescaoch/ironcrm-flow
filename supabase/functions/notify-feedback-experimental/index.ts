@@ -234,19 +234,25 @@ Entrar em contato para coletar feedback da experiência e oferecer o plano.`;
       }
 
       try {
-        const resp = await fetch(zapiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_CLIENT_TOKEN || '' },
-          body: JSON.stringify({ phone, message }),
-        });
-        const result = await resp.json().catch(() => ({}));
+        const r = await sendText(creds!, phone, message);
+        const ok = r.ok;
 
-        if (resp.ok) {
+        if (ok) {
           sent++;
           await supabase
             .from('interacoes')
             .update({ feedback_pos_aula_enviado_em: new Date().toISOString() })
             .eq('id', inter.id);
+          
+          await logEnvio(supabase, {
+            funcao: FUNC,
+            destino: phone,
+            tipo_destino: 'recepcao',
+            unidade_id: lead.unidade_id,
+            sucesso: true,
+            zapi_status_code: r.status,
+            canal: 'comercial'
+          });
 
           const { data: cancelados, error: cancelErr } = await supabase
             .from('follow_ups')
