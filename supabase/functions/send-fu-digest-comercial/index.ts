@@ -180,13 +180,19 @@ ${linhas}
 
       // Envia ao grupo
       try {
-        const resp = await fetch(zapiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_CLIENT_TOKEN },
-          body: JSON.stringify({ phone: cfg.grupo_fu_id, message }),
+        const r = await sendText(creds!, cfg.grupo_fu_id, message);
+        const ok = r.ok;
+
+        await logEnvio(supabase, {
+          funcao: FUNC,
+          destino: String(cfg.grupo_fu_id),
+          tipo_destino: 'grupo',
+          unidade_id: cfg.unidade_id,
+          sucesso: ok,
+          erro_msg: ok ? null : JSON.stringify(r.body).slice(0, 500),
+          zapi_status_code: r.status,
+          canal: 'comercial',
         });
-        const ok = resp.ok;
-        await resp.text();
 
         await supabase.from('formulario_envios_log').upsert({
           idempotency_key: idemKey,
