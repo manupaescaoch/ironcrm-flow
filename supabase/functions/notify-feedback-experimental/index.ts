@@ -172,7 +172,7 @@ Deno.serve(async (req) => {
       .in('unidade_id', unidadeIds);
     const recepcaoMap = new Map((cfgs || []).map((c: any) => [c.unidade_id, c.telefone_recepcao]));
 
-    const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
+    
     let sent = 0;
     const errors: string[] = [];
     const results: any[] = [];
