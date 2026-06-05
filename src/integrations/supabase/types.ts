@@ -1658,10 +1658,13 @@ export type Database = {
       leads: {
         Row: {
           atendido_por: string | null
+          atendimento_id: string | null
           ativo: boolean
           cadastrado_por: string | null
           confirmacao_24h_enviada_em: string | null
           confirmacao_2h_enviada_em: string | null
+          confirmacao_imediata_enviada_em: string | null
+          convertido_em_aluno_at: string | null
           created_at: string
           created_by: string | null
           data_aula_experimental: string | null
@@ -1670,6 +1673,7 @@ export type Database = {
           follow_up_enviado_em: string | null
           follow_up_responsavel: string | null
           follow_up_whatsapp_enviado: boolean | null
+          fonte: string | null
           hora_aula_experimental: string | null
           id: string
           is_matriculado: boolean
@@ -1678,19 +1682,26 @@ export type Database = {
           observacoes: string | null
           origem: string | null
           plano_escolhido: string | null
+          status_conversa: string | null
           status_funil: string
           telefone: string | null
+          telefone_normalizado: string | null
           treinador_experimental: string | null
+          ultima_interacao_at: string | null
           unidade_id: string
           updated_at: string
           user_id: string | null
+          valor_pipeline: number | null
         }
         Insert: {
           atendido_por?: string | null
+          atendimento_id?: string | null
           ativo?: boolean
           cadastrado_por?: string | null
           confirmacao_24h_enviada_em?: string | null
           confirmacao_2h_enviada_em?: string | null
+          confirmacao_imediata_enviada_em?: string | null
+          convertido_em_aluno_at?: string | null
           created_at?: string
           created_by?: string | null
           data_aula_experimental?: string | null
@@ -1699,6 +1710,7 @@ export type Database = {
           follow_up_enviado_em?: string | null
           follow_up_responsavel?: string | null
           follow_up_whatsapp_enviado?: boolean | null
+          fonte?: string | null
           hora_aula_experimental?: string | null
           id?: string
           is_matriculado?: boolean
@@ -1707,19 +1719,26 @@ export type Database = {
           observacoes?: string | null
           origem?: string | null
           plano_escolhido?: string | null
+          status_conversa?: string | null
           status_funil?: string
           telefone?: string | null
+          telefone_normalizado?: string | null
           treinador_experimental?: string | null
+          ultima_interacao_at?: string | null
           unidade_id?: string
           updated_at?: string
           user_id?: string | null
+          valor_pipeline?: number | null
         }
         Update: {
           atendido_por?: string | null
+          atendimento_id?: string | null
           ativo?: boolean
           cadastrado_por?: string | null
           confirmacao_24h_enviada_em?: string | null
           confirmacao_2h_enviada_em?: string | null
+          confirmacao_imediata_enviada_em?: string | null
+          convertido_em_aluno_at?: string | null
           created_at?: string
           created_by?: string | null
           data_aula_experimental?: string | null
@@ -1728,6 +1747,7 @@ export type Database = {
           follow_up_enviado_em?: string | null
           follow_up_responsavel?: string | null
           follow_up_whatsapp_enviado?: boolean | null
+          fonte?: string | null
           hora_aula_experimental?: string | null
           id?: string
           is_matriculado?: boolean
@@ -1736,14 +1756,25 @@ export type Database = {
           observacoes?: string | null
           origem?: string | null
           plano_escolhido?: string | null
+          status_conversa?: string | null
           status_funil?: string
           telefone?: string | null
+          telefone_normalizado?: string | null
           treinador_experimental?: string | null
+          ultima_interacao_at?: string | null
           unidade_id?: string
           updated_at?: string
           user_id?: string | null
+          valor_pipeline?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_atendimento_id_fkey"
+            columns: ["atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "agente_atendimentos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_unidade_id_fkey"
             columns: ["unidade_id"]
@@ -1884,9 +1915,11 @@ export type Database = {
           plano_amanha: string | null
           precisa_suporte: boolean | null
           renovacoes: number | null
+          submitted_by: string | null
           suporte_descricao: string | null
           total_alunos_ativos: number | null
           unidade: string
+          unidade_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1906,9 +1939,11 @@ export type Database = {
           plano_amanha?: string | null
           precisa_suporte?: boolean | null
           renovacoes?: number | null
+          submitted_by?: string | null
           suporte_descricao?: string | null
           total_alunos_ativos?: number | null
           unidade: string
+          unidade_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1928,12 +1963,22 @@ export type Database = {
           plano_amanha?: string | null
           precisa_suporte?: boolean | null
           renovacoes?: number | null
+          submitted_by?: string | null
           suporte_descricao?: string | null
           total_alunos_ativos?: number | null
           unidade?: string
+          unidade_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "relatorio_diario_comercial_respostas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       relatorio_gerencial_zn: {
         Row: {
@@ -2842,6 +2887,78 @@ export type Database = {
           },
         ]
       }
+      whatsapp_conversations: {
+        Row: {
+          contact_name: string | null
+          created_at: string | null
+          first_inbound_at: string | null
+          first_response_at: string | null
+          id: string
+          is_cliente: boolean | null
+          is_linked_to_lead: boolean | null
+          last_message_at: string | null
+          last_message_direction: string | null
+          last_message_text: string | null
+          lead_id: string | null
+          phone: string
+          phone_normalized: string
+          status_conversa: string | null
+          unidade_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          contact_name?: string | null
+          created_at?: string | null
+          first_inbound_at?: string | null
+          first_response_at?: string | null
+          id?: string
+          is_cliente?: boolean | null
+          is_linked_to_lead?: boolean | null
+          last_message_at?: string | null
+          last_message_direction?: string | null
+          last_message_text?: string | null
+          lead_id?: string | null
+          phone: string
+          phone_normalized: string
+          status_conversa?: string | null
+          unidade_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          contact_name?: string | null
+          created_at?: string | null
+          first_inbound_at?: string | null
+          first_response_at?: string | null
+          id?: string
+          is_cliente?: boolean | null
+          is_linked_to_lead?: boolean | null
+          last_message_at?: string | null
+          last_message_direction?: string | null
+          last_message_text?: string | null
+          lead_id?: string | null
+          phone?: string
+          phone_normalized?: string
+          status_conversa?: string | null
+          unidade_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_conversations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversations_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_envios_log: {
         Row: {
           canal: string
@@ -2884,6 +3001,78 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_messages: {
+        Row: {
+          contact_name: string | null
+          created_at: string | null
+          direction: string
+          first_response_at: string | null
+          id: string
+          lead_id: string | null
+          message_id: string | null
+          message_text: string | null
+          message_type: string | null
+          phone: string
+          phone_normalized: string
+          received_at: string | null
+          replied_at: string | null
+          status: string | null
+          timestamp: string | null
+          unidade_id: string | null
+        }
+        Insert: {
+          contact_name?: string | null
+          created_at?: string | null
+          direction: string
+          first_response_at?: string | null
+          id?: string
+          lead_id?: string | null
+          message_id?: string | null
+          message_text?: string | null
+          message_type?: string | null
+          phone: string
+          phone_normalized: string
+          received_at?: string | null
+          replied_at?: string | null
+          status?: string | null
+          timestamp?: string | null
+          unidade_id?: string | null
+        }
+        Update: {
+          contact_name?: string | null
+          created_at?: string | null
+          direction?: string
+          first_response_at?: string | null
+          id?: string
+          lead_id?: string | null
+          message_id?: string | null
+          message_text?: string | null
+          message_type?: string | null
+          phone?: string
+          phone_normalized?: string
+          received_at?: string | null
+          replied_at?: string | null
+          status?: string | null
+          timestamp?: string | null
+          unidade_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2923,6 +3112,10 @@ export type Database = {
       inativar_aluno: { Args: { p_lead_id: string }; Returns: undefined }
       normalize_phone: { Args: { phone: string }; Returns: string }
       user_can_access_reuniao_anexo: {
+        Args: { _object_name: string; _user_id: string }
+        Returns: boolean
+      }
+      user_can_access_rotina_comprovante_by_unidade: {
         Args: { _object_name: string; _user_id: string }
         Returns: boolean
       }
