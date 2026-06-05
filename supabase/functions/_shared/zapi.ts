@@ -20,11 +20,14 @@ export interface ZapiCreds {
  */
 export function getZapiCreds(channel: ZapiChannel = 'operacional'): ZapiCreds | null {
   const prefix = channel === 'comercial' ? 'ZAPI_COMERCIAL_' : 'ZAPI_OPERACIONAL_';
-  const instanceId =
-    Deno.env.get(prefix + 'INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID');
+  
+  // Ordem de preferência: 
+  // 1. Variável específica do canal (ZAPI_COMERCIAL_INSTANCE_ID ou ZAPI_OPERACIONAL_INSTANCE_ID)
+  // 2. Variável genérica (ZAPI_INSTANCE_ID) - legado
+  const instanceId = Deno.env.get(prefix + 'INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID');
   const token = Deno.env.get(prefix + 'TOKEN') ?? Deno.env.get('ZAPI_TOKEN');
-  const clientToken =
-    Deno.env.get(prefix + 'CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN') ?? '';
+  const clientToken = Deno.env.get(prefix + 'CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN') ?? '';
+
   if (!instanceId || !token) return null;
   return { instanceId, token, clientToken, channel };
 }
