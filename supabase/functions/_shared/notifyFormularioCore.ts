@@ -310,15 +310,28 @@ export async function resolveGrupo(
 
 // ---------------------- Z-API dispatch ----------------------
 
-async function sendZapi(grupoId: string, message: string): Promise<{ ok: boolean; status: number }> {
-  // Formulários operacionais → instância OPERACIONAL.
-  const instance =
-    Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID');
-  const token =
-    Deno.env.get('ZAPI_OPERACIONAL_TOKEN') ?? Deno.env.get('ZAPI_TOKEN');
-  const clientToken =
-    Deno.env.get('ZAPI_OPERACIONAL_CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN') ?? '';
-  if (!instance || !token) return { ok: false, status: 500 };
+async function sendZapi(grupoId: string, message: string, tipoFormulario: TipoFormulario): Promise<{ ok: boolean; status: number }> {
+  // O Relatório Diário Comercial deve ser enviado pelo número COMERCIAL.
+  // Os demais formulários operacionais continuam na instância OPERACIONAL.
+  const isComercial = tipoFormulario === 'relatorio_comercial';
+
+  const instance = isComercial
+    ? (Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID'))
+    : (Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'));
+
+  const token = isComercial
+    ? (Deno.env.get('ZAPI_COMERCIAL_TOKEN'))
+    : (Deno.env.get('ZAPI_OPERACIONAL_TOKEN') ?? Deno.env.get('ZAPI_TOKEN'));
+
+  const clientToken = isComercial
+    ? (Deno.env.get('ZAPI_COMERCIAL_CLIENT_TOKEN') ?? '')
+    : (Deno.env.get('ZAPI_OPERACIONAL_CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN') ?? '');
+
+  if (!instance || !token) {
+    console.error(`[sendZapi] Credenciais ausentes para ${isComercial ? 'COMERCIAL' : 'OPERACIONAL'}`);
+    return { ok: false, status: 500 };
+  }
+
   const url = `https://api.z-api.io/instances/${instance}/token/${token}/send-text`;
   const resp = await fetch(url, {
     method: 'POST',
@@ -398,7 +411,7 @@ export async function executeNotification(
   const payloadHash = (await sha1Hex(message)).slice(0, 16);
 
   // 6. Send via Z-API
-  const send = await sendZapi(grupoId, message);
+  const send = await sendZapi(grupoId, message, ctx.tipo_formulario);
 
   // 7. Log
   await supabase.from('formulario_envios_log').upsert({
