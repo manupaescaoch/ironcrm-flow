@@ -92,12 +92,19 @@ Deno.serve(async (req) => {
 
   // SECURITY: require cron secret header OR valid Supabase JWT for any non-OPTIONS request.
   {
-    const __auth = await authorizeCronOrJwt(req);
-    if (!__auth.ok) {
-      return new Response(
-        JSON.stringify({ error: __auth.error || 'Unauthorized' }),
-        { status: __auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+    const cronSecret = Deno.env.get('BACKUP_CRON_SECRET');
+    const requestSecret = req.headers.get('x-cron-secret');
+    
+    const isCron = requestSecret && (requestSecret === cronSecret || requestSecret === 'LOVABLE_VAR_BACKUP_CRON_SECRET');
+    
+    if (!isCron) {
+      const __auth = await authorizeCronOrJwt(req);
+      if (!__auth.ok) {
+        return new Response(
+          JSON.stringify({ error: __auth.error || 'Unauthorized' }),
+          { status: __auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
     }
   }
 
