@@ -126,11 +126,6 @@ Deno.serve(async (req) => {
       .in('unidade_id', unidadeIds);
     const recepcaoMap = new Map((cfgs || []).map((c: any) => [c.unidade_id, c.telefone_recepcao]));
 
-    const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
-    let sent = 0;
-    const errors: string[] = [];
-    const results: any[] = [];
-
     for (const inter of interacoes) {
       const lead: any = leadMap.get(inter.lead_id);
       if (!lead) { errors.push(`Lead não encontrado: ${inter.lead_id}`); continue; }
@@ -157,27 +152,50 @@ Enviar boas-vindas ao aluno e iniciar onboarding.`;
       }
 
       try {
-        const resp = await fetch(zapiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_CLIENT_TOKEN || '' },
-          body: JSON.stringify({ phone, message }),
-        });
-        const result = await resp.json().catch(() => ({}));
-
-        if (resp.ok) {
+        const r = await sendText(creds, phone, message);
+        
+        if (r.ok) {
           sent++;
           await supabase
             .from('interacoes')
             .update({ boas_vindas_enviada_em: new Date().toISOString() })
             .eq('id', inter.id);
           console.log(`[boas-vindas] ✅ enviado p/ recepção (${phone}) — aluno ${lead.nome}`);
+          await logEnvio(supabase, {
+            funcao: FUNC,
+            destino: phone,
+            tipo_destino: 'recepcao',
+            unidade_id: lead.unidade_id,
+            sucesso: true,
+            zapi_status_code: r.status,
+            canal: 'comercial'
+          });
         } else {
-          console.error(`[boas-vindas] ❌ Z-API ${resp.status} ${lead.nome}`, result);
-          errors.push(`Z-API ${resp.status}: ${lead.nome}`);
+          console.error(`[boas-vindas] ❌ Z-API ${r.status} ${lead.nome}`, r.body);
+          errors.push(`Z-API ${r.status}: ${lead.nome}`);
+          await logEnvio(supabase, {
+            funcao: FUNC,
+            destino: phone,
+            tipo_destino: 'recepcao',
+            unidade_id: lead.unidade_id,
+            sucesso: false,
+            zapi_status_code: r.status,
+            erro_msg: JSON.stringify(r.body).slice(0, 500),
+            canal: 'comercial'
+          });
         }
       } catch (e: any) {
         console.error(`[boas-vindas] erro envio ${lead.nome}`, e);
         errors.push(`Erro envio: ${lead.nome} - ${e?.message ?? e}`);
+        await logEnvio(supabase, {
+          funcao: FUNC,
+          destino: phone,
+          tipo_destino: 'recepcao',
+          unidade_id: lead.unidade_id,
+          sucesso: false,
+          erro_msg: e?.message ?? String(e),
+          canal: 'comercial'
+        });
       }
     }
 
