@@ -1,18 +1,15 @@
 // Envia ao TELEFONE DA RECEPÇÃO de cada unidade a lista consolidada de
 // confirmações de aula experimental que precisam ser disparadas (24h e 2h antes).
-// A recepção dispara as msgs manualmente do número comercial dela.
-// Marca os flags confirmacao_24h_enviada_em / confirmacao_2h_enviada_em em leads
-// para evitar reenvio.
-//
-// Body opcional: { unidade_id?: uuid, dry_run?: bool }
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { checkZapiStatus, getZapiCreds, logEnvio, sendText } from '../_shared/zapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
 };
 
+const FUNC = 'send-confirmacao-recepcao';
 const TZ = 'America/Sao_Paulo';
 
 function brasiliaNow() {
