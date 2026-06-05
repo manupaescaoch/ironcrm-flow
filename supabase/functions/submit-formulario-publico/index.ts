@@ -33,6 +33,7 @@ const PayloadSchema = z
   .object({
     tipo_formulario: z.enum(TIPOS_FORMULARIO as unknown as [string, ...string[]]),
     unidade: z.string().min(1).max(50),
+    unidade_id: z.string().uuid().optional(),
     resposta_id: z.string().uuid(),
   })
   .strict();
@@ -53,7 +54,7 @@ Deno.serve(async (req) => {
     const parsed = PayloadSchema.safeParse(raw);
     if (!parsed.success) return jsonResp(400, { error: 'Dados inválidos.' });
 
-    const { tipo_formulario, resposta_id } = parsed.data;
+    const { tipo_formulario, resposta_id, unidade_id } = parsed.data;
     const unidade = validateUnidade(parsed.data.unidade);
     if (!unidade) return jsonResp(400, { error: 'Unidade inválida.' });
 
@@ -94,6 +95,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         tipo_formulario,
         unidade,
+        unidade_id,
         resposta_id,
         row,
       }),
