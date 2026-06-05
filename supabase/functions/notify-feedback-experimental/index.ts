@@ -275,12 +275,31 @@ Entrar em contato para coletar feedback da experiência e oferecer o plano.`;
 
           console.log(`[feedback] ✅ enviado p/ recepção (${phone}) — lead ${lead.nome}`);
         } else {
-          console.error(`[feedback] ❌ Z-API ${resp.status} ${lead.nome}`, result);
-          errors.push(`Z-API ${resp.status}: ${lead.nome}`);
+          console.error(`[feedback] ❌ Z-API ${r.status} ${lead.nome}`, r.body);
+          errors.push(`Z-API ${r.status}: ${lead.nome}`);
+          await logEnvio(supabase, {
+            funcao: FUNC,
+            destino: phone,
+            tipo_destino: 'recepcao',
+            unidade_id: lead.unidade_id,
+            sucesso: false,
+            zapi_status_code: r.status,
+            erro_msg: JSON.stringify(r.body).slice(0, 500),
+            canal: 'comercial'
+          });
         }
       } catch (e: any) {
         console.error(`[feedback] erro envio ${lead.nome}`, e);
         errors.push(`Erro envio: ${lead.nome} - ${e?.message ?? e}`);
+        await logEnvio(supabase, {
+          funcao: FUNC,
+          destino: phone,
+          tipo_destino: 'recepcao',
+          unidade_id: lead.unidade_id,
+          sucesso: false,
+          erro_msg: e?.message ?? String(e),
+          canal: 'comercial'
+        });
       }
     }
 
