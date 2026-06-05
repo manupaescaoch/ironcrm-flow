@@ -1,11 +1,13 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { checkZapiStatus, getZapiCreds, logEnvio, sendText } from '../_shared/zapi.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
 };
 
+const FUNC = 'notify-anamnese-experimental';
 const NA = 'Não informado';
 const extractDateOnly = (value: unknown) => {
   const match = String(value ?? '').match(/^(\d{4}-\d{2}-\d{2})/);
