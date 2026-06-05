@@ -20,6 +20,7 @@ export async function submitFormularioPublico(args: {
   tipo_formulario: TipoFormulario;
   unidade: string;
   resposta_id: string;
+  unidade_id?: string;
 }): Promise<void> {
   try {
     await supabase.functions.invoke('submit-formulario-publico', {
@@ -27,6 +28,7 @@ export async function submitFormularioPublico(args: {
         tipo_formulario: args.tipo_formulario,
         unidade: args.unidade,
         resposta_id: args.resposta_id,
+        unidade_id: args.unidade_id,
       },
     });
   } catch (e) {
