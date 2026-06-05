@@ -115,6 +115,14 @@ function emojiForLabel(label: string): string {
 
 type Item = { label: string; value: string };
 
+function fmtBRL(n: number) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
+}
+
+function fmtPct(v: number) {
+  return `${v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+}
+
 function renderEstagiarioLider(row: Record<string, unknown>): Item[] {
   return [
     { label: 'Nome', value: sanitizeText(row.nome) },
@@ -184,15 +192,22 @@ function renderRelatorioComercial(row: Record<string, unknown>): Item[] {
   const atividades = Array.isArray(row.atividades_realizadas)
     ? (row.atividades_realizadas as unknown[]).map((a) => sanitizeText(a)).join(', ')
     : '—';
+
+  // Extract metadata if available (added by executeNotification)
+  const meta = (row._meta as any) || {};
+
   return [
     { label: 'Nome', value: sanitizeText(row.nome) },
     { label: 'Data', value: sanitizeText(row.data) },
-    { label: 'Total de alunos ativos', value: String(row.total_alunos_ativos ?? 0) },
+    { label: 'Total de alunos ativos', value: `${row.total_alunos_ativos ?? 0} (Meta: ${meta.meta_alunos ?? '—'})` },
     { label: 'Leads recebidos', value: String(row.leads_recebidos ?? 0) },
     { label: 'Experimentais realizadas', value: String(row.experimentais_realizadas ?? 0) },
     { label: 'Novos alunos (matrículas)', value: String(row.novos_alunos ?? 0) },
     { label: 'Renovações', value: String(row.renovacoes ?? 0) },
     { label: 'Cancelamentos', value: String(row.cancelamentos ?? 0) },
+    { label: 'Receita do mês', value: fmtBRL(meta.receita_mes || 0) },
+    { label: 'Ticket médio', value: fmtBRL(meta.ticket_medio || 0) },
+    { label: 'Evasão', value: fmtPct(meta.evasao || 0) },
     { label: 'Inadimplentes', value: sanitizeText(row.inadimplentes) },
     { label: 'Não renovados', value: sanitizeText(row.nao_renovados) },
     { label: 'Atividades realizadas', value: atividades },
@@ -213,11 +228,20 @@ const RENDERERS: Record<TipoFormulario, (row: Record<string, unknown>) => Item[]
 export function buildMessage(tipo: TipoFormulario, unidade: string, row: Record<string, unknown>): string {
   const items = RENDERERS[tipo](row);
   const dataHora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-  const cabecalho = `✅ *${TIPO_TITULO[tipo]}*`;
+
+  const cabecalho = tipo === 'relatorio_comercial'
+    ? `📊 *GESTÃO OPERACIONAL IRON CLUB*`
+    : `✅ *${TIPO_TITULO[tipo]}*`;
+
   const corpo = items
     .filter((it) => it.value && it.value !== '—')
     .map((it) => `${emojiForLabel(it.label)} *${it.label}:* ${it.value}`)
     .join('\n');
+
+  if (tipo === 'relatorio_comercial') {
+    return `${cabecalho}\nAtualização: ${dataHora}\n\n📍 *Unidade:* ${sanitizeText(unidade)}\n\n${corpo}`;
+  }
+
   return `${cabecalho}\n\n📍 *Unidade:* ${sanitizeText(unidade)}\n🕒 *Recebido em:* ${dataHora}\n\n${corpo}`;
 }
 
@@ -355,6 +379,38 @@ export async function executeNotification(
   row: Record<string, unknown>,
 ): Promise<NotifyResult> {
   const supabase = getServiceClient();
+
+  // For commercial report, fetch extra metadata from DB
+  if (ctx.tipo_formulario === 'relatorio_comercial' && ctx.unidade_id) {
+    try {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+
+      const [metasRes, interacoesRes] = await Promise.all([
+        supabase.from('gestao_metas').select('*').eq('unidade_id', ctx.unidade_id).maybeSingle(),
+        supabase.from('interacoes')
+          .select('valor_plano')
+          .eq('unidade_id', ctx.unidade_id)
+          .eq('fechou_matricula', true)
+          .gte('data_fechamento', monthStart)
+          .lte('data_fechamento', monthEnd)
+      ]);
+
+      const meta = metasRes.data;
+      const interacoes = interacoesRes.data || [];
+      const receitaMes = interacoes.reduce((s, i: any) => s + Number(i.valor_plano || 0), 0);
+
+      row._meta = {
+        meta_alunos: meta?.meta_alunos_mes,
+        receita_mes: receitaMes,
+        ticket_medio: meta?.ticket_medio_real,
+        evasao: meta?.evasao_pct_manual
+      };
+    } catch (e) {
+      console.error('[executeNotification] Failed to fetch metadata', e);
+    }
+  }
 
   // 1. Rate limit
   const rl = await checkRateLimit(supabase, ctx.tipo_formulario, ctx.unidade);
