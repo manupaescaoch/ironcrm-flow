@@ -74,9 +74,7 @@ Deno.serve(async (req) => {
   try {
     // ⚠️ DESCONTINUADA — confirmação experimental agora vai DIRETO ao lead via
     // `confirmacao-experimental-automatica`. Esta função fica apenas como fallback manual.
-    const ZAPI_INSTANCE_ID = (Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'));
-    const ZAPI_TOKEN = (Deno.env.get('ZAPI_COMERCIAL_TOKEN') ?? Deno.env.get('ZAPI_TOKEN'));
-    const ZAPI_CLIENT_TOKEN = (Deno.env.get('ZAPI_COMERCIAL_CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN') ?? '');
+    const creds = getZapiCreds('comercial');
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -87,18 +85,25 @@ Deno.serve(async (req) => {
     const targetUnidadeId: string | null = body?.unidade_id ?? null;
     const dryRun: boolean = body?.dry_run === true;
 
-    if (!dryRun && (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN)) {
+    if (!dryRun && !creds) {
       return new Response(JSON.stringify({ error: 'ZAPI not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
     }
 
     // [Z-API health] aborta cedo se o chip estiver offline
-    if (!dryRun) {
-      const sr = await fetch(`https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/status`, { headers: { 'Client-Token': ZAPI_CLIENT_TOKEN } });
-      const sj = await sr.json().catch(() => ({}));
-      if (!sr.ok || sj?.connected !== true) {
-        await supabase.from('whatsapp_envios_log').insert({ funcao: 'send-confirmacao-recepcao', sucesso: false, motivo_skip: 'zapi_offline', erro_msg: JSON.stringify(sj).slice(0, 500), canal: 'comercial' });
-        return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: sj }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!dryRun && creds) {
+      const st = await checkZapiStatus(creds);
+      if (!st.connected) {
+        await logEnvio(supabase, { 
+          funcao: FUNC, 
+          sucesso: false, 
+          motivo_skip: 'zapi_offline', 
+          erro_msg: JSON.stringify(st.raw).slice(0, 500), 
+          canal: 'comercial' 
+        });
+        return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: st.raw }), { 
+          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
       }
     }
 
