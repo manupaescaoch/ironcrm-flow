@@ -3111,7 +3111,6 @@ export type Database = {
       }
       inativar_aluno: { Args: { p_lead_id: string }; Returns: undefined }
       normalize_phone: { Args: { phone: string }; Returns: string }
-      notify_rotinas_diarias_manual: { Args: never; Returns: Json }
       user_can_access_reuniao_anexo: {
         Args: { _object_name: string; _user_id: string }
         Returns: boolean
