@@ -301,9 +301,15 @@ Deno.serve(async (req) => {
       let zapiResult: any = null;
       let erroMsg: string | null = null;
       try {
-        const r = await fetch(ZAPI_URL, {
+        const isComercial = tipo === 'relatorio_diario';
+        const instance = isComercial ? Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID') : ZAPI_INSTANCE_ID;
+        const token = isComercial ? Deno.env.get('ZAPI_COMERCIAL_TOKEN') : ZAPI_TOKEN;
+        const clientToken = isComercial ? (Deno.env.get('ZAPI_COMERCIAL_CLIENT_TOKEN') || '') : ZAPI_CLIENT_TOKEN;
+        const url = `https://api.z-api.io/instances/${instance}/token/${token}/send-text`;
+
+        const r = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_CLIENT_TOKEN },
+          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
           body: JSON.stringify({ phone: normalizePhone(resp.telefone), message }),
         });
         zapiResult = await r.json().catch(() => ({}));
