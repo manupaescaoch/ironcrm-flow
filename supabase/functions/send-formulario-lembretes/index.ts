@@ -35,16 +35,21 @@ function brasilia() {
 
 function detectTipo(titulo: string): FormTipo | null {
   const t = (titulo || '').toLowerCase();
-  // Excluir explicitamente atividades de envio de grade (não são formulários)
-  if (t.includes('envio') || t.includes('grade')) return null;
+  
   // Estagiário Líder: precisa conter "estagi" + "líder"
   if (t.includes('estagi') && (t.includes('líder') || t.includes('lider'))) return 'estagiario_lider';
+  
   // Coordenador de Unidade: precisa conter "coordenador" + "unidade" + ser encerramento/relatório
   if (t.includes('coordenador') && t.includes('unidade') && t.includes('encerr')) return 'coordenador_unidade';
+  
   // Relatório Diário Comercial
   if (t.includes('relat') && (t.includes('diário') || t.includes('diario'))) return 'relatorio_diario';
-  // Coordenador de Horário: "Encerramento de Turno" (por pessoa) ou explícito
-  if (t.includes('encerramento') && (t.includes('turno') || t.includes('horário') || t.includes('horario'))) return 'coordenador_horario';
+  
+  // Coordenador de Horário: Fábio deve usar este, ou se contiver "encerramento" + "horário"
+  if (t.includes('fábio') || t.includes('fabio') || (t.includes('encerramento') && (t.includes('turno') || t.includes('horário') || t.includes('horario')))) {
+    return 'coordenador_horario';
+  }
+  
   return null;
 }
 
