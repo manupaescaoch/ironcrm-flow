@@ -465,6 +465,7 @@ export default function EncerramentoCoordenador() {
     }
 
     const handleSubmit = async () => {
+      if (saving) return;
       setSaving(true);
       try {
         const respostaId = crypto.randomUUID();
@@ -494,6 +495,7 @@ export default function EncerramentoCoordenador() {
 
         if (error) {
           toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
+          setSaving(false);
           return;
         }
 
@@ -509,7 +511,6 @@ export default function EncerramentoCoordenador() {
           description: error instanceof Error ? error.message : 'Tente novamente.',
           variant: 'destructive',
         });
-      } finally {
         setSaving(false);
       }
     };
