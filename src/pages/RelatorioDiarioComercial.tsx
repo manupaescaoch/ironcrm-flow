@@ -288,6 +288,7 @@ export default function RelatorioDiarioComercial() {
     push('Observações', r.observacoes);
 
     const handleSubmit = async () => {
+      if (saving) return; // Prevent double clicks
       setSaving(true);
       try {
         const respostaId = crypto.randomUUID();
@@ -316,6 +317,7 @@ export default function RelatorioDiarioComercial() {
 
         if (error) {
           toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
+          setSaving(false);
           return;
         }
 
@@ -332,7 +334,6 @@ export default function RelatorioDiarioComercial() {
           description: error instanceof Error ? error.message : 'Tente novamente.',
           variant: 'destructive',
         });
-      } finally {
         setSaving(false);
       }
     };

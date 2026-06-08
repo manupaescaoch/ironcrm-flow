@@ -414,6 +414,7 @@ export default function EncerramentoTurno() {
     ];
 
     const handleSubmit = async () => {
+      if (saving) return; // Prevent double clicks
       setSaving(true);
       try {
         const respostaId = crypto.randomUUID();
@@ -435,14 +436,15 @@ export default function EncerramentoTurno() {
             clima_influencia: r.climaInfluencia || null,
             equipamento_problema: !!r.equipamentoProblema,
             equipamento_descricao: r.equipamentoDescricao || null,
-            faria_diferente: r.fariaDiferente || null,
+            faria_diferente: r.faria_diferente || null,
             precisou_suporte: !!r.precisouSuporte,
-            suporte_descricao: r.suporteDescricao || null,
+            suporte_descricao: r.suporte_descricao || null,
             observacao_gestao: r.observacaoGestao || null,
           });
 
         if (error) {
           toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
+          setSaving(false);
           return;
         }
 
@@ -458,7 +460,6 @@ export default function EncerramentoTurno() {
           description: error instanceof Error ? error.message : 'Tente novamente.',
           variant: 'destructive',
         });
-      } finally {
         setSaving(false);
       }
     };
