@@ -113,7 +113,6 @@ Deno.serve(async (req) => {
 
     if (rolesError) {
       console.error('Error fetching user roles:', rolesError);
-      // Continue without roles - not a critical error
     }
 
     // 7. Get unidades from user_unidades table for each user
@@ -123,7 +122,6 @@ Deno.serve(async (req) => {
 
     if (unidadesError) {
       console.error('Error fetching user unidades:', unidadesError);
-      // Continue without unidades - not a critical error
     }
 
     // 8. Get telefones from user_profiles table
@@ -133,18 +131,26 @@ Deno.serve(async (req) => {
 
     if (profilesError) {
       console.error('Error fetching user profiles:', profilesError);
-      // Continue without profiles - not a critical error
+    }
+
+    // 9. Get notes from profile_admin_notes table
+    const { data: userAdminNotes, error: adminNotesError } = await supabaseAdmin
+      .from('profile_admin_notes')
+      .select('profile_id, notes');
+
+    if (adminNotesError) {
+      console.error('Error fetching user admin notes:', adminNotesError);
     }
 
     // Map roles by user_id
     const roleMap = new Map<string, string>();
     if (userRoles && Array.isArray(userRoles)) {
       userRoles.forEach((ur: { user_id: string; role: string }) => {
-        // Convert app_role to display role
         let displayRole: string | null = null;
         if (ur.role === 'admin') displayRole = 'admin';
         else if (ur.role === 'moderator') displayRole = 'recepcao';
         else if (ur.role === 'user') displayRole = 'comercial';
+        else if (ur.role === 'coordenador') displayRole = 'coordenador';
         if (displayRole) roleMap.set(ur.user_id, displayRole);
       });
     }
@@ -167,6 +173,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Map admin_notes by user_id
+    const adminNoteMap = new Map<string, string | null>();
+    if (userAdminNotes && Array.isArray(userAdminNotes)) {
+      userAdminNotes.forEach((an: { profile_id: string; notes: string | null }) => {
+        adminNoteMap.set(an.profile_id, an.notes);
+      });
+    }
+
     const formattedUsers = users.map(u => ({
       id: u.id,
       email: u.email || null,
@@ -176,6 +190,7 @@ Deno.serve(async (req) => {
       last_sign_in_at: u.last_sign_in_at || null,
       unidade_ids: unidadesMap.get(u.id) || [],
       telefone: phoneMap.get(u.id) || null,
+      admin_notes: adminNoteMap.get(u.id) || null,
     }));
 
     console.log(`Successfully listed ${formattedUsers.length} users`);

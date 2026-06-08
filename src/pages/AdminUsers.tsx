@@ -1,3 +1,4 @@
+// ============= Lines 1-500 of 1214 total lines =============
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
@@ -44,7 +45,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Users, Shield, UserCheck, Briefcase, Trash2, AlertTriangle, ShieldX, RefreshCw, UserPlus, Pencil, Building2, ArrowUp } from 'lucide-react';
+import { Loader2, Users, Shield, UserCheck, Briefcase, Trash2, AlertTriangle, ShieldX, RefreshCw, UserPlus, Pencil, Building2, ArrowUp, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { UserRole } from '@/contexts/AuthContext';
@@ -63,6 +64,7 @@ interface UserData {
   last_sign_in_at: string | null;
   unidade_ids: string[];
   telefone: string | null;
+  admin_notes: string | null;
 }
 
 type FetchError = {
@@ -114,6 +116,11 @@ export default function AdminUsers() {
   const [editPhone, setEditPhone] = useState('');
   const [updatingPhone, setUpdatingPhone] = useState(false);
   
+  // Edit notes state
+  const [editNotesDialogOpen, setEditNotesDialogOpen] = useState(false);
+  const [editingNotesUser, setEditingNotesUser] = useState<UserData | null>(null);
+  const [editNotes, setEditNotes] = useState('');
+  const [updatingNotes, setUpdatingNotes] = useState(false);
   // Uppercase update state
   const [updatingUppercase, setUpdatingUppercase] = useState(false);
   
@@ -533,6 +540,66 @@ export default function AdminUsers() {
       setUpdatingPhone(false);
     }
   };
+  
+  const handleEditNotes = (user: UserData) => {
+    setEditingNotesUser(user);
+    setEditNotes(user.admin_notes || '');
+    setEditNotesDialogOpen(true);
+  };
+
+  const handleUpdateNotes = async () => {
+    if (!editingNotesUser) return;
+
+    setUpdatingNotes(true);
+    try {
+      const { data: existingNote } = await supabase
+        .from('profile_admin_notes')
+        .select('id')
+        .eq('profile_id', editingNotesUser.id)
+        .maybeSingle();
+
+      let error;
+      if (existingNote) {
+        const { error: updateErr } = await supabase
+          .from('profile_admin_notes')
+          .update({ notes: editNotes.trim(), created_by: currentUser?.id })
+          .eq('profile_id', editingNotesUser.id);
+        error = updateErr;
+      } else {
+        const { error: insertErr } = await supabase
+          .from('profile_admin_notes')
+          .insert({ profile_id: editingNotesUser.id, notes: editNotes.trim(), created_by: currentUser?.id });
+        error = insertErr;
+      }
+
+      if (error) throw error;
+
+      // Update local state
+      setUsers(prev =>
+        prev.map(user =>
+          user.id === editingNotesUser.id ? { ...user, admin_notes: editNotes.trim() } : user
+        )
+      );
+
+      toast({
+        title: 'Notas atualizadas!',
+        description: 'As notas administrativas do usuário foram atualizadas.',
+      });
+
+      setEditNotesDialogOpen(false);
+      setEditingNotesUser(null);
+      setEditNotes('');
+    } catch (error: any) {
+      console.error('Error updating notes:', error);
+      toast({
+        title: 'Erro ao atualizar notas',
+        description: error.message || 'Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdatingNotes(false);
+    }
+  };
 
   const handleUpdateUppercase = async () => {
     setUpdatingUppercase(true);
@@ -744,6 +811,7 @@ export default function AdminUsers() {
                     <TableHead>Telefone</TableHead>
                     <TableHead>Unidade</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>Notas</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -808,6 +876,16 @@ export default function AdminUsers() {
                             ))}
                           </SelectContent>
                         </Select>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground truncate max-w-24" title={user.admin_notes || 'Nenhuma nota'}>
+                            {user.admin_notes || '-'}
+                          </span>
+                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleEditNotes(user)} title="Editar notas">
+                            <FileText className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Button
@@ -1096,6 +1174,39 @@ export default function AdminUsers() {
             </Button>
             <Button onClick={handleUpdatePhone} disabled={updatingPhone}>
               {updatingPhone && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Notes Dialog */}
+      <Dialog open={editNotesDialogOpen} onOpenChange={setEditNotesDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Notas Administrativas</DialogTitle>
+            <DialogDescription>
+              Notas internas sobre o usuário <strong>{editingNotesUser?.name || editingNotesUser?.email}</strong>.
+              Estas notas são visíveis apenas para administradores e coordenadores.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-notes">Notas Internas</Label>
+              <Input
+                id="edit-notes"
+                placeholder="Observações administrativas..."
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditNotesDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateNotes} disabled={updatingNotes}>
+              {updatingNotes && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Salvar
             </Button>
           </DialogFooter>

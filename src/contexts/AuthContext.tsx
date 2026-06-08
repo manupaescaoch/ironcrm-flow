@@ -14,6 +14,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
+  isCoordenador: boolean;
   canAccessExecutivo: boolean;
   canAccessComissoes: boolean;
   canAccessRelatorio: boolean;
@@ -117,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Permission helpers
   const isAdmin = userRole === 'admin';
+  const isCoordenador = userRole === 'coordenador';
   const canAccessExecutivo = userRole === 'admin';
   const canAccessComissoes = !!userRole;
   const canAccessRelatorio = userRole === 'admin';
@@ -146,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp, 
       signOut,
       isAdmin,
+      isCoordenador,
       canAccessExecutivo,
       canAccessComissoes,
       canAccessRelatorio,
