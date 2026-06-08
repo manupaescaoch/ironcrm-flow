@@ -884,6 +884,7 @@ export default function AdminUsers() {
                             <FileText className="w-3 h-3" />
                           </Button>
                         </div>
+                      </TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
