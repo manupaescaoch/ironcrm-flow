@@ -98,7 +98,12 @@ export function RotinaCard({ rotina, atividades, execucoes, onEdit, onDuplicate,
                     checked={!!exec}
                     onCheckedChange={(checked) => onToggleExecucao(rotina.id, atividade.id, !!checked)}
                   />
-                  <span className={cn('text-sm flex-1', exec && 'line-through text-muted-foreground')}>{atividade.titulo}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className={cn('text-sm block', exec && 'line-through text-muted-foreground')}>{atividade.titulo}</span>
+                    {atividade.observacao && (
+                      <p className="text-[11px] text-muted-foreground mt-0.5 whitespace-pre-line">{atividade.observacao}</p>
+                    )}
+                  </div>
                   {exec?.concluida_por && (
                     <span className="text-[10px] text-muted-foreground">{exec.concluida_por}</span>
                   )}
