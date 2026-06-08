@@ -236,6 +236,14 @@ export function RotinaModal({ open, onOpenChange, rotina, existingAtividades, on
                           {userOptions.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
                         </SelectContent>
                       </Select>
+                      <div className="md:col-span-3">
+                        <Textarea 
+                          placeholder="Descrição / Observação da atividade (opcional)" 
+                          value={at.observacao} 
+                          onChange={(e) => updateAtividade(i, 'observacao', e.target.value)} 
+                          className="min-h-[60px] text-sm"
+                        />
+                      </div>
                     </div>
                     <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive" onClick={() => removeAtividade(i)}>
                       <Trash2 className="w-4 h-4" />
