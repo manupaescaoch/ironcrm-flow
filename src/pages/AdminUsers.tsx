@@ -914,7 +914,7 @@ export default function AdminUsers() {
 
       {/* Create User Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="max-h-[90dvh] flex flex-col p-0">
+        <DialogContent className="sm:max-w-[500px] max-h-[95dvh] flex flex-col gap-0 p-0 overflow-hidden">
           <DialogHeader className="p-6 pb-0">
             <DialogTitle>Criar Novo Usuário</DialogTitle>
             <DialogDescription>
@@ -1093,14 +1093,14 @@ export default function AdminUsers() {
 
       {/* Edit Unidades Dialog */}
       <Dialog open={editUnidadesDialogOpen} onOpenChange={setEditUnidadesDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[500px] max-h-[95dvh] flex flex-col gap-0 p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-0">
             <DialogTitle>Editar Unidades do Usuário</DialogTitle>
             <DialogDescription>
               Selecione as unidades que o usuário terá acesso.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
             <div className="border rounded-lg p-3 space-y-2 max-h-48 overflow-y-auto">
               {unidades.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nenhuma unidade cadastrada</p>
@@ -1132,7 +1132,7 @@ export default function AdminUsers() {
               Usuário: {editingUnidadesUser?.email}
             </p>
           </div>
-          <DialogFooter>
+          <DialogFooter className="p-6 pt-0 border-t mt-auto">
             <Button variant="outline" onClick={() => setEditUnidadesDialogOpen(false)}>
               Cancelar
             </Button>
