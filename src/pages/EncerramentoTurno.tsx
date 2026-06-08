@@ -436,9 +436,9 @@ export default function EncerramentoTurno() {
             clima_influencia: r.climaInfluencia || null,
             equipamento_problema: !!r.equipamentoProblema,
             equipamento_descricao: r.equipamentoDescricao || null,
-            faria_diferente: r.faria_diferente || null,
+            faria_diferente: r.fariaDiferente || null,
             precisou_suporte: !!r.precisouSuporte,
-            suporte_descricao: r.suporte_descricao || null,
+            suporte_descricao: r.suporteDescricao || null,
             observacao_gestao: r.observacaoGestao || null,
           });
 
