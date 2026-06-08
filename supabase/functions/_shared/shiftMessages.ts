@@ -1,3 +1,8 @@
+/**
+ * Gera uma mensagem natural e variada para encerramento de turno.
+ * @param responsibleName Nome do responsável (o primeiro nome será usado na saudação)
+ * @param formLink Link original do formulário (mantido sem alterações)
+ */
 export function generateShiftClosingMessage(responsibleName: string, formLink: string): string {
   const firstName = responsibleName.split(' ')[0];
 
@@ -26,3 +31,4 @@ export function generateShiftClosingMessage(responsibleName: string, formLink: s
 
   return `${randomQuestion}\n\n${randomBody}\n\n${formLink}`;
 }
+
