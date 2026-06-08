@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
     const dryRun: boolean = !!body?.dryRun;
 
     const br = brasilia();
-    console.log(`[lembretes] ${br.dateStr} ${br.hour}:${String(br.minute).padStart(2,'0')} dow=${br.dow}`);
+    console.log(`[lembretes] ${br.dateStr} ${br.hour}:${String(br.minute).padStart(2,'0')} dow=${br.dow} dryRun=${dryRun}`);
 
     // 1. Buscar atividades do dia da semana
     const { data: atividades, error: errA } = await supabase
