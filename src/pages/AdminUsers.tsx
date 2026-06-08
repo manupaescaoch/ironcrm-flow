@@ -1,3 +1,4 @@
+// ============= Lines 1-500 of 1214 total lines =============
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
@@ -598,6 +599,7 @@ export default function AdminUsers() {
     } finally {
       setUpdatingNotes(false);
     }
+  };
 
   const handleUpdateUppercase = async () => {
     setUpdatingUppercase(true);
@@ -1142,6 +1144,7 @@ export default function AdminUsers() {
         </DialogContent>
       </Dialog>
 
+      {/* Edit Phone Dialog */}
       <Dialog open={editPhoneDialogOpen} onOpenChange={setEditPhoneDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -1176,6 +1179,7 @@ export default function AdminUsers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       {/* Edit Notes Dialog */}
       <Dialog open={editNotesDialogOpen} onOpenChange={setEditNotesDialogOpen}>
         <DialogContent>
