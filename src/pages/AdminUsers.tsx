@@ -914,7 +914,7 @@ export default function AdminUsers() {
 
       {/* Create User Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[95dvh] flex flex-col gap-0 p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-[500px] h-[95dvh] sm:h-auto max-h-[95dvh] flex flex-col gap-0 p-0 overflow-hidden">
           <DialogHeader className="p-6 pb-0">
             <DialogTitle>Criar Novo Usuário</DialogTitle>
             <DialogDescription>
@@ -1093,7 +1093,7 @@ export default function AdminUsers() {
 
       {/* Edit Unidades Dialog */}
       <Dialog open={editUnidadesDialogOpen} onOpenChange={setEditUnidadesDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[95dvh] flex flex-col gap-0 p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-[500px] h-[95dvh] sm:h-auto max-h-[95dvh] flex flex-col gap-0 p-0 overflow-hidden">
           <DialogHeader className="p-6 pb-0">
             <DialogTitle>Editar Unidades do Usuário</DialogTitle>
             <DialogDescription>
