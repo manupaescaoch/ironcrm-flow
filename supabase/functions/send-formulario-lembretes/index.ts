@@ -161,8 +161,10 @@ Deno.serve(async (req) => {
       const [h, m] = a.horario.split(':').map((x: string) => parseInt(x, 10));
       const horarioMin = h * 60 + m;
       const diff = br.totalMin - horarioMin;
-      // Janela: 30min .. 4h após horário previsto
-      return diff >= 30 && diff <= 240;
+      // Janela: 30min .. 4h após horário previsto.
+      // A janela deve ser estreita o suficiente para não disparar novamente se o cron rodar várias vezes,
+      // mas larga o suficiente para captar o horário (ex: se o cron roda a cada 15min).
+      return diff >= 30 && diff <= 45;
     });
 
     // Ordena por horário ASC para que o Map preserve o ÚLTIMO horário por chave
@@ -173,7 +175,10 @@ Deno.serve(async (req) => {
         const tipo = detectTipo(a.titulo)!;
         const resp = a.responsavel as any;
         const turno = (resp?.turno && resp.turno !== 'integral' ? resp.turno : inferTurno(a.horario)).toUpperCase();
-        const chaveBase = `${br.dateStr}_${a.unidade_id}_${turno}_${resp?.id || 'sem_responsavel'}_${tipo}`;
+        // Chave única por dia, unidade, turno e tipo de formulário.
+        // Removido o responsavel_id da chave para garantir que apenas UMA pessoa por turno receba,
+        // mesmo que haja múltiplos funcionários na mesma atividade.
+        const chaveBase = `${br.dateStr}_${a.unidade_id}_${turno}_${tipo}`;
         return [chaveBase, a] as const;
       })
     ).values());
@@ -249,13 +254,12 @@ Deno.serve(async (req) => {
       const unidadeNome = uMap.get(a.unidade_id) || '';
       const unidadeShort = unidadeNomeShort(unidadeNome);
       const turno = (resp.turno && resp.turno !== 'integral' ? resp.turno : inferTurno(a.horario)).toUpperCase();
-      const chave = `${br.dateStr}_${a.unidade_id}_${turno}_${resp.id}_${tipo}`;
+      const chave = `${br.dateStr}_${a.unidade_id}_${turno}_${tipo}`;
 
       const existente = lembreteMap.get(chave) || (lembretesHoje || []).find((l: any) => (
         l.data === br.dateStr &&
         l.unidade_id === a.unidade_id &&
         l.turno === turno &&
-        l.responsavel_id === resp.id &&
         l.formulario_tipo === tipo
       ));
       if (existente && existente.status_lembrete === 'enviado') {
