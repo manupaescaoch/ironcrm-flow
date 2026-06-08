@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { generateShiftClosingMessage } from '../_shared/shiftMessages.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
@@ -280,17 +281,7 @@ Deno.serve(async (req) => {
       }
 
       const link = TIPO_LINK[tipo];
-      const horarioFmt = (a.horario || '').slice(0, 5);
-      const message =
-        `Fala, ${resp.nome}.\n\n` +
-        `O formulário obrigatório do seu turno ainda não foi preenchido.\n\n` +
-        `📋 *Formulário:* ${TIPO_LABEL[tipo]}\n` +
-        `📍 *Unidade:* ${unidadeShort}\n` +
-        `🕒 *Turno:* ${turno}\n` +
-        `⏰ *Horário previsto:* ${horarioFmt}\n\n` +
-        `Preenche agora, por favor, para mantermos o controle da operação em dia.\n\n` +
-        `🔗 ${link}\n\n` +
-        `_Esse preenchimento é obrigatório ao final de cada turno._`;
+      const message = generateShiftClosingMessage(resp.nome, link);
 
       if (dryRun) {
         results.push({ chave, status: 'dry_run', telefone: resp.telefone });
