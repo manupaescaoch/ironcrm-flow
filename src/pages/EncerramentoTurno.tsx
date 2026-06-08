@@ -414,6 +414,7 @@ export default function EncerramentoTurno() {
     ];
 
     const handleSubmit = async () => {
+      if (saving) return; // Prevent double clicks
       setSaving(true);
       try {
         const respostaId = crypto.randomUUID();
@@ -443,6 +444,7 @@ export default function EncerramentoTurno() {
 
         if (error) {
           toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
+          setSaving(false);
           return;
         }
 
@@ -458,7 +460,6 @@ export default function EncerramentoTurno() {
           description: error instanceof Error ? error.message : 'Tente novamente.',
           variant: 'destructive',
         });
-      } finally {
         setSaving(false);
       }
     };
