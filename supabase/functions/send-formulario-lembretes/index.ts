@@ -33,20 +33,35 @@ function brasilia() {
   return { dateStr, hour, minute, totalMin: hour * 60 + minute, dow };
 }
 
-function detectTipo(titulo: string): FormTipo | null {
+function detectTipo(titulo: string, responsavelNome?: string): FormTipo | null {
   const t = (titulo || '').toLowerCase();
+  const n = (responsavelNome || '').toLowerCase();
   
-  // Estagiário Líder: precisa conter "estagi" + "líder"
+  // 1. Explicit check in title
   if (t.includes('estagi') && (t.includes('líder') || t.includes('lider'))) return 'estagiario_lider';
-  
-  // Coordenador de Unidade: precisa conter "coordenador" + "unidade" + ser encerramento/relatório
-  if (t.includes('coordenador') && t.includes('unidade') && t.includes('encerr')) return 'coordenador_unidade';
-  
-  // Relatório Diário Comercial
+  if (t.includes('coordenador') && t.includes('unidade')) return 'coordenador_unidade';
+  if (t.includes('coordenador') && (t.includes('horário') || t.includes('horario'))) return 'coordenador_horario';
   if (t.includes('relat') && (t.includes('diário') || t.includes('diario'))) return 'relatorio_diario';
-  
-  // Coordenador de Horário: Fábio deve usar este, ou se contiver "encerramento" + "horário"
-  if (t.includes('fábio') || t.includes('fabio') || (t.includes('encerramento') && (t.includes('turno') || t.includes('horário') || t.includes('horario')))) {
+
+  // 2. Name-based check (based on user's role list)
+  // COORDENADORES
+  const coordenadores = ['marcelo', 'gabi lima'];
+  if (coordenadores.some(name => n.includes(name) || t.includes(name))) return 'coordenador_unidade';
+
+  // TREINADORES (get Coordenador de Horário link)
+  const treinadores = ['andrey sales', 'bruno', 'gabriel peres', 'beatriz santana', 'fábio', 'fabio', 'lucas alves'];
+  if (treinadores.some(name => n.includes(name) || t.includes(name))) return 'coordenador_horario';
+
+  // ESTAGIÁRIOS LÍDERES
+  const estagiarios = ['everton pedro', 'felipe germano', 'alisson orlando', 'geaze nascimento', 'gabriel araujo', 'estela maria'];
+  if (estagiarios.some(name => n.includes(name) || t.includes(name))) return 'estagiario_lider';
+
+  // RECEPÇÃO (usually Comercial report)
+  const recepcao = ['aylana rafaeli', 'danúbia medeiros', 'gaby mota', 'natan'];
+  if (recepcao.some(name => n.includes(name) || t.includes(name))) return 'relatorio_diario';
+
+  // 3. Fallback to generic keywords
+  if (t.includes('encerramento') && (t.includes('turno') || t.includes('horário') || t.includes('horario'))) {
     return 'coordenador_horario';
   }
   
@@ -161,7 +176,7 @@ Deno.serve(async (req) => {
 
     const candidatos = (atividades || []).filter(a => {
       if (!a.horario) return false;
-      const tipo = detectTipo(a.titulo);
+      const tipo = detectTipo(a.titulo, a.responsavel?.nome);
       if (!tipo) return false;
       const [h, m] = a.horario.split(':').map((x: string) => parseInt(x, 10));
       const horarioMin = h * 60 + m;
@@ -177,7 +192,7 @@ Deno.serve(async (req) => {
     const candidatosOrdenados = [...candidatos].sort((a, b) => (a.horario || '').localeCompare(b.horario || ''));
     const candidatosUnicos = Array.from(new Map(
       candidatosOrdenados.map((a) => {
-        const tipo = detectTipo(a.titulo)!;
+        const tipo = detectTipo(a.titulo, a.responsavel?.nome)!;
         const resp = a.responsavel as any;
         const turno = (resp?.turno && resp.turno !== 'integral' ? resp.turno : inferTurno(a.horario)).toUpperCase();
         // Chave única por dia, unidade, turno e tipo de formulário.
@@ -252,7 +267,7 @@ Deno.serve(async (req) => {
     const results: any[] = [];
 
     for (const a of candidatosUnicos) {
-      const tipo = detectTipo(a.titulo)!;
+      const tipo = detectTipo(a.titulo, a.responsavel?.nome)!;
       const resp = a.responsavel as any;
       if (!resp || !resp.telefone) continue;
 
