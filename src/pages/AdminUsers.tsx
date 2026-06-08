@@ -914,14 +914,14 @@ export default function AdminUsers() {
 
       {/* Create User Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] h-[95dvh] sm:h-auto max-h-[95dvh] flex flex-col gap-0 p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-[500px] w-[95vw] h-[95dvh] sm:h-auto max-h-[95dvh] flex flex-col gap-0 p-0 overflow-hidden">
           <DialogHeader className="p-6 pb-0">
             <DialogTitle>Criar Novo Usuário</DialogTitle>
             <DialogDescription>
               Preencha os dados para criar um novo usuário no sistema.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
             <div className="space-y-2">
               <Label htmlFor="name">Nome</Label>
               <Input
