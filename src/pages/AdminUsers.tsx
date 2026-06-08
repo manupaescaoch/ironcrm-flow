@@ -914,14 +914,14 @@ export default function AdminUsers() {
 
       {/* Create User Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="max-h-[90dvh] flex flex-col p-0">
+          <DialogHeader className="p-6 pb-0">
             <DialogTitle>Criar Novo Usuário</DialogTitle>
             <DialogDescription>
               Preencha os dados para criar um novo usuário no sistema.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nome</Label>
               <Input
@@ -1020,7 +1020,7 @@ export default function AdminUsers() {
               </p>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="p-6 pt-0 border-t mt-auto">
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
               Cancelar
             </Button>
