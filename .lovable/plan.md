@@ -1,69 +1,78 @@
-## Nova arquitetura de envio (corrigida pelo usuário)
+## Objetivo
 
-| Tipo | Destino | Chip |
-|---|---|---|
-| Confirmação experimental (24h e 2h antes) | **Telefone do lead** | Comercial |
-| Follow-up (D+1/D+7/D+15/D+30) | **Telefone do lead** | Comercial |
-| Respostas de anamnese | **Grupo da unidade** | Comercial |
+Fazer com que, ao disparar uma atividade do Cronograma Operacional do tipo "ENVIO DA GRADE DE HORÁRIO PARA COORDENADOR DE HORÁRIO", a edge function gere automaticamente uma variação aleatória de título e frase principal, mantendo intactos unidade, horário, responsável e (quando presente) coordenador de horário.
 
-Isso **revoga** a regra core anterior que dizia "chip nunca manda direto ao lead". A nova regra: confirmação e FU vão direto ao aluno; só anamnese vai pro grupo.
+## Escopo
 
-## Bug 1 — Cron está chamando a função certa, mas ela estava silenciosa
+Alteração apenas em `supabase/functions/send-cronograma-messages/index.ts`. Nenhuma mudança em banco, horários, responsáveis, unidades ou em qualquer outro disparo. As linhas atualmente salvas no campo `cronograma_atividades.mensagem` continuam sendo o "valor base" — extraímos os dados dinâmicos dela e regeneramos a mensagem com variação.
 
-`confirmacao-experimental-cada-15min` chama `confirmacao-experimental-automatica`, que já envia direto ao lead pelo chip comercial. **Manter assim.** O motivo de não ter saído nada desde 31/05 é o Bug 2 abaixo + o guard `phoneExists` falhando porque o token estava errado.
+## Como identificar a tarefa
 
-Ações:
-- **Não trocar** o cron para `send-confirmacao-recepcao`.
-- Marcar `send-confirmacao-recepcao` como descontinuada (comentário no topo do arquivo) para evitar uso futuro acidental.
+Critério na edge function:
+- `atividade.titulo` contém (case-insensitive) `"GRADE DE HORÁRIO"`, OU
+- `atividade.mensagem` contém `"Grade do próximo horário"`.
 
-## Bug 2 — Mistura de credenciais (instance comercial + token legado)
+Quando bate, ignoramos o texto fixo salvo e geramos a versão variada.
 
-Quatro funções carregam o `ZAPI_INSTANCE_ID` da comercial mas o `ZAPI_TOKEN` / `ZAPI_CLIENT_TOKEN` da instância legada. Como instance + token precisam casar na Z-API, isso gera `{"error":"Instance not found"}` — exatamente o erro nos logs de `notify-feedback-experimental` e `notify-boas-vindas-matricula` em 02/06. Também faz o `phoneExists` da confirmação retornar `false`, bloqueando todos os envios silenciosamente.
+## Dados dinâmicos usados
 
-Padrão atual (errado):
+- **Nome do responsável**: `resp.nome` (primeiro nome).
+- **Unidade**: `unidadeMap.get(atividade.unidade_id)`.
+- **Horário da grade**: `atividade.horario.substring(0,5)`.
+- **Coordenador de horário**: extraído da `atividade.mensagem` salva via regex (`/Coordenador de horário[:\*\s]+([^\n]+)/i`). Se não houver, a linha do coordenador é simplesmente omitida — sem inventar nome.
+
+## Geração da mensagem
+
+Nova função `generateGradeMessage({ nome, unidade, horario, coordenador })`:
+
+1. Sorteia um par `(titulo, fraseAbertura)` entre as 12 variações fornecidas pelo usuário (📋 Conferência da próxima grade, 🧭 Alinhamento do próximo horário, 📌 Próximo horário chegando, ✅ Checagem da grade, 📋 Organização do próximo horário, 🕒 Preparação da próxima grade, 📍 Alinhamento de horário, ⚡ Hora de alinhar a grade, 📋 Grade em conferência, 🧠 Organização antes da entrada, 📌 Próxima grade no radar, ✅ Conferência antes do horário).
+2. Sorteia uma frase de fechamento entre as variações ("Se tiver alguma pendência, resolve antes do início do horário.", "Qualquer pendência, ajusta agora para não virar problema depois.", "Se tiver algo fora do lugar, resolve antes da entrada dos alunos.", "Se aparecer alguma pendência, ajusta antes do horário começar.", "Pendência vista antes vira ajuste. Pendência vista depois vira dor de cabeça.", "Se tiver algo pendente, resolve agora.", "Qualquer ajuste necessário, faz antes do início.", "Não deixa pendência passar para o próximo horário.", "Pendência identificada agora já precisa ser resolvida.").
+3. Monta:
+
 ```
-ZAPI_INSTANCE_ID  = ZAPI_COMERCIAL_INSTANCE_ID ?? ZAPI_INSTANCE_ID
-ZAPI_TOKEN        = ZAPI_TOKEN                     // legacy
-ZAPI_CLIENT_TOKEN = ZAPI_CLIENT_TOKEN              // legacy
+{titulo}
+
+{primeiroNome}, {fraseAbertura usando {horario_grade}}
+
+📍 Unidade: {unidade}
+🕒 Horário da grade: {horario}
+🧭 Coordenador de horário: {coordenador}   ← apenas se existir
+
+{fraseFechamento}
 ```
 
-Padrão correto (já usado em `notify-anamnese-experimental`):
+## Integração no fluxo existente
+
+Dentro do loop de envio (`for (const atividade of atividadesNaJanela)`), antes do bloco `else if (atividade.mensagem)`:
+
+```ts
+const isGrade =
+  /grade de hor[áa]rio/i.test(atividade.titulo || '') ||
+  /grade do pr[óo]ximo hor[áa]rio/i.test(atividade.mensagem || '');
+
+if (isGrade) {
+  const coordMatch = (atividade.mensagem || '').match(
+    /Coordenador de hor[áa]rio[:\*\s]+([^\n*]+)/i
+  );
+  message = generateGradeMessage({
+    nome: resp.nome,
+    unidade: unidadeNome,
+    horario: atividade.horario?.substring(0, 5) ?? '',
+    coordenador: coordMatch ? coordMatch[1].trim() : null,
+  });
+}
 ```
-ZAPI_INSTANCE_ID  = ZAPI_COMERCIAL_INSTANCE_ID  ?? ZAPI_INSTANCE_ID
-ZAPI_TOKEN        = ZAPI_COMERCIAL_TOKEN        ?? ZAPI_TOKEN
-ZAPI_CLIENT_TOKEN = ZAPI_COMERCIAL_CLIENT_TOKEN ?? ZAPI_CLIENT_TOKEN
-```
 
-Funções a corrigir:
-- `supabase/functions/send-fu-digest-comercial/index.ts`
-- `supabase/functions/notify-feedback-experimental/index.ts`
-- `supabase/functions/notify-boas-vindas-matricula/index.ts`
-- `supabase/functions/send-confirmacao-recepcao/index.ts` (mesmo descontinuada, deixar consistente)
+A verificação de whey continua antes; a de grade vem em seguida; depois mantém-se o `else if (atividade.mensagem)` para todas as outras atividades.
 
-OK e não serão tocadas:
-- `notify-anamnese-experimental` (padrão correto, envia ao grupo da unidade)
-- `confirmacao-experimental-automatica`, `send-follow-ups-automaticos` (usam `getZapiCreds('comercial')` no helper, que já compõe instance+token+client_token coerentes)
+## Garantias
 
-## Atualização de memória
-
-Substituir a regra core atual:
-> "Z-API chip never messages leads directly. FU → grupo comercial da unidade; Confirmação experimental → telefone da recepção."
-
-Por:
-> "Confirmação experimental (24h/2h) e FU (D+1/D+7/D+15/D+30) → telefone do lead, chip comercial. Respostas de anamnese → grupo da unidade, chip comercial."
-
-Atualizar também as memórias detalhadas referenciadas:
-- `mem://features/whatsapp-comercial-architecture`
-- `mem://features/confirmacao-experimental-automatica`
-- `mem://features/follow-ups-automation`
-- `mem://features/whatsapp-chip-protection` (manter rate limit, status check, phone-exists)
+- Nenhum dado cadastrado é alterado (somente leitura).
+- Horário, unidade, responsável e coordenador continuam corretos.
+- Aleatoriedade via `Math.random()` — cada disparo escolhe uma combinação diferente.
+- Rate limit, status check Z-API, logs e tabela `cronograma_envios` permanecem como estão.
 
 ## Validação
 
-1. Disparar `confirmacao-experimental-automatica` manualmente — esperar envios bem-sucedidos para os leads de hoje/amanhã na janela.
-2. Disparar `notify-feedback-experimental` num caso recente — confirmar que `{"error":"Instance not found"}` desapareceu.
-3. Conferir `whatsapp_envios_log` com `sucesso=true, canal=comercial, tipo_destino=lead` nas próximas execuções.
-
-## Fora do escopo
-
-Nada de UI, RLS, schema, templates, ou novos crons.
+1. Inspecionar o `console.log` da função após próximo disparo natural.
+2. Disparo manual via `force_hour` para qualquer horário `:40` e conferir nas mensagens recebidas que o título e a abertura variam, e que unidade/horário/coordenador batem com o cadastro.
