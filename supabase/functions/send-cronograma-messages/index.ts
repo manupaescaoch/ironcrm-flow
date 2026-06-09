@@ -243,7 +243,14 @@ Deno.serve(async (req) => {
 
       // Montar a mensagem
       let message = '';
-      if (atividade.mensagem) {
+      const isWhey = (atividade.titulo || '').toLowerCase().includes('whey');
+      if (isWhey) {
+        message = generateWheyMessage(resp.nome);
+        if (atividade.formulario_id) {
+          const formLink = `${SUPABASE_URL.replace('.supabase.co', '.lovable.app')}/formulario/${atividade.formulario_id}`;
+          message += `\n\n🔗 ${formLink}`;
+        }
+      } else if (atividade.mensagem) {
         // Mensagem customizada
         message = atividade.mensagem;
       } else if (atividade.formulario_id) {
