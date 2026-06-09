@@ -17,6 +17,25 @@ function normalizePhone(phone: string): string {
   return normalized;
 }
 
+const wheyMessages = [
+  (name: string) => `${name}, confere pra mim se precisa repor o whey e se a máquina está funcionando certinho?`,
+  (name: string) => `${name}, dá uma olhada na máquina do whey e vê se está tudo ok com a reposição.`,
+  (name: string) => `${name}, verifica o nível do whey e confirma se a máquina está normal.`,
+  (name: string) => `${name}, pode checar se o whey precisa ser completado e se a máquina está rodando bem?`,
+  (name: string) => `${name}, olha pra mim a situação do whey e me avisa se tiver algo errado com a máquina.`,
+  (name: string) => `${name}, confere a reposição do whey e confirma se a máquina está pronta para uso.`,
+  (name: string) => `${name}, verifica se o whey está baixo e se a máquina está funcionando sem problema.`,
+  (name: string) => `${name}, dá uma passada na máquina do whey e vê se precisa fazer reposição.`,
+  (name: string) => `${name}, checa o whey e confirma se a máquina está ok, por favor.`,
+  (name: string) => `${name}, olha o nível do whey e me avisa se a máquina estiver com qualquer problema.`,
+];
+
+function generateWheyMessage(responsibleName: string): string {
+  const firstName = responsibleName.split(' ')[0];
+  const idx = Math.floor(Math.random() * wheyMessages.length);
+  return wheyMessages[idx](firstName);
+}
+
 async function resolveSendPhone(creds: NonNullable<ReturnType<typeof getZapiCreds>>, rawPhone: string): Promise<string> {
   const normalized = normalizePhone(rawPhone);
   const lookup = await lookupWhatsAppPhone(creds, normalized);
@@ -224,7 +243,14 @@ Deno.serve(async (req) => {
 
       // Montar a mensagem
       let message = '';
-      if (atividade.mensagem) {
+      const isWhey = (atividade.titulo || '').toLowerCase().includes('whey');
+      if (isWhey) {
+        message = generateWheyMessage(resp.nome);
+        if (atividade.formulario_id) {
+          const formLink = `${SUPABASE_URL.replace('.supabase.co', '.lovable.app')}/formulario/${atividade.formulario_id}`;
+          message += `\n\n🔗 ${formLink}`;
+        }
+      } else if (atividade.mensagem) {
         // Mensagem customizada
         message = atividade.mensagem;
       } else if (atividade.formulario_id) {
