@@ -285,13 +285,26 @@ Deno.serve(async (req) => {
 
       // Montar a mensagem
       let message = '';
-      const isWhey = (atividade.titulo || '').toLowerCase().includes('whey');
+      const tituloLower = (atividade.titulo || '').toLowerCase();
+      const mensagemLower = (atividade.mensagem || '').toLowerCase();
+      const isWhey = tituloLower.includes('whey');
+      const isGrade = /grade de hor[áa]rio/i.test(atividade.titulo || '')
+        || /grade do pr[óo]ximo hor[áa]rio/i.test(atividade.mensagem || '');
+
       if (isWhey) {
         message = generateWheyMessage(resp.nome);
         if (atividade.formulario_id) {
           const formLink = `${SUPABASE_URL.replace('.supabase.co', '.lovable.app')}/formulario/${atividade.formulario_id}`;
           message += `\n\n🔗 ${formLink}`;
         }
+      } else if (isGrade) {
+        const coordMatch = (atividade.mensagem || '').match(/Coordenador de hor[áa]rio[:\*\s]+([^\n*]+)/i);
+        message = generateGradeMessage({
+          nome: resp.nome,
+          unidade: unidadeNome,
+          horario: atividade.horario?.substring(0, 5) ?? '',
+          coordenador: coordMatch ? coordMatch[1].trim() : null,
+        });
       } else if (atividade.mensagem) {
         // Mensagem customizada
         message = atividade.mensagem;
