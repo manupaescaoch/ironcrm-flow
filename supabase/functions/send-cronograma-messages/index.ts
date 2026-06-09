@@ -36,6 +36,48 @@ function generateWheyMessage(responsibleName: string): string {
   return wheyMessages[idx](firstName);
 }
 
+const gradeVariants: Array<{ titulo: string; abertura: (nome: string, horario: string) => string }> = [
+  { titulo: '📋 *Conferência da próxima grade*', abertura: (n, h) => `${n}, dá uma olhada agora na grade do horário das ${h} e já alinha o time antes da entrada dos alunos.` },
+  { titulo: '🧭 *Alinhamento do próximo horário*', abertura: (n, h) => `${n}, confere a grade das ${h} e garante que o time já esteja alinhado antes dos alunos entrarem.` },
+  { titulo: '📌 *Próximo horário chegando*', abertura: (n, h) => `${n}, verifica agora a grade das ${h} e alinha o time antes do início do horário.` },
+  { titulo: '✅ *Checagem da grade*', abertura: (n, h) => `${n}, passa agora na grade do horário das ${h} e confirma se está tudo alinhado com o time.` },
+  { titulo: '📋 *Organização do próximo horário*', abertura: (n, h) => `${n}, confere a grade das ${h} e garante que o time saiba exatamente o que precisa fazer antes dos alunos entrarem.` },
+  { titulo: '🕒 *Preparação da próxima grade*', abertura: (n, h) => `${n}, verifica a grade do horário das ${h} e faz o alinhamento com o time antes da entrada dos alunos.` },
+  { titulo: '📍 *Alinhamento de horário*', abertura: (n, h) => `${n}, olha agora a grade das ${h} e confirma se o time está pronto para receber os alunos.` },
+  { titulo: '⚡ *Hora de alinhar a grade*', abertura: (n, h) => `${n}, confere a grade do próximo horário (${h}) e alinha o time antes da entrada dos alunos.` },
+  { titulo: '📋 *Grade em conferência*', abertura: (n, h) => `${n}, verifica a grade das ${h} e confirma se está tudo certo com o time antes da entrada dos alunos.` },
+  { titulo: '🧠 *Organização antes da entrada*', abertura: (n, h) => `${n}, confere agora a grade das ${h} e faz o alinhamento necessário com o time.` },
+  { titulo: '📌 *Próxima grade no radar*', abertura: (n, h) => `${n}, olha a grade das ${h} e garante que tudo esteja organizado antes do início do horário.` },
+  { titulo: '✅ *Conferência antes do horário*', abertura: (n, h) => `${n}, verifica agora a grade das ${h} e confirma o alinhamento com o time.` },
+];
+
+const gradeFechamentos = [
+  'Se tiver alguma pendência, resolve antes do início do horário.',
+  'Qualquer pendência, ajusta agora para não virar problema depois.',
+  'Se tiver algo fora do lugar, resolve antes da entrada dos alunos.',
+  'Se aparecer alguma pendência, ajusta antes do horário começar.',
+  'Pendência vista antes vira ajuste. Pendência vista depois vira dor de cabeça.',
+  'Se tiver algo pendente, resolve agora.',
+  'Qualquer ajuste necessário, faz antes do início.',
+  'Não deixa pendência passar para o próximo horário.',
+  'Pendência identificada agora já precisa ser resolvida.',
+];
+
+function generateGradeMessage(params: { nome: string; unidade: string; horario: string; coordenador: string | null }): string {
+  const firstName = (params.nome || '').split(' ')[0];
+  const variant = gradeVariants[Math.floor(Math.random() * gradeVariants.length)];
+  const fechamento = gradeFechamentos[Math.floor(Math.random() * gradeFechamentos.length)];
+
+  let msg = `${variant.titulo}\n\n${variant.abertura(firstName, params.horario)}\n\n`;
+  msg += `📍 *Unidade:* ${params.unidade}\n`;
+  msg += `🕒 *Horário da grade:* ${params.horario}\n`;
+  if (params.coordenador) {
+    msg += `🧭 *Coordenador de horário:* ${params.coordenador}\n`;
+  }
+  msg += `\n${fechamento}`;
+  return msg;
+}
+
 async function resolveSendPhone(creds: NonNullable<ReturnType<typeof getZapiCreds>>, rawPhone: string): Promise<string> {
   const normalized = normalizePhone(rawPhone);
   const lookup = await lookupWhatsAppPhone(creds, normalized);
