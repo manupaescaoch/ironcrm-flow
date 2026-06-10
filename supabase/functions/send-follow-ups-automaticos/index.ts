@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
       `)
       .eq('status', 'pendente')
       .lte('data_prevista', `${todayStr}T23:59:59-03:00`)
-      .in('tipo', ['D+1', 'D+7', 'D+15', 'D+30']);
+      .in('tipo', ['D+1', 'D+7', 'D+15', 'D+30', 'M+7', 'M+30']);
 
     if (fuErr) {
       return new Response(
