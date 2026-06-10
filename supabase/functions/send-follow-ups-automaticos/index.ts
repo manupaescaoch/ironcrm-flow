@@ -180,11 +180,23 @@ Deno.serve(async (req) => {
           .eq('id', fu.id);
         continue;
       }
-      if (!lead.ativo || lead.is_matriculado || lead.status_funil === 'convertido' || lead.status_funil === 'perdido') {
-        await supabase.from('follow_ups')
-          .update({ status: 'cancelado', cancelado_motivo: 'lead_inelegivel', updated_at: new Date().toISOString() })
-          .eq('id', fu.id);
-        continue;
+      const isPostMatricula = fu.tipo === 'M+7' || fu.tipo === 'M+30';
+      if (isPostMatricula) {
+        // Pós-matrícula: exige aluno ativo e matriculado
+        if (!lead.ativo || !lead.is_matriculado) {
+          await supabase.from('follow_ups')
+            .update({ status: 'cancelado', cancelado_motivo: 'lead_inelegivel', updated_at: new Date().toISOString() })
+            .eq('id', fu.id);
+          continue;
+        }
+      } else {
+        // Pré-matrícula: cancela se já matriculado, convertido ou perdido
+        if (!lead.ativo || lead.is_matriculado || lead.status_funil === 'convertido' || lead.status_funil === 'perdido') {
+          await supabase.from('follow_ups')
+            .update({ status: 'cancelado', cancelado_motivo: 'lead_inelegivel', updated_at: new Date().toISOString() })
+            .eq('id', fu.id);
+          continue;
+        }
       }
       if (!lead.telefone) {
         await logEnvio(supabase, { funcao: FUNC, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, motivo_skip: 'sem_telefone', canal: 'comercial' });
