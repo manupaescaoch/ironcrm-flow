@@ -1,78 +1,35 @@
-## Objetivo
+## Problema
 
-Fazer com que, ao disparar uma atividade do Cronograma Operacional do tipo "ENVIO DA GRADE DE HORÁRIO PARA COORDENADOR DE HORÁRIO", a edge function gere automaticamente uma variação aleatória de título e frase principal, mantendo intactos unidade, horário, responsável e (quando presente) coordenador de horário.
+A página pública `/relatorio-diario-comercial` é acessada sem login (recepção preenche pelo celular). Hoje a única policy de INSERT em `relatorio_diario_comercial_respostas` exige `auth.uid() IS NOT NULL`, então toda submissão pública é bloqueada com `new row violates row-level security policy`.
 
-## Escopo
+Os outros formulários públicos da família (`encerramento_turno_respostas`, `encerramento_horario_respostas`, `encerramento_coordenador_respostas`) têm uma policy `*_public` para `anon, authenticated` com validação por `NOT NULL` + tamanho de campos. Esse padrão foi perdido aqui durante o audit 0024.
 
-Alteração apenas em `supabase/functions/send-cronograma-messages/index.ts`. Nenhuma mudança em banco, horários, responsáveis, unidades ou em qualquer outro disparo. As linhas atualmente salvas no campo `cronograma_atividades.mensagem` continuam sendo o "valor base" — extraímos os dados dinâmicos dela e regeneramos a mensagem com variação.
+## Correção
 
-## Como identificar a tarefa
+Migração que adiciona uma policy pública de INSERT alinhada ao padrão já existente, mantendo a policy autenticada atual:
 
-Critério na edge function:
-- `atividade.titulo` contém (case-insensitive) `"GRADE DE HORÁRIO"`, OU
-- `atividade.mensagem` contém `"Grade do próximo horário"`.
+```sql
+GRANT INSERT ON public.relatorio_diario_comercial_respostas TO anon;
 
-Quando bate, ignoramos o texto fixo salvo e geramos a versão variada.
-
-## Dados dinâmicos usados
-
-- **Nome do responsável**: `resp.nome` (primeiro nome).
-- **Unidade**: `unidadeMap.get(atividade.unidade_id)`.
-- **Horário da grade**: `atividade.horario.substring(0,5)`.
-- **Coordenador de horário**: extraído da `atividade.mensagem` salva via regex (`/Coordenador de horário[:\*\s]+([^\n]+)/i`). Se não houver, a linha do coordenador é simplesmente omitida — sem inventar nome.
-
-## Geração da mensagem
-
-Nova função `generateGradeMessage({ nome, unidade, horario, coordenador })`:
-
-1. Sorteia um par `(titulo, fraseAbertura)` entre as 12 variações fornecidas pelo usuário (📋 Conferência da próxima grade, 🧭 Alinhamento do próximo horário, 📌 Próximo horário chegando, ✅ Checagem da grade, 📋 Organização do próximo horário, 🕒 Preparação da próxima grade, 📍 Alinhamento de horário, ⚡ Hora de alinhar a grade, 📋 Grade em conferência, 🧠 Organização antes da entrada, 📌 Próxima grade no radar, ✅ Conferência antes do horário).
-2. Sorteia uma frase de fechamento entre as variações ("Se tiver alguma pendência, resolve antes do início do horário.", "Qualquer pendência, ajusta agora para não virar problema depois.", "Se tiver algo fora do lugar, resolve antes da entrada dos alunos.", "Se aparecer alguma pendência, ajusta antes do horário começar.", "Pendência vista antes vira ajuste. Pendência vista depois vira dor de cabeça.", "Se tiver algo pendente, resolve agora.", "Qualquer ajuste necessário, faz antes do início.", "Não deixa pendência passar para o próximo horário.", "Pendência identificada agora já precisa ser resolvida.").
-3. Monta:
-
-```
-{titulo}
-
-{primeiroNome}, {fraseAbertura usando {horario_grade}}
-
-📍 Unidade: {unidade}
-🕒 Horário da grade: {horario}
-🧭 Coordenador de horário: {coordenador}   ← apenas se existir
-
-{fraseFechamento}
+CREATE POLICY insert_relatorio_diario_comercial_public
+ON public.relatorio_diario_comercial_respostas
+FOR INSERT
+TO anon, authenticated
+WITH CHECK (
+  nome IS NOT NULL
+  AND char_length(btrim(nome)) BETWEEN 1 AND 200
+  AND unidade IS NOT NULL
+  AND char_length(btrim(unidade)) BETWEEN 1 AND 100
+  AND data IS NOT NULL
+  AND submitted_by IS NULL
+);
 ```
 
-## Integração no fluxo existente
-
-Dentro do loop de envio (`for (const atividade of atividadesNaJanela)`), antes do bloco `else if (atividade.mensagem)`:
-
-```ts
-const isGrade =
-  /grade de hor[áa]rio/i.test(atividade.titulo || '') ||
-  /grade do pr[óo]ximo hor[áa]rio/i.test(atividade.mensagem || '');
-
-if (isGrade) {
-  const coordMatch = (atividade.mensagem || '').match(
-    /Coordenador de hor[áa]rio[:\*\s]+([^\n*]+)/i
-  );
-  message = generateGradeMessage({
-    nome: resp.nome,
-    unidade: unidadeNome,
-    horario: atividade.horario?.substring(0, 5) ?? '',
-    coordenador: coordMatch ? coordMatch[1].trim() : null,
-  });
-}
-```
-
-A verificação de whey continua antes; a de grade vem em seguida; depois mantém-se o `else if (atividade.mensagem)` para todas as outras atividades.
-
-## Garantias
-
-- Nenhum dado cadastrado é alterado (somente leitura).
-- Horário, unidade, responsável e coordenador continuam corretos.
-- Aleatoriedade via `Math.random()` — cada disparo escolhe uma combinação diferente.
-- Rate limit, status check Z-API, logs e tabela `cronograma_envios` permanecem como estão.
+Pontos:
+- `submitted_by IS NULL` impede que um anon injete um user_id alheio. Submissões autenticadas continuam podendo informar `submitted_by = auth.uid()` pela policy existente.
+- SELECT/UPDATE/DELETE continuam restritos como hoje (admin / scoped). Sem leitura pública.
+- Sem alteração em frontend.
 
 ## Validação
 
-1. Inspecionar o `console.log` da função após próximo disparo natural.
-2. Disparo manual via `force_hour` para qualquer horário `:40` e conferir nas mensagens recebidas que o título e a abertura variam, e que unidade/horário/coordenador batem com o cadastro.
+Após aplicar, reabrir `/relatorio-diario-comercial` no celular, preencher e enviar — deve concluir sem o erro de RLS, e a mensagem do grupo WhatsApp continua disparando via `submit-formulario-publico`.
