@@ -69,6 +69,22 @@ Se a IRON ainda fizer sentido pra você, me fala. Posso te ajudar a tirar qualqu
 Passando pra deixar o contato aberto. Se em algum momento quiser treinar com mais acompanhamento e uma experiência diferente, a Iron está aqui.
 
 Qualquer coisa é só chamar. 🤝`,
+  'M+7': (nome) => `Olá, ${nome}! Tudo bem? 💙
+
+Já faz alguns dias que você começou sua experiência com a gente na Iron, e queremos saber como está sendo para você até aqui.
+
+Você conseguiu se adaptar bem aos agendamentos, à rotina de treino e ao acompanhamento da equipe?
+
+Lembrando que, sempre que precisar, a recepção está à disposição por aqui para ajudar com dúvidas, avaliação física ou qualquer orientação sobre sua experiência na Iron.
+
+Estamos felizes em ter você com a gente.`,
+  'M+30': (nome) => `Olá, ${nome}! Tudo bem? 💙
+
+Hoje você completa seu primeiro mês na Iron, e queremos saber como está sendo sua experiência com a nossa estrutura, os agendamentos, o acompanhamento dos treinadores e os benefícios inclusos no seu plano.
+
+Esse também é um ótimo momento para fazer sua avaliação física mensal e ajustar o treino, caso necessário, de acordo com sua evolução e seus objetivos.
+
+Se quiser, já posso te ajudar a agendar sua avaliação por aqui.`,
 };
 
 const FUNC = 'send-follow-ups-automaticos';
@@ -135,7 +151,7 @@ Deno.serve(async (req) => {
       `)
       .eq('status', 'pendente')
       .lte('data_prevista', `${todayStr}T23:59:59-03:00`)
-      .in('tipo', ['D+1', 'D+7', 'D+15', 'D+30']);
+      .in('tipo', ['D+1', 'D+7', 'D+15', 'D+30', 'M+7', 'M+30']);
 
     if (fuErr) {
       return new Response(
@@ -164,11 +180,23 @@ Deno.serve(async (req) => {
           .eq('id', fu.id);
         continue;
       }
-      if (!lead.ativo || lead.is_matriculado || lead.status_funil === 'convertido' || lead.status_funil === 'perdido') {
-        await supabase.from('follow_ups')
-          .update({ status: 'cancelado', cancelado_motivo: 'lead_inelegivel', updated_at: new Date().toISOString() })
-          .eq('id', fu.id);
-        continue;
+      const isPostMatricula = fu.tipo === 'M+7' || fu.tipo === 'M+30';
+      if (isPostMatricula) {
+        // Pós-matrícula: exige aluno ativo e matriculado
+        if (!lead.ativo || !lead.is_matriculado) {
+          await supabase.from('follow_ups')
+            .update({ status: 'cancelado', cancelado_motivo: 'lead_inelegivel', updated_at: new Date().toISOString() })
+            .eq('id', fu.id);
+          continue;
+        }
+      } else {
+        // Pré-matrícula: cancela se já matriculado, convertido ou perdido
+        if (!lead.ativo || lead.is_matriculado || lead.status_funil === 'convertido' || lead.status_funil === 'perdido') {
+          await supabase.from('follow_ups')
+            .update({ status: 'cancelado', cancelado_motivo: 'lead_inelegivel', updated_at: new Date().toISOString() })
+            .eq('id', fu.id);
+          continue;
+        }
       }
       if (!lead.telefone) {
         await logEnvio(supabase, { funcao: FUNC, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, motivo_skip: 'sem_telefone', canal: 'comercial' });
