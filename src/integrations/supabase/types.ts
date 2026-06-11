@@ -1938,14 +1938,21 @@ export type Database = {
           cancelamentos: number | null
           created_at: string
           data: string
+          evasao: number | null
           experimentais_realizadas: number | null
+          feedback_negativo: boolean | null
+          feedback_negativo_descricao: string | null
           id: string
           inadimplentes: string | null
+          inadimplentes_qtd: number | null
           leads_recebidos: number | null
           nao_renovados: string | null
+          nao_renovados_qtd: number | null
           nome: string
           novos_alunos: number | null
           observacoes: string | null
+          ocorrencia: boolean | null
+          ocorrencia_descricao: string | null
           pendencias: string | null
           plano_amanha: string | null
           precisa_suporte: boolean | null
@@ -1962,14 +1969,21 @@ export type Database = {
           cancelamentos?: number | null
           created_at?: string
           data: string
+          evasao?: number | null
           experimentais_realizadas?: number | null
+          feedback_negativo?: boolean | null
+          feedback_negativo_descricao?: string | null
           id?: string
           inadimplentes?: string | null
+          inadimplentes_qtd?: number | null
           leads_recebidos?: number | null
           nao_renovados?: string | null
+          nao_renovados_qtd?: number | null
           nome: string
           novos_alunos?: number | null
           observacoes?: string | null
+          ocorrencia?: boolean | null
+          ocorrencia_descricao?: string | null
           pendencias?: string | null
           plano_amanha?: string | null
           precisa_suporte?: boolean | null
@@ -1986,14 +2000,21 @@ export type Database = {
           cancelamentos?: number | null
           created_at?: string
           data?: string
+          evasao?: number | null
           experimentais_realizadas?: number | null
+          feedback_negativo?: boolean | null
+          feedback_negativo_descricao?: string | null
           id?: string
           inadimplentes?: string | null
+          inadimplentes_qtd?: number | null
           leads_recebidos?: number | null
           nao_renovados?: string | null
+          nao_renovados_qtd?: number | null
           nome?: string
           novos_alunos?: number | null
           observacoes?: string | null
+          ocorrencia?: boolean | null
+          ocorrencia_descricao?: string | null
           pendencias?: string | null
           plano_amanha?: string | null
           precisa_suporte?: boolean | null
