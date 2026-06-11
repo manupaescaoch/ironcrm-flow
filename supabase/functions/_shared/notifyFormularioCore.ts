@@ -189,32 +189,36 @@ function renderCoordenadorHorario(row: Record<string, unknown>): Item[] {
 }
 
 function renderRelatorioComercial(row: Record<string, unknown>): Item[] {
-  const atividades = Array.isArray(row.atividades_realizadas)
-    ? (row.atividades_realizadas as unknown[]).map((a) => sanitizeText(a)).join(', ')
-    : '—';
-
   // Extract metadata if available (added by executeNotification)
   const meta = (row._meta as any) || {};
 
+  const inadimplentes = row.inadimplentes_qtd != null
+    ? String(row.inadimplentes_qtd)
+    : sanitizeText(row.inadimplentes);
+  const naoRenovados = row.nao_renovados_qtd != null
+    ? String(row.nao_renovados_qtd)
+    : sanitizeText(row.nao_renovados);
+  const evasaoNum = row.evasao != null
+    ? String(row.evasao)
+    : (meta.evasao != null ? fmtPct(meta.evasao) : '—');
+
   return [
-    { label: 'Nome', value: sanitizeText(row.nome) },
+    { label: 'Responsável pelo fechamento', value: sanitizeText(row.nome) },
     { label: 'Data', value: sanitizeText(row.data) },
-    { label: 'Total de alunos ativos', value: `${row.total_alunos_ativos ?? 0} (Meta: ${meta.meta_alunos ?? '—'})` },
+    { label: 'Total de alunos ativos', value: `${row.total_alunos_ativos ?? 0}${meta.meta_alunos ? ` (Meta: ${meta.meta_alunos})` : ''}` },
     { label: 'Leads recebidos', value: String(row.leads_recebidos ?? 0) },
     { label: 'Experimentais realizadas', value: String(row.experimentais_realizadas ?? 0) },
-    { label: 'Novos alunos (matrículas)', value: String(row.novos_alunos ?? 0) },
-    { label: 'Renovações', value: String(row.renovacoes ?? 0) },
+    { label: 'Novas matrículas', value: String(row.novos_alunos ?? 0) },
+    { label: 'Renovações realizadas', value: String(row.renovacoes ?? 0) },
     { label: 'Cancelamentos', value: String(row.cancelamentos ?? 0) },
+    { label: 'Não renovados', value: naoRenovados },
+    { label: 'Evasão', value: evasaoNum },
+    { label: 'Inadimplentes', value: inadimplentes },
     { label: 'Receita do mês', value: fmtBRL(meta.receita_mes || 0) },
     { label: 'Ticket médio', value: fmtBRL(meta.ticket_medio || 0) },
-    { label: 'Evasão', value: fmtPct(meta.evasao || 0) },
-    { label: 'Inadimplentes', value: sanitizeText(row.inadimplentes) },
-    { label: 'Não renovados', value: sanitizeText(row.nao_renovados) },
-    { label: 'Atividades realizadas', value: atividades },
-    { label: 'Pendências', value: sanitizeText(row.pendencias) },
-    { label: 'Plano para amanhã', value: sanitizeText(row.plano_amanha) },
-    { label: 'Precisa de suporte?', value: row.precisa_suporte ? `Sim — ${sanitizeText(row.suporte_descricao)}` : 'Não' },
-    { label: 'Observações', value: sanitizeText(row.observacoes) },
+    { label: 'Ocorrência fora do comum?', value: row.ocorrencia ? `Sim — ${sanitizeText(row.ocorrencia_descricao)}` : 'Não' },
+    { label: 'Feedback negativo de aluno?', value: row.feedback_negativo ? `Sim — ${sanitizeText(row.feedback_negativo_descricao)}` : 'Não' },
+    { label: 'Para a liderança', value: sanitizeText(row.observacoes) },
   ];
 }
 
