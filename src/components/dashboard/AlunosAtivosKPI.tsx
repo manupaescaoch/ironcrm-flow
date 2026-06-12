@@ -53,13 +53,23 @@ export function AlunosAtivosKPI({ unidadeId, refreshKey, onChange }: Props) {
       alunos_ativos_semana_anterior: editAnterior,
     };
     let error;
+    let updatedRows: any[] | null = null;
     if (metaId) {
-      ({ error } = await supabase.from('gestao_metas').update(payload).eq('id', metaId));
+      const res = await supabase.from('gestao_metas').update(payload).eq('id', metaId).select();
+      error = res.error;
+      updatedRows = res.data;
     } else {
-      ({ error } = await supabase.from('gestao_metas').insert({ unidade_id: unidadeId, ...payload }));
+      const res = await supabase.from('gestao_metas').insert({ unidade_id: unidadeId, ...payload }).select();
+      error = res.error;
+      updatedRows = res.data;
+      if (!error && res.data && res.data[0]) setMetaId(res.data[0].id);
     }
     setSaving(false);
     if (error) { toast.error('Erro ao salvar: ' + error.message); return; }
+    if (!updatedRows || updatedRows.length === 0) {
+      toast.error('Não foi possível salvar: sem permissão para esta unidade.');
+      return;
+    }
     setAtivos(editAtivos);
     setAnterior(editAnterior);
     setEditing(false);
