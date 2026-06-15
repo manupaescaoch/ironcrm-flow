@@ -72,36 +72,38 @@ export function NovaReuniao({ onSaved }: Props) {
   const handleSubmit = async () => {
     if (!tipo) return toast({ title: 'Selecione o tipo da reunião', variant: 'destructive' });
     if (!data) return toast({ title: 'Informe a data', variant: 'destructive' });
-    if (!unidadeId) return toast({ title: 'Selecione a unidade', variant: 'destructive' });
+    if (unidadeIds.length === 0) return toast({ title: 'Selecione ao menos uma unidade', variant: 'destructive' });
     if (!responsavel.trim()) return toast({ title: 'Informe o responsável pela reunião', variant: 'destructive' });
     if (participantes.length === 0) return toast({ title: 'Adicione ao menos um participante', variant: 'destructive' });
     if (isRichTextEmpty(pauta)) return toast({ title: 'Informe a pauta', variant: 'destructive' });
 
     setSaving(true);
     try {
-      const created: any = await createReuniao({
-        tipo,
-        unidade_id: unidadeId,
-        data,
-        responsavel: responsavel.trim().toUpperCase(),
-        participantes,
-        pauta,
-        feedback: feedback.trim() || null,
-        status: 'aberta',
-      });
+      let okReunioes = 0;
+      for (const uId of unidadeIds) {
+        const created: any = await createReuniao({
+          tipo,
+          unidade_id: uId,
+          data,
+          responsavel: responsavel.trim().toUpperCase(),
+          participantes,
+          pauta,
+          feedback: feedback.trim() || null,
+          status: 'aberta',
+        });
+        okReunioes++;
 
-      if (anexos.length && created?.id) {
-        let okCount = 0;
-        for (const f of anexos) {
-          try {
-            await uploadReuniaoAnexo(created.id, unidadeId, f);
-            okCount++;
-          } catch (err: any) {
-            toast({ title: `Falha ao anexar ${f.name}`, description: err.message, variant: 'destructive' });
+        if (anexos.length && created?.id) {
+          for (const f of anexos) {
+            try {
+              await uploadReuniaoAnexo(created.id, uId, f);
+            } catch (err: any) {
+              toast({ title: `Falha ao anexar ${f.name}`, description: err.message, variant: 'destructive' });
+            }
           }
         }
-        if (okCount) toast({ title: `${okCount} arquivo(s) anexado(s)` });
       }
+      if (anexos.length) toast({ title: `Anexos enviados para ${okReunioes} unidade(s)` });
 
       toast({ title: 'Reunião registrada com sucesso' });
       setTipo('');
