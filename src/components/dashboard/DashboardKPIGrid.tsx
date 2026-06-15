@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { Users, CalendarCheck, Calendar, Award, CheckCircle2, Filter, UserX } from 'lucide-react';
 import { KPICard } from '@/components/ui/kpi-card';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
+import { FollowUpMatriculadosKPI } from '@/components/dashboard/FollowUpMatriculadosKPI';
 import { TaxaComparecimentoKPI } from '@/components/dashboard/TaxaComparecimentoKPI';
 import { FunilComercialCard } from '@/components/dashboard/FunilComercialCard';
 import { DiagnosticoSemanaCard } from '@/components/dashboard/DiagnosticoSemanaCard';
@@ -19,12 +20,15 @@ interface DashboardKPIGridProps {
   onAlunosAtivosChange?: () => void;
   followUpPendingCount: number;
   followUpD1Count: number;
+  followUpMatriculadosCount: number;
   showExperimentaisSection: boolean;
   showMatriculasSection: boolean;
   showFollowUpSection: boolean;
+  showFollowUpMatriculadosSection: boolean;
   onExperimentaisClick: () => void;
   onMatriculasClick: () => void;
   onFollowUpClick: () => void;
+  onFollowUpMatriculadosClick: () => void;
 }
 
 
@@ -38,12 +42,15 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   onAlunosAtivosChange,
   followUpPendingCount,
   followUpD1Count,
+  followUpMatriculadosCount,
   showExperimentaisSection,
   showMatriculasSection,
   showFollowUpSection,
+  showFollowUpMatriculadosSection,
   onExperimentaisClick,
   onMatriculasClick,
   onFollowUpClick,
+  onFollowUpMatriculadosClick,
 }: DashboardKPIGridProps) {
   const naoCompareceram = Math.max(
     0,
@@ -141,13 +148,19 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
       {/* Linha 3 — Operação do Dia */}
       <div>
         <h2 className="text-xs font-semibold text-foreground/80 mb-1 px-1">Operação do Dia</h2>
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-2">
 
           <FollowUpKPI
             pendingCount={followUpPendingCount}
             d1Count={followUpD1Count}
             onClick={onFollowUpClick}
             isActive={showFollowUpSection}
+          />
+
+          <FollowUpMatriculadosKPI
+            pendingCount={followUpMatriculadosCount}
+            onClick={onFollowUpMatriculadosClick}
+            isActive={showFollowUpMatriculadosSection}
           />
 
           <KPICard
