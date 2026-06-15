@@ -24,6 +24,8 @@ import { MetaVsRealizadoCard } from '@/components/dashboard/MetaVsRealizadoCard'
 import { ExperimentaisDetailSection } from '@/components/dashboard/ExperimentaisDetailSection';
 import { MatriculasDetailSection } from '@/components/dashboard/MatriculasDetailSection';
 import { SyncIndicator } from '@/components/dashboard/SyncIndicator';
+import { FollowUpMatriculadosSection } from '@/components/dashboard/FollowUpMatriculadosSection';
+import { useFollowUpsMatriculados } from '@/hooks/useFollowUpsMatriculados';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { addDays, subDays, startOfDay, endOfDay } from 'date-fns';
 export default function Dashboard() {
@@ -39,6 +41,7 @@ export default function Dashboard() {
   const [showExperimentaisSection, setShowExperimentaisSection] = useState(false);
   const [showMatriculasSection, setShowMatriculasSection] = useState(false);
   const [showFollowUpSection, setShowFollowUpSection] = useState(false);
+  const [showFollowUpMatriculadosSection, setShowFollowUpMatriculadosSection] = useState(false);
   const [followUpTipoFilter, setFollowUpTipoFilter] = useState<string | null>(null);
   const [followUpRefreshKey, setFollowUpRefreshKey] = useState(0);
   const [alunosAtivosRefreshKey, setAlunosAtivosRefreshKey] = useState(0);
@@ -48,6 +51,7 @@ export default function Dashboard() {
   const experimentaisSectionRef = useRef<HTMLDivElement>(null);
   const matriculasSectionRef = useRef<HTMLDivElement>(null);
   const followUpSectionRef = useRef<HTMLDivElement>(null);
+  const followUpMatriculadosSectionRef = useRef<HTMLDivElement>(null);
   
   // Modal state
   const [reagendarModalOpen, setReagendarModalOpen] = useState(false);
