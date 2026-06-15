@@ -6,6 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import { X, Loader2, Paperclip, Upload, FileType } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useUnidade } from '@/contexts/UnidadeContext';
@@ -37,7 +39,7 @@ export function NovaReuniao({ onSaved }: Props) {
 
   const [tipo, setTipo] = useState<string>('');
   const [data, setData] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [unidadeId, setUnidadeId] = useState<string>(unidadeAtual?.id ?? '');
+  const [unidadeIds, setUnidadeIds] = useState<string[]>(unidadeAtual ? [unidadeAtual.id] : []);
   const [responsavel, setResponsavel] = useState('');
   const [participantes, setParticipantes] = useState<string[]>([]);
   const [participanteInput, setParticipanteInput] = useState('');
@@ -72,36 +74,38 @@ export function NovaReuniao({ onSaved }: Props) {
   const handleSubmit = async () => {
     if (!tipo) return toast({ title: 'Selecione o tipo da reunião', variant: 'destructive' });
     if (!data) return toast({ title: 'Informe a data', variant: 'destructive' });
-    if (!unidadeId) return toast({ title: 'Selecione a unidade', variant: 'destructive' });
+    if (unidadeIds.length === 0) return toast({ title: 'Selecione ao menos uma unidade', variant: 'destructive' });
     if (!responsavel.trim()) return toast({ title: 'Informe o responsável pela reunião', variant: 'destructive' });
     if (participantes.length === 0) return toast({ title: 'Adicione ao menos um participante', variant: 'destructive' });
     if (isRichTextEmpty(pauta)) return toast({ title: 'Informe a pauta', variant: 'destructive' });
 
     setSaving(true);
     try {
-      const created: any = await createReuniao({
-        tipo,
-        unidade_id: unidadeId,
-        data,
-        responsavel: responsavel.trim().toUpperCase(),
-        participantes,
-        pauta,
-        feedback: feedback.trim() || null,
-        status: 'aberta',
-      });
+      let okReunioes = 0;
+      for (const uId of unidadeIds) {
+        const created: any = await createReuniao({
+          tipo,
+          unidade_id: uId,
+          data,
+          responsavel: responsavel.trim().toUpperCase(),
+          participantes,
+          pauta,
+          feedback: feedback.trim() || null,
+          status: 'aberta',
+        });
+        okReunioes++;
 
-      if (anexos.length && created?.id) {
-        let okCount = 0;
-        for (const f of anexos) {
-          try {
-            await uploadReuniaoAnexo(created.id, unidadeId, f);
-            okCount++;
-          } catch (err: any) {
-            toast({ title: `Falha ao anexar ${f.name}`, description: err.message, variant: 'destructive' });
+        if (anexos.length && created?.id) {
+          for (const f of anexos) {
+            try {
+              await uploadReuniaoAnexo(created.id, uId, f);
+            } catch (err: any) {
+              toast({ title: `Falha ao anexar ${f.name}`, description: err.message, variant: 'destructive' });
+            }
           }
         }
-        if (okCount) toast({ title: `${okCount} arquivo(s) anexado(s)` });
       }
+      if (anexos.length) toast({ title: `Anexos enviados para ${okReunioes} unidade(s)` });
 
       toast({ title: 'Reunião registrada com sucesso' });
       setTipo('');
@@ -136,12 +140,53 @@ export function NovaReuniao({ onSaved }: Props) {
         </div>
         <div className="space-y-1.5">
           <Label>Unidade *</Label>
-          <Select value={unidadeId} onValueChange={setUnidadeId}>
-            <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-            <SelectContent>
-              {unidadesPermitidas.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button type="button" variant="outline" className="w-full justify-between font-normal">
+                <span className="truncate">
+                  {unidadeIds.length === 0
+                    ? 'Selecionar'
+                    : unidadeIds.length === unidadesPermitidas.length
+                      ? 'Todas as unidades'
+                      : unidadeIds.length === 1
+                        ? unidadesPermitidas.find((u) => u.id === unidadeIds[0])?.nome
+                        : `${unidadeIds.length} unidades`}
+                </span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-2" align="start">
+              <div className="flex items-center gap-2 px-2 py-1.5 border-b mb-1">
+                <Checkbox
+                  id="unidades-all"
+                  checked={unidadeIds.length === unidadesPermitidas.length && unidadesPermitidas.length > 0}
+                  onCheckedChange={(c) =>
+                    setUnidadeIds(c ? unidadesPermitidas.map((u) => u.id) : [])
+                  }
+                />
+                <label htmlFor="unidades-all" className="text-sm font-medium cursor-pointer flex-1">
+                  Selecionar todas
+                </label>
+              </div>
+              <div className="max-h-[240px] overflow-y-auto space-y-0.5">
+                {unidadesPermitidas.map((u) => (
+                  <div key={u.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted">
+                    <Checkbox
+                      id={`unidade-${u.id}`}
+                      checked={unidadeIds.includes(u.id)}
+                      onCheckedChange={(c) =>
+                        setUnidadeIds((prev) =>
+                          c ? [...prev, u.id] : prev.filter((id) => id !== u.id),
+                        )
+                      }
+                    />
+                    <label htmlFor={`unidade-${u.id}`} className="text-sm cursor-pointer flex-1">
+                      {u.nome}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
