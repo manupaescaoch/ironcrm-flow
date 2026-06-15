@@ -138,12 +138,53 @@ export function NovaReuniao({ onSaved }: Props) {
         </div>
         <div className="space-y-1.5">
           <Label>Unidade *</Label>
-          <Select value={unidadeId} onValueChange={setUnidadeId}>
-            <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-            <SelectContent>
-              {unidadesPermitidas.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button type="button" variant="outline" className="w-full justify-between font-normal">
+                <span className="truncate">
+                  {unidadeIds.length === 0
+                    ? 'Selecionar'
+                    : unidadeIds.length === unidadesPermitidas.length
+                      ? 'Todas as unidades'
+                      : unidadeIds.length === 1
+                        ? unidadesPermitidas.find((u) => u.id === unidadeIds[0])?.nome
+                        : `${unidadeIds.length} unidades`}
+                </span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-2" align="start">
+              <div className="flex items-center gap-2 px-2 py-1.5 border-b mb-1">
+                <Checkbox
+                  id="unidades-all"
+                  checked={unidadeIds.length === unidadesPermitidas.length && unidadesPermitidas.length > 0}
+                  onCheckedChange={(c) =>
+                    setUnidadeIds(c ? unidadesPermitidas.map((u) => u.id) : [])
+                  }
+                />
+                <label htmlFor="unidades-all" className="text-sm font-medium cursor-pointer flex-1">
+                  Selecionar todas
+                </label>
+              </div>
+              <div className="max-h-[240px] overflow-y-auto space-y-0.5">
+                {unidadesPermitidas.map((u) => (
+                  <div key={u.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted">
+                    <Checkbox
+                      id={`unidade-${u.id}`}
+                      checked={unidadeIds.includes(u.id)}
+                      onCheckedChange={(c) =>
+                        setUnidadeIds((prev) =>
+                          c ? [...prev, u.id] : prev.filter((id) => id !== u.id),
+                        )
+                      }
+                    />
+                    <label htmlFor={`unidade-${u.id}`} className="text-sm cursor-pointer flex-1">
+                      {u.nome}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
