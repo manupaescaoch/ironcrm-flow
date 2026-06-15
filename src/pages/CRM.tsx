@@ -180,7 +180,7 @@ interface SavedFilters {
   filterOrigem?: string;
   filterCadastradoPor?: string;
   filterStatus?: string | string[];
-  periodType?: 'all' | 'last7days' | 'currentMonth' | 'lastMonth' | 'custom';
+  periodType?: 'all' | 'last7days' | 'last15days' | 'last30days' | 'currentMonth' | 'lastMonth' | 'custom';
   startDate?: string;
   endDate?: string;
 }
@@ -216,7 +216,7 @@ export default function CRM() {
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
 
   // Date filter state (restored from sessionStorage)
-  const [periodType, setPeriodType] = useState<'all' | 'last7days' | 'currentMonth' | 'lastMonth' | 'custom'>(
+  const [periodType, setPeriodType] = useState<'all' | 'last7days' | 'last15days' | 'last30days' | 'currentMonth' | 'lastMonth' | 'custom'>(
     _saved.periodType ?? 'all'
   );
   const [startDate, setStartDate] = useState<Date | undefined>(
@@ -269,6 +269,14 @@ export default function CRM() {
     switch (value) {
       case 'last7days':
         setStartDate(startOfDay(subDays(now, 6)));
+        setEndDate(endOfDay(now));
+        break;
+      case 'last15days':
+        setStartDate(startOfDay(subDays(now, 14)));
+        setEndDate(endOfDay(now));
+        break;
+      case 'last30days':
+        setStartDate(startOfDay(subDays(now, 29)));
         setEndDate(endOfDay(now));
         break;
       case 'currentMonth':
@@ -955,6 +963,8 @@ export default function CRM() {
               <SelectContent>
                 <SelectItem value="all">Todo período</SelectItem>
                 <SelectItem value="last7days">Últimos 7 dias</SelectItem>
+                <SelectItem value="last15days">Últimos 15 dias</SelectItem>
+                <SelectItem value="last30days">Últimos 30 dias</SelectItem>
                 <SelectItem value="currentMonth">Mês atual</SelectItem>
                 <SelectItem value="lastMonth">Mês passado</SelectItem>
                 <SelectItem value="custom">Personalizado</SelectItem>
