@@ -4,80 +4,99 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertTriangle, Check, Eye, CalendarClock } from 'lucide-react';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
-import { differenceInDays, isToday, isPast } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useUnidade } from '@/contexts/UnidadeContext';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { FollowUpMatriculadoItem } from '@/hooks/useFollowUpsMatriculados';
+import { FollowUpMatriculadoItem, FollowUpMatriculadoTipo } from '@/hooks/useFollowUpsMatriculados';
 
 interface Props {
   urgentItems: FollowUpMatriculadoItem[];
   onRefresh: () => void;
 }
 
-const TIPO_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
-  'M+7':  { label: 'M+7',  color: 'text-blue-700', bgColor: 'bg-blue-100' },
-  'M+30': { label: 'M+30', color: 'text-purple-700', bgColor: 'bg-purple-100' },
+const TIPO_CONFIG: Record<FollowUpMatriculadoTipo, { label: string; color: string; bgColor: string }> = {
+  'D+1':  { label: 'D+1',  color: 'text-green-700',  bgColor: 'bg-green-100' },
+  'D+7':  { label: 'D+7',  color: 'text-blue-700',   bgColor: 'bg-blue-100' },
+  'D+30': { label: 'D+30', color: 'text-purple-700', bgColor: 'bg-purple-100' },
 };
 
-const MESSAGES: Record<string, (nome: string) => string> = {
-  'M+7': (nome) => `Oi, ${nome}! Aqui é da IRON CLUB.
+const MESSAGES: Record<FollowUpMatriculadoTipo, (nome: string) => string> = {
+  'D+1': (nome) => `Oi, ${nome}! Seja muito bem-vindo(a) à IRON CLUB.
 
-Faz uma semana desde que você começou seu plano com a gente. Como está sendo a adaptação aos treinos?
+Tô passando pra confirmar sua matrícula e tirar qualquer dúvida do primeiro treino. Qualquer coisa, me chama por aqui.`,
+  'D+7': (nome) => `Oi, ${nome}! Aqui é da IRON CLUB.
 
-Qualquer dúvida sobre execução, frequência ou ajuste de treino, é só me chamar. Estamos aqui pra te ajudar a manter a constância.`,
-  'M+30': (nome) => `Oi, ${nome}! Tudo bem?
+Faz uma semana desde sua matrícula. Como está sendo a adaptação aos treinos?
 
-Já se passou 1 mês desde o início do seu plano na IRON CLUB. Que tal me contar como está sendo sua experiência até aqui?
+Qualquer dúvida sobre execução, frequência ou ajuste de treino, é só me chamar.`,
+  'D+30': (nome) => `Oi, ${nome}! Tudo bem?
 
-Está conseguindo manter a frequência? Quer ajustar algo no treino? Me fala, vou te ajudar a evoluir cada vez mais.`,
+Já fechou 1 mês desde sua matrícula na IRON CLUB. Bora bater um papo rápido sobre evolução, frequência e próximos passos do seu treino?`,
+};
+
+// alvo de dias por etapa para calcular atraso visual
+const ALVO_DIAS: Record<FollowUpMatriculadoTipo, number> = {
+  'D+1': 1,
+  'D+7': 7,
+  'D+30': 30,
 };
 
 export function FollowUpMatriculadosSection({ urgentItems, onRefresh }: Props) {
   const navigate = useNavigate();
+  const { unidadeAtual } = useUnidade();
   const [loading, setLoading] = useState(false);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [selected, setSelected] = useState<FollowUpMatriculadoItem | null>(null);
   const [newDate, setNewDate] = useState('');
 
+  // Ordena por mais atrasado primeiro (maior dias além do alvo)
   const sorted = useMemo(() => {
-    return [...urgentItems].sort((a, b) =>
-      new Date(a.data_prevista).getTime() - new Date(b.data_prevista).getTime()
-    );
+    return [...urgentItems].sort((a, b) => {
+      const atrasoA = a.diasDesdeMatricula - ALVO_DIAS[a.tipo];
+      const atrasoB = b.diasDesdeMatricula - ALVO_DIAS[b.tipo];
+      return atrasoB - atrasoA;
+    });
   }, [urgentItems]);
 
-  const getTimeInfo = (dataPrevista: string) => {
-    const date = new Date(dataPrevista);
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const diff = differenceInDays(date, hoje);
-    if (isToday(date)) {
+  const getTimeInfo = (item: FollowUpMatriculadoItem) => {
+    const atraso = item.diasDesdeMatricula - ALVO_DIAS[item.tipo];
+    if (atraso <= 0) {
       return { text: 'hoje', className: 'text-amber-700 bg-amber-100' };
-    } else if (isPast(date)) {
-      const daysOverdue = Math.abs(diff);
-      return { text: `${daysOverdue}d atrasado`, className: 'text-red-700 bg-red-100' };
-    } else {
-      return { text: `em ${diff}d`, className: 'text-muted-foreground bg-muted' };
     }
+    return { text: `${atraso}d atrasado`, className: 'text-red-700 bg-red-100' };
   };
 
   const handleMarkDone = async (item: FollowUpMatriculadoItem) => {
+    if (!unidadeAtual) return;
     setLoading(true);
     try {
+      // Upsert: cancela qualquer pendente da mesma etapa e insere um concluido
+      await supabase
+        .from('follow_ups')
+        .update({ status: 'cancelado', cancelado_motivo: 'substituido_por_concluido' })
+        .eq('lead_id', item.lead_id)
+        .eq('tipo', item.tipo)
+        .eq('status', 'pendente');
+
       const { error } = await supabase
         .from('follow_ups')
-        .update({
+        .insert({
+          lead_id: item.lead_id,
+          unidade_id: unidadeAtual.id,
+          tipo: item.tipo,
+          data_referencia: item.data_matricula,
+          data_prevista: new Date().toISOString(),
           status: 'concluido',
           concluido_em: new Date().toISOString(),
           concluido_por: 'dashboard',
-        })
-        .eq('id', item.id);
+        });
       if (error) throw error;
       toast.success('Follow-up marcado como realizado!');
       onRefresh();
@@ -98,13 +117,27 @@ export function FollowUpMatriculadosSection({ urgentItems, onRefresh }: Props) {
   };
 
   const confirmReschedule = async () => {
-    if (!selected || !newDate) return;
+    if (!selected || !newDate || !unidadeAtual) return;
     setLoading(true);
     try {
+      // Cancela pendentes antigos da etapa e cria novo pendente reagendado
+      await supabase
+        .from('follow_ups')
+        .update({ status: 'cancelado', cancelado_motivo: 'reagendado' })
+        .eq('lead_id', selected.lead_id)
+        .eq('tipo', selected.tipo)
+        .eq('status', 'pendente');
+
       const { error } = await supabase
         .from('follow_ups')
-        .update({ data_prevista: `${newDate}T00:00:00-03:00` })
-        .eq('id', selected.id);
+        .insert({
+          lead_id: selected.lead_id,
+          unidade_id: unidadeAtual.id,
+          tipo: selected.tipo,
+          data_referencia: selected.data_matricula,
+          data_prevista: `${newDate}T00:00:00-03:00`,
+          status: 'pendente',
+        });
       if (error) throw error;
       toast.success('Follow-up reagendado!');
       setRescheduleOpen(false);
@@ -119,15 +152,14 @@ export function FollowUpMatriculadosSection({ urgentItems, onRefresh }: Props) {
   };
 
   const renderItem = (item: FollowUpMatriculadoItem) => {
-    const tipoCfg = TIPO_CONFIG[item.tipo] || { label: item.tipo, color: 'text-foreground', bgColor: 'bg-muted' };
-    const timeInfo = getTimeInfo(item.data_prevista);
+    const tipoCfg = TIPO_CONFIG[item.tipo];
+    const timeInfo = getTimeInfo(item);
     const primeiroNome = item.lead.nome?.split(' ')[0] || 'Aluno';
-    const messageFn = MESSAGES[item.tipo] || ((n: string) => `Oi, ${n}!`);
-    const message = messageFn(primeiroNome);
+    const message = MESSAGES[item.tipo](primeiroNome);
 
     return (
       <div
-        key={item.id}
+        key={`${item.lead_id}-${item.tipo}`}
         className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border bg-background gap-3"
       >
         <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -153,27 +185,13 @@ export function FollowUpMatriculadosSection({ urgentItems, onRefresh }: Props) {
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          <Button
-            variant="ghost" size="sm"
-            onClick={() => handleMarkDone(item)}
-            disabled={loading}
-            title="Marcar como enviado"
-          >
+          <Button variant="ghost" size="sm" onClick={() => handleMarkDone(item)} disabled={loading} title="Marcar como enviado">
             <Check className="w-4 h-4 text-green-600" />
           </Button>
-          <Button
-            variant="ghost" size="sm"
-            onClick={() => openReschedule(item)}
-            disabled={loading}
-            title="Reagendar"
-          >
+          <Button variant="ghost" size="sm" onClick={() => openReschedule(item)} disabled={loading} title="Reagendar">
             <CalendarClock className="w-4 h-4 text-blue-600" />
           </Button>
-          <Button
-            variant="ghost" size="sm"
-            onClick={() => navigate(`/lead/${item.lead_id}`)}
-            title="Ver aluno"
-          >
+          <Button variant="ghost" size="sm" onClick={() => navigate(`/lead/${item.lead_id}`)} title="Ver aluno">
             <Eye className="w-4 h-4" />
           </Button>
           {item.lead.telefone && (
@@ -220,11 +238,7 @@ export function FollowUpMatriculadosSection({ urgentItems, onRefresh }: Props) {
               Escolha a nova data para {selected?.lead.nome}.
             </DialogDescription>
           </DialogHeader>
-          <Input
-            type="date"
-            value={newDate}
-            onChange={(e) => setNewDate(e.target.value)}
-          />
+          <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setRescheduleOpen(false)}>Cancelar</Button>
             <Button onClick={confirmReschedule} disabled={loading || !newDate}>
