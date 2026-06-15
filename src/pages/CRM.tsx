@@ -1354,6 +1354,73 @@ export default function CRM() {
           </Card>
         </div>
 
+        {/* Quick status filter chips - horizontal scroll */}
+        {(() => {
+          const quickChips: { value: StatusFunil; label: string; activeClass: string; inactiveClass: string }[] = [
+            { value: 'convertido', label: 'Convertidos', activeClass: 'bg-green-600 text-white border-green-600', inactiveClass: 'border-green-600/40 text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950/40' },
+            { value: 'negociacao', label: 'Em Negociação', activeClass: 'bg-amber-600 text-white border-amber-600', inactiveClass: 'border-amber-600/40 text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/40' },
+            { value: 'perdido', label: 'Perdidos', activeClass: 'bg-red-600 text-white border-red-600', inactiveClass: 'border-red-600/40 text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40' },
+            { value: 'aula_agendada', label: 'Exp. Agendado', activeClass: 'bg-sky-600 text-white border-sky-600', inactiveClass: 'border-sky-600/40 text-sky-700 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-950/40' },
+            { value: 'aula_realizada', label: 'Exp. Realizado', activeClass: 'bg-purple-600 text-white border-purple-600', inactiveClass: 'border-purple-600/40 text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950/40' },
+          ];
+          const baseLeads = leads.filter((lead) => {
+            const searchLower = search.toLowerCase();
+            const matchesSearch = !search || lead.nome.toLowerCase().includes(searchLower) || lead.telefone?.includes(search);
+            const matchesOrigem = filterOrigem === 'all' || lead.origem === filterOrigem;
+            const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
+            let matchesDate = true;
+            if (startDate || endDate) {
+              const leadDate = new Date(lead.created_at);
+              if (startDate && leadDate < startDate) matchesDate = false;
+              if (endDate) {
+                const eod = new Date(endDate); eod.setHours(23, 59, 59, 999);
+                if (leadDate > eod) matchesDate = false;
+              }
+            }
+            return matchesSearch && matchesOrigem && matchesCadastradoPor && matchesDate;
+          });
+          const allActive = filterStatus.length === 0;
+          return (
+            <div className="mb-4 -mx-1 px-1 overflow-x-auto">
+              <div className="flex items-center gap-2 min-w-max pb-2">
+                <button
+                  type="button"
+                  onClick={() => setFilterStatus([])}
+                  className={cn(
+                    'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors whitespace-nowrap',
+                    allActive ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:bg-accent'
+                  )}
+                >
+                  Todos ({baseLeads.length})
+                </button>
+                {quickChips.map((chip) => {
+                  const active = filterStatus.includes(chip.value);
+                  const count = baseLeads.filter((l) => l.status_funil === chip.value).length;
+                  return (
+                    <button
+                      key={chip.value}
+                      type="button"
+                      onClick={() =>
+                        setFilterStatus((prev) =>
+                          prev.includes(chip.value)
+                            ? prev.filter((s) => s !== chip.value)
+                            : [...prev, chip.value]
+                        )
+                      }
+                      className={cn(
+                        'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors whitespace-nowrap',
+                        active ? chip.activeClass : chip.inactiveClass
+                      )}
+                    >
+                      {chip.label} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
