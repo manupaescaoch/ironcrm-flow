@@ -179,6 +179,10 @@ export default function Dashboard() {
   const followUpPendingCount = urgentAutoFollowUpItems.length;
   const followUpD1Count = urgentAutoFollowUpItems.filter(item => item.tipo === 'D+1').length;
 
+  // Follow-ups de matriculados (M+7, M+30) — vencidos ou hoje
+  const { urgentItems: urgentMatriculadosFU, refetch: refetchMatriculadosFU } = useFollowUpsMatriculados();
+  const followUpMatriculadosCount = urgentMatriculadosFU.length;
+
   return (
     <Layout>
       <div className="p-8">
@@ -223,13 +227,27 @@ export default function Dashboard() {
           onAlunosAtivosChange={() => setAlunosAtivosRefreshKey(k => k + 1)}
           followUpPendingCount={followUpPendingCount}
           followUpD1Count={followUpD1Count}
+          followUpMatriculadosCount={followUpMatriculadosCount}
           showExperimentaisSection={showExperimentaisSection}
           showMatriculasSection={showMatriculasSection}
           showFollowUpSection={showFollowUpSection}
+          showFollowUpMatriculadosSection={showFollowUpMatriculadosSection}
           onExperimentaisClick={handleExperimentaisCardClick}
           onMatriculasClick={handleMatriculasCardClick}
           onFollowUpClick={handleFollowUpCardClick}
+          onFollowUpMatriculadosClick={handleFollowUpMatriculadosCardClick}
         />
+
+
+        {/* Follow Up de Matriculados Section */}
+        {showFollowUpMatriculadosSection && (
+          <div ref={followUpMatriculadosSectionRef} className="mb-8 space-y-4 mt-4">
+            <FollowUpMatriculadosSection
+              urgentItems={urgentMatriculadosFU}
+              onRefresh={refetchMatriculadosFU}
+            />
+          </div>
+        )}
 
 
         {/* Follow Up Section */}
