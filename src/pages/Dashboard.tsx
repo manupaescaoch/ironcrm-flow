@@ -116,6 +116,16 @@ export default function Dashboard() {
     }, 100);
   }, []);
 
+  const handleFollowUpMatriculadosCardClick = useCallback(() => {
+    setShowFollowUpMatriculadosSection(true);
+    setShowExperimentaisSection(false);
+    setShowMatriculasSection(false);
+    setShowFollowUpSection(false);
+    setTimeout(() => {
+      followUpMatriculadosSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }, []);
+
   const handleFollowUpTipoClick = useCallback((tipo: string) => {
     setShowFollowUpSection(true);
     setShowExperimentaisSection(false);
