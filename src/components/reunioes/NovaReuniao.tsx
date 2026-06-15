@@ -37,7 +37,7 @@ export function NovaReuniao({ onSaved }: Props) {
 
   const [tipo, setTipo] = useState<string>('');
   const [data, setData] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [unidadeId, setUnidadeId] = useState<string>(unidadeAtual?.id ?? '');
+  const [unidadeIds, setUnidadeIds] = useState<string[]>(unidadeAtual ? [unidadeAtual.id] : []);
   const [responsavel, setResponsavel] = useState('');
   const [participantes, setParticipantes] = useState<string[]>([]);
   const [participanteInput, setParticipanteInput] = useState('');
