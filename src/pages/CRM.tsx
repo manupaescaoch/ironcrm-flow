@@ -271,6 +271,14 @@ export default function CRM() {
         setStartDate(startOfDay(subDays(now, 6)));
         setEndDate(endOfDay(now));
         break;
+      case 'last15days':
+        setStartDate(startOfDay(subDays(now, 14)));
+        setEndDate(endOfDay(now));
+        break;
+      case 'last30days':
+        setStartDate(startOfDay(subDays(now, 29)));
+        setEndDate(endOfDay(now));
+        break;
       case 'currentMonth':
         setStartDate(startOfMonth(now));
         setEndDate(endOfMonth(now));
