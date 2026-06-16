@@ -1,62 +1,86 @@
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { ArrowRight, Loader2, RefreshCw, CheckCircle2, CalendarIcon } from 'lucide-react';
+import { ArrowRight, Loader2, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { StepShell } from '@/components/anamnese/StepShell';
 import { OptionCard } from '@/components/anamnese/OptionCard';
-import { cn } from '@/lib/utils';
 import { submitFormularioPublico } from '@/lib/notifyFormularioGrupo';
 
 type Stage = 'intro' | 'wizard' | 'review' | 'done';
 
+type Fechamento = '' | 'TODAS' | 'PARCIAL' | 'NENHUMA' | 'NAO_HOUVE';
+type Motivo = '' | 'PRECO' | 'VAI_PENSAR' | 'NAO_GOSTOU' | 'HORARIO' | 'OUTRO';
+
 interface Respostas {
-  nome: string; // Responsável pelo fechamento
+  nome: string;
   unidade: '' | 'ZONA NORTE' | 'ZONA SUL';
-  data: Date | null;
-  // 1. Indicadores do dia (todos numéricos)
+  // Indicadores
   totalAtivos: string;
   leads: string;
-  experimentais: string;
-  novasMatriculas: string;
-  renovacoes: string;
-  cancelamentos: string;
-  naoRenovados: string;
-  evasao: string;
-  inadimplentes: string;
-  // 2. Ocorrências e feedbacks
+  experimentaisAgendadas: string;
+  experimentaisRealizadas: string;
+  fechamento: Fechamento;
+  qtdNaoFecharam: string;
+  motivoNaoFechamento: Motivo;
+  motivoNaoFechamentoOutro: string;
+  novasMatriculasTexto: string;
+  renovacoesTexto: string;
+  cancelamentosTexto: string;
+  naoRenovadosTexto: string;
+  inadimplentesTexto: string;
+  // Ocorrências e feedbacks
   ocorrencia: boolean | null;
   ocorrenciaDescricao: string;
   feedbackNegativo: boolean | null;
   feedbackDescricao: string;
-  // 3. Observações finais
+  acaoTomada: boolean | null;
+  acaoTomadaDescricao: string;
+  // Observações
   observacoesLideranca: string;
 }
 
 const initial: Respostas = {
   nome: '',
   unidade: '',
-  data: new Date(),
   totalAtivos: '',
   leads: '',
-  experimentais: '',
-  novasMatriculas: '',
-  renovacoes: '',
-  cancelamentos: '',
-  naoRenovados: '',
-  evasao: '',
-  inadimplentes: '',
+  experimentaisAgendadas: '',
+  experimentaisRealizadas: '',
+  fechamento: '',
+  qtdNaoFecharam: '',
+  motivoNaoFechamento: '',
+  motivoNaoFechamentoOutro: '',
+  novasMatriculasTexto: '',
+  renovacoesTexto: '',
+  cancelamentosTexto: '',
+  naoRenovadosTexto: '',
+  inadimplentesTexto: '',
   ocorrencia: null,
   ocorrenciaDescricao: '',
   feedbackNegativo: null,
   feedbackDescricao: '',
+  acaoTomada: null,
+  acaoTomadaDescricao: '',
   observacoesLideranca: '',
+};
+
+const fechamentoLabels: Record<Exclude<Fechamento, ''>, string> = {
+  TODAS: 'Sim, todas',
+  PARCIAL: 'Sim, parcial',
+  NENHUMA: 'Nenhuma',
+  NAO_HOUVE: 'Não houve experimental hoje',
+};
+
+const motivoLabels: Record<Exclude<Motivo, ''>, string> = {
+  PRECO: 'Preço',
+  VAI_PENSAR: 'Vai pensar',
+  NAO_GOSTOU: 'Não gostou da proposta',
+  HORARIO: 'Questão de horário',
+  OUTRO: 'Outro',
 };
 
 export default function RelatorioDiarioComercial() {
@@ -88,6 +112,15 @@ export default function RelatorioDiarioComercial() {
     />
   );
 
+  const textArea = (val: string, k: keyof Respostas, placeholder: string) => (
+    <Textarea
+      value={val}
+      onChange={(e) => set(k, e.target.value.toUpperCase() as Respostas[typeof k])}
+      placeholder={placeholder}
+      className="min-h-32 rounded-2xl text-base"
+    />
+  );
+
   const steps = useMemo<Step[]>(() => {
     const list: Step[] = [];
     const sn = (val: boolean | null, set_: (b: boolean) => void) => (
@@ -97,7 +130,7 @@ export default function RelatorioDiarioComercial() {
       </>
     );
 
-    // Identificação
+    // BLOCO 1 — Identificação
     list.push({
       key: 'unidade', categoria: 'Identificação', pergunta: 'Qual a unidade?',
       canContinue: !!r.unidade,
@@ -107,56 +140,100 @@ export default function RelatorioDiarioComercial() {
       </>),
     });
     list.push({
-      key: 'nome', categoria: 'Identificação', pergunta: 'Responsável pelo fechamento',
+      key: 'nome', categoria: 'Identificação', pergunta: 'Nome do responsável pelo relatório',
       canContinue: r.nome.trim().length >= 2,
       render: () => (<Input value={r.nome} onChange={(e) => set('nome', e.target.value.toUpperCase())}
         placeholder="EX: ANA SILVA" className="h-14 rounded-2xl text-base" />),
     });
-    list.push({
-      key: 'data', categoria: 'Identificação', pergunta: 'Data do relatório',
-      canContinue: !!r.data,
-      render: () => (
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className={cn(
-              'h-14 w-full justify-start rounded-2xl text-left text-base font-normal',
-              !r.data && 'text-muted-foreground'
-            )}>
-              <CalendarIcon className="mr-2 h-5 w-5" />
-              {r.data ? format(r.data, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : 'Selecione a data'}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar mode="single" selected={r.data ?? undefined} onSelect={(d) => set('data', d ?? null)} initialFocus />
-          </PopoverContent>
-        </Popover>
-      ),
-    });
 
-    // 1. Indicadores do dia
+    // BLOCO 2 — Indicadores do dia
     list.push({ key: 'totalAtivos', categoria: 'Indicadores do dia', pergunta: 'Total de alunos ativos',
       canContinue: r.totalAtivos !== '', render: () => numInput(r.totalAtivos, 'totalAtivos') });
     list.push({ key: 'leads', categoria: 'Indicadores do dia', pergunta: 'Leads recebidos',
       canContinue: r.leads !== '', render: () => numInput(r.leads, 'leads') });
-    list.push({ key: 'experimentais', categoria: 'Indicadores do dia', pergunta: 'Experimentais realizadas',
-      canContinue: r.experimentais !== '', render: () => numInput(r.experimentais, 'experimentais') });
-    list.push({ key: 'novasMatriculas', categoria: 'Indicadores do dia', pergunta: 'Novas matrículas',
-      canContinue: r.novasMatriculas !== '', render: () => numInput(r.novasMatriculas, 'novasMatriculas') });
-    list.push({ key: 'renovacoes', categoria: 'Indicadores do dia', pergunta: 'Renovações realizadas',
-      canContinue: r.renovacoes !== '', render: () => numInput(r.renovacoes, 'renovacoes') });
-    list.push({ key: 'cancelamentos', categoria: 'Indicadores do dia', pergunta: 'Cancelamentos',
-      canContinue: r.cancelamentos !== '', render: () => numInput(r.cancelamentos, 'cancelamentos') });
-    list.push({ key: 'naoRenovados', categoria: 'Indicadores do dia', pergunta: 'Não renovados',
-      canContinue: r.naoRenovados !== '', render: () => numInput(r.naoRenovados, 'naoRenovados') });
-    list.push({ key: 'evasao', categoria: 'Indicadores do dia', pergunta: 'Evasão',
-      canContinue: r.evasao !== '', render: () => numInput(r.evasao, 'evasao') });
-    list.push({ key: 'inadimplentes', categoria: 'Indicadores do dia', pergunta: 'Inadimplentes',
-      canContinue: r.inadimplentes !== '', render: () => numInput(r.inadimplentes, 'inadimplentes') });
+    list.push({ key: 'experimentaisAgendadas', categoria: 'Indicadores do dia', pergunta: 'Experimentais agendadas',
+      canContinue: r.experimentaisAgendadas !== '', render: () => numInput(r.experimentaisAgendadas, 'experimentaisAgendadas') });
+    list.push({ key: 'experimentaisRealizadas', categoria: 'Indicadores do dia', pergunta: 'Experimentais realizadas',
+      canContinue: r.experimentaisRealizadas !== '', render: () => numInput(r.experimentaisRealizadas, 'experimentaisRealizadas') });
 
-    // 2. Ocorrências e feedbacks
+    list.push({
+      key: 'fechamento', categoria: 'Indicadores do dia',
+      pergunta: 'Houve fechamento nas experimentais de hoje?',
+      canContinue: r.fechamento !== '',
+      render: () => (<>
+        {(Object.keys(fechamentoLabels) as Array<Exclude<Fechamento, ''>>).map((k) => (
+          <OptionCard key={k} emoji="" label={fechamentoLabels[k]}
+            selected={r.fechamento === k} onClick={() => set('fechamento', k)} />
+        ))}
+      </>),
+    });
+
+    if (r.fechamento === 'PARCIAL' || r.fechamento === 'NENHUMA') {
+      list.push({ key: 'qtdNaoFecharam', categoria: 'Indicadores do dia', pergunta: 'Quantos não fecharam?',
+        canContinue: r.qtdNaoFecharam !== '', render: () => numInput(r.qtdNaoFecharam, 'qtdNaoFecharam') });
+
+      list.push({
+        key: 'motivoNaoFechamento', categoria: 'Indicadores do dia',
+        pergunta: 'Qual o principal motivo do não fechamento?',
+        canContinue: r.motivoNaoFechamento !== '',
+        render: () => (<>
+          {(Object.keys(motivoLabels) as Array<Exclude<Motivo, ''>>).map((k) => (
+            <OptionCard key={k} emoji="" label={motivoLabels[k]}
+              selected={r.motivoNaoFechamento === k} onClick={() => set('motivoNaoFechamento', k)} />
+          ))}
+        </>),
+      });
+
+      if (r.motivoNaoFechamento === 'OUTRO') {
+        list.push({
+          key: 'motivoNaoFechamentoOutro', categoria: 'Indicadores do dia',
+          pergunta: 'Descreva o motivo',
+          canContinue: r.motivoNaoFechamentoOutro.trim().length >= 3,
+          render: () => textArea(r.motivoNaoFechamentoOutro, 'motivoNaoFechamentoOutro', 'DESCREVA O MOTIVO...'),
+        });
+      }
+    }
+
+    list.push({
+      key: 'novasMatriculasTexto', categoria: 'Indicadores do dia',
+      pergunta: 'Houve novas matrículas hoje? Se sim, quantas e quais os nomes?',
+      apoio: 'Se não houve, escreva "NÃO".',
+      canContinue: r.novasMatriculasTexto.trim().length >= 1,
+      render: () => textArea(r.novasMatriculasTexto, 'novasMatriculasTexto', 'EX: 2 — JOÃO SILVA, MARIA SOUZA'),
+    });
+    list.push({
+      key: 'renovacoesTexto', categoria: 'Indicadores do dia',
+      pergunta: 'Houve renovações hoje? Se sim, quantas e quais os nomes?',
+      apoio: 'Se não houve, escreva "NÃO".',
+      canContinue: r.renovacoesTexto.trim().length >= 1,
+      render: () => textArea(r.renovacoesTexto, 'renovacoesTexto', 'EX: 1 — PEDRO COSTA'),
+    });
+    list.push({
+      key: 'cancelamentosTexto', categoria: 'Indicadores do dia',
+      pergunta: 'Houve cancelamentos solicitados hoje? Se sim, quantos e quais os motivos?',
+      apoio: 'Se não houve, escreva "NÃO".',
+      canContinue: r.cancelamentosTexto.trim().length >= 1,
+      render: () => textArea(r.cancelamentosTexto, 'cancelamentosTexto', 'EX: 1 — MUDANÇA DE CIDADE'),
+    });
+    list.push({
+      key: 'naoRenovadosTexto', categoria: 'Indicadores do dia',
+      pergunta: 'Houve não renovações hoje? Se sim, quantos e qual o perfil dos alunos?',
+      apoio: 'Se não houve, escreva "NÃO".',
+      canContinue: r.naoRenovadosTexto.trim().length >= 1,
+      render: () => textArea(r.naoRenovadosTexto, 'naoRenovadosTexto', 'EX: 2 — ALUNOS DE PLANO MENSAL'),
+    });
+    list.push({
+      key: 'inadimplentesTexto', categoria: 'Indicadores do dia',
+      pergunta: 'Há inadimplentes ativos no momento? Se sim, quantos e algum caso crítico para destacar?',
+      apoio: 'Se não houver, escreva "NÃO".',
+      canContinue: r.inadimplentesTexto.trim().length >= 1,
+      render: () => textArea(r.inadimplentesTexto, 'inadimplentesTexto', 'EX: 3 — CASO CRÍTICO: ...'),
+    });
+
+    // BLOCO 3 — Ocorrências e feedbacks
     list.push({
       key: 'ocorrencia', categoria: 'Ocorrências e feedbacks',
-      pergunta: 'Houve alguma ocorrência fora do comum com algum aluno?',
+      pergunta: 'Houve ocorrência fora do comum com algum aluno?',
       canContinue: r.ocorrencia !== null,
       render: () => sn(r.ocorrencia, (b) => set('ocorrencia', b)),
     });
@@ -165,29 +242,40 @@ export default function RelatorioDiarioComercial() {
         key: 'ocorrenciaDescricao', categoria: 'Ocorrências e feedbacks',
         pergunta: 'Descreva o ocorrido de forma objetiva',
         canContinue: r.ocorrenciaDescricao.trim().length >= 3,
-        render: () => (<Textarea value={r.ocorrenciaDescricao}
-          onChange={(e) => set('ocorrenciaDescricao', e.target.value.toUpperCase())}
-          placeholder="DESCREVA O OCORRIDO..." className="min-h-32 rounded-2xl text-base" />),
+        render: () => textArea(r.ocorrenciaDescricao, 'ocorrenciaDescricao', 'DESCREVA O OCORRIDO...'),
       });
     }
+
     list.push({
       key: 'feedbackNegativo', categoria: 'Ocorrências e feedbacks',
-      pergunta: 'Houve algum feedback negativo de aluno?',
+      pergunta: 'Houve feedback negativo de aluno?',
       canContinue: r.feedbackNegativo !== null,
       render: () => sn(r.feedbackNegativo, (b) => set('feedbackNegativo', b)),
     });
     if (r.feedbackNegativo === true) {
       list.push({
         key: 'feedbackDescricao', categoria: 'Ocorrências e feedbacks',
-        pergunta: 'Descreva o feedback e informe se alguma ação já foi tomada',
+        pergunta: 'Qual foi o feedback?',
         canContinue: r.feedbackDescricao.trim().length >= 3,
-        render: () => (<Textarea value={r.feedbackDescricao}
-          onChange={(e) => set('feedbackDescricao', e.target.value.toUpperCase())}
-          placeholder="DESCREVA E AÇÕES TOMADAS..." className="min-h-32 rounded-2xl text-base" />),
+        render: () => textArea(r.feedbackDescricao, 'feedbackDescricao', 'DESCREVA O FEEDBACK...'),
       });
+      list.push({
+        key: 'acaoTomada', categoria: 'Ocorrências e feedbacks',
+        pergunta: 'Alguma ação já foi tomada?',
+        canContinue: r.acaoTomada !== null,
+        render: () => sn(r.acaoTomada, (b) => set('acaoTomada', b)),
+      });
+      if (r.acaoTomada === true) {
+        list.push({
+          key: 'acaoTomadaDescricao', categoria: 'Ocorrências e feedbacks',
+          pergunta: 'Qual ação foi tomada?',
+          canContinue: r.acaoTomadaDescricao.trim().length >= 3,
+          render: () => textArea(r.acaoTomadaDescricao, 'acaoTomadaDescricao', 'DESCREVA A AÇÃO TOMADA...'),
+        });
+      }
     }
 
-    // 3. Observações finais
+    // BLOCO 4 — Observações finais
     list.push({
       key: 'observacoesLideranca', categoria: 'Observações finais',
       pergunta: 'Alguma informação importante para a liderança acompanhar?',
@@ -212,7 +300,7 @@ export default function RelatorioDiarioComercial() {
         <div className="w-full max-w-md space-y-8 text-center">
           <p className="font-display-condensed text-xs uppercase tracking-[0.4em] opacity-80">Iron Club</p>
           <h1 className="font-display text-5xl font-extrabold uppercase leading-[0.95] tracking-tight">
-            Encerramento<br />Comercial
+            Relatório Diário<br />Comercial
           </h1>
           <p className="text-sm uppercase tracking-[0.2em] opacity-90">Recepção — Iron Club</p>
           <p className="mx-auto max-w-xs text-base opacity-90">
@@ -232,21 +320,31 @@ export default function RelatorioDiarioComercial() {
     const items: { label: string; value: string }[] = [];
     const push = (label: string, value: string) => { if (value && value.trim() !== '' && value !== '—') items.push({ label, value }); };
     push('Unidade', r.unidade);
-    push('Responsável pelo fechamento', r.nome);
-    push('Data', r.data ? format(r.data, 'dd/MM/yyyy') : '');
+    push('Responsável pelo relatório', r.nome);
     push('Total de alunos ativos', r.totalAtivos);
     push('Leads recebidos', r.leads);
-    push('Experimentais realizadas', r.experimentais);
-    push('Novas matrículas', r.novasMatriculas);
-    push('Renovações realizadas', r.renovacoes);
-    push('Cancelamentos', r.cancelamentos);
-    push('Não renovados', r.naoRenovados);
-    push('Evasão', r.evasao);
-    push('Inadimplentes', r.inadimplentes);
+    push('Experimentais agendadas', r.experimentaisAgendadas);
+    push('Experimentais realizadas', r.experimentaisRealizadas);
+    push('Fechamento nas experimentais',
+      r.fechamento ? fechamentoLabels[r.fechamento as Exclude<Fechamento, ''>] : '');
+    push('Quantos não fecharam', r.qtdNaoFecharam);
+    push('Motivo do não fechamento',
+      r.motivoNaoFechamento ? motivoLabels[r.motivoNaoFechamento as Exclude<Motivo, ''>] : '');
+    push('Descrição do motivo', r.motivoNaoFechamentoOutro);
+    push('Novas matrículas hoje', r.novasMatriculasTexto);
+    push('Renovações hoje', r.renovacoesTexto);
+    push('Cancelamentos solicitados hoje', r.cancelamentosTexto);
+    push('Não renovações hoje', r.naoRenovadosTexto);
+    push('Inadimplentes ativos', r.inadimplentesTexto);
     push('Ocorrência fora do comum?',
       r.ocorrencia === true ? `Sim — ${r.ocorrenciaDescricao}` : (r.ocorrencia === false ? 'Não' : ''));
-    push('Feedback negativo?',
-      r.feedbackNegativo === true ? `Sim — ${r.feedbackDescricao}` : (r.feedbackNegativo === false ? 'Não' : ''));
+    if (r.feedbackNegativo === true) {
+      push('Feedback negativo', `Sim — ${r.feedbackDescricao}`);
+      push('Ação tomada?',
+        r.acaoTomada === true ? `Sim — ${r.acaoTomadaDescricao}` : (r.acaoTomada === false ? 'Não' : ''));
+    } else if (r.feedbackNegativo === false) {
+      push('Feedback negativo', 'Não');
+    }
     push('Para a liderança', r.observacoesLideranca);
 
     const handleSubmit = async () => {
@@ -260,20 +358,26 @@ export default function RelatorioDiarioComercial() {
             id: respostaId,
             nome: r.nome,
             unidade: r.unidade,
-            data: r.data ? format(r.data, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+            data: format(new Date(), 'yyyy-MM-dd'),
             total_alunos_ativos: r.totalAtivos !== '' ? Number(r.totalAtivos) : null,
             leads_recebidos: r.leads !== '' ? Number(r.leads) : null,
-            experimentais_realizadas: r.experimentais !== '' ? Number(r.experimentais) : null,
-            novos_alunos: r.novasMatriculas !== '' ? Number(r.novasMatriculas) : null,
-            renovacoes: r.renovacoes !== '' ? Number(r.renovacoes) : null,
-            cancelamentos: r.cancelamentos !== '' ? Number(r.cancelamentos) : null,
-            nao_renovados_qtd: r.naoRenovados !== '' ? Number(r.naoRenovados) : null,
-            evasao: r.evasao !== '' ? Number(r.evasao) : null,
-            inadimplentes_qtd: r.inadimplentes !== '' ? Number(r.inadimplentes) : null,
+            experimentais_agendadas: r.experimentaisAgendadas !== '' ? Number(r.experimentaisAgendadas) : null,
+            experimentais_realizadas: r.experimentaisRealizadas !== '' ? Number(r.experimentaisRealizadas) : null,
+            fechamento_experimentais: r.fechamento || null,
+            qtd_nao_fecharam: r.qtdNaoFecharam !== '' ? Number(r.qtdNaoFecharam) : null,
+            motivo_nao_fechamento: r.motivoNaoFechamento || null,
+            motivo_nao_fechamento_outro: r.motivoNaoFechamentoOutro || null,
+            novas_matriculas_texto: r.novasMatriculasTexto || null,
+            renovacoes_texto: r.renovacoesTexto || null,
+            cancelamentos_texto: r.cancelamentosTexto || null,
+            nao_renovados_texto: r.naoRenovadosTexto || null,
+            inadimplentes_texto: r.inadimplentesTexto || null,
             ocorrencia: r.ocorrencia,
             ocorrencia_descricao: r.ocorrenciaDescricao || null,
             feedback_negativo: r.feedbackNegativo,
             feedback_negativo_descricao: r.feedbackDescricao || null,
+            feedback_acao_tomada: r.acaoTomada,
+            feedback_acao_descricao: r.acaoTomadaDescricao || null,
             observacoes: r.observacoesLideranca || null,
           });
 
@@ -310,7 +414,7 @@ export default function RelatorioDiarioComercial() {
         </header>
         <main className="mx-auto w-full max-w-md flex-1 px-5 pb-44 pt-6">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-anamnese-category">Confira antes de enviar</p>
-          <h2 className="mt-2 text-[26px] font-bold leading-[1.15] text-anamnese-card-foreground">Resumo do encerramento</h2>
+          <h2 className="mt-2 text-[26px] font-bold leading-[1.15] text-anamnese-card-foreground">Resumo do relatório</h2>
           <div className="mt-6 space-y-2">
             {items.map((it, i) => (
               <div key={i} className="rounded-2xl border border-anamnese-border bg-anamnese-card p-4">
