@@ -1936,19 +1936,29 @@ export type Database = {
         Row: {
           atividades_realizadas: string[] | null
           cancelamentos: number | null
+          cancelamentos_texto: string | null
           created_at: string
           data: string
           evasao: number | null
+          experimentais_agendadas: number | null
           experimentais_realizadas: number | null
+          fechamento_experimentais: string | null
+          feedback_acao_descricao: string | null
+          feedback_acao_tomada: boolean | null
           feedback_negativo: boolean | null
           feedback_negativo_descricao: string | null
           id: string
           inadimplentes: string | null
           inadimplentes_qtd: number | null
+          inadimplentes_texto: string | null
           leads_recebidos: number | null
+          motivo_nao_fechamento: string | null
+          motivo_nao_fechamento_outro: string | null
           nao_renovados: string | null
           nao_renovados_qtd: number | null
+          nao_renovados_texto: string | null
           nome: string
+          novas_matriculas_texto: string | null
           novos_alunos: number | null
           observacoes: string | null
           ocorrencia: boolean | null
@@ -1956,7 +1966,9 @@ export type Database = {
           pendencias: string | null
           plano_amanha: string | null
           precisa_suporte: boolean | null
+          qtd_nao_fecharam: number | null
           renovacoes: number | null
+          renovacoes_texto: string | null
           submitted_by: string | null
           suporte_descricao: string | null
           total_alunos_ativos: number | null
@@ -1967,19 +1979,29 @@ export type Database = {
         Insert: {
           atividades_realizadas?: string[] | null
           cancelamentos?: number | null
+          cancelamentos_texto?: string | null
           created_at?: string
           data: string
           evasao?: number | null
+          experimentais_agendadas?: number | null
           experimentais_realizadas?: number | null
+          fechamento_experimentais?: string | null
+          feedback_acao_descricao?: string | null
+          feedback_acao_tomada?: boolean | null
           feedback_negativo?: boolean | null
           feedback_negativo_descricao?: string | null
           id?: string
           inadimplentes?: string | null
           inadimplentes_qtd?: number | null
+          inadimplentes_texto?: string | null
           leads_recebidos?: number | null
+          motivo_nao_fechamento?: string | null
+          motivo_nao_fechamento_outro?: string | null
           nao_renovados?: string | null
           nao_renovados_qtd?: number | null
+          nao_renovados_texto?: string | null
           nome: string
+          novas_matriculas_texto?: string | null
           novos_alunos?: number | null
           observacoes?: string | null
           ocorrencia?: boolean | null
@@ -1987,7 +2009,9 @@ export type Database = {
           pendencias?: string | null
           plano_amanha?: string | null
           precisa_suporte?: boolean | null
+          qtd_nao_fecharam?: number | null
           renovacoes?: number | null
+          renovacoes_texto?: string | null
           submitted_by?: string | null
           suporte_descricao?: string | null
           total_alunos_ativos?: number | null
@@ -1998,19 +2022,29 @@ export type Database = {
         Update: {
           atividades_realizadas?: string[] | null
           cancelamentos?: number | null
+          cancelamentos_texto?: string | null
           created_at?: string
           data?: string
           evasao?: number | null
+          experimentais_agendadas?: number | null
           experimentais_realizadas?: number | null
+          fechamento_experimentais?: string | null
+          feedback_acao_descricao?: string | null
+          feedback_acao_tomada?: boolean | null
           feedback_negativo?: boolean | null
           feedback_negativo_descricao?: string | null
           id?: string
           inadimplentes?: string | null
           inadimplentes_qtd?: number | null
+          inadimplentes_texto?: string | null
           leads_recebidos?: number | null
+          motivo_nao_fechamento?: string | null
+          motivo_nao_fechamento_outro?: string | null
           nao_renovados?: string | null
           nao_renovados_qtd?: number | null
+          nao_renovados_texto?: string | null
           nome?: string
+          novas_matriculas_texto?: string | null
           novos_alunos?: number | null
           observacoes?: string | null
           ocorrencia?: boolean | null
@@ -2018,7 +2052,9 @@ export type Database = {
           pendencias?: string | null
           plano_amanha?: string | null
           precisa_suporte?: boolean | null
+          qtd_nao_fecharam?: number | null
           renovacoes?: number | null
+          renovacoes_texto?: string | null
           submitted_by?: string | null
           suporte_descricao?: string | null
           total_alunos_ativos?: number | null

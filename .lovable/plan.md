@@ -1,66 +1,77 @@
-# Régua dinâmica de Follow-up de Matriculados
+# Atualizar Relatório Diário — Comercial
 
-Substituir o uso direto dos registros `M+7` / `M+30` da tabela `follow_ups` por uma régua **calculada em tempo real** a partir da data de matrícula de cada aluno. Isso resolve o problema atual (alunos aparecendo como `M+7` com 28d de atraso) sem precisar reescrever histórico.
+Reformular o wizard em `src/pages/RelatorioDiarioComercial.tsx` para refletir a nova estrutura de 4 blocos, com perguntas condicionais e campos textuais ricos (matrículas/renovações/cancelamentos por nome).
 
-## Régua aplicada (dias desde a matrícula)
+## Bloco 1 — Identificação
+- Unidade (Zona Norte / Zona Sul) — já existe
+- Nome do responsável pelo relatório (texto curto) — já existe (`nome`)
+- (Removida a tela "Data do relatório" — usar `new Date()` automaticamente, mantendo registro silencioso)
 
-| Dias desde matrícula | Etapa exibida | Status visual            | Mensagem        |
-|----------------------|---------------|--------------------------|-----------------|
-| 0–1                  | D+1           | hoje / 0d atrasado       | Boas-vindas     |
-| 2–7                  | D+7           | em Xd / hoje             | Acompanhamento D+7 |
-| 8–15                 | D+7           | Xd atrasado              | Acompanhamento D+7 |
-| 16–45                | D+30          | Xd atrasado / hoje       | Acompanhamento D+30 |
-| > 45                 | —             | não aparece no painel    | nenhuma         |
+## Bloco 2 — Indicadores do dia
+1. Total de alunos ativos (número)
+2. Leads recebidos (número)
+3. **Experimentais agendadas (número)** — novo
+4. Experimentais realizadas (número)
+5. **Houve fechamento nas experimentais de hoje?** — novo (opções: Sim, todas / Sim, parcial / Nenhuma / Não houve experimental hoje)
+   - Se "Sim, parcial" ou "Nenhuma":
+     - 5a. Quantos não fecharam? (número)
+     - 5b. Principal motivo (Preço / Vai pensar / Não gostou da proposta / Questão de horário / Outro)
+       - Se "Outro": 5c. Descreve o motivo (parágrafo)
+6. **Houve novas matrículas hoje? Quantas e quais os nomes?** (texto longo) — substitui campo numérico
+7. **Houve renovações hoje? Quantas e quais os nomes?** (texto longo) — substitui campo numérico
+8. **Houve cancelamentos solicitados hoje? Quantos e quais os motivos?** (texto longo) — substitui campo numérico
+9. **Houve não renovações hoje? Quantos e qual o perfil dos alunos?** (texto longo) — substitui campo numérico
+10. **Há inadimplentes ativos no momento? Quantos e algum caso crítico?** (texto longo) — substitui campo numérico
+- (Remover campo "Evasão" da UI)
 
-Pontos-chave da regra:
+## Bloco 3 — Ocorrências e feedbacks
+11. Ocorrência fora do comum com algum aluno? (Sim/Não)
+    - Se Sim: 11a. Descreva o ocorrido (parágrafo)
+12. Feedback negativo de aluno? (Sim/Não)
+    - Se Sim:
+      - 12a. Qual foi o feedback? (parágrafo)
+      - 12b. Alguma ação já foi tomada? (Sim/Não)
+        - Se Sim: 12c. Qual ação foi tomada? (parágrafo)
 
-- D+1 nunca é retroativo: só aparece para quem matriculou hoje ou ontem.
-- Aluno antigo com >15d de atraso em D+7 migra automaticamente para D+30 (porque a etapa é recalculada a cada render a partir de "dias desde a matrícula", não de uma data prevista fixa).
-- Aluno com mais de 45 dias de matrícula simplesmente não entra no painel.
+## Bloco 4 — Observações finais
+13. Informação importante para a liderança (parágrafo, opcional)
 
-## Fonte da data de matrícula
+## Detalhes técnicos
 
-`data_fechamento` da interação mais recente do lead com `fechou_matricula = true`. Filtros aplicados:
+### Estado `Respostas`
+Adicionar:
+- `experimentaisAgendadas: string`
+- `fechamentoExperimentais: '' | 'TODAS' | 'PARCIAL' | 'NENHUMA' | 'NAO_HOUVE'`
+- `qtdNaoFecharam: string`
+- `motivoNaoFechamento: '' | 'PRECO' | 'VAI_PENSAR' | 'NAO_GOSTOU' | 'HORARIO' | 'OUTRO'`
+- `motivoNaoFechamentoOutro: string`
+- `novasMatriculasTexto: string`, `renovacoesTexto: string`, `cancelamentosTexto: string`, `naoRenovadosTexto: string`, `inadimplentesTexto: string`
+- `feedbackTexto: string`, `acaoTomada: boolean | null`, `acaoTomadaTexto: string`
 
-- `leads.is_matriculado = true`
-- `leads.ativo = true`
-- `unidade_id = unidadeAtual.id`
-- existe pelo menos uma `interacoes.fechou_matricula = true` com `data_fechamento` não nulo
+Manter campos antigos numéricos no submit como `null` para não quebrar histórico (ou descontinuar — ver migração abaixo).
 
-Se houver mais de uma matrícula (renovações), usa a **mais recente** como referência.
+### Persistência (`relatorio_diario_comercial_respostas`)
+Adicionar colunas via migration:
+- `experimentais_agendadas integer`
+- `fechamento_experimentais text` (enum lógica via CHECK)
+- `qtd_nao_fecharam integer`
+- `motivo_nao_fechamento text`
+- `motivo_nao_fechamento_outro text`
+- `novas_matriculas_texto text` (substitui semântica de `novos_alunos`)
+- `renovacoes_texto text`
+- `cancelamentos_texto text`
+- `nao_renovados_texto text`
+- `inadimplentes_texto text`
+- `feedback_acao_tomada boolean`
+- `feedback_acao_descricao text`
 
-## Controle de "já enviado" e reagendamento
+Colunas legadas (`novos_alunos`, `renovacoes`, `cancelamentos`, `nao_renovados_qtd`, `inadimplentes_qtd`, `evasao`) ficam para histórico — o novo submit envia `null` nelas.
 
-Para que um aluno não reapareça depois que a recepção marcar o follow-up:
+### UI/UX
+- Reaproveitar `OptionCard`, `Input`, `Textarea`, `StepShell`.
+- Subperguntas montadas dinamicamente no `useMemo([r])` como já é feito.
+- Tela de Resumo (`review`) ajustada para mostrar os novos campos em ordem.
 
-- Continua usando `public.follow_ups`, mas com `tipo IN ('D+1','D+7','D+30')` no contexto matriculado. O que diferencia do follow-up de lead é o campo `lead.is_matriculado = true`.
-- Ao clicar **check**: upsert em `follow_ups` com `lead_id` + `tipo = etapa_calculada` + `status = 'concluido'` + `concluido_em = now()`.
-- Ao montar o painel: oculta o aluno se já existir `follow_ups` (`lead_id`, `tipo = etapa_calculada`, `status = 'concluido'`).
-- **Reagendar**: grava `data_prevista` futura com `status = 'pendente'`; enquanto essa data não chegar, o aluno fica fora do painel para aquela etapa.
-- Se o aluno avançar para a próxima etapa (ex.: já estava em D+7 concluído e agora caiu na faixa D+30), ele volta a aparecer com a nova tag, porque a checagem de "concluído" é por `tipo`.
-
-## Limpeza dos M+7 / M+30 antigos
-
-Os ~105 `follow_ups` pendentes com `tipo IN ('M+7','M+30')` ficam ignorados pelo painel novo. Para não poluir relatórios, marcamos todos como `status = 'cancelado'` com `cancelado_motivo = 'migracao_regua_d'`. Nada é apagado.
-
-## Mensagens (rascunho, ajustável)
-
-- **D+1 — boas-vindas**
-  "Oi, {nome}! Seja bem-vindo(a) à IRON CLUB. Tô passando pra confirmar sua matrícula e tirar qualquer dúvida do primeiro treino. Qualquer coisa, me chama por aqui."
-- **D+7 — acompanhamento inicial**
-  "Oi, {nome}! Faz uma semana desde sua matrícula na IRON. Como tá sendo a adaptação aos treinos? Se precisar ajustar algo ou tiver alguma dúvida, me fala."
-- **D+30 — fechamento do primeiro mês**
-  "Oi, {nome}! Já fechou um mês de IRON. Bora bater um papo rápido sobre evolução, frequência e próximos passos do seu treino?"
-
-## Arquivos afetados
-
-- `src/hooks/useFollowUpsMatriculados.ts` — reescrito. Passa a buscar matriculados + `data_fechamento` mais recente; calcula etapa via régua; filtra concluídos/reagendados por `tipo`.
-- `src/components/dashboard/FollowUpMatriculadosSection.tsx` — usa as tags `D+1/D+7/D+30`, mensagens novas e faz upsert no check.
-- `src/components/dashboard/FollowUpMatriculadosKPI.tsx` — sem mudança estrutural (recebe a nova contagem).
-- Migração SQL — apenas para cancelar `follow_ups` antigos com `tipo IN ('M+7','M+30')` e `status = 'pendente'`.
-
-## Fora do escopo
-
-- Sem envio automático: WhatsApp continua manual (abre `wa.me` com mensagem preenchida).
-- Não mexe no painel de follow-up de experimental (leads).
-- Não altera a edge function `generate-follow-ups` (que cuida só do funil de leads).
+### Sem mudanças em
+- `submitFormularioPublico` / notificações de grupo (continuam disparando com `tipo_formulario: 'relatorio_comercial'`).
+- Rotas, layout, design tokens.
