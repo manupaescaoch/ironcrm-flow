@@ -189,37 +189,67 @@ function renderCoordenadorHorario(row: Record<string, unknown>): Item[] {
 }
 
 function renderRelatorioComercial(row: Record<string, unknown>): Item[] {
-  // Extract metadata if available (added by executeNotification)
   const meta = (row._meta as any) || {};
 
-  const inadimplentes = row.inadimplentes_qtd != null
-    ? String(row.inadimplentes_qtd)
-    : sanitizeText(row.inadimplentes);
-  const naoRenovados = row.nao_renovados_qtd != null
-    ? String(row.nao_renovados_qtd)
-    : sanitizeText(row.nao_renovados);
-  const evasaoNum = row.evasao != null
-    ? String(row.evasao)
-    : (meta.evasao != null ? fmtPct(meta.evasao) : '—');
+  const fechamentoLabels: Record<string, string> = {
+    TODAS: 'Sim, todas',
+    PARCIAL: 'Sim, parcial',
+    NENHUMA: 'Nenhuma',
+    NAO_HOUVE: 'Não houve experimental hoje',
+  };
+  const motivoLabels: Record<string, string> = {
+    PRECO: 'Preço',
+    VAI_PENSAR: 'Vai pensar',
+    NAO_GOSTOU: 'Não gostou da proposta',
+    HORARIO: 'Questão de horário',
+    OUTRO: 'Outro',
+  };
 
-  return [
-    { label: 'Responsável pelo fechamento', value: sanitizeText(row.nome) },
+  const fechamentoKey = row.fechamento_experimentais as string | null;
+  const motivoKey = row.motivo_nao_fechamento as string | null;
+  const motivoLabel = motivoKey
+    ? (motivoKey === 'OUTRO'
+        ? `Outro — ${sanitizeText(row.motivo_nao_fechamento_outro)}`
+        : (motivoLabels[motivoKey] || motivoKey))
+    : '';
+
+  const items: Item[] = [
+    { label: 'Responsável pelo relatório', value: sanitizeText(row.nome) },
     { label: 'Data', value: sanitizeText(row.data) },
     { label: 'Total de alunos ativos', value: `${row.total_alunos_ativos ?? 0}${meta.meta_alunos ? ` (Meta: ${meta.meta_alunos})` : ''}` },
     { label: 'Leads recebidos', value: String(row.leads_recebidos ?? 0) },
+    { label: 'Experimentais agendadas', value: row.experimentais_agendadas != null ? String(row.experimentais_agendadas) : '' },
     { label: 'Experimentais realizadas', value: String(row.experimentais_realizadas ?? 0) },
-    { label: 'Novas matrículas', value: String(row.novos_alunos ?? 0) },
-    { label: 'Renovações realizadas', value: String(row.renovacoes ?? 0) },
-    { label: 'Cancelamentos', value: String(row.cancelamentos ?? 0) },
-    { label: 'Não renovados', value: naoRenovados },
-    { label: 'Evasão', value: evasaoNum },
-    { label: 'Inadimplentes', value: inadimplentes },
-    { label: 'Receita do mês', value: fmtBRL(meta.receita_mes || 0) },
-    { label: 'Ticket médio', value: fmtBRL(meta.ticket_medio || 0) },
-    { label: 'Ocorrência fora do comum?', value: row.ocorrencia ? `Sim — ${sanitizeText(row.ocorrencia_descricao)}` : 'Não' },
-    { label: 'Feedback negativo de aluno?', value: row.feedback_negativo ? `Sim — ${sanitizeText(row.feedback_negativo_descricao)}` : 'Não' },
-    { label: 'Para a liderança', value: sanitizeText(row.observacoes) },
+    { label: 'Fechamento nas experimentais', value: fechamentoKey ? (fechamentoLabels[fechamentoKey] || fechamentoKey) : '' },
   ];
+
+  if (fechamentoKey === 'PARCIAL' || fechamentoKey === 'NENHUMA') {
+    items.push({ label: 'Quantos não fecharam', value: row.qtd_nao_fecharam != null ? String(row.qtd_nao_fecharam) : '' });
+    items.push({ label: 'Motivo do não fechamento', value: motivoLabel });
+  }
+
+  items.push(
+    { label: 'Novas matrículas hoje', value: sanitizeText(row.novas_matriculas_texto) },
+    { label: 'Renovações hoje', value: sanitizeText(row.renovacoes_texto) },
+    { label: 'Cancelamentos hoje', value: sanitizeText(row.cancelamentos_texto) },
+    { label: 'Não renovações hoje', value: sanitizeText(row.nao_renovados_texto) },
+    { label: 'Inadimplentes ativos', value: sanitizeText(row.inadimplentes_texto) },
+    { label: 'Ocorrência fora do comum?', value: row.ocorrencia ? `Sim — ${sanitizeText(row.ocorrencia_descricao)}` : (row.ocorrencia === false ? 'Não' : '') },
+    { label: 'Feedback negativo de aluno?', value: row.feedback_negativo ? `Sim — ${sanitizeText(row.feedback_negativo_descricao)}` : (row.feedback_negativo === false ? 'Não' : '') },
+  );
+
+  if (row.feedback_negativo === true) {
+    items.push({
+      label: 'Ação tomada?',
+      value: row.feedback_acao_tomada
+        ? `Sim — ${sanitizeText(row.feedback_acao_descricao)}`
+        : (row.feedback_acao_tomada === false ? 'Não' : ''),
+    });
+  }
+
+  items.push({ label: 'Para a liderança', value: sanitizeText(row.observacoes) });
+
+  return items;
 }
 
 const RENDERERS: Record<TipoFormulario, (row: Record<string, unknown>) => Item[]> = {
@@ -384,32 +414,17 @@ export async function executeNotification(
 ): Promise<NotifyResult> {
   const supabase = getServiceClient();
 
-  // For commercial report, fetch extra metadata from DB
+  // For commercial report, fetch meta_alunos for the header line
   if (ctx.tipo_formulario === 'relatorio_comercial' && ctx.unidade_id) {
     try {
-      const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
-
-      const [metasRes, interacoesRes] = await Promise.all([
-        supabase.from('gestao_metas').select('*').eq('unidade_id', ctx.unidade_id).maybeSingle(),
-        supabase.from('interacoes')
-          .select('valor_plano')
-          .eq('unidade_id', ctx.unidade_id)
-          .eq('fechou_matricula', true)
-          .gte('data_fechamento', monthStart)
-          .lte('data_fechamento', monthEnd)
-      ]);
-
-      const meta = metasRes.data;
-      const interacoes = interacoesRes.data || [];
-      const receitaMes = interacoes.reduce((s, i: any) => s + Number(i.valor_plano || 0), 0);
+      const metasRes = await supabase
+        .from('gestao_metas')
+        .select('meta_alunos_mes')
+        .eq('unidade_id', ctx.unidade_id)
+        .maybeSingle();
 
       row._meta = {
-        meta_alunos: meta?.meta_alunos_mes,
-        receita_mes: receitaMes,
-        ticket_medio: meta?.ticket_medio_real,
-        evasao: meta?.evasao_pct_manual
+        meta_alunos: metasRes.data?.meta_alunos_mes,
       };
     } catch (e) {
       console.error('[executeNotification] Failed to fetch metadata', e);
