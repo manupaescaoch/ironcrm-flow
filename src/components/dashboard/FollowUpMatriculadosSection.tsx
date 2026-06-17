@@ -77,17 +77,9 @@ export function FollowUpMatriculadosSection({ urgentItems, onRefresh }: Props) {
     if (!unidadeAtual) return;
     setLoading(true);
     try {
-      // Upsert: cancela qualquer pendente da mesma etapa e insere um concluido
-      await supabase
-        .from('follow_ups')
-        .update({ status: 'cancelado', cancelado_motivo: 'substituido_por_concluido' })
-        .eq('lead_id', item.lead_id)
-        .eq('tipo', item.tipo)
-        .eq('status', 'pendente');
-
       const { error } = await supabase
         .from('follow_ups')
-        .insert({
+        .upsert({
           lead_id: item.lead_id,
           unidade_id: unidadeAtual.id,
           tipo: item.tipo,
@@ -96,7 +88,8 @@ export function FollowUpMatriculadosSection({ urgentItems, onRefresh }: Props) {
           status: 'concluido',
           concluido_em: new Date().toISOString(),
           concluido_por: 'dashboard',
-        });
+          cancelado_motivo: null,
+        }, { onConflict: 'lead_id,tipo' });
       if (error) throw error;
       toast.success('Follow-up marcado como realizado!');
       onRefresh();
@@ -120,24 +113,19 @@ export function FollowUpMatriculadosSection({ urgentItems, onRefresh }: Props) {
     if (!selected || !newDate || !unidadeAtual) return;
     setLoading(true);
     try {
-      // Cancela pendentes antigos da etapa e cria novo pendente reagendado
-      await supabase
-        .from('follow_ups')
-        .update({ status: 'cancelado', cancelado_motivo: 'reagendado' })
-        .eq('lead_id', selected.lead_id)
-        .eq('tipo', selected.tipo)
-        .eq('status', 'pendente');
-
       const { error } = await supabase
         .from('follow_ups')
-        .insert({
+        .upsert({
           lead_id: selected.lead_id,
           unidade_id: unidadeAtual.id,
           tipo: selected.tipo,
           data_referencia: selected.data_matricula,
           data_prevista: `${newDate}T00:00:00-03:00`,
           status: 'pendente',
-        });
+          concluido_em: null,
+          concluido_por: null,
+          cancelado_motivo: 'reagendado',
+        }, { onConflict: 'lead_id,tipo' });
       if (error) throw error;
       toast.success('Follow-up reagendado!');
       setRescheduleOpen(false);
