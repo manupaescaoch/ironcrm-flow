@@ -77,17 +77,9 @@ export function FollowUpMatriculadosSection({ urgentItems, onRefresh }: Props) {
     if (!unidadeAtual) return;
     setLoading(true);
     try {
-      // Upsert: cancela qualquer pendente da mesma etapa e insere um concluido
-      await supabase
-        .from('follow_ups')
-        .update({ status: 'cancelado', cancelado_motivo: 'substituido_por_concluido' })
-        .eq('lead_id', item.lead_id)
-        .eq('tipo', item.tipo)
-        .eq('status', 'pendente');
-
       const { error } = await supabase
         .from('follow_ups')
-        .insert({
+        .upsert({
           lead_id: item.lead_id,
           unidade_id: unidadeAtual.id,
           tipo: item.tipo,
@@ -96,7 +88,8 @@ export function FollowUpMatriculadosSection({ urgentItems, onRefresh }: Props) {
           status: 'concluido',
           concluido_em: new Date().toISOString(),
           concluido_por: 'dashboard',
-        });
+          cancelado_motivo: null,
+        }, { onConflict: 'lead_id,tipo' });
       if (error) throw error;
       toast.success('Follow-up marcado como realizado!');
       onRefresh();
