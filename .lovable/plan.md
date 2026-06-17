@@ -1,77 +1,46 @@
-# Atualizar Relatório Diário — Comercial
+# Corrigir mensagem WhatsApp do Relatório Diário — Comercial
 
-Reformular o wizard em `src/pages/RelatorioDiarioComercial.tsx` para refletir a nova estrutura de 4 blocos, com perguntas condicionais e campos textuais ricos (matrículas/renovações/cancelamentos por nome).
+## Problema
 
-## Bloco 1 — Identificação
-- Unidade (Zona Norte / Zona Sul) — já existe
-- Nome do responsável pelo relatório (texto curto) — já existe (`nome`)
-- (Removida a tela "Data do relatório" — usar `new Date()` automaticamente, mantendo registro silencioso)
+O formulário foi atualizado para a nova estrutura de 4 blocos, mas a mensagem enviada ao grupo do WhatsApp continua usando o template antigo (com "Receita do mês", "Ticket médio", "Evasão", contadores numéricos de matrículas/renovações etc.).
 
-## Bloco 2 — Indicadores do dia
-1. Total de alunos ativos (número)
-2. Leads recebidos (número)
-3. **Experimentais agendadas (número)** — novo
-4. Experimentais realizadas (número)
-5. **Houve fechamento nas experimentais de hoje?** — novo (opções: Sim, todas / Sim, parcial / Nenhuma / Não houve experimental hoje)
-   - Se "Sim, parcial" ou "Nenhuma":
-     - 5a. Quantos não fecharam? (número)
-     - 5b. Principal motivo (Preço / Vai pensar / Não gostou da proposta / Questão de horário / Outro)
-       - Se "Outro": 5c. Descreve o motivo (parágrafo)
-6. **Houve novas matrículas hoje? Quantas e quais os nomes?** (texto longo) — substitui campo numérico
-7. **Houve renovações hoje? Quantas e quais os nomes?** (texto longo) — substitui campo numérico
-8. **Houve cancelamentos solicitados hoje? Quantos e quais os motivos?** (texto longo) — substitui campo numérico
-9. **Houve não renovações hoje? Quantos e qual o perfil dos alunos?** (texto longo) — substitui campo numérico
-10. **Há inadimplentes ativos no momento? Quantos e algum caso crítico?** (texto longo) — substitui campo numérico
-- (Remover campo "Evasão" da UI)
+O template fica em `supabase/functions/_shared/notifyFormularioCore.ts`, função `renderRelatorioComercial` (linhas 191-223), e é usada por todas as edge functions de notificação de formulário.
 
-## Bloco 3 — Ocorrências e feedbacks
-11. Ocorrência fora do comum com algum aluno? (Sim/Não)
-    - Se Sim: 11a. Descreva o ocorrido (parágrafo)
-12. Feedback negativo de aluno? (Sim/Não)
-    - Se Sim:
-      - 12a. Qual foi o feedback? (parágrafo)
-      - 12b. Alguma ação já foi tomada? (Sim/Não)
-        - Se Sim: 12c. Qual ação foi tomada? (parágrafo)
+## Mudanças
 
-## Bloco 4 — Observações finais
-13. Informação importante para a liderança (parágrafo, opcional)
+### 1. `supabase/functions/_shared/notifyFormularioCore.ts`
+
+Reescrever `renderRelatorioComercial(row)` para refletir os campos reais que o formulário hoje grava em `relatorio_diario_comercial_respostas`:
+
+- **Identificação:** Responsável (`nome`), Data (`data`)
+- **Indicadores do dia:**
+  - Total de alunos ativos — `total_alunos_ativos` (manter `(Meta: X)` se `meta_alunos` existir no `_meta`)
+  - Leads recebidos — `leads_recebidos`
+  - Experimentais agendadas — `experimentais_agendadas`
+  - Experimentais realizadas — `experimentais_realizadas`
+  - Fechamento nas experimentais — `fechamento_experimentais` (mapear enum para "Sim, todas" / "Sim, parcial" / "Nenhuma" / "Não houve experimental hoje")
+  - Quantos não fecharam — `qtd_nao_fecharam` (só se preenchido)
+  - Motivo do não fechamento — `motivo_nao_fechamento` (mapear enum; se `OUTRO`, usar `motivo_nao_fechamento_outro`)
+  - Novas matrículas hoje — `novas_matriculas_texto`
+  - Renovações hoje — `renovacoes_texto`
+  - Cancelamentos hoje — `cancelamentos_texto`
+  - Não renovações hoje — `nao_renovados_texto`
+  - Inadimplentes ativos — `inadimplentes_texto`
+- **Ocorrências e feedbacks:**
+  - Ocorrência fora do comum — `ocorrencia` + `ocorrencia_descricao`
+  - Feedback negativo — `feedback_negativo` + `feedback_negativo_descricao`
+  - Ação tomada — `feedback_acao_tomada` + `feedback_acao_descricao` (só se feedback negativo = Sim)
+- **Observações finais:** Para a liderança — `observacoes`
+
+Remover do template: **Receita do mês**, **Ticket médio**, **Evasão**, **Novas matrículas (contador)**, **Renovações (contador)**, **Cancelamentos (contador)**, **Não renovados (contador)**, **Inadimplentes (contador)**.
+
+### 2. Mesmo arquivo, `executeNotification` (linhas 388-417)
+
+Limpar o bloco que busca `_meta`: manter somente `meta_alunos` (de `gestao_metas.meta_alunos_mes`) — é o único valor ainda usado. Remover a query de `interacoes` (cálculo de `receitaMes`) e os campos `receita_mes`, `ticket_medio`, `evasao` do `_meta`, já que não aparecem mais no template.
 
 ## Detalhes técnicos
 
-### Estado `Respostas`
-Adicionar:
-- `experimentaisAgendadas: string`
-- `fechamentoExperimentais: '' | 'TODAS' | 'PARCIAL' | 'NENHUMA' | 'NAO_HOUVE'`
-- `qtdNaoFecharam: string`
-- `motivoNaoFechamento: '' | 'PRECO' | 'VAI_PENSAR' | 'NAO_GOSTOU' | 'HORARIO' | 'OUTRO'`
-- `motivoNaoFechamentoOutro: string`
-- `novasMatriculasTexto: string`, `renovacoesTexto: string`, `cancelamentosTexto: string`, `naoRenovadosTexto: string`, `inadimplentesTexto: string`
-- `feedbackTexto: string`, `acaoTomada: boolean | null`, `acaoTomadaTexto: string`
-
-Manter campos antigos numéricos no submit como `null` para não quebrar histórico (ou descontinuar — ver migração abaixo).
-
-### Persistência (`relatorio_diario_comercial_respostas`)
-Adicionar colunas via migration:
-- `experimentais_agendadas integer`
-- `fechamento_experimentais text` (enum lógica via CHECK)
-- `qtd_nao_fecharam integer`
-- `motivo_nao_fechamento text`
-- `motivo_nao_fechamento_outro text`
-- `novas_matriculas_texto text` (substitui semântica de `novos_alunos`)
-- `renovacoes_texto text`
-- `cancelamentos_texto text`
-- `nao_renovados_texto text`
-- `inadimplentes_texto text`
-- `feedback_acao_tomada boolean`
-- `feedback_acao_descricao text`
-
-Colunas legadas (`novos_alunos`, `renovacoes`, `cancelamentos`, `nao_renovados_qtd`, `inadimplentes_qtd`, `evasao`) ficam para histórico — o novo submit envia `null` nelas.
-
-### UI/UX
-- Reaproveitar `OptionCard`, `Input`, `Textarea`, `StepShell`.
-- Subperguntas montadas dinamicamente no `useMemo([r])` como já é feito.
-- Tela de Resumo (`review`) ajustada para mostrar os novos campos em ordem.
-
-### Sem mudanças em
-- `submitFormularioPublico` / notificações de grupo (continuam disparando com `tipo_formulario: 'relatorio_comercial'`).
-- Rotas, layout, design tokens.
+- Os mapeamentos de enum (`fechamento_experimentais`, `motivo_nao_fechamento`) ficam locais a `renderRelatorioComercial`, espelhando os labels usados em `src/pages/RelatorioDiarioComercial.tsx` (`fechamentoLabels`, `motivoLabels`).
+- A filtragem `it.value && it.value !== '—'` em `buildMessage` (linha 241) já cuida de esconder linhas vazias automaticamente — basta retornar `'—'` ou string vazia para campos não preenchidos (ex: quantos não fecharam quando `fechamento` é `TODAS` ou `NAO_HOUVE`).
+- Não há mudança em rotas, schema, RLS, ou no componente do formulário — só no renderer da mensagem.
+- Nenhuma outra edge function precisa ser tocada: todas usam `buildMessage` via `notifyFormularioCore.ts`.
