@@ -414,32 +414,17 @@ export async function executeNotification(
 ): Promise<NotifyResult> {
   const supabase = getServiceClient();
 
-  // For commercial report, fetch extra metadata from DB
+  // For commercial report, fetch meta_alunos for the header line
   if (ctx.tipo_formulario === 'relatorio_comercial' && ctx.unidade_id) {
     try {
-      const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
-
-      const [metasRes, interacoesRes] = await Promise.all([
-        supabase.from('gestao_metas').select('*').eq('unidade_id', ctx.unidade_id).maybeSingle(),
-        supabase.from('interacoes')
-          .select('valor_plano')
-          .eq('unidade_id', ctx.unidade_id)
-          .eq('fechou_matricula', true)
-          .gte('data_fechamento', monthStart)
-          .lte('data_fechamento', monthEnd)
-      ]);
-
-      const meta = metasRes.data;
-      const interacoes = interacoesRes.data || [];
-      const receitaMes = interacoes.reduce((s, i: any) => s + Number(i.valor_plano || 0), 0);
+      const metasRes = await supabase
+        .from('gestao_metas')
+        .select('meta_alunos_mes')
+        .eq('unidade_id', ctx.unidade_id)
+        .maybeSingle();
 
       row._meta = {
-        meta_alunos: meta?.meta_alunos_mes,
-        receita_mes: receitaMes,
-        ticket_medio: meta?.ticket_medio_real,
-        evasao: meta?.evasao_pct_manual
+        meta_alunos: metasRes.data?.meta_alunos_mes,
       };
     } catch (e) {
       console.error('[executeNotification] Failed to fetch metadata', e);
