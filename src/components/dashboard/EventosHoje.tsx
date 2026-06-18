@@ -240,19 +240,30 @@ Aguardamos você! 💪`;
           .update({ compareceu: false })
           .eq('id', item.interacao.id);
         if (error) throw error;
-        // Atualiza status do lead para perdido por falta
-        await supabase
-          .from('leads')
-          .update({ status_funil: 'perdido' })
-          .eq('id', item.lead.id);
+
+        // Inicia FU Reagendamento + envia WhatsApp pelo chip comercial
+        const { data: reagData, error: reagErr } = await supabase.functions.invoke(
+          'send-reagendamento-experimental',
+          { body: { lead_id: item.lead.id, interacao_id: item.interacao.id } }
+        );
+        if (reagErr || (reagData as any)?.error) {
+          const msg = (reagData as any)?.error || getErrorMessage(reagErr);
+          toast({
+            title: 'Lead marcado como não compareceu',
+            description: `Falha ao iniciar FU Reagendamento: ${msg}`,
+            variant: 'destructive',
+          });
+        } else {
+          toast({ title: 'Não compareceu registrado', description: 'FU Reagendamento iniciado e mensagem enviada.' });
+        }
       } else {
         const { error } = await supabase
           .from('interacoes')
           .update({ status_avaliacao: 'faltou' })
           .eq('id', item.interacao.id);
         if (error) throw error;
+        toast({ title: 'Marcado como não compareceu' });
       }
-      toast({ title: 'Marcado como não compareceu' });
       onRefresh();
     } catch (error) {
       toast({ title: 'Erro ao atualizar', description: getErrorMessage(error), variant: 'destructive' });
