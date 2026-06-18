@@ -3110,7 +3110,7 @@ export type Database = {
           replied_at: string | null
           status: string | null
           timestamp: string | null
-          unidade_id: string | null
+          unidade_id: string
         }
         Insert: {
           contact_name?: string | null
@@ -3128,7 +3128,7 @@ export type Database = {
           replied_at?: string | null
           status?: string | null
           timestamp?: string | null
-          unidade_id?: string | null
+          unidade_id: string
         }
         Update: {
           contact_name?: string | null
@@ -3146,7 +3146,7 @@ export type Database = {
           replied_at?: string | null
           status?: string | null
           timestamp?: string | null
-          unidade_id?: string | null
+          unidade_id?: string
         }
         Relationships: [
           {
