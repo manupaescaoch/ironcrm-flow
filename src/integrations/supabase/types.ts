@@ -2995,7 +2995,7 @@ export type Database = {
           phone: string
           phone_normalized: string
           status_conversa: string | null
-          unidade_id: string | null
+          unidade_id: string
           updated_at: string | null
         }
         Insert: {
@@ -3013,7 +3013,7 @@ export type Database = {
           phone: string
           phone_normalized: string
           status_conversa?: string | null
-          unidade_id?: string | null
+          unidade_id: string
           updated_at?: string | null
         }
         Update: {
@@ -3031,7 +3031,7 @@ export type Database = {
           phone?: string
           phone_normalized?: string
           status_conversa?: string | null
-          unidade_id?: string | null
+          unidade_id?: string
           updated_at?: string | null
         }
         Relationships: [
