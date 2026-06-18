@@ -44,6 +44,7 @@ const TIPO_LABELS: Record<string, string> = {
   'D+30': 'Follow-up D+30',
   'M+7': 'Follow-up Pós-matrícula (M+7)',
   'M+30': 'Follow-up Pós-matrícula (M+30)',
+  'REAG': 'FU Reagendamento (não compareceu)',
 };
 
 const STATUS_STYLE: Record<string, { label: string; cls: string; Icon: typeof CheckCircle2 }> = {

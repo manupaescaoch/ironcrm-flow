@@ -76,7 +76,7 @@ export function useDashboardEventos(): UseDashboardEventosReturn {
           : eventoItem.interacao.data_experimental;
         const isAgendado = tipoEvento === 'avaliacao' 
           ? eventoItem.interacao.status_avaliacao === 'agendada'
-          : eventoItem.interacao.compareceu !== true;
+          : eventoItem.interacao.compareceu !== true && eventoItem.interacao.compareceu !== false;
 
         if (dataEvento && dataEvento >= startDateStr && dataEvento <= endDateStr) {
           weekItems.push(eventoItem);
