@@ -41,6 +41,7 @@ import { ConversionScoreCard } from '@/components/ConversionScoreCard';
 import { useConversionScore } from '@/hooks/useConversionScore';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InteractionTimeline } from '@/components/lead/InteractionTimeline';
+import { FollowUpHistoryTimeline } from '@/components/lead/FollowUpHistoryTimeline';
 import { MotivosPerdaModal } from '@/components/lead/MotivosPerdaModal';
 import { AnamneseSection } from '@/components/lead/AnamneseSection';
 import { formatDateOnly, formatTimeValue, formatTimestampInBrasilia } from '@/lib/brasilia';
@@ -914,6 +915,19 @@ export default function LeadDetail() {
                   interacoes={interacoes} 
                   onInteractionClick={openEditInteracao} 
                 />
+              </CardContent>
+            </Card>
+
+            {/* Follow-up History Timeline */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5" />
+                  Histórico de Follow-up
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {lead && <FollowUpHistoryTimeline leadId={lead.id} lead={lead as any} />}
               </CardContent>
             </Card>
           </div>
