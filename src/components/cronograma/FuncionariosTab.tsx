@@ -15,33 +15,40 @@ import { Switch } from '@/components/ui/switch';
 
 const SETORES = ['geral', 'recepção', 'limpeza', 'segurança', 'treinador', 'estagiário líder', 'manutenção'];
 const TURNOS = ['integral', 'manhã', 'tarde', 'noite'];
+const CARGOS: { value: 'recepcao' | 'coordenador_unidade' | 'treinador' | 'estagiario_lider'; label: string; descricao: string }[] = [
+  { value: 'recepcao', label: 'Recepção', descricao: 'Recebe o Relatório Diário Comercial' },
+  { value: 'coordenador_unidade', label: 'Coordenador de Unidade', descricao: 'Recebe o Encerramento — Coordenador de Unidade' },
+  { value: 'treinador', label: 'Treinador', descricao: 'Recebe o Encerramento — Coordenador de Horário' },
+  { value: 'estagiario_lider', label: 'Estagiário Líder', descricao: 'Recebe o Encerramento — Estagiário Líder' },
+];
 
 export function FuncionariosTab() {
   const { funcionarios, isLoading, createFuncionario, updateFuncionario, deleteFuncionario } = useCronogramaFuncionarios();
   const { unidadeId } = useUnidadeFilter();
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ nome: '', telefone: '', setor: 'geral', turno: 'integral' });
+  const [form, setForm] = useState<{ nome: string; telefone: string; setor: string; turno: string; cargo: '' | 'recepcao' | 'coordenador_unidade' | 'treinador' | 'estagiario_lider' }>({ nome: '', telefone: '', setor: 'geral', turno: 'integral', cargo: '' });
 
   const resetForm = () => {
-    setForm({ nome: '', telefone: '', setor: 'geral', turno: 'integral' });
+    setForm({ nome: '', telefone: '', setor: 'geral', turno: 'integral', cargo: '' });
     setEditingId(null);
   };
 
   const handleEdit = (f: CronogramaFuncionario) => {
-    setForm({ nome: f.nome, telefone: f.telefone || '', setor: f.setor, turno: f.turno });
+    setForm({ nome: f.nome, telefone: f.telefone || '', setor: f.setor, turno: f.turno, cargo: (f.cargo as any) || '' });
     setEditingId(f.id);
     setOpen(true);
   };
 
   const handleSave = () => {
     if (!form.nome || !unidadeId) return;
+    const cargoVal = form.cargo || null;
     if (editingId) {
-      updateFuncionario.mutate({ id: editingId, nome: form.nome, telefone: form.telefone || null, setor: form.setor, turno: form.turno }, {
+      updateFuncionario.mutate({ id: editingId, nome: form.nome, telefone: form.telefone || null, setor: form.setor, turno: form.turno, cargo: cargoVal }, {
         onSuccess: () => { setOpen(false); resetForm(); },
       });
     } else {
-      createFuncionario.mutate({ unidade_id: unidadeId, nome: form.nome, telefone: form.telefone || null, setor: form.setor, turno: form.turno, ativo: true }, {
+      createFuncionario.mutate({ unidade_id: unidadeId, nome: form.nome, telefone: form.telefone || null, setor: form.setor, turno: form.turno, cargo: cargoVal, ativo: true }, {
         onSuccess: () => { setOpen(false); resetForm(); },
       });
     }
