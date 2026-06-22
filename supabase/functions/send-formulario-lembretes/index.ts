@@ -36,35 +36,40 @@ function brasilia() {
 function detectTipo(titulo: string, responsavelNome?: string): FormTipo | null {
   const t = (titulo || '').toLowerCase();
   const n = (responsavelNome || '').toLowerCase();
-  
-  // 1. Explicit check in title
-  if (t.includes('estagi') && (t.includes('líder') || t.includes('lider'))) return 'estagiario_lider';
-  if (t.includes('coordenador') && t.includes('unidade')) return 'coordenador_unidade';
-  if (t.includes('coordenador') && (t.includes('horário') || t.includes('horario'))) return 'coordenador_horario';
-  if (t.includes('relat') && (t.includes('diário') || t.includes('diario'))) return 'relatorio_diario';
 
-  // 2. Name-based check (based on user's role list)
-  // COORDENADORES
+  // 1. Name-based check has PRIORITY over title.
+  // Razão: o título da atividade no cronograma costuma ser genérico
+  // ("Encerramento de Turno — Coordenador de Horário") e era aplicado a
+  // pessoas que não exercem aquela função (ex.: recepção recebendo link de
+  // coordenador). O papel do responsável é a fonte da verdade.
+
+  // RECEPÇÃO → Relatório Diário Comercial
+  const recepcao = ['aylana rafaeli', 'danúbia medeiros', 'danubia medeiros', 'gaby mota', 'natan'];
+  if (recepcao.some(name => n.includes(name))) return 'relatorio_diario';
+
+  // COORDENADORES DE UNIDADE
   const coordenadores = ['marcelo', 'gabi lima'];
-  if (coordenadores.some(name => n.includes(name) || t.includes(name))) return 'coordenador_unidade';
+  if (coordenadores.some(name => n.includes(name))) return 'coordenador_unidade';
 
-  // TREINADORES (get Coordenador de Horário link)
+  // TREINADORES → Coordenador de Horário
   const treinadores = ['andrey sales', 'bruno', 'gabriel peres', 'beatriz santana', 'fábio', 'fabio', 'lucas alves'];
-  if (treinadores.some(name => n.includes(name) || t.includes(name))) return 'coordenador_horario';
+  if (treinadores.some(name => n.includes(name))) return 'coordenador_horario';
 
   // ESTAGIÁRIOS LÍDERES
   const estagiarios = ['everton pedro', 'felipe germano', 'alisson orlando', 'geaze nascimento', 'gabriel araujo', 'estela maria'];
-  if (estagiarios.some(name => n.includes(name) || t.includes(name))) return 'estagiario_lider';
+  if (estagiarios.some(name => n.includes(name))) return 'estagiario_lider';
 
-  // RECEPÇÃO (usually Comercial report)
-  const recepcao = ['aylana rafaeli', 'danúbia medeiros', 'gaby mota', 'natan'];
-  if (recepcao.some(name => n.includes(name) || t.includes(name))) return 'relatorio_diario';
+  // 2. Fallback por título (quando o nome não está mapeado).
+  if (t.includes('relat') && (t.includes('diário') || t.includes('diario') || t.includes('comercial'))) return 'relatorio_diario';
+  if (t.includes('estagi') && (t.includes('líder') || t.includes('lider'))) return 'estagiario_lider';
+  if (t.includes('coordenador') && t.includes('unidade')) return 'coordenador_unidade';
+  if (t.includes('coordenador') && (t.includes('horário') || t.includes('horario'))) return 'coordenador_horario';
 
-  // 3. Fallback to generic keywords
+  // 3. Fallback genérico de turno.
   if (t.includes('encerramento') && (t.includes('turno') || t.includes('horário') || t.includes('horario'))) {
     return 'coordenador_horario';
   }
-  
+
   return null;
 }
 
