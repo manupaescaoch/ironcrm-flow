@@ -176,7 +176,7 @@ Deno.serve(async (req) => {
       .from('cronograma_atividades')
       .select(`
         id, titulo, horario, unidade_id,
-        responsavel:cronograma_funcionarios!cronograma_atividades_responsavel_id_fkey(id, nome, telefone, turno)
+        responsavel:cronograma_funcionarios!cronograma_atividades_responsavel_id_fkey(id, nome, telefone, turno, cargo)
       `)
       .eq('ativo', true)
       .eq('dia_semana', br.dow);
