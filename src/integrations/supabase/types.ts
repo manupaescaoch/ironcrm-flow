@@ -462,6 +462,7 @@ export type Database = {
       cronograma_funcionarios: {
         Row: {
           ativo: boolean
+          cargo: string | null
           created_at: string
           id: string
           nome: string
@@ -473,6 +474,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          cargo?: string | null
           created_at?: string
           id?: string
           nome: string
@@ -484,6 +486,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          cargo?: string | null
           created_at?: string
           id?: string
           nome?: string
