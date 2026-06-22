@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
 
     const candidatos = (atividades || []).filter(a => {
       if (!a.horario) return false;
-      const tipo = detectTipo(a.titulo, a.responsavel?.nome);
+      const tipo = detectTipo(a.titulo, a.responsavel?.nome, a.responsavel?.cargo);
       if (!tipo) return false;
       const [h, m] = a.horario.split(':').map((x: string) => parseInt(x, 10));
       const horarioMin = h * 60 + m;
@@ -200,7 +200,7 @@ Deno.serve(async (req) => {
     const candidatosOrdenados = [...candidatos].sort((a, b) => (a.horario || '').localeCompare(b.horario || ''));
     const candidatosUnicos = Array.from(new Map(
       candidatosOrdenados.map((a) => {
-        const tipo = detectTipo(a.titulo, a.responsavel?.nome)!;
+        const tipo = detectTipo(a.titulo, a.responsavel?.nome, a.responsavel?.cargo)!;
         const resp = a.responsavel as any;
         const turno = (resp?.turno && resp.turno !== 'integral' ? resp.turno : inferTurno(a.horario)).toUpperCase();
         // Chave única por dia, unidade, turno e tipo de formulário.
@@ -275,7 +275,7 @@ Deno.serve(async (req) => {
     const results: any[] = [];
 
     for (const a of candidatosUnicos) {
-      const tipo = detectTipo(a.titulo, a.responsavel?.nome)!;
+      const tipo = detectTipo(a.titulo, a.responsavel?.nome, a.responsavel?.cargo)!;
       const resp = a.responsavel as any;
       if (!resp || !resp.telefone) continue;
 
