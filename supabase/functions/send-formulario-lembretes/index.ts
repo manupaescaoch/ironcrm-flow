@@ -33,39 +33,42 @@ function brasilia() {
   return { dateStr, hour, minute, totalMin: hour * 60 + minute, dow };
 }
 
-function detectTipo(titulo: string, responsavelNome?: string): FormTipo | null {
+// Mapeia o cargo cadastrado em cronograma_funcionarios para o tipo de formulário.
+// Esta é a FONTE DA VERDADE: se o funcionário tem cargo definido, ele decide
+// qual formulário receber, independente do título da atividade no cronograma.
+function cargoToTipo(cargo: string | null | undefined): FormTipo | null {
+  switch ((cargo || '').toLowerCase()) {
+    case 'recepcao': return 'relatorio_diario';
+    case 'coordenador_unidade': return 'coordenador_unidade';
+    case 'treinador': return 'coordenador_horario';
+    case 'estagiario_lider': return 'estagiario_lider';
+    default: return null;
+  }
+}
+
+function detectTipo(titulo: string, responsavelNome?: string, cargo?: string | null): FormTipo | null {
+  // 0. Cargo cadastrado vence tudo.
+  const byCargo = cargoToTipo(cargo);
+  if (byCargo) return byCargo;
+
   const t = (titulo || '').toLowerCase();
   const n = (responsavelNome || '').toLowerCase();
 
-  // 1. Name-based check has PRIORITY over title.
-  // Razão: o título da atividade no cronograma costuma ser genérico
-  // ("Encerramento de Turno — Coordenador de Horário") e era aplicado a
-  // pessoas que não exercem aquela função (ex.: recepção recebendo link de
-  // coordenador). O papel do responsável é a fonte da verdade.
-
-  // RECEPÇÃO → Relatório Diário Comercial
+  // 1. Fallback por nome (legado, para quem ainda não tem cargo cadastrado).
   const recepcao = ['aylana rafaeli', 'danúbia medeiros', 'danubia medeiros', 'gaby mota', 'natan'];
   if (recepcao.some(name => n.includes(name))) return 'relatorio_diario';
-
-  // COORDENADORES DE UNIDADE
   const coordenadores = ['marcelo', 'gabi lima'];
   if (coordenadores.some(name => n.includes(name))) return 'coordenador_unidade';
-
-  // TREINADORES → Coordenador de Horário
   const treinadores = ['andrey sales', 'bruno', 'gabriel peres', 'beatriz santana', 'fábio', 'fabio', 'lucas alves'];
   if (treinadores.some(name => n.includes(name))) return 'coordenador_horario';
-
-  // ESTAGIÁRIOS LÍDERES
   const estagiarios = ['everton pedro', 'felipe germano', 'alisson orlando', 'geaze nascimento', 'gabriel araujo', 'estela maria'];
   if (estagiarios.some(name => n.includes(name))) return 'estagiario_lider';
 
-  // 2. Fallback por título (quando o nome não está mapeado).
+  // 2. Fallback por título.
   if (t.includes('relat') && (t.includes('diário') || t.includes('diario') || t.includes('comercial'))) return 'relatorio_diario';
   if (t.includes('estagi') && (t.includes('líder') || t.includes('lider'))) return 'estagiario_lider';
   if (t.includes('coordenador') && t.includes('unidade')) return 'coordenador_unidade';
   if (t.includes('coordenador') && (t.includes('horário') || t.includes('horario'))) return 'coordenador_horario';
-
-  // 3. Fallback genérico de turno.
   if (t.includes('encerramento') && (t.includes('turno') || t.includes('horário') || t.includes('horario'))) {
     return 'coordenador_horario';
   }
@@ -173,7 +176,7 @@ Deno.serve(async (req) => {
       .from('cronograma_atividades')
       .select(`
         id, titulo, horario, unidade_id,
-        responsavel:cronograma_funcionarios!cronograma_atividades_responsavel_id_fkey(id, nome, telefone, turno)
+        responsavel:cronograma_funcionarios!cronograma_atividades_responsavel_id_fkey(id, nome, telefone, turno, cargo)
       `)
       .eq('ativo', true)
       .eq('dia_semana', br.dow);
@@ -181,7 +184,7 @@ Deno.serve(async (req) => {
 
     const candidatos = (atividades || []).filter(a => {
       if (!a.horario) return false;
-      const tipo = detectTipo(a.titulo, a.responsavel?.nome);
+      const tipo = detectTipo(a.titulo, a.responsavel?.nome, a.responsavel?.cargo);
       if (!tipo) return false;
       const [h, m] = a.horario.split(':').map((x: string) => parseInt(x, 10));
       const horarioMin = h * 60 + m;
@@ -197,7 +200,7 @@ Deno.serve(async (req) => {
     const candidatosOrdenados = [...candidatos].sort((a, b) => (a.horario || '').localeCompare(b.horario || ''));
     const candidatosUnicos = Array.from(new Map(
       candidatosOrdenados.map((a) => {
-        const tipo = detectTipo(a.titulo, a.responsavel?.nome)!;
+        const tipo = detectTipo(a.titulo, a.responsavel?.nome, a.responsavel?.cargo)!;
         const resp = a.responsavel as any;
         const turno = (resp?.turno && resp.turno !== 'integral' ? resp.turno : inferTurno(a.horario)).toUpperCase();
         // Chave única por dia, unidade, turno e tipo de formulário.
@@ -272,7 +275,7 @@ Deno.serve(async (req) => {
     const results: any[] = [];
 
     for (const a of candidatosUnicos) {
-      const tipo = detectTipo(a.titulo, a.responsavel?.nome)!;
+      const tipo = detectTipo(a.titulo, a.responsavel?.nome, a.responsavel?.cargo)!;
       const resp = a.responsavel as any;
       if (!resp || !resp.telefone) continue;
 
