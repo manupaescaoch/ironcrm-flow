@@ -98,6 +98,24 @@ export function FuncionariosTab() {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label>Cargo (define qual formulário recebe)</Label>
+                <Select value={form.cargo || 'none'} onValueChange={v => setForm(f => ({ ...f, cargo: v === 'none' ? '' : v as any }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não definido</SelectItem>
+                    {CARGOS.map(c => (
+                      <SelectItem key={c.value} value={c.value}>
+                        <div className="flex flex-col">
+                          <span>{c.label}</span>
+                          <span className="text-xs text-muted-foreground">{c.descricao}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">Sem cargo definido, o sistema tenta adivinhar pelo nome — pode dar erro.</p>
+              </div>
               <Button onClick={handleSave} disabled={!form.nome} className="w-full">
                 {editingId ? 'Salvar Alterações' : 'Cadastrar'}
               </Button>
