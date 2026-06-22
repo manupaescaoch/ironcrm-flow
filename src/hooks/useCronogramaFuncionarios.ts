@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUnidadeFilter } from '@/hooks/useUnidadeFilter';
 import { toast } from '@/hooks/use-toast';
 
+export type CargoFuncionario = 'recepcao' | 'coordenador_unidade' | 'treinador' | 'estagiario_lider';
+
 export interface CronogramaFuncionario {
   id: string;
   unidade_id: string;
@@ -10,6 +12,7 @@ export interface CronogramaFuncionario {
   telefone: string | null;
   setor: string;
   turno: string;
+  cargo: CargoFuncionario | null;
   ativo: boolean;
   created_at: string;
   updated_at: string;
