@@ -448,7 +448,8 @@ export default function CRM() {
     if (isExperimentalAgendada) {
       const dataStr = formData.data_aula_experimental;
       const horaStr = formData.hora_aula_experimental || '00:00';
-      dataAulaExperimental = `${dataStr}T${horaStr}:00`;
+      // Coluna é timestamptz: anexar offset BRT (-03:00) para evitar shift de fuso
+      dataAulaExperimental = `${dataStr}T${horaStr}:00-03:00`;
     }
 
     if (!unidadeAtual) {
