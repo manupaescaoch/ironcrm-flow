@@ -80,7 +80,10 @@ const TIPO_INTERACAO_OPTIONS = [
   'Ligação',
   'WhatsApp',
   'Presencial',
+  'Agendamento Experimental',
   'Avaliação Física',
+  'Follow Up',
+  'Encerramento',
   'Outro',
 ] as const;
 
@@ -950,7 +953,10 @@ export default function LeadDetail() {
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
                   <SelectContent>
-                    {TIPO_INTERACAO_OPTIONS.map((tipo) => (
+                    {Array.from(new Set([
+                      ...TIPO_INTERACAO_OPTIONS,
+                      ...(formData.tipo && !TIPO_INTERACAO_OPTIONS.includes(formData.tipo as any) ? [formData.tipo] : []),
+                    ])).map((tipo) => (
                       <SelectItem key={tipo} value={tipo}>
                         {tipo}
                       </SelectItem>
