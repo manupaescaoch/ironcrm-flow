@@ -80,7 +80,10 @@ const TIPO_INTERACAO_OPTIONS = [
   'Ligação',
   'WhatsApp',
   'Presencial',
+  'Agendamento Experimental',
   'Avaliação Física',
+  'Follow Up',
+  'Encerramento',
   'Outro',
 ] as const;
 
