@@ -107,8 +107,20 @@ Deno.serve(async (req) => {
     const alunoPhone = formatPhoneBR(resp.whatsapp || '');
     const comentario = (resp.comentario || '').trim();
 
+    // Resolve unidade_id a partir do unidade_nome (matches "Iron Madalena" etc.)
+    let unidadeId: string | null = null;
+    if (resp.unidade_nome) {
+      const { data: u } = await supabase
+        .from('unidades')
+        .select('id')
+        .ilike('nome', `%${resp.unidade_nome}%`)
+        .maybeSingle();
+      unidadeId = u?.id ?? null;
+    }
+
     const log: Record<string, any> = {
       resposta_id: resp.id,
+      unidade_id: unidadeId,
       unidade_nome: resp.unidade_nome,
       nota_nps: nota,
       classificacao: classificacao.toLowerCase(),
