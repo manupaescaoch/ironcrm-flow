@@ -156,10 +156,34 @@ export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, 
           <Calendar className="w-5 h-5 text-primary" />
           Experimentais do Período
         </CardTitle>
-        <Badge variant="secondary">{items.length} total</Badge>
+        <Badge variant="secondary">
+          {statusFilter === 'todos' ? `${items.length} total` : `${filteredItems.length} de ${items.length}`}
+        </Badge>
       </CardHeader>
       <CardContent>
-        {items.length === 0 ? (
+        <div className="flex gap-2 overflow-x-auto pb-3 mb-2 -mx-1 px-1 scrollbar-thin">
+          {filterChips.map((chip) => {
+            const active = statusFilter === chip.key;
+            return (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={() => setStatusFilter(active && chip.key !== 'todos' ? 'todos' : chip.key)}
+                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                  active
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-background text-foreground border-border hover:bg-muted'
+                }`}
+              >
+                <span>{chip.label}</span>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${active ? 'bg-primary-foreground/20' : 'bg-muted'}`}>
+                  {counts[chip.key]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {filteredItems.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">
             Nenhuma aula experimental no período selecionado
           </p>
