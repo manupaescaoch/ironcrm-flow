@@ -211,6 +211,8 @@ export default function CRM() {
     if (typeof v === 'string' && v && v !== 'all') return [v];
     return [];
   });
+  const [filterNivel, setFilterNivel] = useState<string[]>([]);
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
