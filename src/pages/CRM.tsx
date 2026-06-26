@@ -57,6 +57,9 @@ import * as XLSX from 'xlsx';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
 import { validateCsvRow, type CsvRowValidationResult } from '@/utils/csvImportValidation';
+import { NivelInteresseBadge } from '@/components/NivelInteresseBadge';
+import { calcularConversionScore } from '@/hooks/useConversionScore';
+
 
 // Validation schema for lead creation/update
 const leadSchema = z.object({
