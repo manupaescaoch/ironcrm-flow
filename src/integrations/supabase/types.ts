@@ -1853,6 +1853,57 @@ export type Database = {
           },
         ]
       }
+      nps_respostas: {
+        Row: {
+          categoria: string | null
+          comentario: string | null
+          created_at: string
+          estrelas_equipe: number
+          estrelas_estrutura: number
+          estrelas_treino: number
+          id: string
+          nome: string
+          nota_nps: number
+          pontos_melhoria: string[]
+          pontos_positivos: string[]
+          tempo_aluno: string
+          unidade_nome: string
+          whatsapp: string
+        }
+        Insert: {
+          categoria?: string | null
+          comentario?: string | null
+          created_at?: string
+          estrelas_equipe: number
+          estrelas_estrutura: number
+          estrelas_treino: number
+          id?: string
+          nome: string
+          nota_nps: number
+          pontos_melhoria?: string[]
+          pontos_positivos?: string[]
+          tempo_aluno: string
+          unidade_nome: string
+          whatsapp: string
+        }
+        Update: {
+          categoria?: string | null
+          comentario?: string | null
+          created_at?: string
+          estrelas_equipe?: number
+          estrelas_estrutura?: number
+          estrelas_treino?: number
+          id?: string
+          nome?: string
+          nota_nps?: number
+          pontos_melhoria?: string[]
+          pontos_positivos?: string[]
+          tempo_aluno?: string
+          unidade_nome?: string
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       pagamentos_mensais: {
         Row: {
           confirmado_por: string | null
