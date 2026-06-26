@@ -175,6 +175,9 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 const AppRoutes = () => (
   <Routes>
     <Route path="/anamnese" element={<AnamnesePublicaUniversal />} />
+    <Route path="/nps" element={<NpsPublico />} />
+    <Route path="/nps/respostas" element={<AdminOrCoordenadorRoute><NpsRespostas /></AdminOrCoordenadorRoute>} />
+
     <Route path="/encerramento-turno" element={<EncerramentoTurno />} />
     <Route path="/encerramento-coordenador" element={<EncerramentoCoordenador />} />
     <Route path="/encerramento-horario" element={<EncerramentoHorario />} />
