@@ -213,19 +213,23 @@ export default function NpsPublico() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from('nps_respostas').insert({
-      nome: parsed.data.nome.toUpperCase(),
-      whatsapp: parsed.data.whatsapp.replace(/\D/g, ''),
-      unidade_nome: parsed.data.unidade_nome,
-      nota_nps: parsed.data.nota_nps,
-      estrelas_estrutura: parsed.data.estrelas_estrutura,
-      estrelas_equipe: parsed.data.estrelas_equipe,
-      estrelas_treino: parsed.data.estrelas_treino,
-      pontos_positivos: positivos,
-      pontos_melhoria: melhorias,
-      tempo_aluno: parsed.data.tempo_aluno,
-      comentario: parsed.data.comentario ?? null,
-    });
+    const { data: inserted, error } = await supabase
+      .from('nps_respostas')
+      .insert({
+        nome: parsed.data.nome.toUpperCase(),
+        whatsapp: parsed.data.whatsapp.replace(/\D/g, ''),
+        unidade_nome: parsed.data.unidade_nome,
+        nota_nps: parsed.data.nota_nps,
+        estrelas_estrutura: parsed.data.estrelas_estrutura,
+        estrelas_equipe: parsed.data.estrelas_equipe,
+        estrelas_treino: parsed.data.estrelas_treino,
+        pontos_positivos: positivos,
+        pontos_melhoria: melhorias,
+        tempo_aluno: parsed.data.tempo_aluno,
+        comentario: parsed.data.comentario ?? null,
+      })
+      .select('id')
+      .single();
     setSaving(false);
     if (error) {
       toast.error('Erro ao enviar avaliação. Tente novamente.');
