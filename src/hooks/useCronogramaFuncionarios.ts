@@ -26,13 +26,11 @@ export function useCronogramaFuncionarios() {
     queryKey: ['cronograma-funcionarios', unidadeId],
     queryFn: async () => {
       if (!unidadeId) return [];
+      // Usa RPC SECURITY DEFINER que devolve telefone apenas para admin/coordenador
       const { data, error } = await supabase
-        .from('cronograma_funcionarios')
-        .select('*')
-        .eq('unidade_id', unidadeId)
-        .order('nome');
+        .rpc('get_cronograma_funcionarios_full', { p_unidade_id: unidadeId });
       if (error) throw error;
-      return data as CronogramaFuncionario[];
+      return (data || []) as CronogramaFuncionario[];
     },
     enabled: hasUnidade,
   });
