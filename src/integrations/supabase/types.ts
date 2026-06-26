@@ -1951,6 +1951,7 @@ export type Database = {
           pontos_melhoria: string[]
           pontos_positivos: string[]
           tempo_aluno: string
+          unidade_id: string | null
           unidade_nome: string
           whatsapp: string
         }
@@ -1967,6 +1968,7 @@ export type Database = {
           pontos_melhoria?: string[]
           pontos_positivos?: string[]
           tempo_aluno: string
+          unidade_id?: string | null
           unidade_nome: string
           whatsapp: string
         }
@@ -1983,10 +1985,19 @@ export type Database = {
           pontos_melhoria?: string[]
           pontos_positivos?: string[]
           tempo_aluno?: string
+          unidade_id?: string | null
           unidade_nome?: string
           whatsapp?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "nps_respostas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pagamentos_mensais: {
         Row: {
