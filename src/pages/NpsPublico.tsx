@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import ironLogo from '@/assets/iron-logo-banner.png.asset.json';
 
 const IRON_BLUE = '#0a6cff';
 const IRON_BLUE_DARK = '#0857cc';
