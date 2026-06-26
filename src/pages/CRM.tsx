@@ -1598,6 +1598,7 @@ export default function CRM() {
                       <TableHead>Telefone</TableHead>
                       <TableHead>Origem</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Interesse</TableHead>
                       <TableHead>Data Experimental</TableHead>
                       <TableHead>Hora Experimental</TableHead>
                       <TableHead>Cadastrado Por</TableHead>
@@ -1620,6 +1621,17 @@ export default function CRM() {
                             {statusLabels[lead.status_funil]}
                           </span>
                         </TableCell>
+                        <TableCell>
+                          {lead.status_funil === 'convertido' || lead.status_funil === 'perdido' ? (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          ) : (
+                            <NivelInteresseBadge
+                              scoreData={calcularConversionScore(lead, [])}
+                              size="xs"
+                            />
+                          )}
+                        </TableCell>
+
                         <TableCell>
                           {lead.data_aula_experimental 
                             ? format(new Date(lead.data_aula_experimental), 'dd/MM/yyyy', { locale: ptBR })
