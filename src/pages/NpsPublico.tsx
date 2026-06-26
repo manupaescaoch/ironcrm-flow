@@ -235,6 +235,11 @@ export default function NpsPublico() {
       toast.error('Erro ao enviar avaliação. Tente novamente.');
       return;
     }
+    if (inserted?.id) {
+      supabase.functions
+        .invoke('notify-nps-resposta', { body: { id: inserted.id } })
+        .catch((err) => console.error('[nps notify]', err));
+    }
     setDone(true);
   }
 
