@@ -27,7 +27,7 @@ import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { ConversionScoreBadge } from '@/components/ConversionScoreBadge';
+import { NivelInteresseBadge } from '@/components/NivelInteresseBadge';
 import { calcularConversionScore } from '@/hooks/useConversionScore';
 import { useUnidade } from '@/contexts/UnidadeContext';
 
