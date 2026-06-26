@@ -37,8 +37,9 @@ import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Pencil, CheckCircl
 import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ConversionScoreCard } from '@/components/ConversionScoreCard';
+import { NivelInteresseCard } from '@/components/NivelInteresseCard';
 import { useConversionScore } from '@/hooks/useConversionScore';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InteractionTimeline } from '@/components/lead/InteractionTimeline';
 import { FollowUpHistoryTimeline } from '@/components/lead/FollowUpHistoryTimeline';
