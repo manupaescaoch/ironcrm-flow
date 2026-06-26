@@ -1853,6 +1853,71 @@ export type Database = {
           },
         ]
       }
+      nps_notificacoes_log: {
+        Row: {
+          aluno_erro: string | null
+          aluno_message_id: string | null
+          aluno_status: string | null
+          aluno_telefone: string | null
+          classificacao: string
+          created_at: string
+          id: string
+          interna_erro: string | null
+          interna_message_id: string | null
+          interna_status: string | null
+          nota_nps: number
+          payload: Json | null
+          responsavel_nome: string | null
+          responsavel_telefone: string | null
+          resposta_id: string
+          unidade_nome: string
+        }
+        Insert: {
+          aluno_erro?: string | null
+          aluno_message_id?: string | null
+          aluno_status?: string | null
+          aluno_telefone?: string | null
+          classificacao: string
+          created_at?: string
+          id?: string
+          interna_erro?: string | null
+          interna_message_id?: string | null
+          interna_status?: string | null
+          nota_nps: number
+          payload?: Json | null
+          responsavel_nome?: string | null
+          responsavel_telefone?: string | null
+          resposta_id: string
+          unidade_nome: string
+        }
+        Update: {
+          aluno_erro?: string | null
+          aluno_message_id?: string | null
+          aluno_status?: string | null
+          aluno_telefone?: string | null
+          classificacao?: string
+          created_at?: string
+          id?: string
+          interna_erro?: string | null
+          interna_message_id?: string | null
+          interna_status?: string | null
+          nota_nps?: number
+          payload?: Json | null
+          responsavel_nome?: string | null
+          responsavel_telefone?: string | null
+          resposta_id?: string
+          unidade_nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nps_notificacoes_log_resposta_id_fkey"
+            columns: ["resposta_id"]
+            isOneToOne: false
+            referencedRelation: "nps_respostas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nps_respostas: {
         Row: {
           categoria: string | null
