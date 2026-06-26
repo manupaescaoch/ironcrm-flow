@@ -1428,6 +1428,62 @@ export default function CRM() {
           );
         })()}
 
+        {/* Quick nivel de interesse chips */}
+        {(() => {
+          const chips: { value: string; label: string; activeClass: string; inactiveClass: string }[] = [
+            { value: 'alto', label: '🔥 Alto', activeClass: 'bg-green-600 text-white border-green-600', inactiveClass: 'border-green-600/40 text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950/40' },
+            { value: 'medio', label: '☀️ Médio', activeClass: 'bg-yellow-600 text-white border-yellow-600', inactiveClass: 'border-yellow-600/40 text-yellow-700 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-950/40' },
+            { value: 'baixo', label: '❄️ Baixo', activeClass: 'bg-sky-600 text-white border-sky-600', inactiveClass: 'border-sky-600/40 text-sky-700 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-950/40' },
+            { value: 'sem', label: '⚪ Sem nível', activeClass: 'bg-muted-foreground text-background border-muted-foreground', inactiveClass: 'border-border text-muted-foreground hover:bg-accent' },
+          ];
+          const counts: Record<string, number> = { alto: 0, medio: 0, baixo: 0, sem: 0 };
+          leads.forEach((l) => {
+            const k = l.nivel_interesse ?? 'sem';
+            if (k in counts) counts[k]++;
+          });
+          return (
+            <div className="mb-4 -mx-1 px-1 overflow-x-auto">
+              <div className="flex items-center gap-2 min-w-max pb-2">
+                <span className="text-xs text-muted-foreground whitespace-nowrap pr-1">Interesse:</span>
+                <button
+                  type="button"
+                  onClick={() => setFilterNivel([])}
+                  className={cn(
+                    'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors whitespace-nowrap',
+                    filterNivel.length === 0 ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:bg-accent',
+                  )}
+                >
+                  Todos
+                </button>
+                {chips.map((chip) => {
+                  const active = filterNivel.includes(chip.value);
+                  return (
+                    <button
+                      key={chip.value}
+                      type="button"
+                      onClick={() =>
+                        setFilterNivel((prev) =>
+                          prev.includes(chip.value)
+                            ? prev.filter((s) => s !== chip.value)
+                            : [...prev, chip.value],
+                        )
+                      }
+                      className={cn(
+                        'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors whitespace-nowrap',
+                        active ? chip.activeClass : chip.inactiveClass,
+                      )}
+                    >
+                      {chip.label} ({counts[chip.value]})
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
+
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
