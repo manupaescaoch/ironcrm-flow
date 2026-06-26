@@ -161,7 +161,7 @@ export default function NpsPublico() {
     <div className="min-h-screen bg-muted/30 py-6 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold">Pesquisa NPS</h1>
+          <h1 className="text-3xl font-bold">Pesquisa de Experiência Iron</h1>
           <p className="text-muted-foreground mt-1">Iron Lifting Club — sua opinião conta muito</p>
         </div>
 
@@ -221,7 +221,7 @@ export default function NpsPublico() {
           <Card>
             <CardHeader><CardTitle className="text-lg">Avalie estes pontos *</CardTitle></CardHeader>
             <CardContent className="space-y-5">
-              <Stars value={eEstrutura} onChange={setEEstrutura} label="Estrutura do clube" />
+              <Stars value={eEstrutura} onChange={setEEstrutura} label="Estrutura da Academia" />
               <Stars value={eEquipe} onChange={setEEquipe} label="Equipe / atendimento" />
               <Stars value={eTreino} onChange={setETreino} label="Qualidade do treino" />
             </CardContent>
