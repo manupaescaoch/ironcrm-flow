@@ -1879,6 +1879,7 @@ export type Database = {
           responsavel_nome: string | null
           responsavel_telefone: string | null
           resposta_id: string
+          unidade_id: string | null
           unidade_nome: string
         }
         Insert: {
@@ -1897,6 +1898,7 @@ export type Database = {
           responsavel_nome?: string | null
           responsavel_telefone?: string | null
           resposta_id: string
+          unidade_id?: string | null
           unidade_nome: string
         }
         Update: {
@@ -1915,6 +1917,7 @@ export type Database = {
           responsavel_nome?: string | null
           responsavel_telefone?: string | null
           resposta_id?: string
+          unidade_id?: string | null
           unidade_nome?: string
         }
         Relationships: [
@@ -1923,6 +1926,13 @@ export type Database = {
             columns: ["resposta_id"]
             isOneToOne: false
             referencedRelation: "nps_respostas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nps_notificacoes_log_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
         ]
