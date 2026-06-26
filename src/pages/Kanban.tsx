@@ -27,7 +27,7 @@ import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { ConversionScoreBadge } from '@/components/ConversionScoreBadge';
+import { NivelInteresseBadge } from '@/components/NivelInteresseBadge';
 import { calcularConversionScore } from '@/hooks/useConversionScore';
 import { useUnidade } from '@/contexts/UnidadeContext';
 
@@ -486,11 +486,12 @@ export default function Kanban() {
                         {/* Conversion Score */}
                         {lead.status_funil !== 'convertido' && lead.status_funil !== 'perdido' && (
                           <div className="mt-2 pt-2 border-t border-border/30">
-                            <ConversionScoreBadge 
-                              scoreData={calcularConversionScore(lead, lead.interacoes || [])} 
+                            <NivelInteresseBadge
+                              scoreData={calcularConversionScore(lead, lead.interacoes || [])}
                             />
                           </div>
                         )}
+
 
                         {/* Plan badge */}
                         {lead.plano_escolhido && (

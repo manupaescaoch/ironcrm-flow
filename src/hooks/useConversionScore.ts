@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { Lead, Interacao } from '@/types/database';
 import { differenceInDays } from 'date-fns';
 
+export type NivelInteresse = 'alto' | 'medio' | 'baixo';
+
 export interface ConversionScoreResult {
   score: number;
   label: 'Quente' | 'Morno' | 'Frio' | 'Improvável';
@@ -9,7 +11,14 @@ export interface ConversionScoreResult {
   bgColor: string;
   fatoresPositivos: string[];
   podeMelhorar: string[];
+  /** Nível sugerido com base apenas no score automático */
+  nivelSugerido: NivelInteresse;
+  /** Nível efetivo: manual (se houver) ou sugerido */
+  nivelEfetivo: NivelInteresse;
+  /** Indica se o nível efetivo veio de marcação manual */
+  manual: boolean;
 }
+
 
 const origemPesos: Record<string, number> = {
   'Visita Presencial': 25,
@@ -177,13 +186,26 @@ export const calcularConversionScore = (
     bgColor = 'bg-red-500';
   }
 
+  const nivelSugerido: NivelInteresse =
+    score >= 80 ? 'alto' : score >= 60 ? 'medio' : 'baixo';
+
+  const nivelManual: NivelInteresse | null =
+    lead.nivel_interesse === 'alto' ||
+    lead.nivel_interesse === 'medio' ||
+    lead.nivel_interesse === 'baixo'
+      ? lead.nivel_interesse
+      : null;
+
   return {
     score,
     label,
     color,
     bgColor,
     fatoresPositivos,
-    podeMelhorar: podeMelhorar.slice(0, 3), // Limitar a 3 sugestões
+    podeMelhorar: podeMelhorar.slice(0, 3),
+    nivelSugerido,
+    nivelEfetivo: nivelManual ?? nivelSugerido,
+    manual: nivelManual !== null,
   };
 };
 
@@ -196,3 +218,28 @@ export const useConversionScore = (
     return calcularConversionScore(lead, interacoes);
   }, [lead, interacoes]);
 };
+
+export const NIVEL_INTERESSE_META: Record<
+  NivelInteresse,
+  { label: string; emoji: string; badge: string; dot: string }
+> = {
+  alto: {
+    label: 'Alto',
+    emoji: '🔥',
+    badge: 'bg-green-500/10 text-green-700 border-green-500/40 dark:text-green-400',
+    dot: 'bg-green-500',
+  },
+  medio: {
+    label: 'Médio',
+    emoji: '☀️',
+    badge: 'bg-yellow-500/10 text-yellow-700 border-yellow-500/40 dark:text-yellow-400',
+    dot: 'bg-yellow-500',
+  },
+  baixo: {
+    label: 'Baixo',
+    emoji: '❄️',
+    badge: 'bg-sky-500/10 text-sky-700 border-sky-500/40 dark:text-sky-400',
+    dot: 'bg-sky-500',
+  },
+};
+

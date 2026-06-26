@@ -44,7 +44,12 @@ export interface Lead {
   data_perda: string | null;
   // Matricula status (security field)
   is_matriculado: boolean;
+  // Nível de interesse manual
+  nivel_interesse?: 'alto' | 'medio' | 'baixo' | null;
+  nivel_interesse_atualizado_em?: string | null;
+  nivel_interesse_atualizado_por?: string | null;
 }
+
 
 export type StatusAvaliacao = 'agendada' | 'realizada' | 'faltou' | 'reagendada';
 

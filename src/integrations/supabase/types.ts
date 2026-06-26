@@ -1681,6 +1681,9 @@ export type Database = {
           id: string
           is_matriculado: boolean
           motivo_perda: string | null
+          nivel_interesse: string | null
+          nivel_interesse_atualizado_em: string | null
+          nivel_interesse_atualizado_por: string | null
           nome: string
           observacoes: string | null
           origem: string | null
@@ -1718,6 +1721,9 @@ export type Database = {
           id?: string
           is_matriculado?: boolean
           motivo_perda?: string | null
+          nivel_interesse?: string | null
+          nivel_interesse_atualizado_em?: string | null
+          nivel_interesse_atualizado_por?: string | null
           nome: string
           observacoes?: string | null
           origem?: string | null
@@ -1755,6 +1761,9 @@ export type Database = {
           id?: string
           is_matriculado?: boolean
           motivo_perda?: string | null
+          nivel_interesse?: string | null
+          nivel_interesse_atualizado_em?: string | null
+          nivel_interesse_atualizado_por?: string | null
           nome?: string
           observacoes?: string | null
           origem?: string | null
