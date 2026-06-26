@@ -3319,6 +3319,27 @@ export type Database = {
         Returns: undefined
       }
       get_cron_secret: { Args: never; Returns: string }
+      get_cronograma_funcionarios_full: {
+        Args: { p_unidade_id: string }
+        Returns: {
+          ativo: boolean
+          cargo: string | null
+          created_at: string
+          id: string
+          nome: string
+          setor: string
+          telefone: string | null
+          turno: string
+          unidade_id: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "cronograma_funcionarios"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_user_phone_by_name: { Args: { p_name: string }; Returns: string }
       get_user_role: { Args: { p_user_id: string }; Returns: string }
       get_user_unidades: { Args: { _user_id: string }; Returns: string[] }
