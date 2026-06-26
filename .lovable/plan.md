@@ -1,46 +1,76 @@
-# Corrigir mensagem WhatsApp do Relatório Diário — Comercial
+## Páginas NPS — Iron Lifting Club
 
-## Problema
+Duas páginas: formulário **público** `/nps` (sem login) e painel admin/coordenador `/nps/respostas`.
 
-O formulário foi atualizado para a nova estrutura de 4 blocos, mas a mensagem enviada ao grupo do WhatsApp continua usando o template antigo (com "Receita do mês", "Ticket médio", "Evasão", contadores numéricos de matrículas/renovações etc.).
+---
 
-O template fica em `supabase/functions/_shared/notifyFormularioCore.ts`, função `renderRelatorioComercial` (linhas 191-223), e é usada por todas as edge functions de notificação de formulário.
+### 1. Banco de dados
 
-## Mudanças
+Nova tabela `public.nps_respostas`:
 
-### 1. `supabase/functions/_shared/notifyFormularioCore.ts`
+- `nome`, `whatsapp`, `unidade_id` (uuid → unidades), `unidade_nome`
+- `nota_nps` (int 0-10)
+- `estrelas_estrutura`, `estrelas_equipe`, `estrelas_treino` (int 1-5)
+- `pontos_positivos` (text[]), `pontos_melhoria` (text[])
+- `tempo_aluno` (text)
+- `comentario` (text, opcional)
+- `categoria` (text gerado: detrator/passivo/promotor)
+- `created_at`
 
-Reescrever `renderRelatorioComercial(row)` para refletir os campos reais que o formulário hoje grava em `relatorio_diario_comercial_respostas`:
+GRANT + RLS:
+- `INSERT`: liberado para `anon` e `authenticated` (formulário público)
+- `SELECT`: apenas admin e coordenador (via `has_role`); admin vê tudo, coordenador filtra por unidades vinculadas
+- `service_role`: ALL
 
-- **Identificação:** Responsável (`nome`), Data (`data`)
-- **Indicadores do dia:**
-  - Total de alunos ativos — `total_alunos_ativos` (manter `(Meta: X)` se `meta_alunos` existir no `_meta`)
-  - Leads recebidos — `leads_recebidos`
-  - Experimentais agendadas — `experimentais_agendadas`
-  - Experimentais realizadas — `experimentais_realizadas`
-  - Fechamento nas experimentais — `fechamento_experimentais` (mapear enum para "Sim, todas" / "Sim, parcial" / "Nenhuma" / "Não houve experimental hoje")
-  - Quantos não fecharam — `qtd_nao_fecharam` (só se preenchido)
-  - Motivo do não fechamento — `motivo_nao_fechamento` (mapear enum; se `OUTRO`, usar `motivo_nao_fechamento_outro`)
-  - Novas matrículas hoje — `novas_matriculas_texto`
-  - Renovações hoje — `renovacoes_texto`
-  - Cancelamentos hoje — `cancelamentos_texto`
-  - Não renovações hoje — `nao_renovados_texto`
-  - Inadimplentes ativos — `inadimplentes_texto`
-- **Ocorrências e feedbacks:**
-  - Ocorrência fora do comum — `ocorrencia` + `ocorrencia_descricao`
-  - Feedback negativo — `feedback_negativo` + `feedback_negativo_descricao`
-  - Ação tomada — `feedback_acao_tomada` + `feedback_acao_descricao` (só se feedback negativo = Sim)
-- **Observações finais:** Para a liderança — `observacoes`
+### 2. Página `/nps` — Formulário público
 
-Remover do template: **Receita do mês**, **Ticket médio**, **Evasão**, **Novas matrículas (contador)**, **Renovações (contador)**, **Cancelamentos (contador)**, **Não renovados (contador)**, **Inadimplentes (contador)**.
+Rota **fora** de `ProtectedRoute` (igual ao `/anamnese` já existente). O aluno informa:
 
-### 2. Mesmo arquivo, `executeNotification` (linhas 388-417)
+- Nome (text, obrigatório, UPPERCASE)
+- WhatsApp (text, obrigatório, máscara BR)
+- Unidade (Select: Madalena, Boa Viagem, Setúbal — carregada de `unidades`)
+- Nota NPS 0–10: 11 botões grandes coloridos (0–6 vermelho, 7–8 laranja, 9–10 verde) via tokens semânticos
+- 3 blocos de estrelas 1–5 (estrutura, equipe, treino)
+- Checkboxes pontos positivos: agendamento, equipamentos, treinadores, ambiente, resultado, limpeza
+- Checkboxes melhorias: horários, equipamentos, atendimento, app, vestiário, planos
+- Radio tempo de treino: <1 mês, 1–3 meses, 3–6 meses, 6m–1 ano, >1 ano
+- Textarea comentário (opcional)
+- Botão "Enviar avaliação" → insert direto via cliente anon → tela de agradecimento
 
-Limpar o bloco que busca `_meta`: manter somente `meta_alunos` (de `gestao_metas.meta_alunos_mes`) — é o único valor ainda usado. Remover a query de `interacoes` (cálculo de `receitaMes`) e os campos `receita_mes`, `ticket_medio`, `evasao` do `_meta`, já que não aparecem mais no template.
+Validação Zod (nome, telefone, unidade, nota e 3 estrelas obrigatórios; limites de tamanho).
 
-## Detalhes técnicos
+Webhook Make: **não implementar agora**. Deixar a tabela e o submit prontos; integração externa fica para depois.
 
-- Os mapeamentos de enum (`fechamento_experimentais`, `motivo_nao_fechamento`) ficam locais a `renderRelatorioComercial`, espelhando os labels usados em `src/pages/RelatorioDiarioComercial.tsx` (`fechamentoLabels`, `motivoLabels`).
-- A filtragem `it.value && it.value !== '—'` em `buildMessage` (linha 241) já cuida de esconder linhas vazias automaticamente — basta retornar `'—'` ou string vazia para campos não preenchidos (ex: quantos não fecharam quando `fechamento` é `TODAS` ou `NAO_HOUVE`).
-- Não há mudança em rotas, schema, RLS, ou no componente do formulário — só no renderer da mensagem.
-- Nenhuma outra edge function precisa ser tocada: todas usam `buildMessage` via `notifyFormularioCore.ts`.
+### 3. Página `/nps/respostas` — Painel admin/coordenador
+
+Rota nova com `AdminOrCoordenadorRoute` (já existe no `App.tsx`).
+
+**KPIs** (cards no padrão dos KPIs atuais):
+- Score NPS geral = `%promotores − %detratores`
+- NPS Madalena, NPS Boa Viagem
+- Total respostas, %Detratores, %Passivos, %Promotores
+
+**Filtros** acima da tabela:
+- Unidade: Madalena, Boa Viagem, Setúbal, Todas
+- Período: 7d, 30d, 90d, personalizado (date range)
+- Categoria: Detrator (0–6), Passivo (7–8), Promotor (9–10)
+
+**Tabela**: nome, unidade, nota (badge colorido), ⭐ estrutura/equipe/treino, tempo, pontos positivos (chips), melhorias (chips), comentário (truncado + hover), data. Ordenação por data desc.
+
+Hook `useNpsRespostas` com React Query: fetch + cálculo dos KPIs no client.
+
+### 4. Navegação
+
+- Item "Respostas NPS" no menu admin/coordenador (`Layout.tsx`) apontando para `/nps/respostas`
+- O `/nps` é público — divulgação por link externo, sem entrada no menu logado
+
+---
+
+### Notas técnicas
+
+- Componentes shadcn já disponíveis: `Card`, `Checkbox`, `RadioGroup`, `Textarea`, `Select`, `Popover`, `Table`, `Badge`, `Button`
+- Estrelas: componente próprio com `Star` do `lucide-react`
+- Categoria derivada por coluna gerada: `nota <= 6 → detrator`, `7–8 → passivo`, `9–10 → promotor`
+- Datas: `new Date(ano, mes-1, dia)` (regra de timezone do projeto)
+- Cores via tokens semânticos do `index.css` (sem hex hardcoded)
+- Texto em UPPERCASE segue regra global (`Textarea` já força)
