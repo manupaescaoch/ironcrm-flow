@@ -266,8 +266,8 @@ export default function NpsPublico() {
 
   return (
     <div className="min-h-screen bg-[#f6f7f9]">
-      <div className="w-full bg-black flex items-center justify-center py-3 sm:py-4 px-4 overflow-visible relative">
-        <img src={ironLogo.url} alt="Iron Lifting Club" className="h-15 sm:h-[4.5rem] md:h-21 w-auto object-contain relative z-10" style={{ height: undefined }} />
+      <div className="w-full bg-black flex items-center justify-center py-3 sm:py-4 px-4 relative">
+        <img src={ironLogo.url} alt="Iron Lifting Club" className="h-[60px] sm:h-[72px] md:h-[84px] w-auto object-contain my-[-10px] sm:my-[-12px] relative z-10" />
       </div>
       <div className="py-10 sm:py-14 px-4">
       <div className="max-w-[780px] mx-auto">
