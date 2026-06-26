@@ -18,6 +18,7 @@ type Resposta = {
   id: string;
   nome: string;
   whatsapp: string;
+  unidade_id: string | null;
   unidade_nome: string;
   nota_nps: number;
   estrelas_estrutura: number;
@@ -31,7 +32,7 @@ type Resposta = {
   created_at: string;
 };
 
-const UNIDADES = ['MADALENA', 'BOA VIAGEM', 'SETÚBAL'];
+type Unidade = { id: string; nome: string };
 
 function categoriaBadge(cat: string) {
   if (cat === 'promotor') return 'bg-success text-success-foreground';
@@ -64,11 +65,24 @@ export default function NpsRespostas() {
     return { from: f, to: new Date() };
   }, [periodo, customRange]);
 
+  // Unidades visíveis ao usuário (RLS já restringe coordenador à própria unidade)
+  const { data: unidades = [] } = useQuery({
+    queryKey: ['nps-unidades'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('unidades')
+        .select('id, nome')
+        .order('nome');
+      if (error) throw error;
+      return (data ?? []) as Unidade[];
+    },
+  });
+
   const { data: respostas = [], isLoading } = useQuery({
     queryKey: ['nps-respostas', unidade, from?.toISOString(), to?.toISOString(), categoria],
     queryFn: async () => {
       let q = supabase.from('nps_respostas').select('*').order('created_at', { ascending: false });
-      if (unidade !== 'todas') q = q.eq('unidade_nome', unidade);
+      if (unidade !== 'todas') q = q.eq('unidade_id', unidade);
       if (categoria !== 'todas') q = q.eq('categoria', categoria);
       if (from) q = q.gte('created_at', from.toISOString());
       if (to) q = q.lte('created_at', to.toISOString());
@@ -77,6 +91,12 @@ export default function NpsRespostas() {
       return (data ?? []) as Resposta[];
     },
   });
+
+  const unidadeNomeById = useMemo(() => {
+    const m = new Map<string, string>();
+    unidades.forEach((u) => m.set(u.id, u.nome));
+    return m;
+  }, [unidades]);
 
   const kpis = useMemo(() => {
     const total = respostas.length;
@@ -94,13 +114,12 @@ export default function NpsRespostas() {
         total: n,
       };
     };
-    return {
-      geral: calc(respostas),
-      madalena: calc(respostas.filter((r) => r.unidade_nome === 'MADALENA')),
-      boaviagem: calc(respostas.filter((r) => r.unidade_nome === 'BOA VIAGEM')),
-      total,
-    };
-  }, [respostas]);
+    const porUnidade = unidades.map((u) => ({
+      unidade: u,
+      stats: calc(respostas.filter((r) => r.unidade_id === u.id)),
+    }));
+    return { geral: calc(respostas), porUnidade, total };
+  }, [respostas, unidades]);
 
   return (
     <Layout>
@@ -112,8 +131,9 @@ export default function NpsRespostas() {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
           <KpiCard label="Score NPS" value={kpis.geral.nps} suffix="" highlight />
-          <KpiCard label="NPS Madalena" value={kpis.madalena.nps} suffix="" />
-          <KpiCard label="NPS Boa Viagem" value={kpis.boaviagem.nps} suffix="" />
+          {kpis.porUnidade.map(({ unidade: u, stats }) => (
+            <KpiCard key={u.id} label={`NPS ${u.nome}`} value={stats.nps} suffix="" />
+          ))}
           <KpiCard label="Total respostas" value={kpis.total} />
           <KpiCard label="% Promotores" value={kpis.geral.prom} suffix="%" tone="success" />
           <KpiCard label="% Passivos" value={kpis.geral.pas} suffix="%" tone="warning" />
@@ -125,12 +145,12 @@ export default function NpsRespostas() {
             <CardTitle className="text-base">Filtros</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
-            <div className="min-w-[160px]">
+            <div className="min-w-[200px]">
               <Select value={unidade} onValueChange={setUnidade}>
                 <SelectTrigger><SelectValue placeholder="Unidade" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todas">Todas as unidades</SelectItem>
-                  {UNIDADES.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                  {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -209,7 +229,9 @@ export default function NpsRespostas() {
                   {respostas.map((r) => (
                     <TableRow key={r.id}>
                       <TableCell className="font-medium">{r.nome}</TableCell>
-                      <TableCell className="text-xs">{r.unidade_nome}</TableCell>
+                      <TableCell className="text-xs">
+                        {(r.unidade_id && unidadeNomeById.get(r.unidade_id)) || r.unidade_nome}
+                      </TableCell>
                       <TableCell>
                         <Badge className={cn('font-bold', categoriaBadge(r.categoria))}>{r.nota_nps}</Badge>
                       </TableCell>
