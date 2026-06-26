@@ -107,6 +107,16 @@ Deno.serve(async (req) => {
     const alunoPhone = formatPhoneBR(resp.whatsapp || '');
     const comentario = (resp.comentario || '').trim();
 
+    const log: Record<string, any> = {
+      resposta_id: resp.id,
+      unidade_nome: resp.unidade_nome,
+      nota_nps: nota,
+      classificacao: classificacao.toLowerCase(),
+      responsavel_nome: responsavel?.nome ?? null,
+      responsavel_telefone: responsavel?.phone ?? null,
+      aluno_telefone: alunoPhone,
+    };
+
     // 1) Interno ao responsável
     if (responsavel) {
       const msgInterna =
@@ -118,6 +128,9 @@ Deno.serve(async (req) => {
         `*Classificação:* ${classificacao}`;
 
       const r = await sendText(creds, responsavel.phone, msgInterna);
+      log.interna_status = r.ok ? 'enviado' : 'erro';
+      log.interna_message_id = (r.body as any)?.messageId ?? (r.body as any)?.zaapId ?? null;
+      log.interna_erro = r.ok ? null : JSON.stringify(r.body).slice(0, 500);
       await logEnvio(supabase, {
         funcao: 'notify-nps-resposta',
         destino: responsavel.phone,
@@ -128,6 +141,8 @@ Deno.serve(async (req) => {
         canal: 'comercial',
       });
     } else {
+      log.interna_status = 'skip';
+      log.interna_erro = `unidade-sem-responsavel:${unidadeKey}`;
       await logEnvio(supabase, {
         funcao: 'notify-nps-resposta',
         tipo_destino: 'interno',
@@ -142,6 +157,8 @@ Deno.serve(async (req) => {
 
     const exists = await phoneExists(creds, alunoPhone);
     if (exists === false) {
+      log.aluno_status = 'skip';
+      log.aluno_erro = 'phone-not-on-whatsapp';
       await logEnvio(supabase, {
         funcao: 'notify-nps-resposta',
         destino: alunoPhone,
@@ -153,6 +170,9 @@ Deno.serve(async (req) => {
     } else {
       const msgAluno = mensagemAluno(classificacao, resp.nome, nota);
       const r = await sendText(creds, alunoPhone, msgAluno);
+      log.aluno_status = r.ok ? 'enviado' : 'erro';
+      log.aluno_message_id = (r.body as any)?.messageId ?? (r.body as any)?.zaapId ?? null;
+      log.aluno_erro = r.ok ? null : JSON.stringify(r.body).slice(0, 500);
       await logEnvio(supabase, {
         funcao: 'notify-nps-resposta',
         destino: alunoPhone,
@@ -164,10 +184,13 @@ Deno.serve(async (req) => {
       });
     }
 
+    await supabase.from('nps_notificacoes_log').insert(log);
+
     return new Response(JSON.stringify({ ok: true, classificacao }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+
   } catch (e) {
     console.error('[notify-nps-resposta] erro', e);
     return new Response(JSON.stringify({ error: String(e) }), {
