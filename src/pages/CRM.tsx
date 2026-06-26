@@ -885,6 +885,9 @@ export default function CRM() {
       const matchesOrigem = filterOrigem === 'all' || lead.origem === filterOrigem;
       const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
       const matchesStatus = filterStatus.length === 0 || filterStatus.includes(lead.status_funil);
+      const matchesNivel =
+        filterNivel.length === 0 ||
+        filterNivel.includes(lead.nivel_interesse ?? 'sem');
       
       // Date filter
       let matchesDate = true;
@@ -898,9 +901,10 @@ export default function CRM() {
         }
       }
       
-      return matchesSearch && matchesOrigem && matchesCadastradoPor && matchesStatus && matchesDate;
+      return matchesSearch && matchesOrigem && matchesCadastradoPor && matchesStatus && matchesNivel && matchesDate;
     });
-  }, [leads, search, filterOrigem, filterCadastradoPor, filterStatus, startDate, endDate]);
+  }, [leads, search, filterOrigem, filterCadastradoPor, filterStatus, filterNivel, startDate, endDate]);
+
 
   // KPI calculations
   const kpis = useMemo(() => {
