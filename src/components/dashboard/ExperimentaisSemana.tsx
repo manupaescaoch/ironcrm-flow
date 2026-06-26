@@ -20,13 +20,52 @@ interface ExperimentaisSemanaProps {
   endDate: Date;
 }
 
+type StatusFilter = 'todos' | 'agendados' | 'compareceu' | 'nao_compareceu' | 'matriculou';
+
 export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, endDate }: ExperimentaisSemanaProps) {
   const { toast } = useToast();
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
+
+  const itemDateOf = (item: EventoItem) => {
+    const ds = item.tipoEvento === 'avaliacao'
+      ? item.interacao.data_avaliacao
+      : item.interacao.data_experimental;
+    return ds ? parseISO(ds) : null;
+  };
+
+  const matchesStatus = (item: EventoItem, filter: StatusFilter) => {
+    const d = itemDateOf(item);
+    const isToday = d && isSameDay(d, new Date());
+    const isPast = d && d < new Date() && !isToday;
+    const compareceu = item.interacao.compareceu;
+    switch (filter) {
+      case 'todos':
+        return true;
+      case 'agendados':
+        return compareceu === null && !isPast;
+      case 'compareceu':
+        return compareceu === true;
+      case 'nao_compareceu':
+        return compareceu === false || (isPast && compareceu === null);
+      case 'matriculou':
+        return item.interacao.fechou_matricula === true;
+    }
+  };
+
+  const counts: Record<StatusFilter, number> = {
+    todos: items.length,
+    agendados: items.filter((i) => matchesStatus(i, 'agendados')).length,
+    compareceu: items.filter((i) => matchesStatus(i, 'compareceu')).length,
+    nao_compareceu: items.filter((i) => matchesStatus(i, 'nao_compareceu')).length,
+    matriculou: items.filter((i) => matchesStatus(i, 'matriculou')).length,
+  };
+
+  const filteredItems = items.filter((i) => matchesStatus(i, statusFilter));
 
   // Group by date
-  const groupedByDate = items.reduce((acc, item) => {
+  const groupedByDate = filteredItems.reduce((acc, item) => {
     const dateStr = item.tipoEvento === 'avaliacao' 
       ? item.interacao.data_avaliacao || ''
       : item.interacao.data_experimental || '';
@@ -39,6 +78,14 @@ export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, 
 
   // Sort dates
   const sortedDates = Object.keys(groupedByDate).sort();
+
+  const filterChips: { key: StatusFilter; label: string }[] = [
+    { key: 'todos', label: 'Todos' },
+    { key: 'agendados', label: 'Agendados' },
+    { key: 'compareceu', label: 'Compareceu' },
+    { key: 'nao_compareceu', label: 'Não compareceu' },
+    { key: 'matriculou', label: 'Matriculou' },
+  ];
 
   const toggleExpanded = (id: string) => {
     setExpandedItems(prev => ({ ...prev, [id]: !prev[id] }));
