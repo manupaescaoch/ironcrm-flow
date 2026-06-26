@@ -20,13 +20,52 @@ interface ExperimentaisSemanaProps {
   endDate: Date;
 }
 
+type StatusFilter = 'todos' | 'agendados' | 'compareceu' | 'nao_compareceu' | 'matriculou';
+
 export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, endDate }: ExperimentaisSemanaProps) {
   const { toast } = useToast();
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
+
+  const itemDateOf = (item: EventoItem) => {
+    const ds = item.tipoEvento === 'avaliacao'
+      ? item.interacao.data_avaliacao
+      : item.interacao.data_experimental;
+    return ds ? parseISO(ds) : null;
+  };
+
+  const matchesStatus = (item: EventoItem, filter: StatusFilter) => {
+    const d = itemDateOf(item);
+    const isToday = d && isSameDay(d, new Date());
+    const isPast = d && d < new Date() && !isToday;
+    const compareceu = item.interacao.compareceu;
+    switch (filter) {
+      case 'todos':
+        return true;
+      case 'agendados':
+        return compareceu === null && !isPast;
+      case 'compareceu':
+        return compareceu === true;
+      case 'nao_compareceu':
+        return compareceu === false || (isPast && compareceu === null);
+      case 'matriculou':
+        return item.interacao.fechou_matricula === true;
+    }
+  };
+
+  const counts: Record<StatusFilter, number> = {
+    todos: items.length,
+    agendados: items.filter((i) => matchesStatus(i, 'agendados')).length,
+    compareceu: items.filter((i) => matchesStatus(i, 'compareceu')).length,
+    nao_compareceu: items.filter((i) => matchesStatus(i, 'nao_compareceu')).length,
+    matriculou: items.filter((i) => matchesStatus(i, 'matriculou')).length,
+  };
+
+  const filteredItems = items.filter((i) => matchesStatus(i, statusFilter));
 
   // Group by date
-  const groupedByDate = items.reduce((acc, item) => {
+  const groupedByDate = filteredItems.reduce((acc, item) => {
     const dateStr = item.tipoEvento === 'avaliacao' 
       ? item.interacao.data_avaliacao || ''
       : item.interacao.data_experimental || '';
@@ -39,6 +78,14 @@ export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, 
 
   // Sort dates
   const sortedDates = Object.keys(groupedByDate).sort();
+
+  const filterChips: { key: StatusFilter; label: string }[] = [
+    { key: 'todos', label: 'Todos' },
+    { key: 'agendados', label: 'Agendados' },
+    { key: 'compareceu', label: 'Compareceu' },
+    { key: 'nao_compareceu', label: 'Não compareceu' },
+    { key: 'matriculou', label: 'Matriculou' },
+  ];
 
   const toggleExpanded = (id: string) => {
     setExpandedItems(prev => ({ ...prev, [id]: !prev[id] }));
@@ -109,10 +156,34 @@ export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, 
           <Calendar className="w-5 h-5 text-primary" />
           Experimentais do Período
         </CardTitle>
-        <Badge variant="secondary">{items.length} total</Badge>
+        <Badge variant="secondary">
+          {statusFilter === 'todos' ? `${items.length} total` : `${filteredItems.length} de ${items.length}`}
+        </Badge>
       </CardHeader>
       <CardContent>
-        {items.length === 0 ? (
+        <div className="flex gap-2 overflow-x-auto pb-3 mb-2 -mx-1 px-1 scrollbar-thin">
+          {filterChips.map((chip) => {
+            const active = statusFilter === chip.key;
+            return (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={() => setStatusFilter(active && chip.key !== 'todos' ? 'todos' : chip.key)}
+                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                  active
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-background text-foreground border-border hover:bg-muted'
+                }`}
+              >
+                <span>{chip.label}</span>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${active ? 'bg-primary-foreground/20' : 'bg-muted'}`}>
+                  {counts[chip.key]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {filteredItems.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">
             Nenhuma aula experimental no período selecionado
           </p>
