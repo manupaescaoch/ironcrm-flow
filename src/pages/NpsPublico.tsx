@@ -473,6 +473,7 @@ export default function NpsPublico() {
           </div>
         </form>
       </div>
+      </div>
     </div>
   );
 }
