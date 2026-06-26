@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { Lead, Interacao } from '@/types/database';
 import { differenceInDays } from 'date-fns';
 
+export type NivelInteresse = 'alto' | 'medio' | 'baixo';
+
 export interface ConversionScoreResult {
   score: number;
   label: 'Quente' | 'Morno' | 'Frio' | 'Improvável';
@@ -9,7 +11,14 @@ export interface ConversionScoreResult {
   bgColor: string;
   fatoresPositivos: string[];
   podeMelhorar: string[];
+  /** Nível sugerido com base apenas no score automático */
+  nivelSugerido: NivelInteresse;
+  /** Nível efetivo: manual (se houver) ou sugerido */
+  nivelEfetivo: NivelInteresse;
+  /** Indica se o nível efetivo veio de marcação manual */
+  manual: boolean;
 }
+
 
 const origemPesos: Record<string, number> = {
   'Visita Presencial': 25,
