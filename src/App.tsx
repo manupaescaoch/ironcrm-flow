@@ -42,6 +42,8 @@ import DashboardOperacional from "./pages/DashboardOperacional";
 
 import GestaoOperacional from "./pages/GestaoOperacional";
 import Reunioes from "./pages/Reunioes";
+import NpsPublico from "./pages/NpsPublico";
+import NpsRespostas from "./pages/NpsRespostas";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -173,6 +175,9 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 const AppRoutes = () => (
   <Routes>
     <Route path="/anamnese" element={<AnamnesePublicaUniversal />} />
+    <Route path="/nps" element={<NpsPublico />} />
+    <Route path="/nps/respostas" element={<AdminOrCoordenadorRoute><NpsRespostas /></AdminOrCoordenadorRoute>} />
+
     <Route path="/encerramento-turno" element={<EncerramentoTurno />} />
     <Route path="/encerramento-coordenador" element={<EncerramentoCoordenador />} />
     <Route path="/encerramento-horario" element={<EncerramentoHorario />} />
