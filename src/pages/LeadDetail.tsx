@@ -651,8 +651,23 @@ export default function LeadDetail() {
           <div className="lg:col-span-1 space-y-6">
             {/* Conversion Score Card - only show for active leads not yet converted/lost */}
             {lead.status_funil !== 'convertido' && lead.status_funil !== 'perdido' && conversionScore && (
-              <ConversionScoreCard scoreData={conversionScore} />
+              <NivelInteresseCard
+                leadId={lead.id}
+                scoreData={conversionScore}
+                nivelAtual={lead.nivel_interesse ?? null}
+                atualizadoEm={lead.nivel_interesse_atualizado_em}
+                atualizadoPor={lead.nivel_interesse_atualizado_por}
+                onChange={(nivel, em, por) =>
+                  setLead({
+                    ...lead,
+                    nivel_interesse: nivel,
+                    nivel_interesse_atualizado_em: em,
+                    nivel_interesse_atualizado_por: por,
+                  })
+                }
+              />
             )}
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
