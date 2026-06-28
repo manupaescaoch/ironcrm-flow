@@ -179,7 +179,9 @@ function ChipOption({
 export default function NpsPublico() {
   const [nome, setNome] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [whatsappConfirm, setWhatsappConfirm] = useState('');
   const [unidade, setUnidade] = useState('');
+
   const [nota, setNota] = useState<number | null>(null);
   const [hoverNota, setHoverNota] = useState<number | null>(null);
   const [eEstrutura, setEEstrutura] = useState(0);
@@ -197,6 +199,10 @@ export default function NpsPublico() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (whatsapp.replace(/\D/g, '') !== whatsappConfirm.replace(/\D/g, '')) {
+      toast.error('Os números de WhatsApp não coincidem');
+      return;
+    }
     const parsed = schema.safeParse({
       nome,
       whatsapp,
@@ -212,6 +218,7 @@ export default function NpsPublico() {
       toast.error(parsed.error.issues[0]?.message ?? 'Verifique os campos');
       return;
     }
+
     setSaving(true);
     const { data: inserted, error } = await supabase
       .from('nps_respostas')
@@ -324,6 +331,25 @@ export default function NpsPublico() {
                   className="h-12 rounded-xl border-slate-200"
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="wpp2" className="text-sm font-medium text-slate-700">
+                  Confirmar WhatsApp
+                </Label>
+                <Input
+                  id="wpp2"
+                  value={whatsappConfirm}
+                  onChange={(e) => setWhatsappConfirm(maskPhone(e.target.value))}
+                  onPaste={(e) => e.preventDefault()}
+                  placeholder="(81) 99999-9999"
+                  required
+                  className="h-12 rounded-xl border-slate-200"
+                />
+                <p className="text-xs text-slate-500">Enviaremos sua resposta neste número.</p>
+                {whatsappConfirm && whatsapp.replace(/\D/g, '') !== whatsappConfirm.replace(/\D/g, '') && (
+                  <p className="text-xs text-red-600">Os números não coincidem.</p>
+                )}
+              </div>
+
               <div className="space-y-1.5">
                 <Label className="text-sm font-medium text-slate-700">Unidade</Label>
                 <Select value={unidade} onValueChange={setUnidade}>
