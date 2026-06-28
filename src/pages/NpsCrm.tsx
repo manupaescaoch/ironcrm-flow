@@ -36,7 +36,21 @@ import {
   ChevronRight,
   ExternalLink,
   X,
+  Eye,
+  Star,
+  MessageSquare,
+  Building2,
+  Phone,
+  User,
+  Clock,
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -51,6 +65,12 @@ type Resposta = {
   unidade_id: string | null;
   unidade_nome: string;
   nota_nps: number;
+  estrelas_estrutura: number | null;
+  estrelas_equipe: number | null;
+  estrelas_treino: number | null;
+  pontos_positivos: string[] | null;
+  pontos_melhoria: string[] | null;
+  tempo_aluno: string | null;
   categoria: 'detrator' | 'passivo' | 'promotor';
   comentario: string | null;
   created_at: string;
