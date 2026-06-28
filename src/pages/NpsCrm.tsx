@@ -310,6 +310,7 @@ export default function NpsCrm() {
                     <TableHead className="text-center">Nota</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead>Comentário</TableHead>
+                    <TableHead className="w-[60px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -317,12 +318,16 @@ export default function NpsCrm() {
                     const unidadeNome =
                       (r.unidade_id && unidadeNomeById.get(r.unidade_id)) || r.unidade_nome;
                     return (
-                      <TableRow key={r.id}>
+                      <TableRow
+                        key={r.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => setSelected(r)}
+                      >
                         <TableCell className="text-xs whitespace-nowrap">
                           {format(new Date(r.created_at), 'dd/MM/yy HH:mm')}
                         </TableCell>
                         <TableCell className="font-medium">{r.nome}</TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           {r.lead_id ? (
                             <Link
                               to={`/lead/${r.lead_id}`}
@@ -350,6 +355,17 @@ export default function NpsCrm() {
                           >
                             {r.comentario || '—'}
                           </span>
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setSelected(r)}
+                            aria-label="Ver detalhes"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
