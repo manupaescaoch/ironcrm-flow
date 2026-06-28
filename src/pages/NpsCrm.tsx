@@ -133,7 +133,7 @@ export default function NpsCrm() {
       let q = supabase
         .from('nps_respostas')
         .select(
-          'id, nome, whatsapp, lead_id, lead_nome, unidade_id, unidade_nome, nota_nps, categoria, comentario, created_at',
+          'id, nome, whatsapp, lead_id, lead_nome, unidade_id, unidade_nome, nota_nps, estrelas_estrutura, estrelas_equipe, estrelas_treino, pontos_positivos, pontos_melhoria, tempo_aluno, categoria, comentario, created_at',
           { count: 'exact' },
         )
         .order('created_at', { ascending: false })
