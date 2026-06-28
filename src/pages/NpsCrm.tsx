@@ -402,7 +402,187 @@ export default function NpsCrm() {
             </div>
           </div>
         )}
+
+        <NpsDetailDialog
+          resposta={selected}
+          unidadeNomeById={unidadeNomeById}
+          onClose={() => setSelected(null)}
+        />
       </div>
     </Layout>
+  );
+}
+
+function Stars({ value }: { value: number | null }) {
+  const v = value ?? 0;
+  return (
+    <div className="flex items-center gap-0.5">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star
+          key={i}
+          className={cn(
+            'w-4 h-4',
+            i < v ? 'fill-warning text-warning' : 'text-muted-foreground/30',
+          )}
+        />
+      ))}
+      <span className="ml-2 text-xs text-muted-foreground">{v}/5</span>
+    </div>
+  );
+}
+
+function NpsDetailDialog({
+  resposta,
+  unidadeNomeById,
+  onClose,
+}: {
+  resposta: Resposta | null;
+  unidadeNomeById: Map<string, string>;
+  onClose: () => void;
+}) {
+  const r = resposta;
+  const unidadeNome = r
+    ? (r.unidade_id && unidadeNomeById.get(r.unidade_id)) || r.unidade_nome
+    : '';
+
+  return (
+    <Dialog open={!!r} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        {r && (
+          <>
+            <DialogHeader>
+              <div className="flex items-center justify-between gap-3 pr-6">
+                <div>
+                  <DialogTitle className="text-xl">Resposta NPS</DialogTitle>
+                  <DialogDescription>
+                    {format(new Date(r.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+                  </DialogDescription>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <Badge className={cn('text-lg font-bold px-3 py-1', categoriaCls(r.categoria))}>
+                    {r.nota_nps}
+                  </Badge>
+                  <span className="text-xs capitalize text-muted-foreground">{r.categoria}</span>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="space-y-5 pt-2">
+              {/* Identificação */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex items-start gap-2">
+                  <User className="w-4 h-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <div className="text-xs text-muted-foreground">Nome informado</div>
+                    <div className="text-sm font-medium">{r.nome}</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Phone className="w-4 h-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <div className="text-xs text-muted-foreground">WhatsApp</div>
+                    <div className="text-sm font-medium">{r.whatsapp}</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Building2 className="w-4 h-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <div className="text-xs text-muted-foreground">Unidade</div>
+                    <div className="text-sm font-medium">{unidadeNome}</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Clock className="w-4 h-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <div className="text-xs text-muted-foreground">Tempo como aluno</div>
+                    <div className="text-sm font-medium">{r.tempo_aluno || '—'}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lead vinculado */}
+              <div className="rounded-lg border p-3 bg-muted/30">
+                <div className="text-xs text-muted-foreground mb-1">Lead vinculado</div>
+                {r.lead_id ? (
+                  <Link
+                    to={`/lead/${r.lead_id}`}
+                    className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
+                  >
+                    {r.lead_nome ?? 'Abrir lead'}
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </Link>
+                ) : (
+                  <span className="text-sm text-muted-foreground">
+                    Nenhum lead encontrado para este WhatsApp na unidade.
+                  </span>
+                )}
+              </div>
+
+              {/* Avaliações por estrelas */}
+              <div className="space-y-2">
+                <div className="text-sm font-semibold">Avaliação detalhada</div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="rounded-lg border p-3">
+                    <div className="text-xs text-muted-foreground mb-1">Estrutura</div>
+                    <Stars value={r.estrelas_estrutura} />
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <div className="text-xs text-muted-foreground mb-1">Equipe</div>
+                    <Stars value={r.estrelas_equipe} />
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <div className="text-xs text-muted-foreground mb-1">Treino</div>
+                    <Stars value={r.estrelas_treino} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pontos positivos / melhoria */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="rounded-lg border p-3">
+                  <div className="text-xs text-muted-foreground mb-2">Pontos positivos</div>
+                  {r.pontos_positivos && r.pontos_positivos.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {r.pontos_positivos.map((p, i) => (
+                        <Badge key={i} variant="secondary" className="bg-success/15 text-success border-success/30">
+                          {p}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  )}
+                </div>
+                <div className="rounded-lg border p-3">
+                  <div className="text-xs text-muted-foreground mb-2">Pontos de melhoria</div>
+                  {r.pontos_melhoria && r.pontos_melhoria.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {r.pontos_melhoria.map((p, i) => (
+                        <Badge key={i} variant="secondary" className="bg-warning/15 text-warning border-warning/30">
+                          {p}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Comentário */}
+              <div className="rounded-lg border p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                  <div className="text-xs text-muted-foreground">Comentário</div>
+                </div>
+                <div className="text-sm whitespace-pre-wrap">
+                  {r.comentario || <span className="text-muted-foreground">Sem comentário.</span>}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
