@@ -179,7 +179,9 @@ function ChipOption({
 export default function NpsPublico() {
   const [nome, setNome] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [whatsappConfirm, setWhatsappConfirm] = useState('');
   const [unidade, setUnidade] = useState('');
+
   const [nota, setNota] = useState<number | null>(null);
   const [hoverNota, setHoverNota] = useState<number | null>(null);
   const [eEstrutura, setEEstrutura] = useState(0);
