@@ -93,6 +93,7 @@ export default function NpsCrm() {
   const [vinculo, setVinculo] = useState<'todos' | 'com_lead' | 'sem_lead'>('todos');
   const [range, setRange] = useState<{ from?: Date; to?: Date }>({});
   const [page, setPage] = useState(0);
+  const [selected, setSelected] = useState<Resposta | null>(null);
 
   const debouncedSearch = useDebounce(search, 300);
 
