@@ -1946,6 +1946,8 @@ export type Database = {
           estrelas_estrutura: number
           estrelas_treino: number
           id: string
+          lead_id: string | null
+          lead_nome: string | null
           nome: string
           nota_nps: number
           pontos_melhoria: string[]
@@ -1963,6 +1965,8 @@ export type Database = {
           estrelas_estrutura: number
           estrelas_treino: number
           id?: string
+          lead_id?: string | null
+          lead_nome?: string | null
           nome: string
           nota_nps: number
           pontos_melhoria?: string[]
@@ -1980,6 +1984,8 @@ export type Database = {
           estrelas_estrutura?: number
           estrelas_treino?: number
           id?: string
+          lead_id?: string | null
+          lead_nome?: string | null
           nome?: string
           nota_nps?: number
           pontos_melhoria?: string[]
@@ -1990,6 +1996,13 @@ export type Database = {
           whatsapp?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "nps_respostas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "nps_respostas_unidade_id_fkey"
             columns: ["unidade_id"]
