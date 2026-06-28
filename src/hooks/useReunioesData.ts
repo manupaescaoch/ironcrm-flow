@@ -47,7 +47,7 @@ export function useReunioesData() {
       let query = supabase
         .from('reunioes')
         .select('*')
-        .order('data', { ascending: true });
+        .order('data', { ascending: false });
       if (!isAdmin) {
         const ids = unidadesPermitidas.map((u) => u.id);
         query = query.in('unidade_id', ids.length ? ids : [unidadeAtual.id]);
