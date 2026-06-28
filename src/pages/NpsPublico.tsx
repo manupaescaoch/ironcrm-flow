@@ -332,6 +332,25 @@ export default function NpsPublico() {
                 />
               </div>
               <div className="space-y-1.5">
+                <Label htmlFor="wpp2" className="text-sm font-medium text-slate-700">
+                  Confirmar WhatsApp
+                </Label>
+                <Input
+                  id="wpp2"
+                  value={whatsappConfirm}
+                  onChange={(e) => setWhatsappConfirm(maskPhone(e.target.value))}
+                  onPaste={(e) => e.preventDefault()}
+                  placeholder="(81) 99999-9999"
+                  required
+                  className="h-12 rounded-xl border-slate-200"
+                />
+                <p className="text-xs text-slate-500">Enviaremos sua resposta neste número.</p>
+                {whatsappConfirm && whatsapp.replace(/\D/g, '') !== whatsappConfirm.replace(/\D/g, '') && (
+                  <p className="text-xs text-red-600">Os números não coincidem.</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
                 <Label className="text-sm font-medium text-slate-700">Unidade</Label>
                 <Select value={unidade} onValueChange={setUnidade}>
                   <SelectTrigger className="h-12 rounded-xl border-slate-200 [&>svg]:hidden pr-3">
