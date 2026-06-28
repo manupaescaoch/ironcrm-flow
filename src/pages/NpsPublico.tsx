@@ -199,6 +199,10 @@ export default function NpsPublico() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (whatsapp.replace(/\D/g, '') !== whatsappConfirm.replace(/\D/g, '')) {
+      toast.error('Os números de WhatsApp não coincidem');
+      return;
+    }
     const parsed = schema.safeParse({
       nome,
       whatsapp,
@@ -214,6 +218,7 @@ export default function NpsPublico() {
       toast.error(parsed.error.issues[0]?.message ?? 'Verifique os campos');
       return;
     }
+
     setSaving(true);
     const { data: inserted, error } = await supabase
       .from('nps_respostas')
