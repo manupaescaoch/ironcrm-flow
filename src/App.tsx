@@ -44,6 +44,7 @@ import GestaoOperacional from "./pages/GestaoOperacional";
 import Reunioes from "./pages/Reunioes";
 import NpsPublico from "./pages/NpsPublico";
 import NpsRespostas from "./pages/NpsRespostas";
+import NpsDashboard from "./pages/NpsDashboard";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
