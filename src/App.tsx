@@ -178,6 +178,7 @@ const AppRoutes = () => (
     <Route path="/anamnese" element={<AnamnesePublicaUniversal />} />
     <Route path="/nps" element={<NpsPublico />} />
     <Route path="/nps/respostas" element={<AdminOrCoordenadorRoute><NpsRespostas /></AdminOrCoordenadorRoute>} />
+    <Route path="/nps/dashboard" element={<AdminOrCoordenadorRoute><NpsDashboard /></AdminOrCoordenadorRoute>} />
 
     <Route path="/encerramento-turno" element={<EncerramentoTurno />} />
     <Route path="/encerramento-coordenador" element={<EncerramentoCoordenador />} />
