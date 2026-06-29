@@ -983,6 +983,8 @@ export default function CRM() {
                 <SelectItem value="last7days">Últimos 7 dias</SelectItem>
                 <SelectItem value="last15days">Últimos 15 dias</SelectItem>
                 <SelectItem value="last30days">Últimos 30 dias</SelectItem>
+                <SelectItem value="last60days">Últimos 60 dias</SelectItem>
+                <SelectItem value="last90days">Últimos 90 dias</SelectItem>
                 <SelectItem value="currentMonth">Mês atual</SelectItem>
                 <SelectItem value="lastMonth">Mês passado</SelectItem>
                 <SelectItem value="custom">Personalizado</SelectItem>
