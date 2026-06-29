@@ -73,6 +73,14 @@ export function FollowUpMatriculadosSection({ urgentItems, onRefresh }: Props) {
     return { text: `${atraso}d atrasado`, className: 'text-red-700 bg-red-100' };
   };
 
+  const getFuDate = (item: FollowUpMatriculadoItem) => {
+    const [y, m, d] = (item.data_matricula || '').split('-').map(Number);
+    if (!y || !m || !d) return null;
+    const base = new Date(y, m - 1, d);
+    base.setDate(base.getDate() + ALVO_DIAS[item.tipo]);
+    return base.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  };
+
   const handleMarkDone = async (item: FollowUpMatriculadoItem) => {
     if (!unidadeAtual) return;
     setLoading(true);
