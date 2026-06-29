@@ -183,7 +183,7 @@ interface SavedFilters {
   filterOrigem?: string;
   filterCadastradoPor?: string;
   filterStatus?: string | string[];
-  periodType?: 'all' | 'last7days' | 'last15days' | 'last30days' | 'currentMonth' | 'lastMonth' | 'custom';
+  periodType?: 'all' | 'last7days' | 'last15days' | 'last30days' | 'last60days' | 'last90days' | 'currentMonth' | 'lastMonth' | 'custom';
   startDate?: string;
   endDate?: string;
 }
