@@ -649,8 +649,8 @@ export default function LeadDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Lead Edit Form */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Conversion Score Card - only show for active leads not yet converted/lost */}
-            {lead.status_funil !== 'convertido' && lead.status_funil !== 'perdido' && conversionScore && (
+            {/* Nível de Interesse — disponível para todos os usuários com acesso à unidade do lead */}
+            {conversionScore && (
               <NivelInteresseCard
                 leadId={lead.id}
                 scoreData={conversionScore}
