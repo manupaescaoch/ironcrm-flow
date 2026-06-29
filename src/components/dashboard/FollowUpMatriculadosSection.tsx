@@ -152,6 +152,8 @@ export function FollowUpMatriculadosSection({ urgentItems, onRefresh }: Props) {
     const timeInfo = getTimeInfo(item);
     const primeiroNome = item.lead.nome?.split(' ')[0] || 'Aluno';
     const message = MESSAGES[item.tipo](primeiroNome);
+    const fuDate = getFuDate(item);
+    const atraso = item.diasDesdeMatricula - ALVO_DIAS[item.tipo];
 
     return (
       <div
@@ -172,6 +174,17 @@ export function FollowUpMatriculadosSection({ urgentItems, onRefresh }: Props) {
                   showIcon={true}
                   className="text-green-600 hover:text-green-700"
                 />
+              )}
+              {fuDate && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <CalendarClock className="w-3 h-3" />
+                  FU: {fuDate}
+                  {atraso > 0 && (
+                    <span className="text-red-600 font-medium">
+                      · há {atraso}d
+                    </span>
+                  )}
+                </span>
               )}
               <Badge variant="outline" className={cn('text-xs', timeInfo.className)}>
                 {timeInfo.text}
