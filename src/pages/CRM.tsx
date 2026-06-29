@@ -183,7 +183,7 @@ interface SavedFilters {
   filterOrigem?: string;
   filterCadastradoPor?: string;
   filterStatus?: string | string[];
-  periodType?: 'all' | 'last7days' | 'last15days' | 'last30days' | 'currentMonth' | 'lastMonth' | 'custom';
+  periodType?: 'all' | 'last7days' | 'last15days' | 'last30days' | 'last60days' | 'last90days' | 'currentMonth' | 'lastMonth' | 'custom';
   startDate?: string;
   endDate?: string;
 }
@@ -221,7 +221,7 @@ export default function CRM() {
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
 
   // Date filter state (restored from sessionStorage)
-  const [periodType, setPeriodType] = useState<'all' | 'last7days' | 'last15days' | 'last30days' | 'currentMonth' | 'lastMonth' | 'custom'>(
+  const [periodType, setPeriodType] = useState<'all' | 'last7days' | 'last15days' | 'last30days' | 'last60days' | 'last90days' | 'currentMonth' | 'lastMonth' | 'custom'>(
     _saved.periodType ?? 'all'
   );
   const [startDate, setStartDate] = useState<Date | undefined>(
@@ -282,6 +282,14 @@ export default function CRM() {
         break;
       case 'last30days':
         setStartDate(startOfDay(subDays(now, 29)));
+        setEndDate(endOfDay(now));
+        break;
+      case 'last60days':
+        setStartDate(startOfDay(subDays(now, 59)));
+        setEndDate(endOfDay(now));
+        break;
+      case 'last90days':
+        setStartDate(startOfDay(subDays(now, 89)));
         setEndDate(endOfDay(now));
         break;
       case 'currentMonth':
@@ -975,6 +983,8 @@ export default function CRM() {
                 <SelectItem value="last7days">Últimos 7 dias</SelectItem>
                 <SelectItem value="last15days">Últimos 15 dias</SelectItem>
                 <SelectItem value="last30days">Últimos 30 dias</SelectItem>
+                <SelectItem value="last60days">Últimos 60 dias</SelectItem>
+                <SelectItem value="last90days">Últimos 90 dias</SelectItem>
                 <SelectItem value="currentMonth">Mês atual</SelectItem>
                 <SelectItem value="lastMonth">Mês passado</SelectItem>
                 <SelectItem value="custom">Personalizado</SelectItem>
