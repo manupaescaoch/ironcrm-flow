@@ -221,7 +221,7 @@ export default function CRM() {
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
 
   // Date filter state (restored from sessionStorage)
-  const [periodType, setPeriodType] = useState<'all' | 'last7days' | 'last15days' | 'last30days' | 'currentMonth' | 'lastMonth' | 'custom'>(
+  const [periodType, setPeriodType] = useState<'all' | 'last7days' | 'last15days' | 'last30days' | 'last60days' | 'last90days' | 'currentMonth' | 'lastMonth' | 'custom'>(
     _saved.periodType ?? 'all'
   );
   const [startDate, setStartDate] = useState<Date | undefined>(
