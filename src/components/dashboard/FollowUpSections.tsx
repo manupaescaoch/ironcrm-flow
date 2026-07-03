@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertTriangle, CalendarDays, X, Phone, Check, UserX, Eye, MessageCircle } from 'lucide-react';
 import { FollowUpAutoItem } from '@/components/dashboard/AutoFollowUpCard';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
-import { format, differenceInDays, isToday, isPast } from 'date-fns';
+import { format, differenceInDays, isToday, isPast, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useState, useMemo } from 'react';
@@ -294,6 +294,10 @@ export function FollowUpSections({
                   className="text-green-600 hover:text-green-700"
                 />
               )}
+              <span className="flex items-center gap-1 text-xs">
+                <CalendarDays className="w-3 h-3" />
+                FU: {format(parseISO(item.data_prevista), 'dd/MM/yy', { locale: ptBR })}
+              </span>
               <Badge variant="outline" className={cn("text-xs", timeInfo.className)}>
                 {timeInfo.text}
               </Badge>
