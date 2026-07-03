@@ -2,7 +2,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertTriangle, CalendarDays, X, Phone, Check, UserX, Eye, MessageCircle } from 'lucide-react';
+import { AlertTriangle, CalendarDays, X, Phone, Check, UserX, Eye, MessageCircle, Send, Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { FollowUpAutoItem } from '@/components/dashboard/AutoFollowUpCard';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format, differenceInDays, isToday, isPast, parseISO } from 'date-fns';
