@@ -432,12 +432,34 @@ export function FollowUpSections({
       {/* Urgent Section */}
       <Card className="border-red-200 bg-red-50/30 dark:bg-red-950/10">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-red-500" />
               <span>Vencidos / Hoje</span>
             </div>
-            <Badge variant="destructive">{sortedUrgentItems.length}</Badge>
+            <div className="flex items-center gap-2">
+              {canManualSend && sortedUrgentItems.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => setManualConfirmOpen(true)}
+                  disabled={manualSending || cooldownLeft > 0}
+                  className="h-8"
+                >
+                  {manualSending ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4 mr-1" />
+                  )}
+                  {cooldownLeft > 0
+                    ? `Aguarde ${cooldownLeft}s`
+                    : manualSending
+                      ? 'Iniciando...'
+                      : 'Enviar atrasados agora'}
+                </Button>
+              )}
+              <Badge variant="destructive">{sortedUrgentItems.length}</Badge>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
