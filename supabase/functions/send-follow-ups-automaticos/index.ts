@@ -276,117 +276,171 @@ Deno.serve(async (req) => {
       );
     }
 
-    let sent = 0;
-    const errors: string[] = [];
-    const results: any[] = [];
-    let isFirst = true;
-
-    for (const fu of followUps as any[]) {
-      const lead = fu.leads;
-      if (!lead) {
-        await supabase.from('follow_ups')
-          .update({ status: 'cancelado', cancelado_motivo: 'lead_inexistente', updated_at: new Date().toISOString() })
-          .eq('id', fu.id);
-        continue;
-      }
-      const isPostMatricula = fu.tipo === 'M+7' || fu.tipo === 'M+30';
-      if (isPostMatricula) {
-        // Pós-matrícula: exige aluno ativo e matriculado
-        if (!lead.ativo || !lead.is_matriculado) {
-          await supabase.from('follow_ups')
-            .update({ status: 'cancelado', cancelado_motivo: 'lead_inelegivel', updated_at: new Date().toISOString() })
-            .eq('id', fu.id);
-          continue;
-        }
-      } else {
-        // Pré-matrícula: cancela se já matriculado, convertido ou perdido
-        if (!lead.ativo || lead.is_matriculado || lead.status_funil === 'convertido' || lead.status_funil === 'perdido') {
-          await supabase.from('follow_ups')
-            .update({ status: 'cancelado', cancelado_motivo: 'lead_inelegivel', updated_at: new Date().toISOString() })
-            .eq('id', fu.id);
-          continue;
-        }
-      }
-      if (!lead.telefone) {
-        await logEnvio(supabase, { funcao: FUNC, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, motivo_skip: 'sem_telefone', canal: 'comercial' });
-        errors.push(`Sem telefone: ${lead.nome}`);
-        continue;
-      }
-
-      const tmpl = TEMPLATES[fu.tipo];
-      if (!tmpl) continue;
-
-      const message = tmpl(firstName(lead.nome));
-      const phone = normalizePhone(lead.telefone);
-
-      if (dryRun) {
-        results.push({ tipo: fu.tipo, lead: lead.nome, phone, preview: message });
-        continue;
-      }
-
-      // Rate limit entre envios (não no primeiro)
-      if (!isFirst) await sleep(RATE_LIMIT_MS);
-      isFirst = false;
-
-      // Validação phone-exists no WhatsApp
-      const exists = await phoneExists(creds, phone);
-      if (exists === false) {
-        await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, motivo_skip: 'phone_nao_existe', canal: 'comercial' });
-        await supabase.from('follow_ups')
-          .update({ status: 'cancelado', cancelado_motivo: 'phone_invalido', updated_at: new Date().toISOString() })
-          .eq('id', fu.id);
-        errors.push(`Telefone sem WhatsApp: ${lead.nome}`);
-        continue;
-      }
-
-      // Claim atômico: evita envio duplicado em execuções concorrentes
-      const { data: claimed, error: claimErr } = await supabase
-        .from('follow_ups')
-        .update({ status: 'enviando', updated_at: new Date().toISOString() })
-        .eq('id', fu.id)
-        .eq('status', 'pendente')
-        .select('id');
-      if (claimErr || !claimed || claimed.length === 0) {
-        results.push({ tipo: fu.tipo, lead: lead.nome, status: 'skipped_already_claimed' });
-        continue;
-      }
-
-      try {
-        const r = await sendText(creds, phone, message);
-        if (r.ok) {
-          sent++;
-          const nowIso = new Date().toISOString();
-          await supabase
-            .from('follow_ups')
-            .update({ status: 'concluido', concluido_em: nowIso, concluido_por: 'SISTEMA (automático)', updated_at: nowIso })
-            .eq('id', fu.id);
-          await supabase.from('interacoes').insert({
-            lead_id: lead.id,
-            unidade_id: fu.unidade_id,
-            tipo: 'whatsapp',
-            descricao: `Follow-up ${fu.tipo} enviado automaticamente via WhatsApp`,
-            data_interacao: nowIso,
-            atendido_por: 'SISTEMA',
-          });
-          await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: true, zapi_status_code: r.status, canal: 'comercial' });
-          results.push({ tipo: fu.tipo, lead: lead.nome, status: 'sent' });
-        } else {
-          // Reverte claim para permitir retry futuro
-          await supabase.from('follow_ups').update({ status: 'pendente', updated_at: new Date().toISOString() }).eq('id', fu.id).eq('status', 'enviando');
-          await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, zapi_status_code: r.status, erro_msg: JSON.stringify(r.body).slice(0, 500), canal: 'comercial' });
-          errors.push(`Z-API ${r.status}: ${fu.tipo} ${lead.nome}`);
-        }
-      } catch (e: any) {
-        await supabase.from('follow_ups').update({ status: 'pendente', updated_at: new Date().toISOString() }).eq('id', fu.id).eq('status', 'enviando');
-        await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, erro_msg: e?.message ?? String(e), canal: 'comercial' });
-        errors.push(`Erro envio: ${fu.tipo} ${lead.nome} - ${e?.message ?? e}`);
-      }
-    }
+    // Fluxo síncrono (cron automático ou dry_run)
+    const result = await processFollowUps(supabase, creds, followUps as any[], {
+      dryRun,
+      manual: false,
+      minDelayMs: RATE_LIMIT_MS,
+      maxDelayMs: RATE_LIMIT_MS,
+      callerName: 'SISTEMA (automático)',
+    });
 
     return new Response(
-      JSON.stringify({ success: true, sent, total_eligible: followUps.length, errors, dry_run: dryRun, results }),
+      JSON.stringify({ success: true, ...result, total_eligible: followUps.length, dry_run: dryRun }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+  } catch (err: any) {
+    return new Response(
+      JSON.stringify({ error: err?.message ?? 'Internal error' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
+  }
+});
+
+interface ProcessOptions {
+  dryRun: boolean;
+  manual: boolean;
+  minDelayMs: number;
+  maxDelayMs: number;
+  callerName: string;
+}
+
+async function processFollowUps(
+  supabase: any,
+  creds: any,
+  followUps: any[],
+  opts: ProcessOptions,
+) {
+  let sent = 0;
+  const errors: string[] = [];
+  const results: any[] = [];
+  let isFirst = true;
+
+  const pickDelay = () => {
+    if (opts.maxDelayMs <= opts.minDelayMs) return opts.minDelayMs;
+    return Math.floor(opts.minDelayMs + Math.random() * (opts.maxDelayMs - opts.minDelayMs));
+  };
+
+  const concluidoPor = opts.manual
+    ? `MANUAL (${opts.callerName})`
+    : 'SISTEMA (automático)';
+  const descBase = opts.manual ? 'manualmente' : 'automaticamente';
+
+  for (const fu of followUps) {
+    const lead = fu.leads;
+    if (!lead) {
+      await supabase.from('follow_ups')
+        .update({ status: 'cancelado', cancelado_motivo: 'lead_inexistente', updated_at: new Date().toISOString() })
+        .eq('id', fu.id);
+      continue;
+    }
+    const isPostMatricula = fu.tipo === 'M+7' || fu.tipo === 'M+30';
+    if (isPostMatricula) {
+      if (!lead.ativo || !lead.is_matriculado) {
+        await supabase.from('follow_ups')
+          .update({ status: 'cancelado', cancelado_motivo: 'lead_inelegivel', updated_at: new Date().toISOString() })
+          .eq('id', fu.id);
+        continue;
+      }
+    } else {
+      if (!lead.ativo || lead.is_matriculado || lead.status_funil === 'convertido' || lead.status_funil === 'perdido') {
+        await supabase.from('follow_ups')
+          .update({ status: 'cancelado', cancelado_motivo: 'lead_inelegivel', updated_at: new Date().toISOString() })
+          .eq('id', fu.id);
+        continue;
+      }
+    }
+    if (!lead.telefone) {
+      await logEnvio(supabase, { funcao: FUNC, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, motivo_skip: 'sem_telefone', canal: 'comercial' });
+      errors.push(`Sem telefone: ${lead.nome}`);
+      continue;
+    }
+
+    const tmpl = TEMPLATES[fu.tipo];
+    if (!tmpl) continue;
+
+    const message = tmpl(firstName(lead.nome));
+    const phone = normalizePhone(lead.telefone);
+
+    if (opts.dryRun) {
+      results.push({ tipo: fu.tipo, lead: lead.nome, phone, preview: message });
+      continue;
+    }
+
+    // Sleep entre envios (aleatório em modo manual, fixo em automático).
+    // Nunca aplica antes do primeiro envio.
+    if (!isFirst) {
+      const d = pickDelay();
+      await sleep(d);
+    }
+    isFirst = false;
+
+    const exists = await phoneExists(creds, phone);
+    if (exists === false) {
+      await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, motivo_skip: 'phone_nao_existe', canal: 'comercial' });
+      await supabase.from('follow_ups')
+        .update({ status: 'cancelado', cancelado_motivo: 'phone_invalido', updated_at: new Date().toISOString() })
+        .eq('id', fu.id);
+      errors.push(`Telefone sem WhatsApp: ${lead.nome}`);
+      continue;
+    }
+
+    // Claim atômico — impede envio duplicado mesmo com execuções concorrentes
+    const { data: claimed, error: claimErr } = await supabase
+      .from('follow_ups')
+      .update({ status: 'enviando', updated_at: new Date().toISOString() })
+      .eq('id', fu.id)
+      .eq('status', 'pendente')
+      .select('id');
+    if (claimErr || !claimed || claimed.length === 0) {
+      results.push({ tipo: fu.tipo, lead: lead.nome, status: 'skipped_already_claimed' });
+      continue;
+    }
+
+    try {
+      const r = await sendText(creds, phone, message);
+      if (r.ok) {
+        sent++;
+        const nowIso = new Date().toISOString();
+        await supabase
+          .from('follow_ups')
+          .update({ status: 'concluido', concluido_em: nowIso, concluido_por: concluidoPor, updated_at: nowIso })
+          .eq('id', fu.id);
+        await supabase.from('interacoes').insert({
+          lead_id: lead.id,
+          unidade_id: fu.unidade_id,
+          tipo: 'whatsapp',
+          descricao: `Follow-up ${fu.tipo} enviado ${descBase} via WhatsApp`,
+          data_interacao: nowIso,
+          atendido_por: opts.manual ? opts.callerName : 'SISTEMA',
+        });
+        await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: true, zapi_status_code: r.status, canal: 'comercial' });
+        results.push({ tipo: fu.tipo, lead: lead.nome, status: 'sent' });
+      } else {
+        await supabase.from('follow_ups').update({ status: 'pendente', updated_at: new Date().toISOString() }).eq('id', fu.id).eq('status', 'enviando');
+        await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, zapi_status_code: r.status, erro_msg: JSON.stringify(r.body).slice(0, 500), canal: 'comercial' });
+        errors.push(`Z-API ${r.status}: ${fu.tipo} ${lead.nome}`);
+      }
+    } catch (e: any) {
+      await supabase.from('follow_ups').update({ status: 'pendente', updated_at: new Date().toISOString() }).eq('id', fu.id).eq('status', 'enviando');
+      await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, erro_msg: e?.message ?? String(e), canal: 'comercial' });
+      errors.push(`Erro envio: ${fu.tipo} ${lead.nome} - ${e?.message ?? e}`);
+    }
+  }
+
+  if (opts.manual) {
+    await logEnvio(supabase, {
+      funcao: FUNC,
+      tipo_destino: 'interno',
+      sucesso: true,
+      motivo_skip: 'manual_run_finished',
+      canal: 'comercial',
+      erro_msg: `enviados=${sent} erros=${errors.length} por=${opts.callerName}`,
+    });
+  }
+
+  return { sent, errors, results };
+}
   } catch (err: any) {
     return new Response(
       JSON.stringify({ error: err?.message ?? 'Internal error' }),
