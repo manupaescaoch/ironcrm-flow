@@ -294,6 +294,10 @@ export function FollowUpSections({
                   className="text-green-600 hover:text-green-700"
                 />
               )}
+              <span className="flex items-center gap-1 text-xs">
+                <CalendarDays className="w-3 h-3" />
+                FU: {format(parseISO(item.data_prevista), 'dd/MM/yy', { locale: ptBR })}
+              </span>
               <Badge variant="outline" className={cn("text-xs", timeInfo.className)}>
                 {timeInfo.text}
               </Badge>
