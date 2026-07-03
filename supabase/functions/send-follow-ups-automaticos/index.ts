@@ -441,10 +441,3 @@ async function processFollowUps(
 
   return { sent, errors, results };
 }
-  } catch (err: any) {
-    return new Response(
-      JSON.stringify({ error: err?.message ?? 'Internal error' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    );
-  }
-});
