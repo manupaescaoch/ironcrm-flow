@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertTriangle, CalendarDays, X, Phone, Check, UserX, Eye, MessageCircle } from 'lucide-react';
 import { FollowUpAutoItem } from '@/components/dashboard/AutoFollowUpCard';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
-import { format, differenceInDays, isToday, isPast } from 'date-fns';
+import { format, differenceInDays, isToday, isPast, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useState, useMemo } from 'react';
