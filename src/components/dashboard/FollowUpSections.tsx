@@ -102,11 +102,67 @@ export function FollowUpSections({
   onTipoClick
 }: FollowUpSectionsProps) {
   const navigate = useNavigate();
+  const { userRole } = useAuth();
+  const canManualSend = userRole === 'admin' || userRole === 'comercial';
   const [loading, setLoading] = useState(false);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [notInterestedModalOpen, setNotInterestedModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<FollowUpAutoItem | null>(null);
   const [selectedReason, setSelectedReason] = useState<string>('');
+  const [manualConfirmOpen, setManualConfirmOpen] = useState(false);
+  const [manualSending, setManualSending] = useState(false);
+  const [manualCooldownUntil, setManualCooldownUntil] = useState<number>(0);
+  const [now, setNow] = useState(Date.now());
+
+  // Atualiza contador do cooldown
+  useMemo(() => {
+    if (manualCooldownUntil <= 0) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [manualCooldownUntil]);
+
+  const cooldownLeft = Math.max(0, Math.ceil((manualCooldownUntil - now) / 1000));
+
+  async function handleManualSend() {
+    setManualSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-follow-ups-automaticos', {
+        body: {
+          manual: true,
+          force: true,
+          min_delay_ms: 20000,
+          max_delay_ms: 36000,
+        },
+      });
+      if (error) {
+        const msg = (error as any)?.context?.error || error.message || 'Falha ao iniciar envio';
+        // Supabase functions.invoke retorna erro em status != 2xx; tentamos extrair a mensagem
+        const status = (error as any)?.context?.status;
+        if (status === 409) {
+          toast.warning('Já existe uma execução manual em andamento. Aguarde alguns minutos.');
+        } else if (status === 403) {
+          toast.error('Você não tem permissão para essa ação.');
+        } else if (status === 503) {
+          toast.error('Chip WhatsApp Comercial offline. Reconecte em /admin/whatsapp-comercial.');
+        } else {
+          toast.error(msg);
+        }
+        return;
+      }
+      const total = data?.total_eligible ?? 0;
+      const estMin = Math.ceil((data?.estimated_seconds ?? 0) / 60);
+      toast.success(
+        `Envio iniciado: ${total} follow-up(s). Tempo estimado ~${estMin} min. Acompanhe em Admin › WhatsApp Comercial.`,
+      );
+      setManualCooldownUntil(Date.now() + 60_000);
+      setNow(Date.now());
+    } catch (e: any) {
+      toast.error(e?.message || 'Falha ao iniciar envio');
+    } finally {
+      setManualSending(false);
+      setManualConfirmOpen(false);
+    }
+  }
 
   // Filter items by tipo if filter is active
   const filteredUrgentItems = useMemo(() => {
