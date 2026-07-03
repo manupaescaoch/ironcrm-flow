@@ -576,6 +576,36 @@ export function FollowUpSections({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={manualConfirmOpen} onOpenChange={setManualConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar follow-ups atrasados agora?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Serão enviados <strong>{sortedUrgentItems.length}</strong> follow-up(s) vencido(s) via
+              WhatsApp comercial.
+              <br />
+              <br />
+              O intervalo entre mensagens será <strong>aleatório entre 20s e 36s</strong> para
+              proteger o chip. Tempo estimado:{' '}
+              <strong>
+                ~{Math.max(1, Math.ceil((sortedUrgentItems.length * 28) / 60))} min
+              </strong>
+              .
+              <br />
+              <br />
+              O envio roda em segundo plano — você pode fechar a tela. Cada follow-up é enviado
+              apenas uma vez (proteção contra duplicidade).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={manualSending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleManualSend} disabled={manualSending}>
+              {manualSending ? 'Iniciando...' : 'Confirmar envio'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
