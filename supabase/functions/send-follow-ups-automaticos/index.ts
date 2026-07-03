@@ -121,6 +121,18 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch { /* sem body */ }
     const dryRun = body?.dry_run === true;
     const force = body?.force === true;
+    const manual = body?.manual === true;
+
+    // Delay aleatório entre envios (modo manual). Defaults: 20s–36s.
+    // Validado entre 5s e 120s para evitar rajada ou espera absurda.
+    const clampDelay = (v: any, def: number) => {
+      const n = Number(v);
+      if (!Number.isFinite(n)) return def;
+      return Math.min(120000, Math.max(5000, Math.floor(n)));
+    };
+    let minDelayMs = clampDelay(body?.min_delay_ms, 20000);
+    let maxDelayMs = clampDelay(body?.max_delay_ms, 36000);
+    if (maxDelayMs < minDelayMs) maxDelayMs = minDelayMs;
 
     const { dateStr: todayStr, dayOfWeek } = getBrasiliaParts();
 
@@ -129,6 +141,56 @@ Deno.serve(async (req) => {
         JSON.stringify({ success: true, sent: 0, message: 'Fim de semana, envio pulado' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Modo manual: valida permissão (admin ou comercial) via JWT do usuário
+    let manualCallerName = 'MANUAL';
+    if (manual) {
+      const authHeader = req.headers.get('Authorization') || '';
+      const jwt = authHeader.replace(/^Bearer\s+/i, '');
+      if (!jwt) {
+        return new Response(
+          JSON.stringify({ error: 'Modo manual requer autenticação de usuário' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const { data: userData, error: uErr } = await supabase.auth.getUser(jwt);
+      if (uErr || !userData?.user) {
+        return new Response(
+          JSON.stringify({ error: 'JWT inválido' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const uid = userData.user.id;
+      manualCallerName = (userData.user.email || 'MANUAL').split('@')[0].toUpperCase();
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', uid);
+      const roles = (rolesData || []).map((r: any) => r.role);
+      // 'user' = comercial (ver AuthContext)
+      if (!roles.includes('admin') && !roles.includes('user')) {
+        return new Response(
+          JSON.stringify({ error: 'Permissão negada. Requer admin ou comercial.' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Lock anti-concorrência: só uma execução manual por vez (janela de 5 min)
+      const lockSince = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: recentLock } = await supabase
+        .from('whatsapp_envios_log')
+        .select('id, created_at')
+        .eq('funcao', FUNC)
+        .eq('motivo_skip', 'manual_run_started')
+        .gte('created_at', lockSince)
+        .limit(1);
+      if (recentLock && recentLock.length > 0) {
+        return new Response(
+          JSON.stringify({ error: 'Já existe uma execução manual em andamento. Aguarde alguns minutos.' }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Verifica chip antes de qualquer envio
@@ -164,6 +226,53 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ success: true, sent: 0, message: 'Nenhum follow-up vencido' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Modo manual: grava lock e responde 202 imediatamente; processamento em background
+    if (manual && !dryRun) {
+      await logEnvio(supabase, {
+        funcao: FUNC,
+        tipo_destino: 'interno',
+        sucesso: true,
+        motivo_skip: 'manual_run_started',
+        canal: 'comercial',
+        erro_msg: `elegiveis=${followUps.length} por=${manualCallerName} delay=${minDelayMs}-${maxDelayMs}ms`,
+      });
+
+      const avgDelay = (minDelayMs + maxDelayMs) / 2;
+      const estimatedSeconds = Math.round((followUps.length * avgDelay) / 1000);
+
+      // Roda o loop em background sem prender a resposta
+      // @ts-ignore EdgeRuntime existe no runtime do Supabase
+      EdgeRuntime.waitUntil(
+        processFollowUps(supabase, creds, followUps as any[], {
+          dryRun: false,
+          manual: true,
+          minDelayMs,
+          maxDelayMs,
+          callerName: manualCallerName,
+        }).catch(async (e) => {
+          console.error('[send-follow-ups-automaticos] erro no background', e);
+          await logEnvio(supabase, {
+            funcao: FUNC,
+            tipo_destino: 'interno',
+            sucesso: false,
+            motivo_skip: 'manual_run_error',
+            canal: 'comercial',
+            erro_msg: (e?.message || String(e)).slice(0, 500),
+          });
+        })
+      );
+
+      return new Response(
+        JSON.stringify({
+          queued: true,
+          total_eligible: followUps.length,
+          estimated_seconds: estimatedSeconds,
+          delay_range_ms: [minDelayMs, maxDelayMs],
+        }),
+        { status: 202, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
