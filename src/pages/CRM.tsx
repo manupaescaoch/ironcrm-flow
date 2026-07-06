@@ -888,11 +888,14 @@ export default function CRM() {
   };
 
   const filteredLeads = useMemo(() => {
+    const searchDigits = search.replace(/\D/g, '');
     return leads.filter((lead) => {
       const searchLower = search.toLowerCase();
-      const matchesSearch = !search || 
+      const leadPhoneDigits = (lead.telefone || '').replace(/\D/g, '');
+      const matchesSearch = !search ||
         lead.nome.toLowerCase().includes(searchLower) ||
-        lead.telefone?.includes(search);
+        lead.telefone?.toLowerCase().includes(searchLower) ||
+        (searchDigits.length > 0 && leadPhoneDigits.includes(searchDigits));
       const matchesOrigem = filterOrigem === 'all' || lead.origem === filterOrigem;
       const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
       const matchesStatus = filterStatus.length === 0 || filterStatus.includes(lead.status_funil);
