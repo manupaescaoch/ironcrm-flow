@@ -698,7 +698,8 @@ function Alertas({ kpis }: { kpis: UnidadeKPIs[] }) {
 }
 
 export default function GestaoOperacional() {
-  const { loading, kpis, refetch } = useGestaoOperacional();
+  const [refDate, setRefDate] = useState<Date>(startOfMonth(new Date()));
+  const { loading, kpis, refetch } = useGestaoOperacional(refDate);
   const [selectedUnidade, setSelectedUnidade] = useState<string>('');
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
@@ -712,15 +713,48 @@ export default function GestaoOperacional() {
 
   const detalhe = useMemo(() => kpis.find(k => k.unidade_id === selectedUnidade), [kpis, selectedUnidade]);
 
+  // Últimos 12 meses + próximos 2 para permitir planejamento
+  const monthOptions = useMemo(() => {
+    const opts: { value: string; label: string; date: Date }[] = [];
+    const base = startOfMonth(new Date());
+    for (let i = -2; i <= 12; i++) {
+      const d = subMonths(base, i);
+      opts.push({
+        value: format(d, 'yyyy-MM'),
+        label: format(d, "MMMM 'de' yyyy", { locale: ptBR }),
+        date: d,
+      });
+    }
+    return opts;
+  }, []);
+  const currentMonthValue = format(refDate, 'yyyy-MM');
+
   return (
     <Layout>
       <div className="p-6 max-w-7xl mx-auto space-y-6">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-3xl font-bold">Gestão Operacional</h1>
             <p className="text-muted-foreground">Visão consolidada das unidades Iron Club</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground">Mês:</Label>
+              <Select
+                value={currentMonthValue}
+                onValueChange={(v) => {
+                  const opt = monthOptions.find(o => o.value === v);
+                  if (opt) setRefDate(opt.date);
+                }}
+              >
+                <SelectTrigger className="w-[200px] h-9 capitalize"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {monthOptions.map(o => (
+                    <SelectItem key={o.value} value={o.value} className="capitalize">{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <span className="text-xs text-muted-foreground hidden sm:inline">
               Última atualização: hoje, {format(lastUpdate, 'HH:mm')}
             </span>
@@ -728,6 +762,7 @@ export default function GestaoOperacional() {
               <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
+
           </div>
         </div>
 
