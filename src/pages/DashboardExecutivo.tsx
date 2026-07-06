@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -96,6 +96,33 @@ export default function DashboardExecutivo() {
       setDataFim(end);
     }
   };
+
+  // Month options (últimos 12 meses + próximos 2)
+  const monthOptions = useMemo(() => {
+    const opts: { value: string; label: string; date: Date }[] = [];
+    const base = startOfMonth(new Date());
+    for (let i = -2; i <= 12; i++) {
+      const d = subMonths(base, i);
+      opts.push({
+        value: format(d, 'yyyy-MM'),
+        label: format(d, "MMMM 'de' yyyy", { locale: ptBR }),
+        date: d,
+      });
+    }
+    return opts;
+  }, []);
+  const monthValue = useMemo(() => {
+    // Só reflete no seletor de mês quando início e fim cobrem exatamente 1 mês
+    const start = new Date(dataInicio + 'T00:00:00');
+    const end = new Date(dataFim + 'T00:00:00');
+    const monthStart = startOfMonth(start);
+    const monthEnd = endOfMonth(start);
+    const isFullMonth =
+      format(start, 'yyyy-MM-dd') === format(monthStart, 'yyyy-MM-dd') &&
+      format(end, 'yyyy-MM-dd') === format(monthEnd, 'yyyy-MM-dd');
+    return isFullMonth ? format(start, 'yyyy-MM') : '';
+  }, [dataInicio, dataFim]);
+
 
   // Data fetching
   const { leads, interacoes, loading, fetchData } = useExecutivoData();
@@ -504,6 +531,31 @@ export default function DashboardExecutivo() {
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label>Mês específico</Label>
+                <Select
+                  value={monthValue}
+                  onValueChange={(v) => {
+                    const opt = monthOptions.find(o => o.value === v);
+                    if (!opt) return;
+                    setPeriodPreset('custom');
+                    setDataInicio(format(startOfMonth(opt.date), 'yyyy-MM-dd'));
+                    setDataFim(format(endOfMonth(opt.date), 'yyyy-MM-dd'));
+                  }}
+                >
+                  <SelectTrigger className="w-[200px] capitalize">
+                    <SelectValue placeholder="Selecionar mês" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {monthOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value} className="capitalize">
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {periodPreset === 'custom' && (
                 <>
                   <div className="space-y-2">
@@ -516,6 +568,7 @@ export default function DashboardExecutivo() {
                   </div>
                 </>
               )}
+
 
               <div className="space-y-2">
                 <Label>Investimento Marketing (R$)</Label>
