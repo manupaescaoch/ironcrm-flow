@@ -47,8 +47,11 @@ export interface UnidadeKPIs {
   investimento_mes: number;
   evasao_pct_mes: number;
   cac: number | null;
+  cac_calculado: number | null;
+  cac_manual: number | null;
   alertas: string[];
 }
+
 
 export interface SeriesPoint {
   semana: string;
