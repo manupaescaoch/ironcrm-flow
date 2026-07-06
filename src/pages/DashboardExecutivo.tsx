@@ -504,6 +504,31 @@ export default function DashboardExecutivo() {
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label>Mês específico</Label>
+                <Select
+                  value={monthValue}
+                  onValueChange={(v) => {
+                    const opt = monthOptions.find(o => o.value === v);
+                    if (!opt) return;
+                    setPeriodPreset('custom');
+                    setDataInicio(format(startOfMonth(opt.date), 'yyyy-MM-dd'));
+                    setDataFim(format(endOfMonth(opt.date), 'yyyy-MM-dd'));
+                  }}
+                >
+                  <SelectTrigger className="w-[200px] capitalize">
+                    <SelectValue placeholder="Selecionar mês" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {monthOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value} className="capitalize">
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {periodPreset === 'custom' && (
                 <>
                   <div className="space-y-2">
@@ -516,6 +541,7 @@ export default function DashboardExecutivo() {
                   </div>
                 </>
               )}
+
 
               <div className="space-y-2">
                 <Label>Investimento Marketing (R$)</Label>
