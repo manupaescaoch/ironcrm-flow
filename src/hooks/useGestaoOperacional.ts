@@ -256,13 +256,17 @@ async function fetchUnidadeKPIs(unidade_id: string, unidade_nome: string, meta: 
     investimento_mes: investimentoMes,
     evasao_pct_mes: evasaoPctMes,
     cac,
+    cac_calculado: cacCalculado,
+    cac_manual: cacManual,
     alertas,
   };
 }
 
-export function useGestaoOperacional() {
+export function useGestaoOperacional(refDate: Date = new Date()) {
   const [loading, setLoading] = useState(true);
   const [kpis, setKpis] = useState<UnidadeKPIs[]>([]);
+
+  const refKey = format(refDate, 'yyyy-MM');
 
   const fetch = useCallback(async () => {
     setLoading(true);
@@ -272,13 +276,15 @@ export function useGestaoOperacional() {
       const metaMap = new Map((metas ?? []).map((m: any) => [m.unidade_id, m as MetaUnidade]));
 
       const results = await Promise.all(
-        (unidades ?? []).map(u => fetchUnidadeKPIs(u.id, u.nome, metaMap.get(u.id) ?? null))
+        (unidades ?? []).map(u => fetchUnidadeKPIs(u.id, u.nome, metaMap.get(u.id) ?? null, refDate))
       );
       setKpis(results);
     } finally {
       setLoading(false);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refKey]);
+
 
   useEffect(() => { fetch(); }, [fetch]);
 
