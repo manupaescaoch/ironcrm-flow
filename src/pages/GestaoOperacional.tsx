@@ -14,7 +14,9 @@ import { useGestaoOperacional, UnidadeKPIs, SeriesPoint, fetchUnidadeHistorico }
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend } from 'recharts';
-import { format, startOfWeek } from 'date-fns';
+import { format, startOfWeek, startOfMonth, subMonths } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
 import { Skeleton } from '@/components/ui/skeleton';
 
 const fmtBRL = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
