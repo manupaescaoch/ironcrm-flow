@@ -14,7 +14,9 @@ import { useGestaoOperacional, UnidadeKPIs, SeriesPoint, fetchUnidadeHistorico }
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend } from 'recharts';
-import { format, startOfWeek } from 'date-fns';
+import { format, startOfWeek, startOfMonth, subMonths } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
 import { Skeleton } from '@/components/ui/skeleton';
 
 const fmtBRL = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
@@ -359,6 +361,11 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
             action={!editingTicket && <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditingTicket(true)}>Editar</Button>}
           />
           <MiniMetric
+            label="Investimento tráfego"
+            value={fmtBRL(k.investimento_mes)}
+            sub={k.matriculas_mes > 0 ? `${k.matriculas_mes} matrículas no mês` : 'sem matrículas no mês'}
+          />
+          <MiniMetric
             label="CAC"
             value={editingCac ? (
               <div className="flex items-center gap-1 w-full">
@@ -368,9 +375,14 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
                 </Button>
               </div>
             ) : (k.cac !== null ? fmtBRL(k.cac) : '—')}
-            sub="informado manualmente"
+            sub={
+              k.cac_calculado !== null
+                ? `auto: ${fmtBRL(k.investimento_mes)} ÷ ${k.matriculas_mes}`
+                : (k.cac_manual !== null ? 'informado manualmente' : 'sem dados')
+            }
             action={!editingCac && <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditingCac(true)}>Editar</Button>}
           />
+
 
         </SubSection>
 
@@ -686,7 +698,8 @@ function Alertas({ kpis }: { kpis: UnidadeKPIs[] }) {
 }
 
 export default function GestaoOperacional() {
-  const { loading, kpis, refetch } = useGestaoOperacional();
+  const [refDate, setRefDate] = useState<Date>(startOfMonth(new Date()));
+  const { loading, kpis, refetch } = useGestaoOperacional(refDate);
   const [selectedUnidade, setSelectedUnidade] = useState<string>('');
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
@@ -700,15 +713,48 @@ export default function GestaoOperacional() {
 
   const detalhe = useMemo(() => kpis.find(k => k.unidade_id === selectedUnidade), [kpis, selectedUnidade]);
 
+  // Últimos 12 meses + próximos 2 para permitir planejamento
+  const monthOptions = useMemo(() => {
+    const opts: { value: string; label: string; date: Date }[] = [];
+    const base = startOfMonth(new Date());
+    for (let i = -2; i <= 12; i++) {
+      const d = subMonths(base, i);
+      opts.push({
+        value: format(d, 'yyyy-MM'),
+        label: format(d, "MMMM 'de' yyyy", { locale: ptBR }),
+        date: d,
+      });
+    }
+    return opts;
+  }, []);
+  const currentMonthValue = format(refDate, 'yyyy-MM');
+
   return (
     <Layout>
       <div className="p-6 max-w-7xl mx-auto space-y-6">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-3xl font-bold">Gestão Operacional</h1>
             <p className="text-muted-foreground">Visão consolidada das unidades Iron Club</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground">Mês:</Label>
+              <Select
+                value={currentMonthValue}
+                onValueChange={(v) => {
+                  const opt = monthOptions.find(o => o.value === v);
+                  if (opt) setRefDate(opt.date);
+                }}
+              >
+                <SelectTrigger className="w-[200px] h-9 capitalize"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {monthOptions.map(o => (
+                    <SelectItem key={o.value} value={o.value} className="capitalize">{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <span className="text-xs text-muted-foreground hidden sm:inline">
               Última atualização: hoje, {format(lastUpdate, 'HH:mm')}
             </span>
@@ -716,6 +762,7 @@ export default function GestaoOperacional() {
               <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
+
           </div>
         </div>
 

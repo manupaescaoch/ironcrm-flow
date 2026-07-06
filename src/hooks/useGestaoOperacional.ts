@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { startOfWeek, endOfWeek, subWeeks, startOfMonth, endOfMonth, format } from 'date-fns';
+import { startOfWeek, endOfWeek, subWeeks, startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
+
 
 export interface MetaUnidade {
   id: string;
@@ -46,8 +47,11 @@ export interface UnidadeKPIs {
   investimento_mes: number;
   evasao_pct_mes: number;
   cac: number | null;
+  cac_calculado: number | null;
+  cac_manual: number | null;
   alertas: string[];
 }
+
 
 export interface SeriesPoint {
   semana: string;
@@ -59,16 +63,17 @@ export interface SeriesPoint {
 const monday = (d: Date) => startOfWeek(d, { weekStartsOn: 1 });
 const sunday = (d: Date) => endOfWeek(d, { weekStartsOn: 1 });
 
-async function fetchUnidadeKPIs(unidade_id: string, unidade_nome: string, meta: MetaUnidade | null): Promise<UnidadeKPIs> {
+async function fetchUnidadeKPIs(unidade_id: string, unidade_nome: string, meta: MetaUnidade | null, refDate: Date): Promise<UnidadeKPIs> {
   const now = new Date();
   const wkStart = monday(now);
   const wkEnd = sunday(now);
   const prevStart = monday(subWeeks(now, 1));
   const prevEnd = sunday(subWeeks(now, 1));
-  const monthStart = startOfMonth(now);
-  const monthEnd = endOfMonth(now);
-  const prevMonthStart = startOfMonth(subWeeks(now, 4));
-  const prevMonthEnd = endOfMonth(subWeeks(now, 4));
+  const monthStart = startOfMonth(refDate);
+  const monthEnd = endOfMonth(refDate);
+  const prevMonthStart = startOfMonth(subMonths(refDate, 1));
+  const prevMonthEnd = endOfMonth(subMonths(refDate, 1));
+
 
   const iso = (d: Date) => d.toISOString();
   const dateOnly = (d: Date) => format(d, 'yyyy-MM-dd');
@@ -192,18 +197,23 @@ async function fetchUnidadeKPIs(unidade_id: string, unidade_nome: string, meta: 
     .lte('updated_at', iso(monthEnd));
   const cancelamentosMes = cancMesCount ?? 0;
 
-  // Investimento de marketing do mês
+  // Investimento de marketing do mês (períodos que se sobrepõem)
   const { data: invRows } = await supabase
     .from('investimentos_marketing')
-    .select('valor')
+    .select('valor, data_inicio, data_fim')
     .eq('unidade_id', unidade_id)
-    .eq('data_inicio', dateOnly(monthStart))
-    .eq('data_fim', dateOnly(monthEnd));
+    .lte('data_inicio', dateOnly(monthEnd))
+    .gte('data_fim', dateOnly(monthStart));
   const investimentoMes = (invRows ?? []).reduce((s, r: any) => s + Number(r.valor || 0), 0);
 
-  // Evasão % manual e CAC manual
+  // Evasão % manual e CAC (calculado a partir do investimento e das matrículas do mês)
   const evasaoPctMes = Number(meta?.evasao_pct_manual ?? 0);
-  const cac = meta?.cac_manual ? Number(meta.cac_manual) : null;
+  const cacManual = meta?.cac_manual ? Number(meta.cac_manual) : null;
+  const cacCalculado = investimentoMes > 0 && matriculasMes > 0
+    ? Math.round((investimentoMes / matriculasMes) * 100) / 100
+    : null;
+  const cac = cacCalculado ?? cacManual;
+
 
   const capacidade = meta?.capacidade_alunos ?? 0;
   const ocupacaoPct = capacidade > 0 ? Math.round(((alunosAtivos ?? 0) / capacidade) * 100) : 0;
@@ -246,13 +256,17 @@ async function fetchUnidadeKPIs(unidade_id: string, unidade_nome: string, meta: 
     investimento_mes: investimentoMes,
     evasao_pct_mes: evasaoPctMes,
     cac,
+    cac_calculado: cacCalculado,
+    cac_manual: cacManual,
     alertas,
   };
 }
 
-export function useGestaoOperacional() {
+export function useGestaoOperacional(refDate: Date = new Date()) {
   const [loading, setLoading] = useState(true);
   const [kpis, setKpis] = useState<UnidadeKPIs[]>([]);
+
+  const refKey = format(refDate, 'yyyy-MM');
 
   const fetch = useCallback(async () => {
     setLoading(true);
@@ -262,13 +276,15 @@ export function useGestaoOperacional() {
       const metaMap = new Map((metas ?? []).map((m: any) => [m.unidade_id, m as MetaUnidade]));
 
       const results = await Promise.all(
-        (unidades ?? []).map(u => fetchUnidadeKPIs(u.id, u.nome, metaMap.get(u.id) ?? null))
+        (unidades ?? []).map(u => fetchUnidadeKPIs(u.id, u.nome, metaMap.get(u.id) ?? null, refDate))
       );
       setKpis(results);
     } finally {
       setLoading(false);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refKey]);
+
 
   useEffect(() => { fetch(); }, [fetch]);
 
