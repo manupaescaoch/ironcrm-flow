@@ -197,18 +197,23 @@ async function fetchUnidadeKPIs(unidade_id: string, unidade_nome: string, meta: 
     .lte('updated_at', iso(monthEnd));
   const cancelamentosMes = cancMesCount ?? 0;
 
-  // Investimento de marketing do mês
+  // Investimento de marketing do mês (períodos que se sobrepõem)
   const { data: invRows } = await supabase
     .from('investimentos_marketing')
-    .select('valor')
+    .select('valor, data_inicio, data_fim')
     .eq('unidade_id', unidade_id)
-    .eq('data_inicio', dateOnly(monthStart))
-    .eq('data_fim', dateOnly(monthEnd));
+    .lte('data_inicio', dateOnly(monthEnd))
+    .gte('data_fim', dateOnly(monthStart));
   const investimentoMes = (invRows ?? []).reduce((s, r: any) => s + Number(r.valor || 0), 0);
 
-  // Evasão % manual e CAC manual
+  // Evasão % manual e CAC (calculado a partir do investimento e das matrículas do mês)
   const evasaoPctMes = Number(meta?.evasao_pct_manual ?? 0);
-  const cac = meta?.cac_manual ? Number(meta.cac_manual) : null;
+  const cacManual = meta?.cac_manual ? Number(meta.cac_manual) : null;
+  const cacCalculado = investimentoMes > 0 && matriculasMes > 0
+    ? Math.round((investimentoMes / matriculasMes) * 100) / 100
+    : null;
+  const cac = cacCalculado ?? cacManual;
+
 
   const capacidade = meta?.capacidade_alunos ?? 0;
   const ocupacaoPct = capacidade > 0 ? Math.round(((alunosAtivos ?? 0) / capacidade) * 100) : 0;
