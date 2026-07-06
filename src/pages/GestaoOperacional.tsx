@@ -361,6 +361,11 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
             action={!editingTicket && <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditingTicket(true)}>Editar</Button>}
           />
           <MiniMetric
+            label="Investimento tráfego"
+            value={fmtBRL(k.investimento_mes)}
+            sub={k.matriculas_mes > 0 ? `${k.matriculas_mes} matrículas no mês` : 'sem matrículas no mês'}
+          />
+          <MiniMetric
             label="CAC"
             value={editingCac ? (
               <div className="flex items-center gap-1 w-full">
@@ -370,9 +375,14 @@ function UnidadeCard({ k, onRefetch }: { k: UnidadeKPIs; onRefetch: () => void }
                 </Button>
               </div>
             ) : (k.cac !== null ? fmtBRL(k.cac) : '—')}
-            sub="informado manualmente"
+            sub={
+              k.cac_calculado !== null
+                ? `auto: ${fmtBRL(k.investimento_mes)} ÷ ${k.matriculas_mes}`
+                : (k.cac_manual !== null ? 'informado manualmente' : 'sem dados')
+            }
             action={!editingCac && <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditingCac(true)}>Editar</Button>}
           />
+
 
         </SubSection>
 
