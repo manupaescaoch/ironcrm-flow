@@ -97,6 +97,33 @@ export default function DashboardExecutivo() {
     }
   };
 
+  // Month options (últimos 12 meses + próximos 2)
+  const monthOptions = useMemo(() => {
+    const opts: { value: string; label: string; date: Date }[] = [];
+    const base = startOfMonth(new Date());
+    for (let i = -2; i <= 12; i++) {
+      const d = subMonths(base, i);
+      opts.push({
+        value: format(d, 'yyyy-MM'),
+        label: format(d, "MMMM 'de' yyyy", { locale: ptBR }),
+        date: d,
+      });
+    }
+    return opts;
+  }, []);
+  const monthValue = useMemo(() => {
+    // Só reflete no seletor de mês quando início e fim cobrem exatamente 1 mês
+    const start = new Date(dataInicio + 'T00:00:00');
+    const end = new Date(dataFim + 'T00:00:00');
+    const monthStart = startOfMonth(start);
+    const monthEnd = endOfMonth(start);
+    const isFullMonth =
+      format(start, 'yyyy-MM-dd') === format(monthStart, 'yyyy-MM-dd') &&
+      format(end, 'yyyy-MM-dd') === format(monthEnd, 'yyyy-MM-dd');
+    return isFullMonth ? format(start, 'yyyy-MM') : '';
+  }, [dataInicio, dataFim]);
+
+
   // Data fetching
   const { leads, interacoes, loading, fetchData } = useExecutivoData();
   
