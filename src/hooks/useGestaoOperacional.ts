@@ -63,16 +63,17 @@ export interface SeriesPoint {
 const monday = (d: Date) => startOfWeek(d, { weekStartsOn: 1 });
 const sunday = (d: Date) => endOfWeek(d, { weekStartsOn: 1 });
 
-async function fetchUnidadeKPIs(unidade_id: string, unidade_nome: string, meta: MetaUnidade | null): Promise<UnidadeKPIs> {
+async function fetchUnidadeKPIs(unidade_id: string, unidade_nome: string, meta: MetaUnidade | null, refDate: Date): Promise<UnidadeKPIs> {
   const now = new Date();
   const wkStart = monday(now);
   const wkEnd = sunday(now);
   const prevStart = monday(subWeeks(now, 1));
   const prevEnd = sunday(subWeeks(now, 1));
-  const monthStart = startOfMonth(now);
-  const monthEnd = endOfMonth(now);
-  const prevMonthStart = startOfMonth(subWeeks(now, 4));
-  const prevMonthEnd = endOfMonth(subWeeks(now, 4));
+  const monthStart = startOfMonth(refDate);
+  const monthEnd = endOfMonth(refDate);
+  const prevMonthStart = startOfMonth(subMonths(refDate, 1));
+  const prevMonthEnd = endOfMonth(subMonths(refDate, 1));
+
 
   const iso = (d: Date) => d.toISOString();
   const dateOnly = (d: Date) => format(d, 'yyyy-MM-dd');
