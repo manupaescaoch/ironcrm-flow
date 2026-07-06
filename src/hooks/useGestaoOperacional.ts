@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { startOfWeek, endOfWeek, subWeeks, startOfMonth, endOfMonth, format } from 'date-fns';
+import { startOfWeek, endOfWeek, subWeeks, startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
+
 
 export interface MetaUnidade {
   id: string;
