@@ -1,40 +1,65 @@
-// Helpers compartilhados para envios via Z-API com proteções anti-bloqueio.
-// Suporta duas instâncias: 'comercial' (leads/alunos) e 'operacional' (equipe interna).
+// Helpers compartilhados para envios de WhatsApp com proteções anti-bloqueio.
+// Suporta dois canais: 'comercial' (leads/alunos, Z-API) e 'operacional' (equipe interna).
+//
+// O canal 'operacional' é roteado automaticamente para D-API quando as variáveis
+// DAPI_API_KEY e DAPI_SESSION_ID estão configuradas. Caso contrário, cai no Z-API
+// legado. Assim, todas as edge functions existentes continuam usando a mesma
+// interface (getZapiCreds, sendText, phoneExists, checkZapiStatus, logEnvio).
 
 export const RATE_LIMIT_MS = 10000; // 10s entre envios — mais seguro para evitar bloqueios do chip.
 
 export type ZapiChannel = 'comercial' | 'operacional';
+export type Provider = 'zapi' | 'dapi';
 
 export interface ZapiCreds {
+  provider: Provider;
+  channel: ZapiChannel;
+  // Z-API
   instanceId: string;
   token: string;
   clientToken: string;
-  channel: ZapiChannel;
+  // D-API
+  apiKey?: string;
+  sessionId?: string;
 }
 
+const DAPI_BASE = 'https://api.d-api.cloud';
+
 /**
- * Resolve credenciais Z-API por canal.
- * - 'comercial'   → ZAPI_COMERCIAL_*   (fallback: ZAPI_*)
- * - 'operacional' → ZAPI_OPERACIONAL_* (fallback: ZAPI_*)
- * O fallback evita downtime durante a migração; será removido em fase posterior.
+ * Resolve credenciais WhatsApp por canal.
+ * - 'comercial'   → Z-API (ZAPI_COMERCIAL_*, fallback ZAPI_*)
+ * - 'operacional' → D-API (DAPI_*) se configurada, senão Z-API (ZAPI_OPERACIONAL_* / ZAPI_*)
  */
 export function getZapiCreds(channel: ZapiChannel = 'operacional'): ZapiCreds | null {
+  if (channel === 'operacional') {
+    const apiKey = Deno.env.get('DAPI_API_KEY');
+    const sessionId = Deno.env.get('DAPI_SESSION_ID');
+    if (apiKey && sessionId) {
+      return {
+        provider: 'dapi',
+        channel,
+        apiKey,
+        sessionId,
+        instanceId: sessionId, // compat p/ logs
+        token: '',
+        clientToken: '',
+      };
+    }
+  }
+
   const prefix = channel === 'comercial' ? 'ZAPI_COMERCIAL_' : 'ZAPI_OPERACIONAL_';
-  
-  // Ordem de preferência: 
-  // 1. Variável específica do canal (ZAPI_COMERCIAL_INSTANCE_ID ou ZAPI_OPERACIONAL_INSTANCE_ID)
-  // 2. Variável genérica (ZAPI_INSTANCE_ID) - legado
   const instanceId = Deno.env.get(prefix + 'INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID');
   const token = Deno.env.get(prefix + 'TOKEN') ?? Deno.env.get('ZAPI_TOKEN');
   const clientToken = Deno.env.get(prefix + 'CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN') ?? '';
 
   if (!instanceId || !token) return null;
-  return { instanceId, token, clientToken, channel };
+  return { provider: 'zapi', channel, instanceId, token, clientToken };
 }
 
 /**
- * Retorna lista de instanceIds esperados para validação de webhooks
+ * Retorna lista de instanceIds esperados para validação de webhooks Z-API
  * (aceita qualquer uma das duas instâncias configuradas + legacy).
+ * Nota: webhooks D-API têm formato próprio e não passam por esta validação.
  */
 export function getExpectedInstanceIds(): { id: string; channel: ZapiChannel | 'legacy' }[] {
   const out: { id: string; channel: ZapiChannel | 'legacy' }[] = [];
@@ -51,8 +76,31 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+function dapiHeaders(creds: ZapiCreds): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: creds.apiKey ?? '',
+  };
+}
+
 export async function checkZapiStatus(creds: ZapiCreds): Promise<{ connected: boolean; raw: any }> {
   try {
+    if (creds.provider === 'dapi') {
+      const url = `${DAPI_BASE}/api/v1/sessions/${creds.sessionId}`;
+      const resp = await fetch(url, { headers: dapiHeaders(creds) });
+      const raw = await resp.json().catch(() => ({}));
+      // Considera conectado quando a sessão retorna status "connected"/"WORKING"/status truthy.
+      const status = String(raw?.status ?? raw?.data?.status ?? '').toLowerCase();
+      const connected =
+        resp.ok &&
+        (status === 'connected' ||
+          status === 'working' ||
+          status === 'authenticated' ||
+          raw?.connected === true ||
+          raw?.data?.connected === true);
+      return { connected, raw };
+    }
+
     const url = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}/status`;
     const resp = await fetch(url, { headers: { 'Client-Token': creds.clientToken } });
     const raw = await resp.json().catch(() => ({}));
@@ -82,6 +130,34 @@ export async function lookupWhatsAppPhone(
   phone: string,
 ): Promise<{ exists: boolean | null; phone: string | null; raw: any }> {
   try {
+    if (creds.provider === 'dapi') {
+      const url = `${DAPI_BASE}/api/v1/contacts/check`;
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: dapiHeaders(creds),
+        body: JSON.stringify({ sessionId: creds.sessionId, numbers: [phone] }),
+      });
+      if (!resp.ok) return { exists: null, phone: null, raw: null };
+      const raw = await resp.json().catch(() => ({}));
+      const arr: any[] = raw?.data ?? raw?.results ?? raw?.numbers ?? (Array.isArray(raw) ? raw : []);
+      const item = Array.isArray(arr) ? arr[0] : null;
+      const exists =
+        typeof item?.exists === 'boolean'
+          ? item.exists
+          : typeof item?.isRegistered === 'boolean'
+            ? item.isRegistered
+            : typeof item?.registered === 'boolean'
+              ? item.registered
+              : null;
+      const outPhone =
+        typeof item?.phone === 'string'
+          ? item.phone.replace(/\D/g, '')
+          : typeof item?.number === 'string'
+            ? item.number.replace(/\D/g, '')
+            : null;
+      return { exists, phone: outPhone, raw };
+    }
+
     const url = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}/phone-exists/${phone}`;
     const resp = await fetch(url, { headers: { 'Client-Token': creds.clientToken } });
     if (!resp.ok) {
@@ -103,6 +179,17 @@ export async function sendText(
   phone: string,
   message: string,
 ): Promise<{ ok: boolean; status: number; body: any }> {
+  if (creds.provider === 'dapi') {
+    const url = `${DAPI_BASE}/api/v1/messages/send/text`;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: dapiHeaders(creds),
+      body: JSON.stringify({ sessionId: creds.sessionId, to: phone, text: message }),
+    });
+    const body = await resp.json().catch(() => ({}));
+    return { ok: resp.ok, status: resp.status, body };
+  }
+
   const url = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}/send-text`;
   const resp = await fetch(url, {
     method: 'POST',
