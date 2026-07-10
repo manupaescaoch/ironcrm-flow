@@ -222,12 +222,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verificar quais já foram enviadas hoje (para não duplicar)
+    // Verificar quais já foram enviadas COM SUCESSO hoje (para não duplicar).
+    // Registros com status='erro' NÃO bloqueiam — permitem nova tentativa.
     const atividadeIds = atividadesNaJanela.map(a => a.id);
     const { data: enviosHoje } = await supabase
       .from('cronograma_envios')
       .select('atividade_id, funcionario_id')
       .in('atividade_id', atividadeIds)
+      .eq('status', 'enviado')
       .gte('created_at', todayStr + 'T00:00:00-03:00')
       .lte('created_at', todayStr + 'T23:59:59-03:00');
 
