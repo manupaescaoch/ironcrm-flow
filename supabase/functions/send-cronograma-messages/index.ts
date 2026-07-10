@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
-import { checkZapiStatus, getZapiCreds, lookupWhatsAppPhone } from '../_shared/zapi.ts';
+import { checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendText } from '../_shared/zapi.ts';
 import { maybeSendZapiOfflineAlert } from '../_shared/zapi-alert.ts';
 
 
@@ -78,13 +78,24 @@ function generateGradeMessage(params: { nome: string; unidade: string; horario: 
   return msg;
 }
 
-async function resolveSendPhone(creds: NonNullable<ReturnType<typeof getZapiCreds>>, rawPhone: string): Promise<string> {
+// Retorna o telefone canônico (aquele que o WhatsApp reconhece), ou null se o
+// número não existir no WhatsApp. Preserva a resposta bruta do provedor para log.
+async function resolveSendPhone(
+  creds: NonNullable<ReturnType<typeof getZapiCreds>>,
+  rawPhone: string,
+): Promise<{ phone: string | null; exists: boolean | null; raw: unknown }> {
   const normalized = normalizePhone(rawPhone);
   const lookup = await lookupWhatsAppPhone(creds, normalized);
-  if (lookup.exists && lookup.phone) {
-    return lookup.phone;
+  if (lookup.exists === false) {
+    return { phone: null, exists: false, raw: lookup.raw };
   }
-  return normalized;
+  // Se existe, usa o phone canônico retornado (JID sem @, sem o "9" quando aplicável).
+  // Caso o provedor não devolva phone canônico, cai no normalizado como último recurso.
+  return {
+    phone: (lookup.exists && lookup.phone) ? lookup.phone : normalized,
+    exists: lookup.exists,
+    raw: lookup.raw,
+  };
 }
 
 /**
@@ -282,8 +293,29 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const normalizedPhone = await resolveSendPhone(creds, resp.telefone);
+      const lookupResult = await resolveSendPhone(creds, resp.telefone);
+      const normalizedPhone = lookupResult.phone;
       const unidadeNome = unidadeMap.get(atividade.unidade_id) || 'Unidade';
+
+      // Se o número NÃO existe no WhatsApp, registra como nao_encontrado e pula (não é retentável).
+      if (lookupResult.exists === false || !normalizedPhone) {
+        console.error(`[send-cronograma] ⚠️ Número sem WhatsApp: ${resp.nome} (${resp.telefone})`);
+        await supabase.from('whatsapp_envios_log').insert({
+          funcao: 'send-cronograma-messages',
+          destino: normalizePhone(resp.telefone),
+          tipo_destino: 'funcionario',
+          unidade_id: atividade.unidade_id,
+          sucesso: false,
+          status_envio: 'nao_encontrado',
+          erro_msg: 'Número não registrado no WhatsApp (lookup)',
+          resposta_completa: lookupResult.raw ?? null,
+          zapi_status_code: null,
+        });
+        // NÃO grava em cronograma_envios → não bloqueia futuras execuções, mas também
+        // não fica tentando eternamente porque o número simplesmente não tem WhatsApp.
+        errors.push(`Número inexistente: ${resp.nome} - ${atividade.titulo}`);
+        continue;
+      }
 
       // Montar a mensagem
       let message = '';
@@ -350,17 +382,15 @@ Deno.serve(async (req) => {
           tipo_destino: 'funcionario',
           unidade_id: atividade.unidade_id,
           sucesso: false,
-          erro_msg: `status inválido da Z-API: ${JSON.stringify(zapiStatusData || {})}`,
+          status_envio: 'falhou',
+          erro_msg: `provedor offline: ${JSON.stringify(zapiStatusData || {})}`,
+          resposta_completa: zapiStatusData ?? null,
           zapi_status_code: null,
         });
-        errors.push(`Z-API offline/inconsistente: ${resp.nome} - ${atividade.titulo}`);
+        errors.push(`Provedor offline: ${resp.nome} - ${atividade.titulo}`);
         offlineErrorCount++;
         continue;
       }
-
-
-
-      const zapiUrl = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}/send-text`;
 
       // Rate limit: aguarda 10s entre envios sequenciais (não no primeiro)
       if (!isFirstSend) {
@@ -369,54 +399,88 @@ Deno.serve(async (req) => {
       isFirstSend = false;
 
       try {
-        const zapiResponse = await fetch(zapiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Client-Token': creds.clientToken || '',
-          },
-          body: JSON.stringify({
-            phone: normalizedPhone,
-            message,
-          }),
-        });
+        // Usa helper compartilhado — roteia automaticamente para D-API ou Z-API.
+        const sendResult = await sendText(creds, normalizedPhone, message);
+        const body = sendResult.body ?? {};
 
-        const zapiResult = await zapiResponse.json();
+        // Detecção de sucesso por provedor:
+        //   D-API   → body.success === true (e sem body.error)
+        //   Z-API   → HTTP ok + messageId presente + sem error
+        let reallyOk = false;
+        let statusEnvio: 'enviado' | 'falhou' | 'nao_encontrado' = 'falhou';
+        let erroMsg: string | null = null;
 
-        // Z-API só confirma entrega real quando retorna messageId. Sem messageId = falha (mesmo com HTTP 200).
-        const messageId = zapiResult?.messageId || zapiResult?.id || null;
-        const zapiError = zapiResult?.error || (typeof zapiResult?.message === 'string' ? zapiResult.message : null);
-        const reallyOk = zapiResponse.ok && !!messageId && !zapiError;
+        if (creds.provider === 'dapi') {
+          reallyOk = sendResult.ok && body?.success === true && !body?.error;
+          const raw = String(body?.message ?? body?.error ?? '');
+          if (!reallyOk) {
+            erroMsg = body?.message || body?.error || `HTTP ${sendResult.status}`;
+            // "server returned error 463" = JID inválido / número sem WhatsApp para este JID
+            if (/error 463/i.test(raw) || /not.?found/i.test(raw) || /not registered/i.test(raw)) {
+              statusEnvio = 'nao_encontrado';
+            }
+          } else {
+            statusEnvio = 'enviado';
+          }
+        } else {
+          const messageId = body?.messageId || body?.id || null;
+          const zapiError = body?.error || (typeof body?.message === 'string' ? body.message : null);
+          reallyOk = sendResult.ok && !!messageId && !zapiError;
+          if (!reallyOk) {
+            erroMsg = zapiError || `sem messageId (HTTP ${sendResult.status})`;
+            if (typeof zapiError === 'string' && /not.?found|not registered/i.test(zapiError)) {
+              statusEnvio = 'nao_encontrado';
+            }
+          } else {
+            statusEnvio = 'enviado';
+          }
+        }
 
-        await supabase.from('cronograma_envios').insert({
-          atividade_id: atividade.id,
-          formulario_id: atividade.formulario_id || null,
-          funcionario_id: funcionarioId,
-          unidade_id: atividade.unidade_id,
-          status: reallyOk ? 'enviado' : 'erro',
-          enviado_em: new Date().toISOString(),
-        });
+        // Só grava cronograma_envios em caso de SUCESSO real (bloqueia duplicidade).
+        // Falhas permanecem retentáveis na próxima execução do cron.
+        if (reallyOk) {
+          await supabase.from('cronograma_envios').insert({
+            atividade_id: atividade.id,
+            formulario_id: atividade.formulario_id || null,
+            funcionario_id: funcionarioId,
+            unidade_id: atividade.unidade_id,
+            status: 'enviado',
+            enviado_em: new Date().toISOString(),
+          });
+        }
 
-        // Log centralizado p/ painel /admin/whatsapp-comercial
         await supabase.from('whatsapp_envios_log').insert({
           funcao: 'send-cronograma-messages',
           destino: normalizedPhone,
           tipo_destino: 'funcionario',
           unidade_id: atividade.unidade_id,
           sucesso: reallyOk,
-          erro_msg: reallyOk ? null : (zapiError || `sem messageId (HTTP ${zapiResponse.status})`),
-          zapi_status_code: zapiResponse.status,
+          status_envio: statusEnvio,
+          erro_msg: erroMsg,
+          resposta_completa: body,
+          zapi_status_code: sendResult.status,
         });
 
         if (reallyOk) {
           sentCount++;
-          console.log(`[send-cronograma] ✅ Enviado para ${resp.nome} messageId=${messageId}`);
+          console.log(`[send-cronograma] ✅ Enviado para ${resp.nome} (${statusEnvio})`);
         } else {
-          console.error(`[send-cronograma] ❌ Z-API NÃO entregou para ${resp.nome}:`, zapiResult);
-          errors.push(`Z-API erro: ${resp.nome} - ${atividade.titulo} - ${zapiError || 'sem messageId'}`);
+          console.error(`[send-cronograma] ❌ Falha (${statusEnvio}) para ${resp.nome}:`, body);
+          errors.push(`${statusEnvio}: ${resp.nome} - ${atividade.titulo} - ${erroMsg || 'sem detalhe'}`);
         }
       } catch (err) {
         console.error(`[send-cronograma] ❌ Erro ao enviar para ${resp.nome}:`, err);
+        await supabase.from('whatsapp_envios_log').insert({
+          funcao: 'send-cronograma-messages',
+          destino: normalizedPhone,
+          tipo_destino: 'funcionario',
+          unidade_id: atividade.unidade_id,
+          sucesso: false,
+          status_envio: 'falhou',
+          erro_msg: String((err as Error)?.message ?? err),
+          resposta_completa: null,
+          zapi_status_code: null,
+        });
         errors.push(`Erro envio: ${resp.nome} - ${atividade.titulo}`);
       }
     }

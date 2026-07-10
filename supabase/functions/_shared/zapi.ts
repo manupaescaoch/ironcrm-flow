@@ -140,22 +140,30 @@ export async function lookupWhatsAppPhone(
       });
       if (!resp.ok) return { exists: null, phone: null, raw: null };
       const raw = await resp.json().catch(() => ({}));
-      const arr: any[] = raw?.data ?? raw?.results ?? raw?.numbers ?? (Array.isArray(raw) ? raw : []);
+      // D-API retorna: { success, users: [{ jid, isWhatsApp, query, ... }] }
+      const arr: any[] = raw?.users ?? raw?.data ?? raw?.results ?? raw?.numbers
+        ?? (Array.isArray(raw) ? raw : []);
       const item = Array.isArray(arr) ? arr[0] : null;
       const exists =
-        typeof item?.exists === 'boolean'
-          ? item.exists
-          : typeof item?.isRegistered === 'boolean'
-            ? item.isRegistered
-            : typeof item?.registered === 'boolean'
-              ? item.registered
-              : null;
-      const outPhone =
-        typeof item?.phone === 'string'
-          ? item.phone.replace(/\D/g, '')
-          : typeof item?.number === 'string'
-            ? item.number.replace(/\D/g, '')
-            : null;
+        typeof item?.isWhatsApp === 'boolean'
+          ? item.isWhatsApp
+          : typeof item?.exists === 'boolean'
+            ? item.exists
+            : typeof item?.isRegistered === 'boolean'
+              ? item.isRegistered
+              : typeof item?.registered === 'boolean'
+                ? item.registered
+                : null;
+      // JID vem como "558194249453@s.whatsapp.net" — extrai apenas os dígitos.
+      // Isso é essencial no Brasil, pois o nono dígito (9) só existe em registros novos:
+      // números antigos são registrados no WhatsApp SEM o 9, e enviar com o 9 causa
+      // erro 463 (JID inválido). Sempre usamos o phone canônico devolvido pelo próprio JID.
+      const jidPhone = typeof item?.jid === 'string'
+        ? item.jid.split('@')[0].split(':')[0].replace(/\D/g, '')
+        : null;
+      const outPhone = jidPhone
+        || (typeof item?.phone === 'string' ? item.phone.replace(/\D/g, '') : null)
+        || (typeof item?.number === 'string' ? item.number.replace(/\D/g, '') : null);
       return { exists, phone: outPhone, raw };
     }
 
@@ -211,6 +219,10 @@ export interface LogPayload {
   zapi_status_code?: number | null;
   motivo_skip?: string | null;
   canal?: ZapiChannel | null;
+  // Status normalizado para diagnóstico: 'enviado' | 'falhou' | 'nao_encontrado'
+  status_envio?: 'enviado' | 'falhou' | 'nao_encontrado' | null;
+  // Resposta bruta do provedor (D-API ou Z-API) para debug preciso
+  resposta_completa?: unknown;
 }
 
 export async function logEnvio(supabase: any, p: LogPayload): Promise<void> {

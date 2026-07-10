@@ -3222,6 +3222,8 @@ export type Database = {
           funcao: string
           id: string
           motivo_skip: string | null
+          resposta_completa: Json | null
+          status_envio: string | null
           sucesso: boolean
           tipo_destino: string | null
           unidade_id: string | null
@@ -3235,6 +3237,8 @@ export type Database = {
           funcao: string
           id?: string
           motivo_skip?: string | null
+          resposta_completa?: Json | null
+          status_envio?: string | null
           sucesso?: boolean
           tipo_destino?: string | null
           unidade_id?: string | null
@@ -3248,6 +3252,8 @@ export type Database = {
           funcao?: string
           id?: string
           motivo_skip?: string | null
+          resposta_completa?: Json | null
+          status_envio?: string | null
           sucesso?: boolean
           tipo_destino?: string | null
           unidade_id?: string | null
