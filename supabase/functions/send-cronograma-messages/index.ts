@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
-import { checkZapiStatus, getZapiCreds, lookupWhatsAppPhone } from '../_shared/zapi.ts';
+import { checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendText } from '../_shared/zapi.ts';
 import { maybeSendZapiOfflineAlert } from '../_shared/zapi-alert.ts';
 
 
