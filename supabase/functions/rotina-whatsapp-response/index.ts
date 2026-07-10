@@ -270,23 +270,25 @@ Deno.serve(async (req) => {
     }
   }
 
-  const messageId = payload.messageId || payload.zaapId || null;
-  const instanceId = payload.instanceId || null;
+  const evt = normalizeEvent(payload);
+  const messageId = evt.messageId;
+  const instanceId = evt.instanceId;
   // Identifica o canal de origem comparando contra as instâncias aceitas (constant-time).
   const matchedInstance = instanceId
-    ? acceptedInstances.find((x) => constantTimeEqual(x.id, instanceId))
+    ? acceptedInstances.find((x) => x.id.length === instanceId.length && constantTimeEqual(x.id, instanceId))
     : undefined;
   const canalOrigem: 'comercial' | 'operacional' | 'legacy' | null =
     matchedInstance?.canal ?? null;
-  const senderPhone = normalizePhone(payload.phone || payload.chatId || payload.from || '');
+  const senderPhone = evt.phone;
   const telefoneMascarado = senderPhone ? maskPhone(senderPhone) : null;
   const payloadResumo = {
-    type: payload.type ?? null,
-    msgStatus: payload.status ?? null,
-    fromMe: payload.fromMe ?? null,
-    isGroup: payload.isGroup ?? null,
-    hasButton: !!(payload.buttonsResponseMessage || payload.buttonResponseMessage),
-    hasText: !!(payload.text?.message || payload.message || payload.body),
+    type: evt.msgType,
+    msgStatus: evt.msgStatus,
+    fromMe: evt.fromMe,
+    isGroup: evt.isGroup,
+    hasButton: evt.hasButton,
+    hasText: !!evt.text,
+    source: evt.source,
     canalOrigem,
   };
   const baseAudit = {
