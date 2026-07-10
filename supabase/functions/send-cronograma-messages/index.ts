@@ -78,13 +78,24 @@ function generateGradeMessage(params: { nome: string; unidade: string; horario: 
   return msg;
 }
 
-async function resolveSendPhone(creds: NonNullable<ReturnType<typeof getZapiCreds>>, rawPhone: string): Promise<string> {
+// Retorna o telefone canônico (aquele que o WhatsApp reconhece), ou null se o
+// número não existir no WhatsApp. Preserva a resposta bruta do provedor para log.
+async function resolveSendPhone(
+  creds: NonNullable<ReturnType<typeof getZapiCreds>>,
+  rawPhone: string,
+): Promise<{ phone: string | null; exists: boolean | null; raw: unknown }> {
   const normalized = normalizePhone(rawPhone);
   const lookup = await lookupWhatsAppPhone(creds, normalized);
-  if (lookup.exists && lookup.phone) {
-    return lookup.phone;
+  if (lookup.exists === false) {
+    return { phone: null, exists: false, raw: lookup.raw };
   }
-  return normalized;
+  // Se existe, usa o phone canônico retornado (JID sem @, sem o "9" quando aplicável).
+  // Caso o provedor não devolva phone canônico, cai no normalizado como último recurso.
+  return {
+    phone: (lookup.exists && lookup.phone) ? lookup.phone : normalized,
+    exists: lookup.exists,
+    raw: lookup.raw,
+  };
 }
 
 /**
