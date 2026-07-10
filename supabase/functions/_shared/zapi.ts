@@ -89,15 +89,16 @@ export async function checkZapiStatus(creds: ZapiCreds): Promise<{ connected: bo
       const url = `${DAPI_BASE}/api/v1/sessions/${creds.sessionId}`;
       const resp = await fetch(url, { headers: dapiHeaders(creds) });
       const raw = await resp.json().catch(() => ({}));
-      // Considera conectado quando a sessão retorna status "connected"/"WORKING"/status truthy.
-      const status = String(raw?.status ?? raw?.data?.status ?? '').toLowerCase();
-      const connected =
-        resp.ok &&
-        (status === 'connected' ||
-          status === 'working' ||
-          status === 'authenticated' ||
-          raw?.connected === true ||
-          raw?.data?.connected === true);
+      // D-API não padroniza um único campo de status. Aceita como saudável
+      // qualquer resposta HTTP 2xx que não indique desconexão explícita.
+      const status = String(raw?.status ?? raw?.data?.status ?? raw?.session?.status ?? '').toLowerCase();
+      const explicitlyDown =
+        status === 'disconnected' ||
+        status === 'offline' ||
+        status === 'stopped' ||
+        raw?.connected === false ||
+        raw?.data?.connected === false;
+      const connected = resp.ok && !explicitlyDown;
       return { connected, raw };
     }
 
