@@ -293,8 +293,29 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const normalizedPhone = await resolveSendPhone(creds, resp.telefone);
+      const lookupResult = await resolveSendPhone(creds, resp.telefone);
+      const normalizedPhone = lookupResult.phone;
       const unidadeNome = unidadeMap.get(atividade.unidade_id) || 'Unidade';
+
+      // Se o número NÃO existe no WhatsApp, registra como nao_encontrado e pula (não é retentável).
+      if (lookupResult.exists === false || !normalizedPhone) {
+        console.error(`[send-cronograma] ⚠️ Número sem WhatsApp: ${resp.nome} (${resp.telefone})`);
+        await supabase.from('whatsapp_envios_log').insert({
+          funcao: 'send-cronograma-messages',
+          destino: normalizePhone(resp.telefone),
+          tipo_destino: 'funcionario',
+          unidade_id: atividade.unidade_id,
+          sucesso: false,
+          status_envio: 'nao_encontrado',
+          erro_msg: 'Número não registrado no WhatsApp (lookup)',
+          resposta_completa: lookupResult.raw ?? null,
+          zapi_status_code: null,
+        });
+        // NÃO grava em cronograma_envios → não bloqueia futuras execuções, mas também
+        // não fica tentando eternamente porque o número simplesmente não tem WhatsApp.
+        errors.push(`Número inexistente: ${resp.nome} - ${atividade.titulo}`);
+        continue;
+      }
 
       // Montar a mensagem
       let message = '';
