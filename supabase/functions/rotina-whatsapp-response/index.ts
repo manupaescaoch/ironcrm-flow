@@ -507,28 +507,17 @@ Deno.serve(async (req) => {
       autorizado: true, motivoBloqueio: null, authMethod,
     });
 
-    // Confirmação best-effort — sempre pela instância OPERACIONAL (canal de equipe).
-    const opInstance =
-      Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID');
-    const ZAPI_TOKEN =
-      Deno.env.get('ZAPI_OPERACIONAL_TOKEN') ?? Deno.env.get('ZAPI_TOKEN');
-    const ZAPI_CLIENT_TOKEN =
-      Deno.env.get('ZAPI_OPERACIONAL_CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN');
-    if (opInstance && ZAPI_TOKEN) {
-      const confirmMessage = concluida
-        ? `✅ *Rotina concluída*\n\n🔹 *${rotina.nome}*\n👤 *Registrado por:* ${matchedUserName}`
-        : `⚠️ *Rotina não realizada*\n\n🔹 *${rotina.nome}*\n👤 *Registrado por:* ${matchedUserName}`;
-      const zapiUrl = `https://api.z-api.io/instances/${opInstance}/token/${ZAPI_TOKEN}/send-text`;
-
-      try {
-        await fetch(zapiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_CLIENT_TOKEN || '' },
-          body: JSON.stringify({ phone: senderPhone, message: confirmMessage }),
-        });
-      } catch (err) {
-        console.error('[rotina-response] Erro confirmação:', err);
+    // Confirmação best-effort — canal OPERACIONAL (D-API se configurada, senão Z-API legado).
+    try {
+      const creds = getZapiCreds('operacional');
+      if (creds) {
+        const confirmMessage = concluida
+          ? `✅ *Rotina concluída*\n\n🔹 *${rotina.nome}*\n👤 *Registrado por:* ${matchedUserName}`
+          : `⚠️ *Rotina não realizada*\n\n🔹 *${rotina.nome}*\n👤 *Registrado por:* ${matchedUserName}`;
+        await sendText(creds, senderPhone, confirmMessage);
       }
+    } catch (err) {
+      console.error('[rotina-response] Erro confirmação:', err);
     }
 
     return new Response(
