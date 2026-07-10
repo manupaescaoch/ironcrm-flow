@@ -219,6 +219,10 @@ export interface LogPayload {
   zapi_status_code?: number | null;
   motivo_skip?: string | null;
   canal?: ZapiChannel | null;
+  // Status normalizado para diagnóstico: 'enviado' | 'falhou' | 'nao_encontrado'
+  status_envio?: 'enviado' | 'falhou' | 'nao_encontrado' | null;
+  // Resposta bruta do provedor (D-API ou Z-API) para debug preciso
+  resposta_completa?: unknown;
 }
 
 export async function logEnvio(supabase: any, p: LogPayload): Promise<void> {
