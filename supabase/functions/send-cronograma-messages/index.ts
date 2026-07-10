@@ -465,11 +465,22 @@ Deno.serve(async (req) => {
           sentCount++;
           console.log(`[send-cronograma] ✅ Enviado para ${resp.nome} (${statusEnvio})`);
         } else {
-          console.error(`[send-cronograma] ❌ Z-API NÃO entregou para ${resp.nome}:`, zapiResult);
-          errors.push(`Z-API erro: ${resp.nome} - ${atividade.titulo} - ${zapiError || 'sem messageId'}`);
+          console.error(`[send-cronograma] ❌ Falha (${statusEnvio}) para ${resp.nome}:`, body);
+          errors.push(`${statusEnvio}: ${resp.nome} - ${atividade.titulo} - ${erroMsg || 'sem detalhe'}`);
         }
       } catch (err) {
         console.error(`[send-cronograma] ❌ Erro ao enviar para ${resp.nome}:`, err);
+        await supabase.from('whatsapp_envios_log').insert({
+          funcao: 'send-cronograma-messages',
+          destino: normalizedPhone,
+          tipo_destino: 'funcionario',
+          unidade_id: atividade.unidade_id,
+          sucesso: false,
+          status_envio: 'falhou',
+          erro_msg: String((err as Error)?.message ?? err),
+          resposta_completa: null,
+          zapi_status_code: null,
+        });
         errors.push(`Erro envio: ${resp.nome} - ${atividade.titulo}`);
       }
     }
