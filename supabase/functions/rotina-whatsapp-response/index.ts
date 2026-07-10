@@ -219,15 +219,20 @@ Deno.serve(async (req) => {
   }
 
   // CAMADA 0 — config fail-closed.
-  // Aceita as 3 fontes possíveis de instância: comercial, operacional ou legacy.
+  // Aceita as instâncias possíveis: Z-API comercial, Z-API operacional, Z-API legacy,
+  // e o sessionId da D-API (canal operacional atual).
   const instanceComercial = Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID') || '';
   const instanceOperacional = Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') || '';
   const instanceLegacy = Deno.env.get('ZAPI_INSTANCE_ID') || '';
+  const dapiSessionId = Deno.env.get('DAPI_SESSION_ID') || '';
   const acceptedInstances: { id: string; canal: 'comercial' | 'operacional' | 'legacy' }[] = [];
   if (instanceComercial) acceptedInstances.push({ id: instanceComercial, canal: 'comercial' });
   if (instanceOperacional) acceptedInstances.push({ id: instanceOperacional, canal: 'operacional' });
   if (instanceLegacy && !acceptedInstances.find((x) => x.id === instanceLegacy)) {
     acceptedInstances.push({ id: instanceLegacy, canal: 'legacy' });
+  }
+  if (dapiSessionId && !acceptedInstances.find((x) => x.id === dapiSessionId)) {
+    acceptedInstances.push({ id: dapiSessionId, canal: 'operacional' });
   }
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
