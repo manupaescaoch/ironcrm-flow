@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { z } from 'https://esm.sh/zod@3.23.8';
+import { getZapiCreds, sendText } from '../_shared/zapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,18 +41,46 @@ function normalizeText(s: string): string {
     .trim();
 }
 
-// Schema: aceita formato real Z-API. Não aceita rotina_id/status no payload.
+// Schema aceita:
+//  - Z-API (campos flat: instanceId, phone, text.message, buttonsResponseMessage, ...)
+//  - D-API (event="messages.received", sessionId, data:{ id, message, fromMe, is_group,
+//    from:{ jid }, data:{ selected_display_text, selected_id, selected_title, selected_row_id } })
+// Não aceita rotina_id/status no payload.
+const DapiInnerData = z.object({
+  selected_id: z.string().max(200).optional(),
+  selected_display_text: z.string().max(400).optional(),
+  selected_title: z.string().max(400).optional(),
+  selected_row_id: z.string().max(200).optional(),
+  description: z.string().max(400).optional(),
+}).passthrough().optional();
+
+const DapiData = z.object({
+  id: z.string().max(200).optional(),
+  type: z.string().max(60).optional(),
+  message: z.string().max(4000).optional(),
+  fromMe: z.boolean().optional(),
+  is_group: z.boolean().optional(),
+  from_name: z.string().max(200).optional(),
+  from: z.object({
+    jid: z.string().max(120).optional(),
+    lid: z.string().max(120).optional(),
+    name: z.string().max(200).optional(),
+  }).passthrough().optional(),
+  data: DapiInnerData,
+}).passthrough().optional();
+
 const PayloadSchema = z.object({
+  // Z-API
   instanceId: z.string().max(80).optional(),
   messageId: z.string().max(120).optional(),
   zaapId: z.string().max(120).optional(),
   phone: z.string().max(40).optional(),
   chatId: z.string().max(80).optional(),
-  from: z.string().max(80).optional(),
+  from: z.union([z.string().max(80), z.object({}).passthrough()]).optional(),
   fromMe: z.boolean().optional(),
   isGroup: z.boolean().optional(),
   type: z.string().max(60).optional(),
-  status: z.string().max(60).optional(), // status DA MENSAGEM (delivered, read, ...), não da rotina
+  status: z.string().max(60).optional(),
   text: z.object({ message: z.string().max(4000).optional() }).optional(),
   message: z.string().max(4000).optional(),
   body: z.string().max(4000).optional(),
@@ -63,7 +92,88 @@ const PayloadSchema = z.object({
     selectedButtonId: z.string().max(200).optional(),
     buttonId: z.string().max(200).optional(),
   }).optional(),
+  // D-API
+  event: z.string().max(60).optional(),
+  sessionId: z.string().max(120).optional(),
+  traceId: z.string().max(120).optional(),
+  data: DapiData,
 }).passthrough();
+
+// Extrai o telefone do JID do WhatsApp (ex: "5581999999999@s.whatsapp.net" → "5581999999999").
+function jidToPhone(jid?: string | null): string {
+  if (!jid) return '';
+  return jid.split('@')[0].split(':')[0].replace(/\D/g, '');
+}
+
+// Normaliza payload Z-API OU D-API para uma forma canônica interna.
+type NormalizedEvent = {
+  messageId: string | null;
+  instanceId: string | null; // sessionId no caso D-API
+  phone: string;
+  fromMe: boolean;
+  isGroup: boolean;
+  msgType: string | null;
+  msgStatus: string | null;
+  text: string;
+  hasButton: boolean;
+  source: 'dapi' | 'zapi';
+};
+
+function normalizeEvent(payload: z.infer<typeof PayloadSchema>): NormalizedEvent {
+  // D-API: identificado por event="messages.received" ou presença de payload.data.id/from.jid
+  const isDapi = payload.event === 'messages.received'
+    || (!!payload.data && (!!payload.data.id || !!payload.data.from?.jid));
+
+  if (isDapi) {
+    const d = payload.data ?? {};
+    const inner = d.data ?? {};
+    // Prioridade texto: template_button_reply.selected_display_text/selected_id,
+    // list_response.selected_title, senão o próprio d.message.
+    const buttonText = inner.selected_display_text
+      || inner.selected_title
+      || inner.selected_id
+      || inner.selected_row_id
+      || '';
+    const text = String(buttonText || d.message || '').trim();
+    const hasButton = !!(inner.selected_display_text || inner.selected_id
+      || inner.selected_title || inner.selected_row_id);
+    return {
+      messageId: d.id ?? null,
+      instanceId: payload.sessionId ?? null,
+      phone: jidToPhone(d.from?.jid),
+      fromMe: d.fromMe === true,
+      isGroup: d.is_group === true,
+      msgType: d.type ?? null,
+      msgStatus: null,
+      text,
+      hasButton,
+      source: 'dapi',
+    };
+  }
+
+  // Z-API (formato original)
+  const zPhoneRaw = payload.phone
+    || payload.chatId
+    || (typeof payload.from === 'string' ? payload.from : '')
+    || '';
+  const btn = payload.buttonsResponseMessage || payload.buttonResponseMessage;
+  const btnText = btn?.selectedButtonId || btn?.buttonId || '';
+  const text = String(
+    btnText || payload.text?.message || payload.message || payload.body || '',
+  ).trim();
+  return {
+    messageId: payload.messageId || payload.zaapId || null,
+    instanceId: payload.instanceId ?? null,
+    phone: (zPhoneRaw || '').replace(/\D/g, ''),
+    fromMe: payload.fromMe === true,
+    isGroup: payload.isGroup === true,
+    msgType: payload.type ?? null,
+    msgStatus: payload.status ?? null,
+    text,
+    hasButton: !!btn,
+    source: 'zapi',
+  };
+}
 
 type AuditInput = {
   messageId: string | null;
@@ -109,15 +219,20 @@ Deno.serve(async (req) => {
   }
 
   // CAMADA 0 — config fail-closed.
-  // Aceita as 3 fontes possíveis de instância: comercial, operacional ou legacy.
+  // Aceita as instâncias possíveis: Z-API comercial, Z-API operacional, Z-API legacy,
+  // e o sessionId da D-API (canal operacional atual).
   const instanceComercial = Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID') || '';
   const instanceOperacional = Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') || '';
   const instanceLegacy = Deno.env.get('ZAPI_INSTANCE_ID') || '';
+  const dapiSessionId = Deno.env.get('DAPI_SESSION_ID') || '';
   const acceptedInstances: { id: string; canal: 'comercial' | 'operacional' | 'legacy' }[] = [];
   if (instanceComercial) acceptedInstances.push({ id: instanceComercial, canal: 'comercial' });
   if (instanceOperacional) acceptedInstances.push({ id: instanceOperacional, canal: 'operacional' });
   if (instanceLegacy && !acceptedInstances.find((x) => x.id === instanceLegacy)) {
     acceptedInstances.push({ id: instanceLegacy, canal: 'legacy' });
+  }
+  if (dapiSessionId && !acceptedInstances.find((x) => x.id === dapiSessionId)) {
+    acceptedInstances.push({ id: dapiSessionId, canal: 'operacional' });
   }
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -155,23 +270,25 @@ Deno.serve(async (req) => {
     }
   }
 
-  const messageId = payload.messageId || payload.zaapId || null;
-  const instanceId = payload.instanceId || null;
+  const evt = normalizeEvent(payload);
+  const messageId = evt.messageId;
+  const instanceId = evt.instanceId;
   // Identifica o canal de origem comparando contra as instâncias aceitas (constant-time).
   const matchedInstance = instanceId
-    ? acceptedInstances.find((x) => constantTimeEqual(x.id, instanceId))
+    ? acceptedInstances.find((x) => x.id.length === instanceId.length && constantTimeEqual(x.id, instanceId))
     : undefined;
   const canalOrigem: 'comercial' | 'operacional' | 'legacy' | null =
     matchedInstance?.canal ?? null;
-  const senderPhone = normalizePhone(payload.phone || payload.chatId || payload.from || '');
+  const senderPhone = evt.phone;
   const telefoneMascarado = senderPhone ? maskPhone(senderPhone) : null;
   const payloadResumo = {
-    type: payload.type ?? null,
-    msgStatus: payload.status ?? null,
-    fromMe: payload.fromMe ?? null,
-    isGroup: payload.isGroup ?? null,
-    hasButton: !!(payload.buttonsResponseMessage || payload.buttonResponseMessage),
-    hasText: !!(payload.text?.message || payload.message || payload.body),
+    type: evt.msgType,
+    msgStatus: evt.msgStatus,
+    fromMe: evt.fromMe,
+    isGroup: evt.isGroup,
+    hasButton: evt.hasButton,
+    hasText: !!evt.text,
+    source: evt.source,
     canalOrigem,
   };
   const baseAudit = {
@@ -229,8 +346,14 @@ Deno.serve(async (req) => {
   try {
     // Eventos não-operacionais: fromMe, eco da própria instância, status de mensagem,
     // ou ausência de phone → apenas audita, NUNCA muda status da rotina.
-    if (payload.fromMe === true) {
+    if (evt.fromMe) {
       await audit(supabase, { ...baseAudit, autorizado: true, motivoBloqueio: 'fromMe=true: apenas auditado', authMethod, statusAplicado: 'ignorado' });
+      return new Response(JSON.stringify({ ok: true, audited: true, action: 'none' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (evt.isGroup) {
+      await audit(supabase, { ...baseAudit, autorizado: true, motivoBloqueio: 'mensagem de grupo: ignorada', authMethod, statusAplicado: 'ignorado' });
       return new Response(JSON.stringify({ ok: true, audited: true, action: 'none' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -242,9 +365,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Extrai texto da resposta (Z-API varia: text.message, message, body).
-    const rawText = payload.text?.message || payload.message || payload.body || '';
-    const normalized = normalizeText(rawText);
+    // Extrai texto da resposta a partir da normalização (Z-API text/body OU D-API message/botão).
+    const normalized = normalizeText(evt.text);
     const isFeito = !!normalized && WHITELIST_FEITO.has(normalized);
     const isNaoFeito = !!normalized && WHITELIST_NAO_FEITO.has(normalized);
 
@@ -385,28 +507,17 @@ Deno.serve(async (req) => {
       autorizado: true, motivoBloqueio: null, authMethod,
     });
 
-    // Confirmação best-effort — sempre pela instância OPERACIONAL (canal de equipe).
-    const opInstance =
-      Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID');
-    const ZAPI_TOKEN =
-      Deno.env.get('ZAPI_OPERACIONAL_TOKEN') ?? Deno.env.get('ZAPI_TOKEN');
-    const ZAPI_CLIENT_TOKEN =
-      Deno.env.get('ZAPI_OPERACIONAL_CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN');
-    if (opInstance && ZAPI_TOKEN) {
-      const confirmMessage = concluida
-        ? `✅ *Rotina concluída*\n\n🔹 *${rotina.nome}*\n👤 *Registrado por:* ${matchedUserName}`
-        : `⚠️ *Rotina não realizada*\n\n🔹 *${rotina.nome}*\n👤 *Registrado por:* ${matchedUserName}`;
-      const zapiUrl = `https://api.z-api.io/instances/${opInstance}/token/${ZAPI_TOKEN}/send-text`;
-
-      try {
-        await fetch(zapiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_CLIENT_TOKEN || '' },
-          body: JSON.stringify({ phone: senderPhone, message: confirmMessage }),
-        });
-      } catch (err) {
-        console.error('[rotina-response] Erro confirmação:', err);
+    // Confirmação best-effort — canal OPERACIONAL (D-API se configurada, senão Z-API legado).
+    try {
+      const creds = getZapiCreds('operacional');
+      if (creds) {
+        const confirmMessage = concluida
+          ? `✅ *Rotina concluída*\n\n🔹 *${rotina.nome}*\n👤 *Registrado por:* ${matchedUserName}`
+          : `⚠️ *Rotina não realizada*\n\n🔹 *${rotina.nome}*\n👤 *Registrado por:* ${matchedUserName}`;
+        await sendText(creds, senderPhone, confirmMessage);
       }
+    } catch (err) {
+      console.error('[rotina-response] Erro confirmação:', err);
     }
 
     return new Response(
