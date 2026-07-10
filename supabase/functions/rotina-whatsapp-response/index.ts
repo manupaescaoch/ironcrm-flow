@@ -365,7 +365,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Extrai texto da resposta a partir da normalização (Z-API text/body OU D-API message/botão).
+    // Respostas interativas de botão estão DESATIVADAS: nenhum botão altera rotina.
+    if (evt.hasButton) {
+      await audit(supabase, {
+        ...baseAudit, autorizado: true,
+        motivoBloqueio: 'botao_interativo_desativado',
+        authMethod, statusAplicado: 'ignorado',
+      });
+      return new Response(JSON.stringify({ ok: true, audited: true, action: 'none' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Extrai texto da resposta apenas de mensagens de texto livre (Z-API text/body OU D-API message).
     const normalized = normalizeText(evt.text);
     const isFeito = !!normalized && WHITELIST_FEITO.has(normalized);
     const isNaoFeito = !!normalized && WHITELIST_NAO_FEITO.has(normalized);
