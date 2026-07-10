@@ -346,8 +346,14 @@ Deno.serve(async (req) => {
   try {
     // Eventos não-operacionais: fromMe, eco da própria instância, status de mensagem,
     // ou ausência de phone → apenas audita, NUNCA muda status da rotina.
-    if (payload.fromMe === true) {
+    if (evt.fromMe) {
       await audit(supabase, { ...baseAudit, autorizado: true, motivoBloqueio: 'fromMe=true: apenas auditado', authMethod, statusAplicado: 'ignorado' });
+      return new Response(JSON.stringify({ ok: true, audited: true, action: 'none' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (evt.isGroup) {
+      await audit(supabase, { ...baseAudit, autorizado: true, motivoBloqueio: 'mensagem de grupo: ignorada', authMethod, statusAplicado: 'ignorado' });
       return new Response(JSON.stringify({ ok: true, audited: true, action: 'none' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -359,9 +365,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Extrai texto da resposta (Z-API varia: text.message, message, body).
-    const rawText = payload.text?.message || payload.message || payload.body || '';
-    const normalized = normalizeText(rawText);
+    // Extrai texto da resposta a partir da normalização (Z-API text/body OU D-API message/botão).
+    const normalized = normalizeText(evt.text);
     const isFeito = !!normalized && WHITELIST_FEITO.has(normalized);
     const isNaoFeito = !!normalized && WHITELIST_NAO_FEITO.has(normalized);
 
