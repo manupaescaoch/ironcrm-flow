@@ -41,18 +41,46 @@ function normalizeText(s: string): string {
     .trim();
 }
 
-// Schema: aceita formato real Z-API. Não aceita rotina_id/status no payload.
+// Schema aceita:
+//  - Z-API (campos flat: instanceId, phone, text.message, buttonsResponseMessage, ...)
+//  - D-API (event="messages.received", sessionId, data:{ id, message, fromMe, is_group,
+//    from:{ jid }, data:{ selected_display_text, selected_id, selected_title, selected_row_id } })
+// Não aceita rotina_id/status no payload.
+const DapiInnerData = z.object({
+  selected_id: z.string().max(200).optional(),
+  selected_display_text: z.string().max(400).optional(),
+  selected_title: z.string().max(400).optional(),
+  selected_row_id: z.string().max(200).optional(),
+  description: z.string().max(400).optional(),
+}).passthrough().optional();
+
+const DapiData = z.object({
+  id: z.string().max(200).optional(),
+  type: z.string().max(60).optional(),
+  message: z.string().max(4000).optional(),
+  fromMe: z.boolean().optional(),
+  is_group: z.boolean().optional(),
+  from_name: z.string().max(200).optional(),
+  from: z.object({
+    jid: z.string().max(120).optional(),
+    lid: z.string().max(120).optional(),
+    name: z.string().max(200).optional(),
+  }).passthrough().optional(),
+  data: DapiInnerData,
+}).passthrough().optional();
+
 const PayloadSchema = z.object({
+  // Z-API
   instanceId: z.string().max(80).optional(),
   messageId: z.string().max(120).optional(),
   zaapId: z.string().max(120).optional(),
   phone: z.string().max(40).optional(),
   chatId: z.string().max(80).optional(),
-  from: z.string().max(80).optional(),
+  from: z.union([z.string().max(80), z.object({}).passthrough()]).optional(),
   fromMe: z.boolean().optional(),
   isGroup: z.boolean().optional(),
   type: z.string().max(60).optional(),
-  status: z.string().max(60).optional(), // status DA MENSAGEM (delivered, read, ...), não da rotina
+  status: z.string().max(60).optional(),
   text: z.object({ message: z.string().max(4000).optional() }).optional(),
   message: z.string().max(4000).optional(),
   body: z.string().max(4000).optional(),
@@ -64,7 +92,88 @@ const PayloadSchema = z.object({
     selectedButtonId: z.string().max(200).optional(),
     buttonId: z.string().max(200).optional(),
   }).optional(),
+  // D-API
+  event: z.string().max(60).optional(),
+  sessionId: z.string().max(120).optional(),
+  traceId: z.string().max(120).optional(),
+  data: DapiData,
 }).passthrough();
+
+// Extrai o telefone do JID do WhatsApp (ex: "5581999999999@s.whatsapp.net" → "5581999999999").
+function jidToPhone(jid?: string | null): string {
+  if (!jid) return '';
+  return jid.split('@')[0].split(':')[0].replace(/\D/g, '');
+}
+
+// Normaliza payload Z-API OU D-API para uma forma canônica interna.
+type NormalizedEvent = {
+  messageId: string | null;
+  instanceId: string | null; // sessionId no caso D-API
+  phone: string;
+  fromMe: boolean;
+  isGroup: boolean;
+  msgType: string | null;
+  msgStatus: string | null;
+  text: string;
+  hasButton: boolean;
+  source: 'dapi' | 'zapi';
+};
+
+function normalizeEvent(payload: z.infer<typeof PayloadSchema>): NormalizedEvent {
+  // D-API: identificado por event="messages.received" ou presença de payload.data.id/from.jid
+  const isDapi = payload.event === 'messages.received'
+    || (!!payload.data && (!!payload.data.id || !!payload.data.from?.jid));
+
+  if (isDapi) {
+    const d = payload.data ?? {};
+    const inner = d.data ?? {};
+    // Prioridade texto: template_button_reply.selected_display_text/selected_id,
+    // list_response.selected_title, senão o próprio d.message.
+    const buttonText = inner.selected_display_text
+      || inner.selected_title
+      || inner.selected_id
+      || inner.selected_row_id
+      || '';
+    const text = String(buttonText || d.message || '').trim();
+    const hasButton = !!(inner.selected_display_text || inner.selected_id
+      || inner.selected_title || inner.selected_row_id);
+    return {
+      messageId: d.id ?? null,
+      instanceId: payload.sessionId ?? null,
+      phone: jidToPhone(d.from?.jid),
+      fromMe: d.fromMe === true,
+      isGroup: d.is_group === true,
+      msgType: d.type ?? null,
+      msgStatus: null,
+      text,
+      hasButton,
+      source: 'dapi',
+    };
+  }
+
+  // Z-API (formato original)
+  const zPhoneRaw = payload.phone
+    || payload.chatId
+    || (typeof payload.from === 'string' ? payload.from : '')
+    || '';
+  const btn = payload.buttonsResponseMessage || payload.buttonResponseMessage;
+  const btnText = btn?.selectedButtonId || btn?.buttonId || '';
+  const text = String(
+    btnText || payload.text?.message || payload.message || payload.body || '',
+  ).trim();
+  return {
+    messageId: payload.messageId || payload.zaapId || null,
+    instanceId: payload.instanceId ?? null,
+    phone: (zPhoneRaw || '').replace(/\D/g, ''),
+    fromMe: payload.fromMe === true,
+    isGroup: payload.isGroup === true,
+    msgType: payload.type ?? null,
+    msgStatus: payload.status ?? null,
+    text,
+    hasButton: !!btn,
+    source: 'zapi',
+  };
+}
 
 type AuditInput = {
   messageId: string | null;
