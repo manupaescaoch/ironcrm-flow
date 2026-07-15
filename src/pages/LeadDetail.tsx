@@ -404,7 +404,9 @@ export default function LeadDetail() {
       data_avaliacao: interacao.data_avaliacao || '',
       hora_avaliacao: interacao.hora_avaliacao || '',
       status_avaliacao: interacao.status_avaliacao || null,
+      status_taxa_experimental: lead?.status_taxa_experimental ?? null,
     });
+
     setIsEditing(true);
     setSheetOpen(true);
   };
