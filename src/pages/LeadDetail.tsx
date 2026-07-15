@@ -30,7 +30,9 @@ import {
 } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Lead, Interacao, StatusFunil, PlanoEscolhido, StatusAvaliacao } from '@/types/database';
+import { Lead, Interacao, StatusFunil, PlanoEscolhido, StatusAvaliacao, StatusTaxaExperimental } from '@/types/database';
+import { StatusTaxaSelect } from '@/components/lead/StatusTaxaExperimental';
+
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/utils/errorMessages';
 import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Pencil, CheckCircle, XCircle, AlertCircle, Trash2, Clock } from 'lucide-react';
