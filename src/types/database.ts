@@ -16,6 +16,10 @@ export type StatusFunil =
   | 'perdido'
   | 'follow_up';
 
+export type StatusTaxaExperimental = 'pago_antecipado' | 'pendente' | 'isento';
+
+
+
 export interface Lead {
   id: string;
   nome: string;
