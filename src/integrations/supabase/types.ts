@@ -1690,6 +1690,7 @@ export type Database = {
           plano_escolhido: string | null
           status_conversa: string | null
           status_funil: string
+          status_taxa_experimental: string | null
           telefone: string | null
           telefone_normalizado: string | null
           treinador_experimental: string | null
@@ -1730,6 +1731,7 @@ export type Database = {
           plano_escolhido?: string | null
           status_conversa?: string | null
           status_funil?: string
+          status_taxa_experimental?: string | null
           telefone?: string | null
           telefone_normalizado?: string | null
           treinador_experimental?: string | null
@@ -1770,6 +1772,7 @@ export type Database = {
           plano_escolhido?: string | null
           status_conversa?: string | null
           status_funil?: string
+          status_taxa_experimental?: string | null
           telefone?: string | null
           telefone_normalizado?: string | null
           treinador_experimental?: string | null
