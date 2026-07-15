@@ -483,6 +483,15 @@ export default function LeadDetail() {
       }
     }
 
+    // Sincroniza sempre o status da taxa da experimental no lead se foi alterado
+    if ((formData.status_taxa_experimental ?? null) !== (lead?.status_taxa_experimental ?? null)) {
+      await supabase
+        .from('leads')
+        .update({ status_taxa_experimental: formData.status_taxa_experimental })
+        .eq('id', id);
+    }
+
+
     let interacaoError;
 
     if (isEditing && formData.id) {
