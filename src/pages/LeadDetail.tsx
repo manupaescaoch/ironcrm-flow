@@ -120,7 +120,10 @@ interface InteracaoForm {
   data_avaliacao: string;
   hora_avaliacao: string;
   status_avaliacao: StatusAvaliacao | null;
+  // Status da taxa da experimental (persistido no lead)
+  status_taxa_experimental: StatusTaxaExperimental | null;
 }
+
 
 const initialFormState: InteracaoForm = {
   tipo: '',
