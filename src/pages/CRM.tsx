@@ -534,7 +534,9 @@ export default function CRM() {
       status_funil: 'novo',
       data_aula_experimental: '',
       hora_aula_experimental: '',
+      status_taxa_experimental: null,
     });
+
     fetchLeads();
   };
 
