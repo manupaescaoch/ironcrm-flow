@@ -1151,6 +1151,14 @@ export default function LeadDetail() {
                 </div>
               )}
 
+              {(formData.agendou_experimental || isEditing) && (
+                <StatusTaxaSelect
+                  value={formData.status_taxa_experimental}
+                  onChange={(v) => setFormData({ ...formData, status_taxa_experimental: v })}
+                />
+              )}
+
+
               {/* Matricula fields - only visible when fechou_matricula */}
               {formData.fechou_matricula && (
                 <>
