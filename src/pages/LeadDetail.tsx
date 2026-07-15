@@ -30,7 +30,9 @@ import {
 } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Lead, Interacao, StatusFunil, PlanoEscolhido, StatusAvaliacao } from '@/types/database';
+import { Lead, Interacao, StatusFunil, PlanoEscolhido, StatusAvaliacao, StatusTaxaExperimental } from '@/types/database';
+import { StatusTaxaSelect } from '@/components/lead/StatusTaxaExperimental';
+
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/utils/errorMessages';
 import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Pencil, CheckCircle, XCircle, AlertCircle, Trash2, Clock } from 'lucide-react';
@@ -118,7 +120,10 @@ interface InteracaoForm {
   data_avaliacao: string;
   hora_avaliacao: string;
   status_avaliacao: StatusAvaliacao | null;
+  // Status da taxa da experimental (persistido no lead)
+  status_taxa_experimental: StatusTaxaExperimental | null;
 }
+
 
 const initialFormState: InteracaoForm = {
   tipo: '',
@@ -141,7 +146,9 @@ const initialFormState: InteracaoForm = {
   data_avaliacao: '',
   hora_avaliacao: '',
   status_avaliacao: null,
+  status_taxa_experimental: null,
 };
+
 
 const atendidoPorOptions = [
   { value: 'comercial', label: 'Comercial (agendamento)' },
@@ -265,7 +272,9 @@ export default function LeadDetail() {
       cadastrado_por: leadParaSalvar.cadastrado_por,
       data_aula_experimental: leadParaSalvar.data_aula_experimental,
       observacoes: leadParaSalvar.observacoes,
+      status_taxa_experimental: leadParaSalvar.status_taxa_experimental ?? null,
     } as Record<string, any>;
+
 
     const changedFields: Record<string, any> = {};
     if (originalLead) {
@@ -395,7 +404,9 @@ export default function LeadDetail() {
       data_avaliacao: interacao.data_avaliacao || '',
       hora_avaliacao: interacao.hora_avaliacao || '',
       status_avaliacao: interacao.status_avaliacao || null,
+      status_taxa_experimental: lead?.status_taxa_experimental ?? null,
     });
+
     setIsEditing(true);
     setSheetOpen(true);
   };
@@ -471,6 +482,15 @@ export default function LeadDetail() {
         await supabase.from('leads').update(leadSyncPayload).eq('id', id);
       }
     }
+
+    // Sincroniza sempre o status da taxa da experimental no lead se foi alterado
+    if ((formData.status_taxa_experimental ?? null) !== (lead?.status_taxa_experimental ?? null)) {
+      await supabase
+        .from('leads')
+        .update({ status_taxa_experimental: formData.status_taxa_experimental })
+        .eq('id', id);
+    }
+
 
     let interacaoError;
 
@@ -790,6 +810,11 @@ export default function LeadDetail() {
                     disabled={!canEditLead}
                   />
                 </div>
+                <StatusTaxaSelect
+                  value={lead.status_taxa_experimental ?? null}
+                  onChange={(v) => setLead({ ...lead, status_taxa_experimental: v })}
+                />
+
                 {canEditLead && (
                   <Button onClick={handleSaveLead} disabled={saving} className="w-full">
                     {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -1125,6 +1150,14 @@ export default function LeadDetail() {
                   </div>
                 </div>
               )}
+
+              {(formData.agendou_experimental || isEditing) && (
+                <StatusTaxaSelect
+                  value={formData.status_taxa_experimental}
+                  onChange={(v) => setFormData({ ...formData, status_taxa_experimental: v })}
+                />
+              )}
+
 
               {/* Matricula fields - only visible when fechou_matricula */}
               {formData.fechou_matricula && (

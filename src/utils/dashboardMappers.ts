@@ -30,7 +30,9 @@ export function mapToLead(data: any): Lead {
     motivo_perda: data.motivo_perda || null,
     data_perda: data.data_perda || null,
     is_matriculado: data.is_matriculado || false,
+    status_taxa_experimental: data.status_taxa_experimental || null,
   };
+
 }
 
 /**

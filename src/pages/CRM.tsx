@@ -46,7 +46,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnidade } from '@/contexts/UnidadeContext';
-import { Lead, StatusFunil, PlanoEscolhido } from '@/types/database';
+import { Lead, StatusFunil, PlanoEscolhido, StatusTaxaExperimental } from '@/types/database';
+import { StatusTaxaSelect, StatusTaxaBadge } from '@/components/lead/StatusTaxaExperimental';
+
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/utils/errorMessages';
 import { Plus, Search, Eye, Trash2, Loader2, Pencil, Filter, Upload, FileSpreadsheet, Users, TrendingUp, UserCheck, UserX, CalendarIcon, CalendarCheck, CheckCircle, Download } from 'lucide-react';
@@ -243,7 +245,9 @@ export default function CRM() {
     status_funil: 'novo' as StatusFunil,
     data_aula_experimental: '',
     hora_aula_experimental: '',
+    status_taxa_experimental: null as StatusTaxaExperimental | null,
   });
+
 
   // Get user display name for "Cadastrado Por" field - normalizado para CAIXA ALTA
   const getUserDisplayName = (): string => {
@@ -482,8 +486,10 @@ export default function CRM() {
       created_by: user?.id,
       data_aula_experimental: dataAulaExperimental,
       hora_aula_experimental: formData.hora_aula_experimental || null,
+      status_taxa_experimental: formData.status_taxa_experimental,
       unidade_id: unidadeAtual.id,
     }).select().single();
+
 
     if (error) {
       // Check if it's a duplicate lead error from the database trigger
@@ -530,7 +536,9 @@ export default function CRM() {
       status_funil: 'novo',
       data_aula_experimental: '',
       hora_aula_experimental: '',
+      status_taxa_experimental: null,
     });
+
     fetchLeads();
   };
 
@@ -1287,6 +1295,11 @@ export default function CRM() {
                       </div>
                     </>
                   )}
+                  <StatusTaxaSelect
+                    value={formData.status_taxa_experimental}
+                    onChange={(v) => setFormData({ ...formData, status_taxa_experimental: v })}
+                  />
+
                   <Button className="w-full" onClick={handleCreate}>
                     Criar Lead
                   </Button>
@@ -1654,10 +1667,16 @@ export default function CRM() {
                             : '-'}
                         </TableCell>
                         <TableCell>
-                          {lead.hora_aula_experimental 
-                            ? lead.hora_aula_experimental.slice(0, 5)
-                            : '-'}
+                          <div className="flex flex-col gap-1">
+                            <span>
+                              {lead.hora_aula_experimental
+                                ? lead.hora_aula_experimental.slice(0, 5)
+                                : '-'}
+                            </span>
+                            <StatusTaxaBadge value={lead.status_taxa_experimental} className="text-[10px]" />
+                          </div>
                         </TableCell>
+
                         <TableCell>{lead.cadastrado_por?.toUpperCase() || '-'}</TableCell>
                         <TableCell>{formatDate(lead.created_at)}</TableCell>
                         <TableCell className="text-right">

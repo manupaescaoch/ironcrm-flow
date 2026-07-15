@@ -16,6 +16,10 @@ export type StatusFunil =
   | 'perdido'
   | 'follow_up';
 
+export type StatusTaxaExperimental = 'pago_antecipado' | 'pendente' | 'isento';
+
+
+
 export interface Lead {
   id: string;
   nome: string;
@@ -48,7 +52,10 @@ export interface Lead {
   nivel_interesse?: 'alto' | 'medio' | 'baixo' | null;
   nivel_interesse_atualizado_em?: string | null;
   nivel_interesse_atualizado_por?: string | null;
+  // Status da taxa da aula experimental
+  status_taxa_experimental?: StatusTaxaExperimental | null;
 }
+
 
 
 export type StatusAvaliacao = 'agendada' | 'realizada' | 'faltou' | 'reagendada';
