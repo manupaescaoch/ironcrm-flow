@@ -1295,6 +1295,11 @@ export default function CRM() {
                       </div>
                     </>
                   )}
+                  <StatusTaxaSelect
+                    value={formData.status_taxa_experimental}
+                    onChange={(v) => setFormData({ ...formData, status_taxa_experimental: v })}
+                  />
+
                   <Button className="w-full" onClick={handleCreate}>
                     Criar Lead
                   </Button>
