@@ -794,6 +794,11 @@ export default function LeadDetail() {
                     disabled={!canEditLead}
                   />
                 </div>
+                <StatusTaxaSelect
+                  value={lead.status_taxa_experimental ?? null}
+                  onChange={(v) => setLead({ ...lead, status_taxa_experimental: v })}
+                />
+
                 {canEditLead && (
                   <Button onClick={handleSaveLead} disabled={saving} className="w-full">
                     {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
