@@ -243,7 +243,9 @@ export default function CRM() {
     status_funil: 'novo' as StatusFunil,
     data_aula_experimental: '',
     hora_aula_experimental: '',
+    status_taxa_experimental: null as StatusTaxaExperimental | null,
   });
+
 
   // Get user display name for "Cadastrado Por" field - normalizado para CAIXA ALTA
   const getUserDisplayName = (): string => {
