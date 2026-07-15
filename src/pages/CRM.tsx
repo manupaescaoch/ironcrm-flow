@@ -486,8 +486,10 @@ export default function CRM() {
       created_by: user?.id,
       data_aula_experimental: dataAulaExperimental,
       hora_aula_experimental: formData.hora_aula_experimental || null,
+      status_taxa_experimental: formData.status_taxa_experimental,
       unidade_id: unidadeAtual.id,
     }).select().single();
+
 
     if (error) {
       // Check if it's a duplicate lead error from the database trigger
