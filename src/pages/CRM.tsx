@@ -1667,10 +1667,16 @@ export default function CRM() {
                             : '-'}
                         </TableCell>
                         <TableCell>
-                          {lead.hora_aula_experimental 
-                            ? lead.hora_aula_experimental.slice(0, 5)
-                            : '-'}
+                          <div className="flex flex-col gap-1">
+                            <span>
+                              {lead.hora_aula_experimental
+                                ? lead.hora_aula_experimental.slice(0, 5)
+                                : '-'}
+                            </span>
+                            <StatusTaxaBadge value={lead.status_taxa_experimental} className="text-[10px]" />
+                          </div>
                         </TableCell>
+
                         <TableCell>{lead.cadastrado_por?.toUpperCase() || '-'}</TableCell>
                         <TableCell>{formatDate(lead.created_at)}</TableCell>
                         <TableCell className="text-right">
