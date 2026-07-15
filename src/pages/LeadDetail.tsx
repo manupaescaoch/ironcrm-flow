@@ -146,7 +146,9 @@ const initialFormState: InteracaoForm = {
   data_avaliacao: '',
   hora_avaliacao: '',
   status_avaliacao: null,
+  status_taxa_experimental: null,
 };
+
 
 const atendidoPorOptions = [
   { value: 'comercial', label: 'Comercial (agendamento)' },
