@@ -46,7 +46,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnidade } from '@/contexts/UnidadeContext';
-import { Lead, StatusFunil, PlanoEscolhido } from '@/types/database';
+import { Lead, StatusFunil, PlanoEscolhido, StatusTaxaExperimental } from '@/types/database';
+import { StatusTaxaSelect, StatusTaxaBadge } from '@/components/lead/StatusTaxaExperimental';
+
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/utils/errorMessages';
 import { Plus, Search, Eye, Trash2, Loader2, Pencil, Filter, Upload, FileSpreadsheet, Users, TrendingUp, UserCheck, UserX, CalendarIcon, CalendarCheck, CheckCircle, Download } from 'lucide-react';
