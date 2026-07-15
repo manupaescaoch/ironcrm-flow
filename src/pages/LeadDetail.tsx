@@ -265,7 +265,9 @@ export default function LeadDetail() {
       cadastrado_por: leadParaSalvar.cadastrado_por,
       data_aula_experimental: leadParaSalvar.data_aula_experimental,
       observacoes: leadParaSalvar.observacoes,
+      status_taxa_experimental: leadParaSalvar.status_taxa_experimental ?? null,
     } as Record<string, any>;
+
 
     const changedFields: Record<string, any> = {};
     if (originalLead) {
