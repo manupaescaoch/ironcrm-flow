@@ -98,9 +98,10 @@ Deno.serve(async (req) => {
       destino: maskPhone(sendPhone),
       tipo_destino: 'interno',
       sucesso: reallyOk,
-      erro_msg: reallyOk ? null : (result.body?.error ? String(result.body.error).slice(0, 500) : null),
+      erro_msg: reallyOk ? null : (result.body?.error ? String(result.body.error).slice(0, 500) : JSON.stringify(result.body).slice(0, 500)),
       zapi_status_code: result.status,
       canal: channel,
+      resposta_completa: result.body,
     });
 
 
