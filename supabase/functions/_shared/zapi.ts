@@ -190,13 +190,10 @@ export async function sendText(
 ): Promise<{ ok: boolean; status: number; body: any }> {
   if (creds.provider === 'dapi') {
     const url = `${DAPI_BASE}/api/v1/messages/send/text`;
-    // D-API espera o destinatário como JID completo (`<digits>@s.whatsapp.net`).
-    // Enviar apenas dígitos causa `server returned error 463` (invalid JID) no whatsmeow.
-    const to = /@/.test(phone) ? phone : `${phone.replace(/\D/g, '')}@s.whatsapp.net`;
     const resp = await fetch(url, {
       method: 'POST',
       headers: dapiHeaders(creds),
-      body: JSON.stringify({ sessionId: creds.sessionId, to, text: message }),
+      body: JSON.stringify({ sessionId: creds.sessionId, to: phone, text: message }),
     });
     const body = await resp.json().catch(() => ({}));
     return { ok: resp.ok, status: resp.status, body };
