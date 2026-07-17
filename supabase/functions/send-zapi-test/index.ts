@@ -109,7 +109,9 @@ Deno.serve(async (req) => {
       ok: reallyOk,
       status: result.status,
       zapiConnected: status.connected,
-      lookup: { exists: lookup.exists },
+      lookup: { exists: lookup.exists, phone: lookup.phone, raw: lookup.raw },
+      sendPhone,
+      sendBody: result.body,
       messageId,
     });
   } catch (e) {
