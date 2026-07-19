@@ -125,14 +125,17 @@ function JobsTable({ jobs, onToggle, onEdit }: { jobs: CronJob[]; onToggle: (j: 
         <div key={j.jobid} className="flex items-center justify-between p-3 rounded-md border gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-medium text-sm truncate">{j.jobname}</p>
+              <p className="font-medium text-sm truncate">{getJobLabel(j.jobname)}</p>
               <Badge variant={j.active ? 'default' : 'secondary'} className="text-xs">
                 {j.active ? 'Ativo' : 'Pausado'}
               </Badge>
             </div>
+            {getJobDescription(j.jobname) && (
+              <p className="text-xs text-muted-foreground mt-0.5">{getJobDescription(j.jobname)}</p>
+            )}
             <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              {humanizeSchedule(j.schedule)} · <code className="text-[10px]">{j.schedule}</code>
+              {humanizeSchedule(j.schedule)} · <code className="text-[10px] opacity-70">{j.jobname}</code>
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
