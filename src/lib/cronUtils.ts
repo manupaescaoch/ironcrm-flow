@@ -28,6 +28,35 @@ export function getCanal(jobname: string): Canal {
   return 'outro';
 }
 
+// Nomes amigáveis para jobs do pg_cron
+const JOB_LABELS: Record<string, { label: string; desc?: string }> = {
+  // Operacional (D-API)
+  'daily-crm-backup-secured': { label: 'Backup diário do CRM', desc: 'Cópia de segurança de todos os dados' },
+  'notify-boas-vindas-matricula-every-30min': { label: 'Boas-vindas a novos matriculados', desc: 'Envia mensagem de boas-vindas após matrícula' },
+  'notify-feedback-experimental-30min': { label: 'Feedback pós-experimental', desc: 'Solicita feedback após aula experimental' },
+  'notify-resumo-semanal-crm-sab-18h': { label: 'Resumo semanal do CRM', desc: 'Consolidado da semana enviado no sábado' },
+  'notify-rotinas-every-15min': { label: 'Lembretes de rotinas', desc: 'Notifica rotinas do dia aos responsáveis' },
+  'notify-task-deadlines': { label: 'Prazos de tarefas', desc: 'Alerta tarefas vencendo ou vencidas' },
+  'resumo-gestao-operacional-diario-0800': { label: 'Resumo diário — Gestão Operacional', desc: 'Panorama enviado toda manhã às 08h' },
+  'resumo-semanal-pergunta-sabado-10h': { label: 'Pergunta semanal (sábado)', desc: 'Pergunta de fechamento no grupo' },
+  'resumo-semanal-pergunta-segunda-10h': { label: 'Pergunta semanal (segunda)', desc: 'Pergunta de abertura no grupo' },
+  'retry-anamneses-pendentes-5min': { label: 'Reenvio de anamneses pendentes', desc: 'Tenta reenviar anamneses que falharam' },
+  'send-cronograma-messages-every-3min': { label: 'Envio do cronograma operacional', desc: 'Dispara atividades programadas do dia' },
+  'send-formulario-lembretes-every-15min': { label: 'Lembretes de formulários', desc: 'Cobra formulários (encerramento, etc.)' },
+  // Comercial (Z-API)
+  'confirmacao-experimental-cada-15min': { label: 'Confirmação de aula experimental', desc: 'Confirma presença 24h e 2h antes' },
+  'send-follow-ups-automaticos-daily': { label: 'Follow-ups automáticos', desc: 'Envia FUs D+1/D+7/D+15/D+30 seg–sex 09h' },
+  'healthcheck-follow-ups-diario': { label: 'Auditoria dos follow-ups', desc: 'Verifica se os FUs foram enviados' },
+};
+
+export function getJobLabel(jobname: string): string {
+  return JOB_LABELS[jobname]?.label ?? jobname;
+}
+
+export function getJobDescription(jobname: string): string | undefined {
+  return JOB_LABELS[jobname]?.desc;
+}
+
 // Converte cron UTC para BRT (UTC-3) apenas quando dá — para exibição amigável
 export function scheduleToBRT(schedule: string): string {
   const parts = schedule.trim().split(/\s+/);
