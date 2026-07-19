@@ -12,7 +12,7 @@ import { Loader2, Clock, Calendar, Zap, MessageSquare, Pencil } from 'lucide-rea
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useCronJobs, type CronJob } from '@/hooks/useCronJobs';
-import { getCanal, humanizeSchedule, DIAS_SEMANA } from '@/lib/cronUtils';
+import { getCanal, humanizeSchedule, getJobLabel, getJobDescription, DIAS_SEMANA } from '@/lib/cronUtils';
 import { toast } from '@/hooks/use-toast';
 
 interface AtividadeRow {
