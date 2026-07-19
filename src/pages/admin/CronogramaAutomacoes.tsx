@@ -473,15 +473,16 @@ export default function AdminCronogramaAutomacoes() {
                     atividades={atividades}
                     selected={selected}
                     setSelected={setSelected}
-                    onEditSingle={setEditingAtv}
-                    onToggleAtivo={(a, v) => updateSingle.mutate({ id: a.id, patch: { ativo: v } })}
-                    onOpenBulk={setBulkField}
+                    onEditGrupo={setEditingGrupo}
+                    onToggleGrupo={(g, v) =>
+                      bulkUpdate.mutate({ ids: g.ids, patch: { ativo: v } })
+                    }
                   />
                 ) : (
                   <AtividadesPorDia
                     atividades={atividades}
                     onToggle={(a, v) => updateSingle.mutate({ id: a.id, patch: { ativo: v } })}
-                    onEdit={setEditingAtv}
+                    onEdit={(a) => setEditingGrupo(atvToGrupo(a))}
                   />
                 )}
               </CardContent>
