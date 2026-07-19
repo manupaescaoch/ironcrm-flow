@@ -1,22 +1,44 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Clock, Calendar, Zap, MessageSquare, Pencil, History, X } from 'lucide-react';
+import { Loader2, Clock, Calendar, Zap, MessageSquare, Pencil, History, X, MessageCircle, FileText, Trash2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { useCronJobs, type CronJob } from '@/hooks/useCronJobs';
 import { getCanal, humanizeSchedule, getJobLabel, getJobDescription, DIAS_SEMANA } from '@/lib/cronUtils';
 import { useCronogramaAdminData, type CronogramaAtividadeAdmin } from '@/hooks/useCronogramaAdmin';
-import { useUnidadeUsers } from '@/hooks/useUnidadeUsers';
 import { AtividadesPorTipo } from '@/components/cronograma-admin/AtividadesPorTipo';
+import type { GrupoConjunto } from '@/components/cronograma-admin/AtividadesPorTipo';
 import { BulkEditDialog, type BulkField } from '@/components/cronograma-admin/BulkEditDialog';
 import { HistoricoDialog } from '@/components/cronograma-admin/HistoricoDialog';
+import { DIAS_LABEL_SHORT } from '@/lib/cronogramaTipos';
+
+function atvToGrupo(a: CronogramaAtividadeAdmin): GrupoConjunto {
+  return {
+    key: a.id,
+    titulo: a.titulo,
+    horario: a.horario,
+    responsavel_id: a.responsavel_id,
+    responsavel_nome: a.cronograma_funcionarios?.nome || '—',
+    unidade_id: a.unidade_id,
+    unidade_nome: a.unidades?.nome || '—',
+    dias: a.dia_semana != null ? [a.dia_semana] : [],
+    diasAtivos: a.ativo && a.dia_semana != null ? [a.dia_semana] : [],
+    ids: [a.id],
+    ativoAll: a.ativo,
+    ativoAny: a.ativo,
+    itens: [a],
+  };
+}
+
 
 function EditScheduleDialog({ job, open, onOpenChange, onSave }: { job: CronJob | null; open: boolean; onOpenChange: (v: boolean) => void; onSave: (schedule: string) => void }) {
   const [value, setValue] = useState(job?.schedule || '');
@@ -43,57 +65,228 @@ function EditScheduleDialog({ job, open, onOpenChange, onSave }: { job: CronJob 
   );
 }
 
-function EditAtividadeDialog({ atv, open, onOpenChange, onSave }: { atv: CronogramaAtividadeAdmin | null; open: boolean; onOpenChange: (v: boolean) => void; onSave: (patch: { horario: string | null; turno: string | null; dias: number[] }) => void }) {
-  const [horario, setHorario] = useState(atv?.horario?.slice(0, 5) || '');
-  const [dias, setDias] = useState<number[]>(atv?.dia_semana != null ? [atv.dia_semana] : []);
-  const [turno, setTurno] = useState<string>(atv?.turno || '');
+interface EditGrupoPayload {
+  ids: string[];
+  patch: {
+    horario: string | null;
+    responsavel_id: string | null;
+    mensagem: string | null;
+    formulario_id: string | null;
+  };
+  dias: number[];
+}
 
-  const toggleDia = (v: number) => setDias((d) => d.includes(v) ? d.filter(x => x !== v) : [...d, v].sort((a, b) => a - b));
+function EditGrupoDialog({
+  grupo,
+  open,
+  onOpenChange,
+  onSave,
+  onDelete,
+  loading,
+}: {
+  grupo: GrupoConjunto | null;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onSave: (p: EditGrupoPayload) => void;
+  onDelete: (ids: string[]) => void;
+  loading: boolean;
+}) {
+  const first = grupo?.itens[0];
+  const [horario, setHorario] = useState('');
+  const [dias, setDias] = useState<number[]>([]);
+  const [respId, setRespId] = useState<string>('');
+  const [modo, setModo] = useState<'mensagem' | 'formulario'>('mensagem');
+  const [mensagem, setMensagem] = useState('');
+  const [formularioId, setFormularioId] = useState<string>('');
+
+  useEffect(() => {
+    if (open && grupo && first) {
+      setHorario(grupo.horario?.slice(0, 5) || '');
+      setDias(Array.from(new Set(grupo.diasAtivos)).sort((a, b) => a - b));
+      setRespId(grupo.responsavel_id || '');
+      const hasForm = !!first.formulario_id;
+      setModo(hasForm ? 'formulario' : 'mensagem');
+      setMensagem(first.mensagem || '');
+      setFormularioId(first.formulario_id || '');
+    }
+  }, [open, grupo, first]);
+
+  const { data: funcionarios = [] } = useQuery({
+    queryKey: ['cronograma-funcionarios-por-unidade', grupo?.unidade_id],
+    enabled: open && !!grupo?.unidade_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('cronograma_funcionarios')
+        .select('id, nome, telefone, cargo')
+        .eq('unidade_id', grupo!.unidade_id)
+        .eq('ativo', true)
+        .order('nome');
+      if (error) throw error;
+      return data as { id: string; nome: string; telefone: string | null; cargo: string | null }[];
+    },
+  });
+
+  const { data: formularios = [] } = useQuery({
+    queryKey: ['formularios-por-unidade', grupo?.unidade_id],
+    enabled: open && !!grupo?.unidade_id && modo === 'formulario',
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('formularios')
+        .select('id, titulo')
+        .eq('unidade_id', grupo!.unidade_id)
+        .eq('ativo', true)
+        .order('titulo');
+      if (error) throw error;
+      return data as { id: string; titulo: string }[];
+    },
+  });
+
+  const toggleDia = (v: number) =>
+    setDias((d) => (d.includes(v) ? d.filter((x) => x !== v) : [...d, v].sort((a, b) => a - b)));
+
+  const respSelecionado = funcionarios.find((f) => f.id === respId);
+
+  if (!grupo) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (v && atv) { setHorario(atv.horario?.slice(0, 5) || ''); setDias(atv.dia_semana != null ? [atv.dia_semana] : []); setTurno(atv.turno || ''); } }}>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Editar — {atv?.titulo}</DialogTitle>
+          <DialogTitle>Editar Atividade</DialogTitle>
+          <p className="text-xs text-muted-foreground pt-1">
+            {grupo.titulo} · {grupo.unidade_nome}
+          </p>
         </DialogHeader>
-        <div className="space-y-3">
-          <div>
+
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Responsável</label>
+            <Select value={respId} onValueChange={setRespId}>
+              <SelectTrigger><SelectValue placeholder="Selecionar responsável" /></SelectTrigger>
+              <SelectContent>
+                {funcionarios.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>
+                    {f.nome}{f.telefone ? ` — ${f.telefone}` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {respSelecionado?.telefone && (
+              <div className="flex items-center gap-2 text-xs bg-muted/40 rounded-md px-3 py-2">
+                <MessageCircle className="w-3.5 h-3.5 text-primary" />
+                <span className="font-semibold">{respSelecionado.nome}</span>
+                <span className="text-muted-foreground">— WhatsApp: {respSelecionado.telefone}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
             <label className="text-sm font-medium">Horário</label>
             <Input type="time" value={horario} onChange={(e) => setHorario(e.target.value)} />
           </div>
+
           <div className="space-y-2">
             <label className="text-sm font-medium">Dias da semana</label>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDias([1,2,3,4,5])}>Seg–Sex</Button>
-              <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDias([0,6])}>Fim de semana</Button>
-              <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDias([0,1,2,3,4,5,6])}>Todos</Button>
-              <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setDias([])}>Limpar</Button>
-            </div>
-            <div className="grid grid-cols-4 gap-2 pt-1">
-              {DIAS_SEMANA.map((d) => (
-                <label key={d.value} className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={dias.includes(d.value)} onCheckedChange={() => toggleDia(d.value)} />
-                  {d.label}
-                </label>
+            <div className="grid grid-cols-7 gap-1.5">
+              {DIAS_LABEL_SHORT.map((lbl, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => toggleDia(idx)}
+                  className={
+                    'py-2 rounded-md border text-xs font-medium transition-colors ' +
+                    (dias.includes(idx)
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-background hover:bg-muted border-input')
+                  }
+                >
+                  {lbl}
+                </button>
               ))}
             </div>
-            {dias.length > 1 && (
-              <p className="text-xs text-muted-foreground">
-                Serão criadas cópias para os demais dias selecionados; o registro original manterá o primeiro dia.
-              </p>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              <Button type="button" size="sm" variant="outline" className="h-6 text-xs" onClick={() => setDias([1, 2, 3, 4, 5])}>Seg–Sex</Button>
+              <Button type="button" size="sm" variant="outline" className="h-6 text-xs" onClick={() => setDias([0, 6])}>Fim de semana</Button>
+              <Button type="button" size="sm" variant="outline" className="h-6 text-xs" onClick={() => setDias([0, 1, 2, 3, 4, 5, 6])}>Todos</Button>
+              <Button type="button" size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setDias([])}>Limpar</Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {dias.length === 0
+                ? 'Nenhum dia selecionado'
+                : `Apenas: ${dias.map((d) => DIAS_LABEL_SHORT[d]).join(', ')}`}
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Ação WhatsApp</label>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={modo === 'formulario' ? 'default' : 'outline'}
+                onClick={() => setModo('formulario')}
+                className="justify-start"
+              >
+                <FileText className="w-4 h-4 mr-2" /> Vincular Formulário
+              </Button>
+              <Button
+                type="button"
+                variant={modo === 'mensagem' ? 'default' : 'outline'}
+                onClick={() => setModo('mensagem')}
+                className="justify-start"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" /> Escrever Mensagem
+              </Button>
+            </div>
+            {modo === 'formulario' ? (
+              <Select value={formularioId} onValueChange={setFormularioId}>
+                <SelectTrigger><SelectValue placeholder="Selecionar formulário" /></SelectTrigger>
+                <SelectContent>
+                  {formularios.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>{f.titulo}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Textarea
+                value={mensagem}
+                onChange={(e) => setMensagem(e.target.value)}
+                placeholder="MENSAGEM ENVIADA VIA WHATSAPP..."
+                rows={4}
+              />
             )}
           </div>
-          <div>
-            <label className="text-sm font-medium">Turno</label>
-            <Input value={turno} onChange={e => setTurno(e.target.value.toUpperCase())} placeholder="Ex: TURNO 1" />
-          </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+
+        <DialogFooter className="gap-2">
           <Button
-            disabled={dias.length === 0}
-            onClick={() => onSave({ horario: horario ? `${horario}:00` : null, turno: turno || null, dias })}
-          >Salvar</Button>
+            className="flex-1"
+            disabled={loading || dias.length === 0 || !respId}
+            onClick={() =>
+              onSave({
+                ids: grupo.ids,
+                patch: {
+                  horario: horario ? `${horario}:00` : null,
+                  responsavel_id: respId || null,
+                  mensagem: modo === 'mensagem' ? (mensagem || null) : null,
+                  formulario_id: modo === 'formulario' ? (formularioId || null) : null,
+                },
+                dias,
+              })
+            }
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            Salvar Alterações
+          </Button>
+          <Button
+            variant="destructive"
+            size="icon"
+            disabled={loading}
+            onClick={() => {
+              if (confirm(`Excluir ${grupo.ids.length} envio(s) deste conjunto?`)) onDelete(grupo.ids);
+            }}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -179,10 +372,9 @@ function AtividadesPorDia({ atividades, onToggle, onEdit }: { atividades: Cronog
 export default function AdminCronogramaAutomacoes() {
   const { jobs, isLoading: loadingJobs, toggleJob, updateSchedule } = useCronJobs();
   const { data: atividades = [], isLoading: loadingAtv, bulkUpdate, updateSingle } = useCronogramaAdminData();
-  const { users } = useUnidadeUsers();
 
   const [editingJob, setEditingJob] = useState<CronJob | null>(null);
-  const [editingAtv, setEditingAtv] = useState<CronogramaAtividadeAdmin | null>(null);
+  const [editingGrupo, setEditingGrupo] = useState<GrupoConjunto | null>(null);
 
   const [viewMode, setViewMode] = useState<'tipo' | 'dia'>('tipo');
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -208,7 +400,15 @@ export default function AdminCronogramaAutomacoes() {
     [atividades]
   );
 
-  const responsaveisOpts = useMemo(() => users.map(u => ({ id: u.id, label: u.name })), [users]);
+  const responsaveisOpts = useMemo(() => {
+    const map = new Map<string, string>();
+    atividades.forEach(a => {
+      if (a.responsavel_id && a.cronograma_funcionarios?.nome) {
+        map.set(a.responsavel_id, a.cronograma_funcionarios.nome);
+      }
+    });
+    return Array.from(map.entries()).map(([id, label]) => ({ id, label }));
+  }, [atividades]);
 
   if (loadingJobs || loadingAtv) {
     return (
@@ -292,15 +492,16 @@ export default function AdminCronogramaAutomacoes() {
                     atividades={atividades}
                     selected={selected}
                     setSelected={setSelected}
-                    onEditSingle={setEditingAtv}
-                    onToggleAtivo={(a, v) => updateSingle.mutate({ id: a.id, patch: { ativo: v } })}
-                    onOpenBulk={setBulkField}
+                    onEditGrupo={setEditingGrupo}
+                    onToggleGrupo={(g, v) =>
+                      bulkUpdate.mutate({ ids: g.ids, patch: { ativo: v } })
+                    }
                   />
                 ) : (
                   <AtividadesPorDia
                     atividades={atividades}
                     onToggle={(a, v) => updateSingle.mutate({ id: a.id, patch: { ativo: v } })}
-                    onEdit={setEditingAtv}
+                    onEdit={(a) => setEditingGrupo(atvToGrupo(a))}
                   />
                 )}
               </CardContent>
@@ -378,25 +579,22 @@ export default function AdminCronogramaAutomacoes() {
         }}
       />
 
-      <EditAtividadeDialog
-        atv={editingAtv}
-        open={!!editingAtv}
-        onOpenChange={(v) => !v && setEditingAtv(null)}
-        onSave={({ horario, turno, dias }) => {
-          if (!editingAtv) return;
-          const basePatch: Record<string, any> = { horario, turno };
-          if (dias.length <= 1) {
-            const patch = { ...basePatch, dia_semana: dias[0] ?? null };
-            updateSingle.mutate(
-              { id: editingAtv.id, patch },
-              { onSuccess: () => setEditingAtv(null) }
-            );
-          } else {
-            bulkUpdate.mutate(
-              { ids: [editingAtv.id], patch: basePatch, replace_dias: dias },
-              { onSuccess: () => setEditingAtv(null) }
-            );
-          }
+      <EditGrupoDialog
+        grupo={editingGrupo}
+        open={!!editingGrupo}
+        onOpenChange={(v) => !v && setEditingGrupo(null)}
+        loading={bulkUpdate.isPending || updateSingle.isPending}
+        onDelete={(ids) => {
+          bulkUpdate.mutate(
+            { ids, delete: true },
+            { onSuccess: () => setEditingGrupo(null) }
+          );
+        }}
+        onSave={({ ids, patch, dias }) => {
+          bulkUpdate.mutate(
+            { ids, patch, replace_dias: dias },
+            { onSuccess: () => setEditingGrupo(null) }
+          );
         }}
       />
 
