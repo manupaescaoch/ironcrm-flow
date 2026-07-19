@@ -1,22 +1,25 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Clock, Calendar, Zap, MessageSquare, Pencil, History, X } from 'lucide-react';
+import { Loader2, Clock, Calendar, Zap, MessageSquare, Pencil, History, X, MessageCircle, FileText, Trash2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { useCronJobs, type CronJob } from '@/hooks/useCronJobs';
 import { getCanal, humanizeSchedule, getJobLabel, getJobDescription, DIAS_SEMANA } from '@/lib/cronUtils';
 import { useCronogramaAdminData, type CronogramaAtividadeAdmin } from '@/hooks/useCronogramaAdmin';
-import { useUnidadeUsers } from '@/hooks/useUnidadeUsers';
 import { AtividadesPorTipo } from '@/components/cronograma-admin/AtividadesPorTipo';
+import type { GrupoConjunto } from '@/components/cronograma-admin/AtividadesPorTipo';
 import { BulkEditDialog, type BulkField } from '@/components/cronograma-admin/BulkEditDialog';
 import { HistoricoDialog } from '@/components/cronograma-admin/HistoricoDialog';
+import { DIAS_LABEL_SHORT } from '@/lib/cronogramaTipos';
 
 function EditScheduleDialog({ job, open, onOpenChange, onSave }: { job: CronJob | null; open: boolean; onOpenChange: (v: boolean) => void; onSave: (schedule: string) => void }) {
   const [value, setValue] = useState(job?.schedule || '');
