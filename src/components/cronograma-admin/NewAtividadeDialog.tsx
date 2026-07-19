@@ -16,6 +16,7 @@ const DEFAULTS: Record<TipoDisplay, { titulo: string; tipo: string }> = {
   RELATORIO_DIARIO_COMERCIAL:      { titulo: 'RELATORIO DIARIO COMERCIAL',            tipo: 'RELATORIO DIARIO' },
   ENCERRAMENTO_TURNO_COORD_HORARIO:{ titulo: 'ENVIO DA GRADE DE HORARIO PARA COORDENADOR', tipo: 'ENVIO DA GRADE DE HORARIO PARA COORDENADOR' },
   ENCERRAMENTO_ESTAGIARIO_LIDER:   { titulo: 'ENCERRAMENTO ESTAGIARIO LIDER',         tipo: 'ENCERRAMENTO ESTAGIARIO LIDER' },
+  ENCERRAMENTO_GERENTE_UNIDADE:    { titulo: 'ENCERRAMENTO DE GERENTE DE UNIDADE',    tipo: 'ENCERRAMENTO GERENTE UNIDADE' },
   OUTROS:                          { titulo: '',                                       tipo: '' },
 };
 
