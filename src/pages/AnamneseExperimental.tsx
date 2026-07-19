@@ -107,6 +107,7 @@ export default function AnamneseExperimental() {
         lead_id: lead.id,
         unidade_id: lead.unidade_id,
         nome: respostas.nome.trim() || null,
+        data_nascimento: respostas.data_nascimento || null,
         objetivo: respostas.objetivo || null,
         historico: respostas.historico || null,
         frequencia_atual: respostas.frequencia_atual || null,
