@@ -117,7 +117,7 @@ export default function AnamnesePublicaUniversal() {
   if (stage === 'wizard') {
     return (
       <AnamneseWizard
-        initial={{ ...respostas, nome }}
+        initial={{ ...respostas, nome, data_nascimento: dataNascimento }}
         skipNome
         onComplete={(final) => {
           setRespostas(final);
@@ -137,7 +137,7 @@ export default function AnamnesePublicaUniversal() {
             action: 'submit',
             nome,
             telefone,
-            respostas: { ...respostas, nome },
+            respostas: { ...respostas, nome, data_nascimento: dataNascimento },
           },
         });
         console.log('[anamnese] resposta:', { data, error });
