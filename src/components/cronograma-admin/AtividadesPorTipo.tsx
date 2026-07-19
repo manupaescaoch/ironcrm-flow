@@ -34,9 +34,10 @@ interface Props {
   onEditGrupo: (g: GrupoConjunto) => void;
   onToggleGrupo: (g: GrupoConjunto, v: boolean) => void;
   onDeleteGrupo: (g: GrupoConjunto) => void;
+  onNewInTipo?: (td: TipoDisplay) => void;
 }
 
-export function AtividadesPorTipo({ atividades, selected, setSelected, onEditGrupo, onToggleGrupo, onDeleteGrupo }: Props) {
+export function AtividadesPorTipo({ atividades, selected, setSelected, onEditGrupo, onToggleGrupo, onDeleteGrupo, onNewInTipo }: Props) {
   const [search, setSearch] = useState('');
   const [fUnidade, setFUnidade] = useState<string>('all');
   const [fResp, setFResp] = useState<string>('all');
