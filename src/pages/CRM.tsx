@@ -1710,7 +1710,7 @@ export default function CRM() {
                       >
                         <TableCell className="font-medium">{lead.nome?.toUpperCase()}</TableCell>
                         <TableCell><WhatsAppLink phone={lead.telefone} /></TableCell>
-                        <TableCell>{lead.origem || '-'}</TableCell>
+                        <TableCell>{normalizeOrigem(lead.origem)}</TableCell>
                         <TableCell>
                           <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
                             {statusLabels[lead.status_funil]}
