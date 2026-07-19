@@ -6,6 +6,7 @@ export type TipoDisplay =
   | 'RELATORIO_DIARIO_COMERCIAL'
   | 'ENCERRAMENTO_TURNO_COORD_HORARIO'
   | 'ENCERRAMENTO_ESTAGIARIO_LIDER'
+  | 'ENCERRAMENTO_GERENTE_UNIDADE'
   | 'OUTROS';
 
 export const TIPO_DISPLAY_ORDER: TipoDisplay[] = [
@@ -13,6 +14,7 @@ export const TIPO_DISPLAY_ORDER: TipoDisplay[] = [
   'RELATORIO_DIARIO_COMERCIAL',
   'ENCERRAMENTO_TURNO_COORD_HORARIO',
   'ENCERRAMENTO_ESTAGIARIO_LIDER',
+  'ENCERRAMENTO_GERENTE_UNIDADE',
   'OUTROS',
 ];
 
@@ -21,6 +23,7 @@ export const TIPO_DISPLAY_LABEL: Record<TipoDisplay, string> = {
   RELATORIO_DIARIO_COMERCIAL: 'Relatório Diário Comercial',
   ENCERRAMENTO_TURNO_COORD_HORARIO: 'Grade do próximo horário',
   ENCERRAMENTO_ESTAGIARIO_LIDER: 'Encerramento Estagiário Líder',
+  ENCERRAMENTO_GERENTE_UNIDADE: 'Encerramento de Gerente de Unidade',
   OUTROS: 'Outros',
 };
 
@@ -34,6 +37,9 @@ export function classifyDisplay(a: { tipo_atividade?: string | null; titulo?: st
   const titulo = stripAccents((a.titulo || '').toUpperCase().trim());
   if (tipo === 'ENCERRAMENTO ESTAGIARIO LIDER' || /ESTAGIARIO\s+LIDER/.test(titulo)) {
     return 'ENCERRAMENTO_ESTAGIARIO_LIDER';
+  }
+  if (tipo === 'ENCERRAMENTO GERENTE UNIDADE' || /GERENTE\s+(DE\s+)?UNIDADE/.test(titulo)) {
+    return 'ENCERRAMENTO_GERENTE_UNIDADE';
   }
   if (tipo === 'RELATORIO DIARIO' || /RELATORIO\s+DIARIO/.test(titulo)) {
     return 'RELATORIO_DIARIO_COMERCIAL';
