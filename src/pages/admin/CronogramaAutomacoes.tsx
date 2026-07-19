@@ -382,12 +382,21 @@ export default function AdminCronogramaAutomacoes() {
         atv={editingAtv}
         open={!!editingAtv}
         onOpenChange={(v) => !v && setEditingAtv(null)}
-        onSave={(patch) => {
+        onSave={({ horario, turno, dias }) => {
           if (!editingAtv) return;
-          updateSingle.mutate(
-            { id: editingAtv.id, patch },
-            { onSuccess: () => setEditingAtv(null) }
-          );
+          const basePatch: Record<string, any> = { horario, turno };
+          if (dias.length <= 1) {
+            const patch = { ...basePatch, dia_semana: dias[0] ?? null };
+            updateSingle.mutate(
+              { id: editingAtv.id, patch },
+              { onSuccess: () => setEditingAtv(null) }
+            );
+          } else {
+            bulkUpdate.mutate(
+              { ids: [editingAtv.id], patch: basePatch, replace_dias: dias },
+              { onSuccess: () => setEditingAtv(null) }
+            );
+          }
         }}
       />
 
