@@ -501,6 +501,7 @@ export default function AdminCronogramaAutomacoes() {
                     onDeleteGrupo={(g) =>
                       bulkUpdate.mutate({ ids: g.ids, delete: true })
                     }
+                    onNewInTipo={setCreatingTipo}
                   />
                 ) : (
                   <AtividadesPorDia
