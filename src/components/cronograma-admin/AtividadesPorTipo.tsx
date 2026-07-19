@@ -33,9 +33,10 @@ interface Props {
   setSelected: (fn: (s: Set<string>) => Set<string>) => void;
   onEditGrupo: (g: GrupoConjunto) => void;
   onToggleGrupo: (g: GrupoConjunto, v: boolean) => void;
+  onDeleteGrupo: (g: GrupoConjunto) => void;
 }
 
-export function AtividadesPorTipo({ atividades, selected, setSelected, onEditGrupo, onToggleGrupo }: Props) {
+export function AtividadesPorTipo({ atividades, selected, setSelected, onEditGrupo, onToggleGrupo, onDeleteGrupo }: Props) {
   const [search, setSearch] = useState('');
   const [fUnidade, setFUnidade] = useState<string>('all');
   const [fResp, setFResp] = useState<string>('all');
