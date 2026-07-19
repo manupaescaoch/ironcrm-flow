@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,53 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Clock, Calendar, Zap, MessageSquare, Pencil } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { Loader2, Clock, Calendar, Zap, MessageSquare, Pencil, History, X } from 'lucide-react';
 import { useCronJobs, type CronJob } from '@/hooks/useCronJobs';
 import { getCanal, humanizeSchedule, getJobLabel, getJobDescription, DIAS_SEMANA } from '@/lib/cronUtils';
-import { toast } from '@/hooks/use-toast';
-
-interface AtividadeRow {
-  id: string;
-  titulo: string;
-  horario: string | null;
-  dia_semana: number | null;
-  ativo: boolean;
-  unidade_id: string;
-  unidades?: { nome: string } | null;
-  cronograma_funcionarios?: { nome: string } | null;
-}
-
-function useAllAtividades() {
-  const qc = useQueryClient();
-  const { data = [], isLoading } = useQuery({
-    queryKey: ['admin-all-cronograma-atividades'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('cronograma_atividades')
-        .select('id, titulo, horario, dia_semana, ativo, unidade_id, unidades(nome), cronograma_funcionarios(nome)')
-        .order('dia_semana', { ascending: true })
-        .order('horario', { ascending: true });
-      if (error) throw error;
-      return (data || []) as AtividadeRow[];
-    },
-  });
-
-  const update = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: Partial<Pick<AtividadeRow, 'ativo' | 'horario' | 'dia_semana'>> }) => {
-      const { error } = await supabase.from('cronograma_atividades').update(patch).eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-all-cronograma-atividades'] });
-      toast({ title: 'Atividade atualizada' });
-    },
-    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
-  });
-
-  return { atividades: data, isLoading, update };
-}
+import { useCronogramaAdminData, type CronogramaAtividadeAdmin } from '@/hooks/useCronogramaAdmin';
+import { useUnidadeUsers } from '@/hooks/useUnidadeUsers';
+import { AtividadesPorTipo } from '@/components/cronograma-admin/AtividadesPorTipo';
+import { BulkEditDialog, type BulkField } from '@/components/cronograma-admin/BulkEditDialog';
+import { HistoricoDialog } from '@/components/cronograma-admin/HistoricoDialog';
 
 function EditScheduleDialog({ job, open, onOpenChange, onSave }: { job: CronJob | null; open: boolean; onOpenChange: (v: boolean) => void; onSave: (schedule: string) => void }) {
   const [value, setValue] = useState(job?.schedule || '');
@@ -68,7 +29,7 @@ function EditScheduleDialog({ job, open, onOpenChange, onSave }: { job: CronJob 
           <label className="text-sm font-medium">Expressão cron (UTC)</label>
           <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder="min hora dia mes dow" />
           <p className="text-xs text-muted-foreground">
-            Ex: <code>0 12 * * 1-5</code> = todo dia útil às 12h UTC (9h BRT). Formato: minuto hora dia mês dia_semana.
+            Ex: <code>0 12 * * 1-5</code> = todo dia útil às 12h UTC (9h BRT).
           </p>
           {value && <p className="text-xs">Preview: <b>{humanizeSchedule(value)}</b></p>}
         </div>
@@ -81,12 +42,13 @@ function EditScheduleDialog({ job, open, onOpenChange, onSave }: { job: CronJob 
   );
 }
 
-function EditAtividadeDialog({ atv, open, onOpenChange, onSave }: { atv: AtividadeRow | null; open: boolean; onOpenChange: (v: boolean) => void; onSave: (patch: Partial<AtividadeRow>) => void }) {
+function EditAtividadeDialog({ atv, open, onOpenChange, onSave }: { atv: CronogramaAtividadeAdmin | null; open: boolean; onOpenChange: (v: boolean) => void; onSave: (patch: Partial<CronogramaAtividadeAdmin>) => void }) {
   const [horario, setHorario] = useState(atv?.horario?.slice(0, 5) || '');
   const [dia, setDia] = useState<string>(atv?.dia_semana != null ? String(atv.dia_semana) : '');
+  const [turno, setTurno] = useState<string>(atv?.turno || '');
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (v && atv) { setHorario(atv.horario?.slice(0, 5) || ''); setDia(atv.dia_semana != null ? String(atv.dia_semana) : ''); } }}>
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (v && atv) { setHorario(atv.horario?.slice(0, 5) || ''); setDia(atv.dia_semana != null ? String(atv.dia_semana) : ''); setTurno(atv.turno || ''); } }}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Editar — {atv?.titulo}</DialogTitle>
@@ -107,10 +69,14 @@ function EditAtividadeDialog({ atv, open, onOpenChange, onSave }: { atv: Ativida
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <label className="text-sm font-medium">Turno</label>
+            <Input value={turno} onChange={e => setTurno(e.target.value.toUpperCase())} placeholder="Ex: TURNO 1" />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => onSave({ horario: horario ? `${horario}:00` : null, dia_semana: dia !== '' ? parseInt(dia) : null })}>Salvar</Button>
+          <Button onClick={() => onSave({ horario: horario ? `${horario}:00` : null, dia_semana: dia !== '' ? parseInt(dia) : null, turno: turno || null })}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -150,12 +116,12 @@ function JobsTable({ jobs, onToggle, onEdit }: { jobs: CronJob[]; onToggle: (j: 
   );
 }
 
-function AtividadesSection({ atividades, onToggle, onEdit }: { atividades: AtividadeRow[]; onToggle: (a: AtividadeRow, v: boolean) => void; onEdit: (a: AtividadeRow) => void }) {
+// Vista legada por dia da semana
+function AtividadesPorDia({ atividades, onToggle, onEdit }: { atividades: CronogramaAtividadeAdmin[]; onToggle: (a: CronogramaAtividadeAdmin, v: boolean) => void; onEdit: (a: CronogramaAtividadeAdmin) => void }) {
   const porDia = DIAS_SEMANA.map((d) => ({
     ...d,
     itens: atividades.filter((a) => (a.dia_semana ?? -1) === d.value),
   }));
-
   return (
     <div className="space-y-4">
       {porDia.map((d) => (
@@ -195,14 +161,37 @@ function AtividadesSection({ atividades, onToggle, onEdit }: { atividades: Ativi
 
 export default function AdminCronogramaAutomacoes() {
   const { jobs, isLoading: loadingJobs, toggleJob, updateSchedule } = useCronJobs();
-  const { atividades, isLoading: loadingAtv, update: updateAtv } = useAllAtividades();
+  const { data: atividades = [], isLoading: loadingAtv, bulkUpdate, updateSingle } = useCronogramaAdminData();
+  const { users } = useUnidadeUsers();
 
   const [editingJob, setEditingJob] = useState<CronJob | null>(null);
-  const [editingAtv, setEditingAtv] = useState<AtividadeRow | null>(null);
+  const [editingAtv, setEditingAtv] = useState<CronogramaAtividadeAdmin | null>(null);
+
+  const [viewMode, setViewMode] = useState<'tipo' | 'dia'>('tipo');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkField, setBulkField] = useState<BulkField | null>(null);
+  const [historicoOpen, setHistoricoOpen] = useState(false);
 
   const opJobs = jobs.filter((j) => getCanal(j.jobname) === 'operacional');
   const comJobs = jobs.filter((j) => getCanal(j.jobname) === 'comercial');
   const outros = jobs.filter((j) => getCanal(j.jobname) === 'outro');
+
+  const stats = useMemo(() => {
+    const total = atividades.length;
+    const ativas = atividades.filter(a => a.ativo).length;
+    const tipos = new Set(atividades.map(a => a.tipo_atividade || 'SEM TIPO')).size;
+    return { total, ativas, pausadas: total - ativas, tipos };
+  }, [atividades]);
+
+  const selectedItems = useMemo(() => atividades.filter(a => selected.has(a.id)), [atividades, selected]);
+
+  const unidadesOpts = useMemo(() =>
+    Array.from(new Map(atividades.map(a => [a.unidade_id, a.unidades?.nome || '—'])).entries())
+      .map(([id, label]) => ({ id, label: label as string })),
+    [atividades]
+  );
+
+  const responsaveisOpts = useMemo(() => users.map(u => ({ id: u.id, label: u.name })), [users]);
 
   if (loadingJobs || loadingAtv) {
     return (
@@ -214,15 +203,26 @@ export default function AdminCronogramaAutomacoes() {
     );
   }
 
+  const handleBulkSubmit = async (payload: any) => {
+    await bulkUpdate.mutateAsync({ ids: Array.from(selected), ...payload });
+    setBulkField(null);
+    setSelected(new Set());
+  };
+
   return (
     <Layout>
-      <div className="p-4 md:p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <Calendar className="w-6 h-6 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold">Cronograma de Automações</h1>
-            <p className="text-sm text-muted-foreground">Jobs agendados e cronograma operacional por canal (D-API × Z-API)</p>
+      <div className="p-4 md:p-6 space-y-6 pb-24">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Calendar className="w-6 h-6 text-primary" />
+            <div>
+              <h1 className="text-2xl font-bold">Cronograma de Automações</h1>
+              <p className="text-sm text-muted-foreground">Jobs agendados e cronograma operacional por canal (D-API × Z-API)</p>
+            </div>
           </div>
+          <Button variant="outline" size="sm" onClick={() => setHistoricoOpen(true)}>
+            <History className="w-4 h-4 mr-1.5" /> Histórico
+          </Button>
         </div>
 
         <Tabs defaultValue="operacional">
@@ -254,15 +254,38 @@ export default function AdminCronogramaAutomacoes() {
 
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Cronograma de atividades — {atividades.length}</CardTitle>
-                <p className="text-xs text-muted-foreground">Enviadas via <b>send-cronograma-messages</b> (chip operacional D-API) a cada 3 min.</p>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <CardTitle className="text-base">Cronograma de atividades</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      <b>{stats.total}</b> automações cadastradas · <span className="text-green-600">{stats.ativas} ativas</span> · <span className="text-amber-600">{stats.pausadas} pausadas</span> · {stats.tipos} tipos de atividade
+                    </p>
+                  </div>
+                  <Tabs value={viewMode} onValueChange={(v: any) => { setViewMode(v); setSelected(new Set()); }}>
+                    <TabsList className="h-8">
+                      <TabsTrigger value="tipo" className="text-xs h-6">Por atividade</TabsTrigger>
+                      <TabsTrigger value="dia" className="text-xs h-6">Por dia da semana</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
               </CardHeader>
               <CardContent>
-                <AtividadesSection
-                  atividades={atividades}
-                  onToggle={(a, v) => updateAtv.mutate({ id: a.id, patch: { ativo: v } })}
-                  onEdit={setEditingAtv}
-                />
+                {viewMode === 'tipo' ? (
+                  <AtividadesPorTipo
+                    atividades={atividades}
+                    selected={selected}
+                    setSelected={setSelected}
+                    onEditSingle={setEditingAtv}
+                    onToggleAtivo={(a, v) => updateSingle.mutate({ id: a.id, patch: { ativo: v } })}
+                    onOpenBulk={setBulkField}
+                  />
+                ) : (
+                  <AtividadesPorDia
+                    atividades={atividades}
+                    onToggle={(a, v) => updateSingle.mutate({ id: a.id, patch: { ativo: v } })}
+                    onEdit={setEditingAtv}
+                  />
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -302,6 +325,29 @@ export default function AdminCronogramaAutomacoes() {
         </Tabs>
       </div>
 
+      {/* Sticky bulk actions bar */}
+      {selected.size > 0 && viewMode === 'tipo' && (
+        <div className="fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur z-40 shadow-lg">
+          <div className="max-w-full px-4 py-2.5 flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium mr-2">{selected.size} automações selecionadas</span>
+            <Button size="sm" variant="outline" onClick={() => setBulkField('ativar')}>Ativar</Button>
+            <Button size="sm" variant="outline" onClick={() => setBulkField('pausar')}>Pausar</Button>
+            <Button size="sm" variant="outline" onClick={() => setBulkField('horario')}>Horário</Button>
+            <Button size="sm" variant="outline" onClick={() => setBulkField('dias')}>Dias</Button>
+            <Button size="sm" variant="outline" onClick={() => setBulkField('responsavel_id')}>Responsável</Button>
+            <Button size="sm" variant="outline" onClick={() => setBulkField('unidade_id')}>Unidade</Button>
+            <Button size="sm" variant="outline" onClick={() => setBulkField('turno')}>Turno</Button>
+            <Button size="sm" variant="outline" onClick={() => setBulkField('mensagem')}>Mensagem</Button>
+            <Button size="sm" variant="outline" onClick={() => setBulkField('duplicar')}>Duplicar</Button>
+            <Button size="sm" variant="destructive" onClick={() => setBulkField('excluir')}>Excluir</Button>
+            <div className="flex-1" />
+            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
+              <X className="w-3 h-3 mr-1" /> Limpar
+            </Button>
+          </div>
+        </div>
+      )}
+
       <EditScheduleDialog
         job={editingJob}
         open={!!editingJob}
@@ -321,12 +367,25 @@ export default function AdminCronogramaAutomacoes() {
         onOpenChange={(v) => !v && setEditingAtv(null)}
         onSave={(patch) => {
           if (!editingAtv) return;
-          updateAtv.mutate(
-            { id: editingAtv.id, patch: patch as any },
+          updateSingle.mutate(
+            { id: editingAtv.id, patch },
             { onSuccess: () => setEditingAtv(null) }
           );
         }}
       />
+
+      <BulkEditDialog
+        open={!!bulkField}
+        onOpenChange={(v) => !v && setBulkField(null)}
+        field={bulkField}
+        selected={selectedItems}
+        unidadesOptions={unidadesOpts}
+        responsaveisOptions={responsaveisOpts}
+        loading={bulkUpdate.isPending}
+        onSubmit={handleBulkSubmit}
+      />
+
+      <HistoricoDialog open={historicoOpen} onOpenChange={setHistoricoOpen} />
     </Layout>
   );
 }
