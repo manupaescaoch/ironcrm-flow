@@ -909,7 +909,7 @@ export default function CRM() {
         lead.nome.toLowerCase().includes(searchLower) ||
         lead.telefone?.toLowerCase().includes(searchLower) ||
         (searchDigits.length > 0 && leadPhoneDigits.includes(searchDigits));
-      const matchesOrigem = filterOrigem === 'all' || lead.origem === filterOrigem;
+      const matchesOrigem = filterOrigem.length === 0 || filterOrigem.includes(lead.origem || '');
       const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
       const matchesStatus = filterStatus.length === 0 || filterStatus.includes(lead.status_funil);
       const matchesNivel =
@@ -1407,7 +1407,7 @@ export default function CRM() {
           const baseLeads = leads.filter((lead) => {
             const searchLower = search.toLowerCase();
             const matchesSearch = !search || lead.nome.toLowerCase().includes(searchLower) || lead.telefone?.includes(search);
-            const matchesOrigem = filterOrigem === 'all' || lead.origem === filterOrigem;
+            const matchesOrigem = filterOrigem.length === 0 || filterOrigem.includes(lead.origem || '');
             const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
             let matchesDate = true;
             if (startDate || endDate) {
