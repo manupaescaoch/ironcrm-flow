@@ -67,6 +67,7 @@ export default function AnamneseExperimental() {
         setExistingId(existing.id);
         setRespostas({
           nome: existing.nome ?? leadData.nome ?? '',
+          data_nascimento: existing.data_nascimento ?? '',
           objetivo: existing.objetivo ?? '',
           historico: existing.historico ?? '',
           frequencia_atual: existing.frequencia_atual ?? '',
