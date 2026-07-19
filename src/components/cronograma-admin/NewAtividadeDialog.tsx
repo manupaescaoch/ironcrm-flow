@@ -50,7 +50,7 @@ export function NewAtividadeDialog({ tipo, open, onOpenChange }: Props) {
       setHorario('');
       setDias([1, 2, 3, 4, 5]);
       setModo('mensagem');
-      setMensagem('');
+      setMensagem(DEFAULT_MENSAGEM[tipo] || '');
       setFormularioId('');
     }
   }, [open, tipo]);
