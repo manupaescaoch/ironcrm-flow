@@ -20,6 +20,11 @@ const DEFAULTS: Record<TipoDisplay, { titulo: string; tipo: string }> = {
   OUTROS:                          { titulo: '',                                       tipo: '' },
 };
 
+const DEFAULT_MENSAGEM: Partial<Record<TipoDisplay, string>> = {
+  ENCERRAMENTO_GERENTE_UNIDADE:
+    '{NOME}, finalizou o turno?\n\nPreenche agora o formulário de encerramento com tudo o que aconteceu. Esse registro é importante para manter as informações organizadas e a operação rodando bem. 👊\n\nhttps://ironclub-app.com/encerramento-coordenador',
+};
+
 interface Props {
   tipo: TipoDisplay | null;
   open: boolean;
