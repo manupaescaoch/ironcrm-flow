@@ -67,6 +67,7 @@ export default function AnamneseExperimental() {
         setExistingId(existing.id);
         setRespostas({
           nome: existing.nome ?? leadData.nome ?? '',
+          data_nascimento: existing.data_nascimento ?? '',
           objetivo: existing.objetivo ?? '',
           historico: existing.historico ?? '',
           frequencia_atual: existing.frequencia_atual ?? '',
@@ -106,6 +107,7 @@ export default function AnamneseExperimental() {
         lead_id: lead.id,
         unidade_id: lead.unidade_id,
         nome: respostas.nome.trim() || null,
+        data_nascimento: respostas.data_nascimento || null,
         objetivo: respostas.objetivo || null,
         historico: respostas.historico || null,
         frequencia_atual: respostas.frequencia_atual || null,

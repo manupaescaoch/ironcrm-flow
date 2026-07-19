@@ -26,12 +26,27 @@ export default function AnamnesePublicaUniversal() {
   const { toast } = useToast();
   const [stage, setStage] = useState<Stage>('identify');
   const [nome, setNome] = useState('');
+  const [dataNascimento, setDataNascimento] = useState('');
   const [telefone, setTelefone] = useState('');
   const [respostas, setRespostas] = useState<AnamneseRespostas>(initialRespostas);
   const [saving, setSaving] = useState(false);
 
+  function isValidDate(value: string): boolean {
+    if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const [y, m, d] = value.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    return (
+      date.getFullYear() === y &&
+      date.getMonth() === m - 1 &&
+      date.getDate() === d &&
+      date <= new Date()
+    );
+  }
+
   const podeContinuar =
-    nome.trim().length >= 2 && telefone.replace(/\D/g, '').length >= 10;
+    nome.trim().length >= 2 &&
+    isValidDate(dataNascimento) &&
+    telefone.replace(/\D/g, '').length >= 10;
 
   if (stage === 'identify') {
     return (
@@ -58,6 +73,16 @@ export default function AnamnesePublicaUniversal() {
                 onChange={(e) => setNome(e.target.value.toUpperCase())}
                 placeholder="EX: MARIA SILVA"
                 autoComplete="name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="nascimento">Data de nascimento</Label>
+              <Input
+                id="nascimento"
+                type="date"
+                value={dataNascimento}
+                max={new Date().toISOString().split('T')[0]}
+                onChange={(e) => setDataNascimento(e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -92,7 +117,7 @@ export default function AnamnesePublicaUniversal() {
   if (stage === 'wizard') {
     return (
       <AnamneseWizard
-        initial={{ ...respostas, nome }}
+        initial={{ ...respostas, nome, data_nascimento: dataNascimento }}
         skipNome
         onComplete={(final) => {
           setRespostas(final);
@@ -112,7 +137,7 @@ export default function AnamnesePublicaUniversal() {
             action: 'submit',
             nome,
             telefone,
-            respostas: { ...respostas, nome },
+            respostas: { ...respostas, nome, data_nascimento: dataNascimento },
           },
         });
         console.log('[anamnese] resposta:', { data, error });

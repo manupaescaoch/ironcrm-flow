@@ -252,6 +252,7 @@ export type Database = {
         Row: {
           condicao_saude_descricao: string | null
           created_at: string
+          data_nascimento: string | null
           dias_semana: string | null
           frequencia_atual: string | null
           historico: string | null
@@ -275,6 +276,7 @@ export type Database = {
         Insert: {
           condicao_saude_descricao?: string | null
           created_at?: string
+          data_nascimento?: string | null
           dias_semana?: string | null
           frequencia_atual?: string | null
           historico?: string | null
@@ -298,6 +300,7 @@ export type Database = {
         Update: {
           condicao_saude_descricao?: string | null
           created_at?: string
+          data_nascimento?: string | null
           dias_semana?: string | null
           frequencia_atual?: string | null
           historico?: string | null

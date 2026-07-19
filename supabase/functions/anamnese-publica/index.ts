@@ -31,6 +31,11 @@ function sanitize(value: unknown, max = 2000): string | null {
   return cleaned ? cleaned.slice(0, max) : null;
 }
 
+function extractDateOnly(value: unknown): string | null {
+  const match = String(value ?? "").match(/^(\d{4}-\d{2}-\d{2})/);
+  return match?.[1] ?? null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -114,6 +119,7 @@ Deno.serve(async (req) => {
         lead_id: lead.id,
         unidade_id: lead.unidade_id,
         nome: sanitize(respostas.nome, 255),
+        data_nascimento: extractDateOnly(respostas.data_nascimento),
         objetivo: sanitize(respostas.objetivo),
         historico: sanitize(respostas.historico),
         frequencia_atual: sanitize(respostas.frequencia_atual),
@@ -214,6 +220,7 @@ Deno.serve(async (req) => {
         lead_id: foundLeadId,
         unidade_id: foundUnidadeId,
         nome,
+        data_nascimento: extractDateOnly(respostas.data_nascimento),
         objetivo: sanitize(respostas.objetivo),
         historico: sanitize(respostas.historico),
         frequencia_atual: sanitize(respostas.frequencia_atual),

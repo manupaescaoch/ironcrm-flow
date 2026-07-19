@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 interface Anamnese {
   id: string;
   nome: string | null;
+  data_nascimento: string | null;
   objetivo: string | null;
   historico: string | null;
   frequencia_atual: string | null;
@@ -34,6 +35,13 @@ const NA = 'Não informado';
 
 function fmt(v: string | null | undefined) {
   return v && v.trim().length > 0 ? v : NA;
+}
+
+function fmtDate(v: string | null | undefined) {
+  if (!v) return NA;
+  const match = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return NA;
+  return `${match[3]}/${match[2]}/${match[1]}`;
 }
 
 function fmtBoolDescricao(b: boolean | null, descr: string | null) {
@@ -122,6 +130,7 @@ export function AnamneseSection({ leadId }: AnamneseSectionProps) {
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Field label="Nome" value={fmt(anamnese.nome)} />
+            <Field label="Data de nascimento" value={fmtDate(anamnese.data_nascimento)} />
             <Field label="Objetivo" value={fmt(anamnese.objetivo)} />
             <Field label="Histórico" value={fmt(anamnese.historico)} />
             <Field label="Frequência atual" value={fmt(anamnese.frequencia_atual)} />
