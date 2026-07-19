@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 interface Anamnese {
   id: string;
   nome: string | null;
+  data_nascimento: string | null;
   objetivo: string | null;
   historico: string | null;
   frequencia_atual: string | null;
