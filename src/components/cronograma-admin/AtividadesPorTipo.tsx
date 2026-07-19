@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pencil, Search, X } from 'lucide-react';
+import { Pencil, Search, X, Trash2 } from 'lucide-react';
 import type { CronogramaAtividadeAdmin } from '@/hooks/useCronogramaAdmin';
 import { DIAS_LABEL_SHORT, TIPO_DISPLAY_LABEL, TIPO_DISPLAY_ORDER, classifyDisplay, type TipoDisplay } from '@/lib/cronogramaTipos';
 
