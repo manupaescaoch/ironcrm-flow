@@ -419,8 +419,8 @@ export default function CRM() {
   }, [unidadeAtual, startDate, endDate]);
 
   const uniqueOrigens = useMemo(() => {
-    const origens = leads.map(l => l.origem).filter(Boolean) as string[];
-    return [...new Set(origens)];
+    const origens = leads.map(l => normalizeOrigem(l.origem));
+    return [...new Set(origens)].sort();
   }, [leads]);
 
   // Cadastradores normalizados (usa lista fixa para garantir consistência)
