@@ -6,6 +6,7 @@ import { OptionCard } from './OptionCard';
 
 export interface AnamneseRespostas {
   nome: string;
+  data_nascimento: string;
   objetivo: string;
   historico: string;
   frequencia_atual: string;
@@ -21,6 +22,7 @@ export interface AnamneseRespostas {
 
 export const initialRespostas: AnamneseRespostas = {
   nome: '',
+  data_nascimento: '',
   objetivo: '',
   historico: '',
   frequencia_atual: '',
