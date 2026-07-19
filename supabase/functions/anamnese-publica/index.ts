@@ -31,6 +31,11 @@ function sanitize(value: unknown, max = 2000): string | null {
   return cleaned ? cleaned.slice(0, max) : null;
 }
 
+function extractDateOnly(value: unknown): string | null {
+  const match = String(value ?? "").match(/^(\d{4}-\d{2}-\d{2})/);
+  return match?.[1] ?? null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
