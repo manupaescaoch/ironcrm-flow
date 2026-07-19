@@ -43,7 +43,7 @@ interface AnamneseWizardProps {
   skipNome?: boolean;
 }
 
-const TOTAL = 10;
+const TOTAL = 11;
 
 const objetivoOpcoes = [
   { v: 'Emagrecer e perder gordura', e: '🔥' },
@@ -88,17 +88,29 @@ const horarioOpcoes = [
   { v: 'Noite', e: '🌙', hint: '18h - 22h' },
 ];
 
+function isValidDate(value: string): boolean {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [y, m, d] = value.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  return (
+    date.getFullYear() === y &&
+    date.getMonth() === m - 1 &&
+    date.getDate() === d &&
+    date <= new Date()
+  );
+}
+
 export function AnamneseWizard({ initial, onComplete, onBackToIntro, skipNome }: AnamneseWizardProps) {
-  const [step, setStep] = useState(skipNome ? 2 : 1);
+  const [step, setStep] = useState(skipNome ? 3 : 1);
   const [r, setR] = useState<AnamneseRespostas>(initial);
 
   const upd = <K extends keyof AnamneseRespostas>(k: K, v: AnamneseRespostas[K]) =>
     setR((prev) => ({ ...prev, [k]: v }));
 
   const next = () => setStep((s) => Math.min(TOTAL + 1, s + 1));
-  const back = () => (step <= (skipNome ? 2 : 1) ? onBackToIntro() : setStep((s) => s - 1));
+  const back = () => (step <= (skipNome ? 3 : 1) ? onBackToIntro() : setStep((s) => s - 1));
 
-  // Quando passa de etapa 10 → finaliza
+  // Quando passa de etapa 11 → finaliza
   if (step > TOTAL) {
     onComplete(r);
     return null;
@@ -128,11 +140,36 @@ export function AnamneseWizard({ initial, onComplete, onBackToIntro, skipNome }:
     );
   }
 
-  // Etapa 2 — Objetivo
+  // Etapa 2 — Data de nascimento
   if (step === 2) {
     return (
       <StepShell
         stepNumber={2}
+        totalSteps={TOTAL}
+        categoria="Identificação"
+        pergunta="Qual é a sua data de nascimento?"
+        apoio="Usamos essa informação para conhecer melhor nossos alunos."
+        canContinue={isValidDate(r.data_nascimento)}
+        onBack={back}
+        onContinue={next}
+      >
+        <Input
+          type="date"
+          autoFocus
+          value={r.data_nascimento}
+          max={new Date().toISOString().split('T')[0]}
+          onChange={(e) => upd('data_nascimento', e.target.value)}
+          className="h-14 rounded-2xl border-2 border-anamnese-border bg-anamnese-card px-5 text-base font-medium shadow-sm focus-visible:border-anamnese-border-selected focus-visible:ring-0"
+        />
+      </StepShell>
+    );
+  }
+
+  // Etapa 3 — Objetivo
+  if (step === 3) {
+    return (
+      <StepShell
+        stepNumber={3}
         totalSteps={TOTAL}
         categoria="Objetivo"
         pergunta="Qual é o seu principal objetivo?"
@@ -154,11 +191,11 @@ export function AnamneseWizard({ initial, onComplete, onBackToIntro, skipNome }:
     );
   }
 
-  // Etapa 3 — Histórico
-  if (step === 3) {
+  // Etapa 4 — Histórico
+  if (step === 4) {
     return (
       <StepShell
-        stepNumber={3}
+        stepNumber={4}
         totalSteps={TOTAL}
         categoria="Histórico"
         pergunta="Você já treinou com acompanhamento antes?"
@@ -180,11 +217,11 @@ export function AnamneseWizard({ initial, onComplete, onBackToIntro, skipNome }:
     );
   }
 
-  // Etapa 4 — Frequência atual
-  if (step === 4) {
+  // Etapa 5 — Frequência atual
+  if (step === 5) {
     return (
       <StepShell
-        stepNumber={4}
+        stepNumber={5}
         totalSteps={TOTAL}
         categoria="Frequência atual"
         pergunta="Você treina atualmente?"
@@ -206,11 +243,11 @@ export function AnamneseWizard({ initial, onComplete, onBackToIntro, skipNome }:
     );
   }
 
-  // Etapa 5 — Obstáculo
-  if (step === 5) {
+  // Etapa 6 — Obstáculo
+  if (step === 6) {
     return (
       <StepShell
-        stepNumber={5}
+        stepNumber={6}
         totalSteps={TOTAL}
         categoria="Obstáculo"
         pergunta="Qual é seu maior obstáculo para treinar com consistência?"
@@ -232,11 +269,11 @@ export function AnamneseWizard({ initial, onComplete, onBackToIntro, skipNome }:
     );
   }
 
-  // Etapa 6 — Disponibilidade (dias)
-  if (step === 6) {
+  // Etapa 7 — Disponibilidade (dias)
+  if (step === 7) {
     return (
       <StepShell
-        stepNumber={6}
+        stepNumber={7}
         totalSteps={TOTAL}
         categoria="Disponibilidade"
         pergunta="Quantos dias por semana você consegue treinar?"
@@ -258,8 +295,8 @@ export function AnamneseWizard({ initial, onComplete, onBackToIntro, skipNome }:
     );
   }
 
-  // Etapa 7 — Preferência de horário (multi)
-  if (step === 7) {
+  // Etapa 8 — Preferência de horário (multi)
+  if (step === 8) {
     const togglePref = (v: string) => {
       const has = r.preferencia_horario.includes(v);
       upd(
@@ -269,7 +306,7 @@ export function AnamneseWizard({ initial, onComplete, onBackToIntro, skipNome }:
     };
     return (
       <StepShell
-        stepNumber={7}
+        stepNumber={8}
         totalSteps={TOTAL}
         categoria="Preferência de horário"
         pergunta="Qual período do dia funciona melhor pra você?"
@@ -292,15 +329,15 @@ export function AnamneseWizard({ initial, onComplete, onBackToIntro, skipNome }:
     );
   }
 
-  // Etapa 8 — Saúde
-  if (step === 8) {
+  // Etapa 9 — Saúde
+  if (step === 9) {
     const showField = r.tem_condicao_saude === true;
     const canGo =
       r.tem_condicao_saude === false ||
       (r.tem_condicao_saude === true && r.condicao_saude_descricao.trim().length > 0);
     return (
       <StepShell
-        stepNumber={8}
+        stepNumber={9}
         totalSteps={TOTAL}
         categoria="Saúde"
         pergunta="Possui alguma condição de saúde relevante?"
@@ -337,15 +374,15 @@ export function AnamneseWizard({ initial, onComplete, onBackToIntro, skipNome }:
     );
   }
 
-  // Etapa 9 — Lesões
-  if (step === 9) {
+  // Etapa 10 — Lesões
+  if (step === 10) {
     const showField = r.tem_lesao === true;
     const canGo =
       r.tem_lesao === false ||
       (r.tem_lesao === true && r.lesao_descricao.trim().length > 0);
     return (
       <StepShell
-        stepNumber={9}
+        stepNumber={10}
         totalSteps={TOTAL}
         categoria="Lesões e limitações"
         pergunta="Tem alguma lesão ou limitação física?"
@@ -382,10 +419,10 @@ export function AnamneseWizard({ initial, onComplete, onBackToIntro, skipNome }:
     );
   }
 
-  // Etapa 10 — Observações finais (opcional)
+  // Etapa 11 — Observações finais (opcional)
   return (
     <StepShell
-      stepNumber={10}
+      stepNumber={11}
       totalSteps={TOTAL}
       categoria="Observações finais"
       pergunta="Alguma informação importante que a equipe precisa saber?"
