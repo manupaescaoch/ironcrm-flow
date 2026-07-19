@@ -4,9 +4,9 @@ Simplificar a tela de Cronograma de Automações agrupando por tipo de atividade
 ## Agrupamento (nível 1 → nível 2)
 
 Nível 1 — Tipo de atividade, sempre nesta ordem fixa:
-1. Encerramento Coordenador de Unidade
+1. Encerramento coordenador de turno
 2. Relatório Diário Comercial
-3. Encerramento de Turno – Coordenador de Horário
+3. Grade do próximo horário
 4. Encerramento Estagiário Líder
 
 Nível 2 (dentro de cada tipo) — **agrupar por horário + responsável + unidade**, mostrando:
