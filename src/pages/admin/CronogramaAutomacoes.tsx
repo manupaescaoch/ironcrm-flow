@@ -19,7 +19,8 @@ import { AtividadesPorTipo } from '@/components/cronograma-admin/AtividadesPorTi
 import type { GrupoConjunto } from '@/components/cronograma-admin/AtividadesPorTipo';
 import { BulkEditDialog, type BulkField } from '@/components/cronograma-admin/BulkEditDialog';
 import { HistoricoDialog } from '@/components/cronograma-admin/HistoricoDialog';
-import { DIAS_LABEL_SHORT } from '@/lib/cronogramaTipos';
+import { NewAtividadeDialog } from '@/components/cronograma-admin/NewAtividadeDialog';
+import { DIAS_LABEL_SHORT, type TipoDisplay } from '@/lib/cronogramaTipos';
 
 function atvToGrupo(a: CronogramaAtividadeAdmin): GrupoConjunto {
   return {
@@ -375,6 +376,7 @@ export default function AdminCronogramaAutomacoes() {
 
   const [editingJob, setEditingJob] = useState<CronJob | null>(null);
   const [editingGrupo, setEditingGrupo] = useState<GrupoConjunto | null>(null);
+  const [creatingTipo, setCreatingTipo] = useState<TipoDisplay | null>(null);
 
   const [viewMode, setViewMode] = useState<'tipo' | 'dia'>('tipo');
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -499,6 +501,7 @@ export default function AdminCronogramaAutomacoes() {
                     onDeleteGrupo={(g) =>
                       bulkUpdate.mutate({ ids: g.ids, delete: true })
                     }
+                    onNewInTipo={setCreatingTipo}
                   />
                 ) : (
                   <AtividadesPorDia
@@ -613,6 +616,12 @@ export default function AdminCronogramaAutomacoes() {
       />
 
       <HistoricoDialog open={historicoOpen} onOpenChange={setHistoricoOpen} />
+
+      <NewAtividadeDialog
+        tipo={creatingTipo}
+        open={!!creatingTipo}
+        onOpenChange={(v) => !v && setCreatingTipo(null)}
+      />
     </Layout>
   );
 }

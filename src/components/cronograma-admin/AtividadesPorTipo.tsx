@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pencil, Search, X, Trash2 } from 'lucide-react';
+import { Pencil, Search, X, Trash2, Plus } from 'lucide-react';
 import type { CronogramaAtividadeAdmin } from '@/hooks/useCronogramaAdmin';
 import { DIAS_LABEL_SHORT, TIPO_DISPLAY_LABEL, TIPO_DISPLAY_ORDER, classifyDisplay, type TipoDisplay } from '@/lib/cronogramaTipos';
 
@@ -34,9 +34,10 @@ interface Props {
   onEditGrupo: (g: GrupoConjunto) => void;
   onToggleGrupo: (g: GrupoConjunto, v: boolean) => void;
   onDeleteGrupo: (g: GrupoConjunto) => void;
+  onNewInTipo?: (td: TipoDisplay) => void;
 }
 
-export function AtividadesPorTipo({ atividades, selected, setSelected, onEditGrupo, onToggleGrupo, onDeleteGrupo }: Props) {
+export function AtividadesPorTipo({ atividades, selected, setSelected, onEditGrupo, onToggleGrupo, onDeleteGrupo, onNewInTipo }: Props) {
   const [search, setSearch] = useState('');
   const [fUnidade, setFUnidade] = useState<string>('all');
   const [fResp, setFResp] = useState<string>('all');
@@ -176,15 +177,27 @@ export function AtividadesPorTipo({ atividades, selected, setSelected, onEditGru
             const pausados = totalIds.length - ativos;
             return (
               <AccordionItem key={g.td} value={g.td} className="border rounded-md">
-                <AccordionTrigger className="hover:no-underline py-2.5 px-3">
-                  <div className="flex items-center gap-3 flex-wrap text-left">
-                    <span className="font-semibold text-sm">{g.label}</span>
-                    <Badge variant="secondary" className="text-xs">{g.conjuntos.length} horários</Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {ativos} envios ativos · {pausados} pausados
-                    </span>
-                  </div>
-                </AccordionTrigger>
+                <div className="flex items-center pr-2">
+                  <AccordionTrigger className="hover:no-underline py-2.5 px-3 flex-1">
+                    <div className="flex items-center gap-3 flex-wrap text-left">
+                      <span className="font-semibold text-sm">{g.label}</span>
+                      <Badge variant="secondary" className="text-xs">{g.conjuntos.length} horários</Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {ativos} envios ativos · {pausados} pausados
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+                  {onNewInTipo && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs shrink-0"
+                      onClick={(e) => { e.stopPropagation(); onNewInTipo(g.td); }}
+                    >
+                      <Plus className="w-3 h-3 mr-1" /> Nova automação
+                    </Button>
+                  )}
+                </div>
                 <AccordionContent className="pt-0">
                   <table className="w-full text-sm">
                     <thead className="text-xs text-muted-foreground">
