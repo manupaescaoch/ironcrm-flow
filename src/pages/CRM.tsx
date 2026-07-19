@@ -931,7 +931,7 @@ export default function CRM() {
         lead.nome.toLowerCase().includes(searchLower) ||
         lead.telefone?.toLowerCase().includes(searchLower) ||
         (searchDigits.length > 0 && leadPhoneDigits.includes(searchDigits));
-      const matchesOrigem = filterOrigem.length === 0 || filterOrigem.includes(lead.origem || '');
+      const matchesOrigem = filterOrigem.length === 0 || filterOrigem.includes(normalizeOrigem(lead.origem));
       const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
       const matchesStatus = filterStatus.length === 0 || filterStatus.includes(lead.status_funil);
       const matchesNivel =
