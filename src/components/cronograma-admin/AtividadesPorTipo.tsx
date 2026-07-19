@@ -228,7 +228,9 @@ export function AtividadesPorTipo({ atividades, selected, setSelected, onEditSin
                     <thead className="text-xs text-muted-foreground">
                       <tr>
                         <th className="w-8"></th>
-                        <th className="text-left px-2 py-1.5">Dia</th>
+                        <th className="text-left px-2 py-1.5">Horário</th>
+                        <th className="text-left px-2 py-1.5">Responsável</th>
+                        <th className="text-left px-2 py-1.5">Unidade</th>
                         <th className="text-left px-2 py-1.5">Horário</th>
                         <th className="text-left px-2 py-1.5">Responsável</th>
                         <th className="text-left px-2 py-1.5">Unidade</th>
