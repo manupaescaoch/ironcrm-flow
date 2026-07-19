@@ -17,9 +17,9 @@ export const TIPO_DISPLAY_ORDER: TipoDisplay[] = [
 ];
 
 export const TIPO_DISPLAY_LABEL: Record<TipoDisplay, string> = {
-  ENCERRAMENTO_COORD_UNIDADE: 'Encerramento Coordenador de Unidade',
+  ENCERRAMENTO_COORD_UNIDADE: 'Encerramento coordenador de turno',
   RELATORIO_DIARIO_COMERCIAL: 'Relatório Diário Comercial',
-  ENCERRAMENTO_TURNO_COORD_HORARIO: 'Encerramento de Turno — Coordenador de Horário',
+  ENCERRAMENTO_TURNO_COORD_HORARIO: 'Grade do próximo horário',
   ENCERRAMENTO_ESTAGIARIO_LIDER: 'Encerramento Estagiário Líder',
   OUTROS: 'Outros',
 };
