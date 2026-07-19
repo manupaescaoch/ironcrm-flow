@@ -5,19 +5,19 @@ const COMERCIAL_JOBS = new Set([
   'confirmacao-experimental-cada-15min',
   'send-follow-ups-automaticos-daily',
   'healthcheck-follow-ups-diario',
+  'notify-boas-vindas-matricula-every-30min',
+  'notify-feedback-experimental-30min',
+  'notify-rotinas-every-15min',
+  'retry-anamneses-pendentes-5min',
 ]);
 
 const OPERACIONAL_JOBS = new Set([
   'daily-crm-backup-secured',
-  'notify-boas-vindas-matricula-every-30min',
-  'notify-feedback-experimental-30min',
   'notify-resumo-semanal-crm-sab-18h',
-  'notify-rotinas-every-15min',
   'notify-task-deadlines',
   'resumo-gestao-operacional-diario-0800',
   'resumo-semanal-pergunta-sabado-10h',
   'resumo-semanal-pergunta-segunda-10h',
-  'retry-anamneses-pendentes-5min',
   'send-cronograma-messages-every-3min',
   'send-formulario-lembretes-every-15min',
 ]);
