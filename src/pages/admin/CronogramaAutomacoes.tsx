@@ -62,7 +62,7 @@ function EditScheduleDialog({ job, open, onOpenChange, onSave }: { job: CronJob 
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (v && job) setValue(job.schedule); }}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Editar horário — {job?.jobname}</DialogTitle>
+          <DialogTitle>Editar horário — {job ? getJobLabel(job.jobname) : ''}</DialogTitle>
         </DialogHeader>
         <div className="space-y-2">
           <label className="text-sm font-medium">Expressão cron (UTC)</label>
