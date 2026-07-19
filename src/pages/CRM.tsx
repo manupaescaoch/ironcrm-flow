@@ -208,7 +208,12 @@ export default function CRM() {
 
   const _saved = loadSavedFilters();
   const [search, setSearch] = useState<string>(_saved.search ?? '');
-  const [filterOrigem, setFilterOrigem] = useState<string>(_saved.filterOrigem ?? 'all');
+  const [filterOrigem, setFilterOrigem] = useState<string[]>(() => {
+    const v = _saved.filterOrigem;
+    if (Array.isArray(v)) return v;
+    if (typeof v === 'string' && v && v !== 'all') return [v];
+    return [];
+  });
   const [filterCadastradoPor, setFilterCadastradoPor] = useState<string>(_saved.filterCadastradoPor ?? 'all');
   const [filterStatus, setFilterStatus] = useState<string[]>(() => {
     const v = _saved.filterStatus;
