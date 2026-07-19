@@ -97,6 +97,7 @@ Deno.serve(async (req) => {
     const message = `🧪 *Nova anamnese — Aula experimental*
 
 👤 *Nome:* ${fmt(lead?.nome)}
+🎂 *Data de nascimento:* ${formatDateOnlyBR(a.data_nascimento)}
 📍 *Unidade:* ${fmt(unidade?.nome)}
 📅 *Data da aula:* ${dataAula}
 
