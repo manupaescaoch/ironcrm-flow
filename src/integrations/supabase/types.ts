@@ -3345,6 +3345,16 @@ export type Database = {
         Args: { lead_ids: string[] }
         Returns: number
       }
+      admin_list_cron_jobs: {
+        Args: never
+        Returns: {
+          active: boolean
+          command: string
+          jobid: number
+          jobname: string
+          schedule: string
+        }[]
+      }
       admin_standardize_origem: {
         Args: { new_value: string; old_value: string }
         Returns: number
@@ -3353,9 +3363,17 @@ export type Database = {
         Args: { new_value: string; old_value: string }
         Returns: number
       }
+      admin_toggle_cron_job: {
+        Args: { p_active: boolean; p_jobid: number }
+        Returns: undefined
+      }
       admin_update_cadastrador: {
         Args: { new_name: string; old_name: string }
         Returns: number
+      }
+      admin_update_cron_schedule: {
+        Args: { p_jobid: number; p_schedule: string }
+        Returns: undefined
       }
       generate_follow_ups_for_lead: {
         Args: { p_lead_id: string }
