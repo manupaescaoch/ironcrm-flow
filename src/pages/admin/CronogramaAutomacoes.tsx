@@ -496,6 +496,9 @@ export default function AdminCronogramaAutomacoes() {
                     onToggleGrupo={(g, v) =>
                       bulkUpdate.mutate({ ids: g.ids, patch: { ativo: v } })
                     }
+                    onDeleteGrupo={(g) =>
+                      bulkUpdate.mutate({ ids: g.ids, delete: true })
+                    }
                   />
                 ) : (
                   <AtividadesPorDia
