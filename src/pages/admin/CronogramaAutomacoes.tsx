@@ -43,13 +43,15 @@ function EditScheduleDialog({ job, open, onOpenChange, onSave }: { job: CronJob 
   );
 }
 
-function EditAtividadeDialog({ atv, open, onOpenChange, onSave }: { atv: CronogramaAtividadeAdmin | null; open: boolean; onOpenChange: (v: boolean) => void; onSave: (patch: Partial<CronogramaAtividadeAdmin>) => void }) {
+function EditAtividadeDialog({ atv, open, onOpenChange, onSave }: { atv: CronogramaAtividadeAdmin | null; open: boolean; onOpenChange: (v: boolean) => void; onSave: (patch: { horario: string | null; turno: string | null; dias: number[] }) => void }) {
   const [horario, setHorario] = useState(atv?.horario?.slice(0, 5) || '');
-  const [dia, setDia] = useState<string>(atv?.dia_semana != null ? String(atv.dia_semana) : '');
+  const [dias, setDias] = useState<number[]>(atv?.dia_semana != null ? [atv.dia_semana] : []);
   const [turno, setTurno] = useState<string>(atv?.turno || '');
 
+  const toggleDia = (v: number) => setDias((d) => d.includes(v) ? d.filter(x => x !== v) : [...d, v].sort((a, b) => a - b));
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (v && atv) { setHorario(atv.horario?.slice(0, 5) || ''); setDia(atv.dia_semana != null ? String(atv.dia_semana) : ''); setTurno(atv.turno || ''); } }}>
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (v && atv) { setHorario(atv.horario?.slice(0, 5) || ''); setDias(atv.dia_semana != null ? [atv.dia_semana] : []); setTurno(atv.turno || ''); } }}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Editar — {atv?.titulo}</DialogTitle>
@@ -59,16 +61,27 @@ function EditAtividadeDialog({ atv, open, onOpenChange, onSave }: { atv: Cronogr
             <label className="text-sm font-medium">Horário</label>
             <Input type="time" value={horario} onChange={(e) => setHorario(e.target.value)} />
           </div>
-          <div>
-            <label className="text-sm font-medium">Dia da semana</label>
-            <Select value={dia} onValueChange={setDia}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>
-                {DIAS_SEMANA.map((d) => (
-                  <SelectItem key={d.value} value={String(d.value)}>{d.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Dias da semana</label>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDias([1,2,3,4,5])}>Seg–Sex</Button>
+              <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDias([0,6])}>Fim de semana</Button>
+              <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDias([0,1,2,3,4,5,6])}>Todos</Button>
+              <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setDias([])}>Limpar</Button>
+            </div>
+            <div className="grid grid-cols-4 gap-2 pt-1">
+              {DIAS_SEMANA.map((d) => (
+                <label key={d.value} className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={dias.includes(d.value)} onCheckedChange={() => toggleDia(d.value)} />
+                  {d.label}
+                </label>
+              ))}
+            </div>
+            {dias.length > 1 && (
+              <p className="text-xs text-muted-foreground">
+                Serão criadas cópias para os demais dias selecionados; o registro original manterá o primeiro dia.
+              </p>
+            )}
           </div>
           <div>
             <label className="text-sm font-medium">Turno</label>
@@ -77,7 +90,10 @@ function EditAtividadeDialog({ atv, open, onOpenChange, onSave }: { atv: Cronogr
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => onSave({ horario: horario ? `${horario}:00` : null, dia_semana: dia !== '' ? parseInt(dia) : null, turno: turno || null })}>Salvar</Button>
+          <Button
+            disabled={dias.length === 0}
+            onClick={() => onSave({ horario: horario ? `${horario}:00` : null, turno: turno || null, dias })}
+          >Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
