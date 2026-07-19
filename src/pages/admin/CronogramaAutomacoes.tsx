@@ -616,6 +616,12 @@ export default function AdminCronogramaAutomacoes() {
       />
 
       <HistoricoDialog open={historicoOpen} onOpenChange={setHistoricoOpen} />
+
+      <NewAtividadeDialog
+        tipo={creatingTipo}
+        open={!!creatingTipo}
+        onOpenChange={(v) => !v && setCreatingTipo(null)}
+      />
     </Layout>
   );
 }
