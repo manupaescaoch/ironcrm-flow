@@ -21,6 +21,25 @@ import { BulkEditDialog, type BulkField } from '@/components/cronograma-admin/Bu
 import { HistoricoDialog } from '@/components/cronograma-admin/HistoricoDialog';
 import { DIAS_LABEL_SHORT } from '@/lib/cronogramaTipos';
 
+function atvToGrupo(a: CronogramaAtividadeAdmin): GrupoConjunto {
+  return {
+    key: a.id,
+    titulo: a.titulo,
+    horario: a.horario,
+    responsavel_id: a.responsavel_id,
+    responsavel_nome: a.cronograma_funcionarios?.nome || '—',
+    unidade_id: a.unidade_id,
+    unidade_nome: a.unidades?.nome || '—',
+    dias: a.dia_semana != null ? [a.dia_semana] : [],
+    diasAtivos: a.ativo && a.dia_semana != null ? [a.dia_semana] : [],
+    ids: [a.id],
+    ativoAll: a.ativo,
+    ativoAny: a.ativo,
+    itens: [a],
+  };
+}
+
+
 function EditScheduleDialog({ job, open, onOpenChange, onSave }: { job: CronJob | null; open: boolean; onOpenChange: (v: boolean) => void; onSave: (schedule: string) => void }) {
   const [value, setValue] = useState(job?.schedule || '');
   return (
