@@ -146,14 +146,36 @@ const normalizeCadastrador = (nome: string | null | undefined): string => {
   return normalizado; // Retorna em caixa alta se não encontrar mapeamento
 };
 
-// Função para validar/normalizar origem
+// Normaliza origem agrupando grafias diferentes (acentos, caixa, espaços, variações)
+const normalizeOrigem = (origem: string | null | undefined): string => {
+  if (!origem) return 'Não Informado';
+  const raw = origem.toString().trim();
+  if (!raw) return 'Não Informado';
+  const key = raw
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (/whats?app|whats|zap/.test(key)) return 'WhatsApp';
+  if (/instagram|insta|\big\b/.test(key)) return 'Instagram';
+  if (/trafego|ads|anuncio|face\s*ads|google\s*ads|meta\s*ads|pago/.test(key)) return 'Tráfego Pago';
+  if (/indica/.test(key)) return 'Indicação';
+  if (/visita|presencial|balcao|recepcao/.test(key)) return 'Visita Presencial';
+  if (/embaixador|parceria|parceiro|terceiro/.test(key)) return 'Embaixador / Parceria';
+  if (/nao informado|sem origem|desconhecid|null|n\/?a|^-+$/.test(key)) return 'Não Informado';
+
+  return raw;
+};
+
+// Função para validar/normalizar origem (para inputs do formulário)
 const validateOrigem = (origem: string | null | undefined): string => {
-  if (!origem) return 'WhatsApp';
-  const normalized = origem.trim();
+  const normalized = normalizeOrigem(origem);
   if (ORIGEM_OPTIONS.includes(normalized as typeof ORIGEM_OPTIONS[number])) {
     return normalized;
   }
-  return 'WhatsApp'; // Fallback seguro
+  return 'WhatsApp';
 };
 
 const statusLabels: Record<StatusFunil, string> = {
