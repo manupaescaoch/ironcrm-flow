@@ -330,7 +330,9 @@ export type Database = {
           id: string
           mensagem: string | null
           responsavel_id: string | null
+          tipo_atividade: string | null
           titulo: string
+          turno: string | null
           unidade_id: string
           updated_at: string
         }
@@ -343,7 +345,9 @@ export type Database = {
           id?: string
           mensagem?: string | null
           responsavel_id?: string | null
+          tipo_atividade?: string | null
           titulo: string
+          turno?: string | null
           unidade_id: string
           updated_at?: string
         }
@@ -356,7 +360,9 @@ export type Database = {
           id?: string
           mensagem?: string | null
           responsavel_id?: string | null
+          tipo_atividade?: string | null
           titulo?: string
+          turno?: string | null
           unidade_id?: string
           updated_at?: string
         }
@@ -380,6 +386,50 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cronograma_atividades_historico: {
+        Row: {
+          atividade_id: string | null
+          bulk_operation_id: string | null
+          campo: string
+          created_at: string
+          id: string
+          user_id: string | null
+          user_name: string | null
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          atividade_id?: string | null
+          bulk_operation_id?: string | null
+          campo: string
+          created_at?: string
+          id?: string
+          user_id?: string | null
+          user_name?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          atividade_id?: string | null
+          bulk_operation_id?: string | null
+          campo?: string
+          created_at?: string
+          id?: string
+          user_id?: string | null
+          user_name?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cronograma_atividades_historico_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "cronograma_atividades"
             referencedColumns: ["id"]
           },
         ]
@@ -3341,6 +3391,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_bulk_update_cronograma: {
+        Args: {
+          p_add_dias?: number[]
+          p_delete?: boolean
+          p_duplicate?: boolean
+          p_ids: string[]
+          p_patch?: Json
+          p_replace_dias?: number[]
+        }
+        Returns: Json
+      }
       admin_cleanup_duplicate_leads: {
         Args: { lead_ids: string[] }
         Returns: number
@@ -3353,6 +3414,20 @@ export type Database = {
           jobid: number
           jobname: string
           schedule: string
+        }[]
+      }
+      admin_list_cronograma_historico: {
+        Args: { p_limit?: number }
+        Returns: {
+          atividade_id: string
+          atividade_titulo: string
+          bulk_operation_id: string
+          campo: string
+          created_at: string
+          id: string
+          user_name: string
+          valor_anterior: string
+          valor_novo: string
         }[]
       }
       admin_standardize_origem: {
@@ -3412,7 +3487,9 @@ export type Database = {
         Returns: boolean
       }
       inativar_aluno: { Args: { p_lead_id: string }; Returns: undefined }
+      normalize_cronograma_tipo: { Args: { p_titulo: string }; Returns: string }
       normalize_phone: { Args: { phone: string }; Returns: string }
+      unaccent: { Args: { "": string }; Returns: string }
       user_can_access_reuniao_anexo: {
         Args: { _object_name: string; _user_id: string }
         Returns: boolean
