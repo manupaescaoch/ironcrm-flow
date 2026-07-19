@@ -91,6 +91,7 @@ export function AtividadesPorTipo({ atividades, selected, setSelected, onEditSin
     const s = new Set<string>();
     const map = new Map<string, string[]>();
     for (const a of atividades) {
+      if (!a.ativo) continue;
       const key = `${a.tipo_atividade}|${a.unidade_id}|${a.responsavel_id}|${a.dia_semana}|${a.horario}|${a.turno}`;
       const arr = map.get(key) || [];
       arr.push(a.id);
