@@ -231,9 +231,6 @@ export function AtividadesPorTipo({ atividades, selected, setSelected, onEditSin
                         <th className="text-left px-2 py-1.5">Horário</th>
                         <th className="text-left px-2 py-1.5">Responsável</th>
                         <th className="text-left px-2 py-1.5">Unidade</th>
-                        <th className="text-left px-2 py-1.5">Horário</th>
-                        <th className="text-left px-2 py-1.5">Responsável</th>
-                        <th className="text-left px-2 py-1.5">Unidade</th>
                         <th className="text-left px-2 py-1.5">Turno</th>
                         <th className="text-left px-2 py-1.5">Status</th>
                         <th className="text-right px-2 py-1.5">Ações</th>
