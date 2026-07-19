@@ -177,15 +177,27 @@ export function AtividadesPorTipo({ atividades, selected, setSelected, onEditGru
             const pausados = totalIds.length - ativos;
             return (
               <AccordionItem key={g.td} value={g.td} className="border rounded-md">
-                <AccordionTrigger className="hover:no-underline py-2.5 px-3">
-                  <div className="flex items-center gap-3 flex-wrap text-left">
-                    <span className="font-semibold text-sm">{g.label}</span>
-                    <Badge variant="secondary" className="text-xs">{g.conjuntos.length} horários</Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {ativos} envios ativos · {pausados} pausados
-                    </span>
-                  </div>
-                </AccordionTrigger>
+                <div className="flex items-center pr-2">
+                  <AccordionTrigger className="hover:no-underline py-2.5 px-3 flex-1">
+                    <div className="flex items-center gap-3 flex-wrap text-left">
+                      <span className="font-semibold text-sm">{g.label}</span>
+                      <Badge variant="secondary" className="text-xs">{g.conjuntos.length} horários</Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {ativos} envios ativos · {pausados} pausados
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+                  {onNewInTipo && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs shrink-0"
+                      onClick={(e) => { e.stopPropagation(); onNewInTipo(g.td); }}
+                    >
+                      <Plus className="w-3 h-3 mr-1" /> Nova automação
+                    </Button>
+                  )}
+                </div>
                 <AccordionContent className="pt-0">
                   <table className="w-full text-sm">
                     <thead className="text-xs text-muted-foreground">
