@@ -1534,19 +1534,58 @@ export default function CRM() {
                   className="pl-10"
                 />
               </div>
-              <Select value={filterOrigem} onValueChange={setFilterOrigem}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filtrar por origem" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as origens</SelectItem>
-                  {uniqueOrigens.map((origem) => (
-                    <SelectItem key={origem} value={origem}>
-                      {origem}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="justify-between font-normal">
+                    <span className="truncate">
+                      {filterOrigem.length === 0
+                        ? 'Todas as origens'
+                        : filterOrigem.length === 1
+                        ? filterOrigem[0]
+                        : `${filterOrigem.length} origens selecionadas`}
+                    </span>
+                    <Filter className="w-4 h-4 ml-2 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-2 bg-popover" align="start">
+                  <div className="flex items-center justify-between px-2 py-1 mb-1">
+                    <span className="text-xs text-muted-foreground">Filtrar origem</span>
+                    {filterOrigem.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs"
+                        onClick={() => setFilterOrigem([])}
+                      >
+                        Limpar
+                      </Button>
+                    )}
+                  </div>
+                  <div className="space-y-1 max-h-64 overflow-y-auto">
+                    {uniqueOrigens.map((opt) => {
+                      const checked = filterOrigem.includes(opt);
+                      return (
+                        <label
+                          key={opt}
+                          className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => {
+                              setFilterOrigem((prev) =>
+                                v
+                                  ? [...prev, opt]
+                                  : prev.filter((s) => s !== opt)
+                              );
+                            }}
+                          />
+                          <span>{opt}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
               <Select value={filterCadastradoPor} onValueChange={setFilterCadastradoPor}>
                 <SelectTrigger>
                   <SelectValue placeholder="Filtrar por cadastrador" />
