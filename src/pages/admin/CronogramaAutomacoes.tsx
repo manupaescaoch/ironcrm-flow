@@ -113,17 +113,19 @@ function EditGrupoDialog({
   }, [open, grupo, first]);
 
   const { data: funcionarios = [] } = useQuery({
-    queryKey: ['cronograma-funcionarios-por-unidade', grupo?.unidade_id],
+    queryKey: ['cronograma-funcionarios-full', grupo?.unidade_id],
     enabled: open && !!grupo?.unidade_id,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('cronograma_funcionarios')
-        .select('id, nome, telefone, cargo')
-        .eq('unidade_id', grupo!.unidade_id)
-        .eq('ativo', true)
-        .order('nome');
+      const { data, error } = await supabase.rpc('get_cronograma_funcionarios_full' as any, {
+        p_unidade_id: grupo!.unidade_id,
+      });
       if (error) throw error;
-      return data as { id: string; nome: string; telefone: string | null; cargo: string | null }[];
+      return ((data as any[]) || []).filter((f) => f.ativo) as {
+        id: string;
+        nome: string;
+        telefone: string | null;
+        cargo: string | null;
+      }[];
     },
   });
 

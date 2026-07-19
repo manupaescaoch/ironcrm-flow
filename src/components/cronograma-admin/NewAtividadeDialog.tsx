@@ -60,17 +60,18 @@ export function NewAtividadeDialog({ tipo, open, onOpenChange }: Props) {
   });
 
   const { data: funcionarios = [] } = useQuery({
-    queryKey: ['cronograma-funcionarios-por-unidade', unidadeId],
+    queryKey: ['cronograma-funcionarios-full', unidadeId],
     enabled: open && !!unidadeId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('cronograma_funcionarios')
-        .select('id, nome, telefone')
-        .eq('unidade_id', unidadeId)
-        .eq('ativo', true)
-        .order('nome');
+      const { data, error } = await supabase.rpc('get_cronograma_funcionarios_full' as any, {
+        p_unidade_id: unidadeId,
+      });
       if (error) throw error;
-      return data as { id: string; nome: string; telefone: string | null }[];
+      return ((data as any[]) || []).filter((f) => f.ativo) as {
+        id: string;
+        nome: string;
+        telefone: string | null;
+      }[];
     },
   });
 
