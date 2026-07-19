@@ -19,7 +19,8 @@ import { AtividadesPorTipo } from '@/components/cronograma-admin/AtividadesPorTi
 import type { GrupoConjunto } from '@/components/cronograma-admin/AtividadesPorTipo';
 import { BulkEditDialog, type BulkField } from '@/components/cronograma-admin/BulkEditDialog';
 import { HistoricoDialog } from '@/components/cronograma-admin/HistoricoDialog';
-import { DIAS_LABEL_SHORT } from '@/lib/cronogramaTipos';
+import { NewAtividadeDialog } from '@/components/cronograma-admin/NewAtividadeDialog';
+import { DIAS_LABEL_SHORT, type TipoDisplay } from '@/lib/cronogramaTipos';
 
 function atvToGrupo(a: CronogramaAtividadeAdmin): GrupoConjunto {
   return {
