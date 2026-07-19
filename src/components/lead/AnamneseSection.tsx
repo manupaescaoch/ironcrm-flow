@@ -130,6 +130,7 @@ export function AnamneseSection({ leadId }: AnamneseSectionProps) {
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Field label="Nome" value={fmt(anamnese.nome)} />
+            <Field label="Data de nascimento" value={fmtDate(anamnese.data_nascimento)} />
             <Field label="Objetivo" value={fmt(anamnese.objetivo)} />
             <Field label="Histórico" value={fmt(anamnese.historico)} />
             <Field label="Frequência atual" value={fmt(anamnese.frequencia_atual)} />
