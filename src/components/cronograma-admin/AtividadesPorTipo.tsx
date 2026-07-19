@@ -113,7 +113,7 @@ export function AtividadesPorTipo({ atividades, selected, setSelected, onEditGru
           .sort((a, b) => (a.horario || '').localeCompare(b.horario || '') || a.responsavel_nome.localeCompare(b.responsavel_nome));
         return { td, label: TIPO_DISPLAY_LABEL[td], conjuntos };
       })
-      .filter(g => g.conjuntos.length > 0);
+      .filter(g => g.td === 'OUTROS' ? g.conjuntos.length > 0 : true);
   }, [filtered]);
 
   const toggleGroupSel = (ids: string[], on: boolean) => setSelected(prev => {
