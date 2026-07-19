@@ -37,6 +37,13 @@ function fmt(v: string | null | undefined) {
   return v && v.trim().length > 0 ? v : NA;
 }
 
+function fmtDate(v: string | null | undefined) {
+  if (!v) return NA;
+  const match = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return NA;
+  return `${match[3]}/${match[2]}/${match[1]}`;
+}
+
 function fmtBoolDescricao(b: boolean | null, descr: string | null) {
   if (b === null) return NA;
   if (!b) return 'Não';
