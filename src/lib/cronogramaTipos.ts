@@ -38,6 +38,9 @@ export function classifyDisplay(a: { tipo_atividade?: string | null; titulo?: st
   if (tipo === 'ENCERRAMENTO ESTAGIARIO LIDER' || /ESTAGIARIO\s+LIDER/.test(titulo)) {
     return 'ENCERRAMENTO_ESTAGIARIO_LIDER';
   }
+  if (tipo === 'ENCERRAMENTO GERENTE UNIDADE' || /GERENTE\s+(DE\s+)?UNIDADE/.test(titulo)) {
+    return 'ENCERRAMENTO_GERENTE_UNIDADE';
+  }
   if (tipo === 'RELATORIO DIARIO' || /RELATORIO\s+DIARIO/.test(titulo)) {
     return 'RELATORIO_DIARIO_COMERCIAL';
   }
