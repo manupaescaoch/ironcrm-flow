@@ -560,25 +560,22 @@ export default function AdminCronogramaAutomacoes() {
         }}
       />
 
-      <EditAtividadeDialog
-        atv={editingAtv}
-        open={!!editingAtv}
-        onOpenChange={(v) => !v && setEditingAtv(null)}
-        onSave={({ horario, turno, dias }) => {
-          if (!editingAtv) return;
-          const basePatch: Record<string, any> = { horario, turno };
-          if (dias.length <= 1) {
-            const patch = { ...basePatch, dia_semana: dias[0] ?? null };
-            updateSingle.mutate(
-              { id: editingAtv.id, patch },
-              { onSuccess: () => setEditingAtv(null) }
-            );
-          } else {
-            bulkUpdate.mutate(
-              { ids: [editingAtv.id], patch: basePatch, replace_dias: dias },
-              { onSuccess: () => setEditingAtv(null) }
-            );
-          }
+      <EditGrupoDialog
+        grupo={editingGrupo}
+        open={!!editingGrupo}
+        onOpenChange={(v) => !v && setEditingGrupo(null)}
+        loading={bulkUpdate.isPending || updateSingle.isPending}
+        onDelete={(ids) => {
+          bulkUpdate.mutate(
+            { ids, delete: true },
+            { onSuccess: () => setEditingGrupo(null) }
+          );
+        }}
+        onSave={({ ids, patch, dias }) => {
+          bulkUpdate.mutate(
+            { ids, patch, replace_dias: dias },
+            { onSuccess: () => setEditingGrupo(null) }
+          );
         }}
       />
 
