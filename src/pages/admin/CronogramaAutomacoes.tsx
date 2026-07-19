@@ -376,6 +376,7 @@ export default function AdminCronogramaAutomacoes() {
 
   const [editingJob, setEditingJob] = useState<CronJob | null>(null);
   const [editingGrupo, setEditingGrupo] = useState<GrupoConjunto | null>(null);
+  const [creatingTipo, setCreatingTipo] = useState<TipoDisplay | null>(null);
 
   const [viewMode, setViewMode] = useState<'tipo' | 'dia'>('tipo');
   const [selected, setSelected] = useState<Set<string>>(new Set());
