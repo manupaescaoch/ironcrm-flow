@@ -353,10 +353,9 @@ function AtividadesPorDia({ atividades, onToggle, onEdit }: { atividades: Cronog
 export default function AdminCronogramaAutomacoes() {
   const { jobs, isLoading: loadingJobs, toggleJob, updateSchedule } = useCronJobs();
   const { data: atividades = [], isLoading: loadingAtv, bulkUpdate, updateSingle } = useCronogramaAdminData();
-  const { users } = useUnidadeUsers();
 
   const [editingJob, setEditingJob] = useState<CronJob | null>(null);
-  const [editingAtv, setEditingAtv] = useState<CronogramaAtividadeAdmin | null>(null);
+  const [editingGrupo, setEditingGrupo] = useState<GrupoConjunto | null>(null);
 
   const [viewMode, setViewMode] = useState<'tipo' | 'dia'>('tipo');
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -382,7 +381,15 @@ export default function AdminCronogramaAutomacoes() {
     [atividades]
   );
 
-  const responsaveisOpts = useMemo(() => users.map(u => ({ id: u.id, label: u.name })), [users]);
+  const responsaveisOpts = useMemo(() => {
+    const map = new Map<string, string>();
+    atividades.forEach(a => {
+      if (a.responsavel_id && a.cronograma_funcionarios?.nome) {
+        map.set(a.responsavel_id, a.cronograma_funcionarios.nome);
+      }
+    });
+    return Array.from(map.entries()).map(([id, label]) => ({ id, label }));
+  }, [atividades]);
 
   if (loadingJobs || loadingAtv) {
     return (
