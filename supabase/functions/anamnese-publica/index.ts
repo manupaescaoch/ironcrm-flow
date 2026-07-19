@@ -220,6 +220,7 @@ Deno.serve(async (req) => {
         lead_id: foundLeadId,
         unidade_id: foundUnidadeId,
         nome,
+        data_nascimento: extractDateOnly(respostas.data_nascimento),
         objetivo: sanitize(respostas.objetivo),
         historico: sanitize(respostas.historico),
         frequencia_atual: sanitize(respostas.frequencia_atual),
