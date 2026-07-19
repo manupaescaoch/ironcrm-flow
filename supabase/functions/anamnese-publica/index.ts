@@ -114,6 +114,7 @@ Deno.serve(async (req) => {
         lead_id: lead.id,
         unidade_id: lead.unidade_id,
         nome: sanitize(respostas.nome, 255),
+        data_nascimento: extractDateOnly(respostas.data_nascimento),
         objetivo: sanitize(respostas.objetivo),
         historico: sanitize(respostas.historico),
         frequencia_atual: sanitize(respostas.frequencia_atual),
