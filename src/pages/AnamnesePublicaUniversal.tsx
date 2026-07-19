@@ -76,6 +76,16 @@ export default function AnamnesePublicaUniversal() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="nascimento">Data de nascimento</Label>
+              <Input
+                id="nascimento"
+                type="date"
+                value={dataNascimento}
+                max={new Date().toISOString().split('T')[0]}
+                onChange={(e) => setDataNascimento(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="tel">WhatsApp</Label>
               <Input
                 id="tel"
