@@ -101,14 +101,14 @@ function isValidDate(value: string): boolean {
 }
 
 export function AnamneseWizard({ initial, onComplete, onBackToIntro, skipNome }: AnamneseWizardProps) {
-  const [step, setStep] = useState(skipNome ? 3 : 1);
+  const [step, setStep] = useState(skipNome ? 2 : 1);
   const [r, setR] = useState<AnamneseRespostas>(initial);
 
   const upd = <K extends keyof AnamneseRespostas>(k: K, v: AnamneseRespostas[K]) =>
     setR((prev) => ({ ...prev, [k]: v }));
 
   const next = () => setStep((s) => Math.min(TOTAL + 1, s + 1));
-  const back = () => (step <= (skipNome ? 3 : 1) ? onBackToIntro() : setStep((s) => s - 1));
+  const back = () => (step <= (skipNome ? 2 : 1) ? onBackToIntro() : setStep((s) => s - 1));
 
   // Quando passa de etapa 11 → finaliza
   if (step > TOTAL) {
