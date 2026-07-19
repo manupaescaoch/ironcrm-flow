@@ -1429,7 +1429,7 @@ export default function CRM() {
           const baseLeads = leads.filter((lead) => {
             const searchLower = search.toLowerCase();
             const matchesSearch = !search || lead.nome.toLowerCase().includes(searchLower) || lead.telefone?.includes(search);
-            const matchesOrigem = filterOrigem.length === 0 || filterOrigem.includes(lead.origem || '');
+            const matchesOrigem = filterOrigem.length === 0 || filterOrigem.includes(normalizeOrigem(lead.origem));
             const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
             let matchesDate = true;
             if (startDate || endDate) {
