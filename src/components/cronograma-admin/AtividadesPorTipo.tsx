@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pencil, Search, X } from 'lucide-react';
+import { Pencil, Search, X, Trash2 } from 'lucide-react';
 import type { CronogramaAtividadeAdmin } from '@/hooks/useCronogramaAdmin';
 import { DIAS_LABEL_SHORT, TIPO_DISPLAY_LABEL, TIPO_DISPLAY_ORDER, classifyDisplay, type TipoDisplay } from '@/lib/cronogramaTipos';
 
@@ -33,9 +33,10 @@ interface Props {
   setSelected: (fn: (s: Set<string>) => Set<string>) => void;
   onEditGrupo: (g: GrupoConjunto) => void;
   onToggleGrupo: (g: GrupoConjunto, v: boolean) => void;
+  onDeleteGrupo: (g: GrupoConjunto) => void;
 }
 
-export function AtividadesPorTipo({ atividades, selected, setSelected, onEditGrupo, onToggleGrupo }: Props) {
+export function AtividadesPorTipo({ atividades, selected, setSelected, onEditGrupo, onToggleGrupo, onDeleteGrupo }: Props) {
   const [search, setSearch] = useState('');
   const [fUnidade, setFUnidade] = useState<string>('all');
   const [fResp, setFResp] = useState<string>('all');
@@ -240,9 +241,22 @@ export function AtividadesPorTipo({ atividades, selected, setSelected, onEditGru
                               <Switch checked={c.ativoAll} onCheckedChange={(v) => onToggleGrupo(c, v)} />
                             </td>
                             <td className="px-2 py-1.5 text-right">
-                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => onEditGrupo(c)}>
-                                <Pencil className="w-3 h-3" />
-                              </Button>
+                              <div className="flex justify-end gap-1">
+                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0" title="Editar" onClick={() => onEditGrupo(c)}>
+                                  <Pencil className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                  title="Excluir"
+                                  onClick={() => {
+                                    if (confirm(`Excluir ${c.ids.length} envio(s) deste conjunto?`)) onDeleteGrupo(c);
+                                  }}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         );
