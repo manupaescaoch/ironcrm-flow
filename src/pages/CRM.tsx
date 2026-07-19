@@ -146,14 +146,36 @@ const normalizeCadastrador = (nome: string | null | undefined): string => {
   return normalizado; // Retorna em caixa alta se não encontrar mapeamento
 };
 
-// Função para validar/normalizar origem
+// Normaliza origem agrupando grafias diferentes (acentos, caixa, espaços, variações)
+const normalizeOrigem = (origem: string | null | undefined): string => {
+  if (!origem) return 'Não Informado';
+  const raw = origem.toString().trim();
+  if (!raw) return 'Não Informado';
+  const key = raw
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (/whats?app|whats|zap/.test(key)) return 'WhatsApp';
+  if (/instagram|insta|\big\b/.test(key)) return 'Instagram';
+  if (/trafego|ads|anuncio|face\s*ads|google\s*ads|meta\s*ads|pago/.test(key)) return 'Tráfego Pago';
+  if (/indica/.test(key)) return 'Indicação';
+  if (/visita|presencial|balcao|recepcao/.test(key)) return 'Visita Presencial';
+  if (/embaixador|parceria|parceiro|terceiro/.test(key)) return 'Embaixador / Parceria';
+  if (/nao informado|sem origem|desconhecid|null|n\/?a|^-+$/.test(key)) return 'Não Informado';
+
+  return raw;
+};
+
+// Função para validar/normalizar origem (para inputs do formulário)
 const validateOrigem = (origem: string | null | undefined): string => {
-  if (!origem) return 'WhatsApp';
-  const normalized = origem.trim();
+  const normalized = normalizeOrigem(origem);
   if (ORIGEM_OPTIONS.includes(normalized as typeof ORIGEM_OPTIONS[number])) {
     return normalized;
   }
-  return 'WhatsApp'; // Fallback seguro
+  return 'WhatsApp';
 };
 
 const statusLabels: Record<StatusFunil, string> = {
@@ -397,8 +419,8 @@ export default function CRM() {
   }, [unidadeAtual, startDate, endDate]);
 
   const uniqueOrigens = useMemo(() => {
-    const origens = leads.map(l => l.origem).filter(Boolean) as string[];
-    return [...new Set(origens)];
+    const origens = leads.map(l => normalizeOrigem(l.origem));
+    return [...new Set(origens)].sort();
   }, [leads]);
 
   // Cadastradores normalizados (usa lista fixa para garantir consistência)
@@ -909,7 +931,7 @@ export default function CRM() {
         lead.nome.toLowerCase().includes(searchLower) ||
         lead.telefone?.toLowerCase().includes(searchLower) ||
         (searchDigits.length > 0 && leadPhoneDigits.includes(searchDigits));
-      const matchesOrigem = filterOrigem.length === 0 || filterOrigem.includes(lead.origem || '');
+      const matchesOrigem = filterOrigem.length === 0 || filterOrigem.includes(normalizeOrigem(lead.origem));
       const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
       const matchesStatus = filterStatus.length === 0 || filterStatus.includes(lead.status_funil);
       const matchesNivel =
@@ -1407,7 +1429,7 @@ export default function CRM() {
           const baseLeads = leads.filter((lead) => {
             const searchLower = search.toLowerCase();
             const matchesSearch = !search || lead.nome.toLowerCase().includes(searchLower) || lead.telefone?.includes(search);
-            const matchesOrigem = filterOrigem.length === 0 || filterOrigem.includes(lead.origem || '');
+            const matchesOrigem = filterOrigem.length === 0 || filterOrigem.includes(normalizeOrigem(lead.origem));
             const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
             let matchesDate = true;
             if (startDate || endDate) {
@@ -1688,7 +1710,7 @@ export default function CRM() {
                       >
                         <TableCell className="font-medium">{lead.nome?.toUpperCase()}</TableCell>
                         <TableCell><WhatsAppLink phone={lead.telefone} /></TableCell>
-                        <TableCell>{lead.origem || '-'}</TableCell>
+                        <TableCell>{normalizeOrigem(lead.origem)}</TableCell>
                         <TableCell>
                           <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
                             {statusLabels[lead.status_funil]}
