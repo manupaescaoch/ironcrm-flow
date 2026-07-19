@@ -228,7 +228,6 @@ export function AtividadesPorTipo({ atividades, selected, setSelected, onEditSin
                     <thead className="text-xs text-muted-foreground">
                       <tr>
                         <th className="w-8"></th>
-                        <th className="text-left px-2 py-1.5">Dia</th>
                         <th className="text-left px-2 py-1.5">Horário</th>
                         <th className="text-left px-2 py-1.5">Responsável</th>
                         <th className="text-left px-2 py-1.5">Unidade</th>
@@ -241,7 +240,7 @@ export function AtividadesPorTipo({ atividades, selected, setSelected, onEditSin
                       {g.itens.map(a => (
                         <tr key={a.id} className="border-t hover:bg-muted/30">
                           <td className="px-2 py-1.5"><Checkbox checked={selected.has(a.id)} onCheckedChange={() => toggleOne(a.id)} /></td>
-                          <td className="px-2 py-1.5 text-xs">{DIAS_SEMANA.find(d => d.value === a.dia_semana)?.label ?? '—'}</td>
+                          
                           <td className="px-2 py-1.5 text-xs">{a.horario?.slice(0, 5) || '—'}</td>
                           <td className="px-2 py-1.5 text-xs">{a.cronograma_funcionarios?.nome || '—'}</td>
                           <td className="px-2 py-1.5 text-xs">{a.unidades?.nome || '—'}</td>
