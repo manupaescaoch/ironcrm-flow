@@ -197,7 +197,7 @@ serve(async (req) => {
         if (task.descricao) message += `\n💬 *Descrição:*\n${task.descricao}\n`;
         message += `\nNão esqueça de concluí-la! ✅`;
 
-        const sent = await sendWhatsApp(phone, message);
+        const sent = await sendWhatsApp(phone, message, supabase);
         if (sent) {
           await supabase
             .from("tasks")
