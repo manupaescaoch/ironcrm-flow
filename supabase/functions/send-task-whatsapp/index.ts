@@ -181,37 +181,38 @@ Deno.serve(async (req) => {
       message += `\nAcesse o sistema para ver os detalhes.`;
     }
 
-    // Enviar via Zapi
-    const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
-    
-    const zapiResponse = await fetch(zapiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Client-Token': ZAPI_CLIENT_TOKEN || '',
-      },
-      body: JSON.stringify({
-        phone: normalizedPhone,
-        message: message,
-      }),
+    // Enviar via D-API (operacional)
+    const sendResult = await sendText(creds, normalizedPhone, message);
+    const zapiResult = sendResult.body;
+    const success = sendResult.ok && !!(zapiResult?.messageId || zapiResult?.id);
+    const errorMsg = success ? null : (zapiResult?.error || JSON.stringify(zapiResult).slice(0, 500));
+
+    await logEnvio(supabase, {
+      funcao: 'send-task-whatsapp',
+      destino: normalizedPhone,
+      tipo_destino: 'funcionario',
+      sucesso: success,
+      erro_msg: errorMsg,
+      zapi_status_code: sendResult.status,
+      canal: 'operacional',
+      resposta_completa: zapiResult,
     });
 
-    const zapiResult = await zapiResponse.json();
-
-    if (!zapiResponse.ok) {
-      console.error('Zapi error:', zapiResult);
+    if (!success) {
+      console.error(`${creds.provider} error:`, zapiResult);
       return new Response(
         JSON.stringify({ error: 'Failed to send WhatsApp', details: zapiResult }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    console.log('WhatsApp sent successfully:', zapiResult);
+    console.log(`${creds.provider} sent successfully:`, zapiResult);
 
     return new Response(
-      JSON.stringify({ success: true, zapiResponse: zapiResult }),
+      JSON.stringify({ success: true, zapiResponse: zapiResult, provider: creds.provider }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
+
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
