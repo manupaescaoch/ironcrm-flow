@@ -84,28 +84,25 @@ Deno.serve(async (req) => {
         }
       }
 
-        if (!groupId || typeof groupId !== 'string') {
-          results.push({ ...m, ok: false, http: r.status, raw: txt.slice(0, 300) });
-          continue;
-        }
-
-        const { error: upErr } = await svc
-          .from('formulario_grupos_whatsapp')
-          .upsert(
-            {
-              formulario_key: m.formulario_key,
-              unidade: m.unidade,
-              grupo_id: groupId,
-              grupo_nome: groupName,
-              ativo: true,
-            },
-            { onConflict: 'formulario_key,unidade' },
-          );
-
-        results.push({ ...m, ok: !upErr, groupId, groupName, upErr: upErr?.message });
-      } catch (e: any) {
-        results.push({ ...m, ok: false, error: e?.message });
+      if (!groupId) {
+        results.push({ ...m, ok: false, attempts });
+        continue;
       }
+
+      const { error: upErr } = await svc
+        .from('formulario_grupos_whatsapp')
+        .upsert(
+          {
+            formulario_key: m.formulario_key,
+            unidade: m.unidade,
+            grupo_id: groupId,
+            grupo_nome: groupName,
+            ativo: true,
+          },
+          { onConflict: 'formulario_key,unidade' },
+        );
+
+      results.push({ ...m, ok: !upErr, groupId, groupName, upErr: upErr?.message });
     }
 
     return json(200, { results });
