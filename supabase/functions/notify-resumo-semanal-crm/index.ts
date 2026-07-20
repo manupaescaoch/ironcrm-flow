@@ -1,6 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { checkZapiStatus, getZapiCreds, sendText, logEnvio } from '../_shared/zapi.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
@@ -116,16 +118,10 @@ async function buildUnitData(supabase: any, unidadeId: string, sundayIso: string
 }
 
 
-async function __zapiStatusCheck() {
-  const id = (Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID')); const tk = Deno.env.get('ZAPI_TOKEN');
-  const ct = Deno.env.get('ZAPI_CLIENT_TOKEN') || '';
-  if (!id || !tk) return { connected: false, raw: { error: 'sem credenciais' } };
-  try {
-    const r = await fetch(`https://api.z-api.io/instances/${id}/token/${tk}/status`, { headers: { 'Client-Token': ct } });
-    const j = await r.json().catch(() => ({}));
-    return { connected: r.ok && j?.connected === true, raw: j };
-  } catch (e) { return { connected: false, raw: { error: String(e) } }; }
+function getOperacionalCreds() {
+  return getZapiCreds('operacional');
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -142,14 +138,31 @@ Deno.serve(async (req) => {
     }
 
   try {
-    const ZAPI_INSTANCE_ID = (Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'));
-    const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
-    const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN');
+    const creds = getOperacionalCreds();
+    if (!creds) {
+      return new Response(
+        JSON.stringify({ error: 'WhatsApp operacional não configurado' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    // [WhatsApp health] aborta cedo se o chip estiver offline
+    {
+      const __st = await checkZapiStatus(creds);
+      if (!__st.connected) {
+        console.warn(`[resumo-semanal-crm] ${creds.provider} offline — abortando`, __st.raw);
+        return new Response(
+          JSON.stringify({ error: 'WhatsApp operacional desconectado', provider: creds.provider, status: __st.raw }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
+
 
     let body: any = {};
     try { body = await req.json(); } catch { /* */ }
@@ -219,52 +232,34 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
-      return new Response(
-        JSON.stringify({ error: 'ZAPI credentials not configured', message }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
-    }
+    const sendResult = await sendText(creds, phoneOverride, message);
+    const result = sendResult.body;
+    const success = sendResult.ok && !!(result?.messageId || result?.id);
+    const errorMsg = success ? null : (result?.error || JSON.stringify(result).slice(0, 500));
 
-
-    // [Z-API health] aborta cedo se o chip estiver offline (idem cronograma)
-    {
-      const __st = await __zapiStatusCheck();
-      if (!__st.connected) {
-        try {
-          const __sb = (await import('https://esm.sh/@supabase/supabase-js@2')).createClient(
-            Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-          );
-          await __sb.from('whatsapp_envios_log').insert({
-            funcao: 'notify-resumo-semanal-crm',
-            sucesso: false, motivo_skip: 'zapi_offline',
-            erro_msg: JSON.stringify(__st.raw).slice(0, 500),
-          });
-        } catch {}
-        console.warn('[zapi] offline — abortando', __st.raw);
-        return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: __st.raw }), {
-          status: 503, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        });
-      }
-    }
-    const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
-    const resp = await fetch(zapiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_CLIENT_TOKEN || '' },
-      body: JSON.stringify({ phone: phoneOverride, message }),
+    await logEnvio(supabase, {
+      funcao: 'notify-resumo-semanal-crm',
+      destino: phoneOverride,
+      tipo_destino: 'funcionario',
+      sucesso: success,
+      erro_msg: errorMsg,
+      zapi_status_code: sendResult.status,
+      canal: 'operacional',
+      resposta_completa: result,
     });
-    const result = await resp.json().catch(() => ({}));
 
     return new Response(
       JSON.stringify({
-        success: resp.ok,
-        status: resp.status,
+        success,
+        status: sendResult.status,
+        provider: creds.provider,
         zapi: result,
         period: { sundayIso, saturdayIso },
         zn, zs,
         message,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: resp.ok ? 200 : 500 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: success ? 200 : 500 }
+
     );
   } catch (err: any) {
     console.error('[resumo-semanal] erro', err);

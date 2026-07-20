@@ -1,17 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkZapiStatus, getZapiCreds, sendText, logEnvio } from '../_shared/zapi.ts';
 
 const corsHeaders = {
+
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
-// ZAPI credentials
-const ZAPI_INSTANCE_ID = (Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'));
-const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
-const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN");
+function normalizePhoneNumber(phone: string): string {
+  const formattedPhone = phone.replace(/\D/g, "");
+  return formattedPhone.startsWith("55")
+    ? formattedPhone
+    : `55${formattedPhone}`;
+}
 
 interface Task {
   id: string;
@@ -23,45 +27,52 @@ interface Task {
   notificado_prazo: boolean;
 }
 
-async function sendWhatsApp(phone: string, message: string): Promise<boolean> {
-  if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN || !ZAPI_CLIENT_TOKEN) {
-    console.log("ZAPI credentials not configured");
+async function sendWhatsApp(phone: string, message: string, supabase: any): Promise<boolean> {
+  const creds = getZapiCreds('operacional');
+  if (!creds) {
+    console.log("WhatsApp operacional não configurado");
+    await logEnvio(supabase, {
+      funcao: 'notify-task-deadlines',
+      destino: normalizePhoneNumber(phone),
+      tipo_destino: 'funcionario',
+      sucesso: false,
+      erro_msg: 'Credenciais WhatsApp operacional ausentes',
+      canal: 'operacional',
+    });
     return false;
   }
 
-  const formattedPhone = phone.replace(/\D/g, "");
-  const phoneToSend = formattedPhone.startsWith("55")
-    ? formattedPhone
-    : `55${formattedPhone}`;
+  const phoneToSend = normalizePhoneNumber(phone);
 
   try {
-    const response = await fetch(
-      `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Client-Token": ZAPI_CLIENT_TOKEN,
-        },
-        body: JSON.stringify({
-          phone: phoneToSend,
-          message,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      console.error("ZAPI error:", await response.text());
-      return false;
-    }
-
-    console.log(`WhatsApp sent to ${phoneToSend}`);
-    return true;
+    const sendResult = await sendText(creds, phoneToSend, message);
+    const success = sendResult.ok && !!(sendResult.body?.messageId || sendResult.body?.id);
+    await logEnvio(supabase, {
+      funcao: 'notify-task-deadlines',
+      destino: phoneToSend,
+      tipo_destino: 'funcionario',
+      sucesso: success,
+      erro_msg: success ? null : (sendResult.body?.error || JSON.stringify(sendResult.body).slice(0, 500)),
+      zapi_status_code: sendResult.status,
+      canal: 'operacional',
+      resposta_completa: sendResult.body,
+    });
+    console.log(`[notify-task-deadlines] ${creds.provider} ${success ? 'enviado' : 'falhou'} para ${phoneToSend}`, sendResult.body);
+    return success;
   } catch (error) {
     console.error("Failed to send WhatsApp:", error);
+    await logEnvio(supabase, {
+      funcao: 'notify-task-deadlines',
+      destino: phoneToSend,
+      tipo_destino: 'funcionario',
+      sucesso: false,
+      erro_msg: String(error).slice(0, 500),
+      canal: 'operacional',
+    });
     return false;
   }
 }
+
 
 async function getPhoneByName(
   supabase: any,
@@ -101,7 +112,28 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // [WhatsApp health] aborta cedo se o chip operacional estiver offline
+    {
+      const creds = getZapiCreds('operacional');
+      if (!creds) {
+        console.warn('[notify-task-deadlines] WhatsApp operacional não configurado');
+        return new Response(
+          JSON.stringify({ error: 'WhatsApp operacional não configurado' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      const __st = await checkZapiStatus(creds);
+      if (!__st.connected) {
+        console.warn(`[notify-task-deadlines] ${creds.provider} offline — abortando`, __st.raw);
+        return new Response(
+          JSON.stringify({ error: 'WhatsApp operacional desconectado', provider: creds.provider, status: __st.raw }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
+
     const now = new Date();
+
     const nowUTC = now.toISOString();
 
     // Calculate 24h from now (with some tolerance)
@@ -165,7 +197,7 @@ serve(async (req) => {
         if (task.descricao) message += `\n💬 *Descrição:*\n${task.descricao}\n`;
         message += `\nNão esqueça de concluí-la! ✅`;
 
-        const sent = await sendWhatsApp(phone, message);
+        const sent = await sendWhatsApp(phone, message, supabase);
         if (sent) {
           await supabase
             .from("tasks")
@@ -223,7 +255,7 @@ serve(async (req) => {
         if (task.descricao) message += `\n💬 *Descrição:*\n${task.descricao}\n`;
         message += `\nPor favor, conclua o quanto antes. ✅`;
 
-        const sent = await sendWhatsApp(phone, message);
+        const sent = await sendWhatsApp(phone, message, supabase);
         if (sent) {
           await supabase
             .from("tasks")

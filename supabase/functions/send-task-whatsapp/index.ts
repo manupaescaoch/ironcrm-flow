@@ -1,6 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { checkZapiStatus, getZapiCreds, sendText, logEnvio } from '../_shared/zapi.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
@@ -23,16 +25,10 @@ function normalizePhone(phone: string): string {
 }
 
 
-async function __zapiStatusCheck() {
-  const id = (Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID')); const tk = Deno.env.get('ZAPI_TOKEN');
-  const ct = Deno.env.get('ZAPI_CLIENT_TOKEN') || '';
-  if (!id || !tk) return { connected: false, raw: { error: 'sem credenciais' } };
-  try {
-    const r = await fetch(`https://api.z-api.io/instances/${id}/token/${tk}/status`, { headers: { 'Client-Token': ct } });
-    const j = await r.json().catch(() => ({}));
-    return { connected: r.ok && j?.connected === true, raw: j };
-  } catch (e) { return { connected: false, raw: { error: String(e) } }; }
+function getOperacionalCreds() {
+  return getZapiCreds('operacional');
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -51,40 +47,28 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const ZAPI_INSTANCE_ID = (Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'));
-    const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
-    const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN');
-
-    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
-      console.error('ZAPI credentials not configured');
+    const creds = getOperacionalCreds();
+    if (!creds) {
+      console.error('WhatsApp operacional não configurado');
       return new Response(
-        JSON.stringify({ error: 'ZAPI credentials not configured' }),
+        JSON.stringify({ error: 'WhatsApp operacional não configurado' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-
-    // [Z-API health] aborta cedo se o chip estiver offline (idem cronograma)
+    // [WhatsApp health] aborta cedo se o chip estiver offline
     {
-      const __st = await __zapiStatusCheck();
+      const __st = await checkZapiStatus(creds);
       if (!__st.connected) {
-        try {
-          const __sb = (await import('https://esm.sh/@supabase/supabase-js@2')).createClient(
-            Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-          );
-          await __sb.from('whatsapp_envios_log').insert({
-            funcao: 'send-task-whatsapp',
-            sucesso: false, motivo_skip: 'zapi_offline',
-            erro_msg: JSON.stringify(__st.raw).slice(0, 500),
-          });
-        } catch {}
-        console.warn('[zapi] offline — abortando', __st.raw);
-        return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: __st.raw }), {
-          status: 503, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        });
+        console.warn(`[send-task-whatsapp] ${creds.provider} offline — abortando`, __st.raw);
+        return new Response(
+          JSON.stringify({ error: 'WhatsApp operacional desconectado', provider: creds.provider, status: __st.raw }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
       }
     }
     const supabase = createClient(
+
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
@@ -197,37 +181,38 @@ Deno.serve(async (req) => {
       message += `\nAcesse o sistema para ver os detalhes.`;
     }
 
-    // Enviar via Zapi
-    const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
-    
-    const zapiResponse = await fetch(zapiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Client-Token': ZAPI_CLIENT_TOKEN || '',
-      },
-      body: JSON.stringify({
-        phone: normalizedPhone,
-        message: message,
-      }),
+    // Enviar via D-API (operacional)
+    const sendResult = await sendText(creds, normalizedPhone, message);
+    const zapiResult = sendResult.body;
+    const success = sendResult.ok && !!(zapiResult?.messageId || zapiResult?.id);
+    const errorMsg = success ? null : (zapiResult?.error || JSON.stringify(zapiResult).slice(0, 500));
+
+    await logEnvio(supabase, {
+      funcao: 'send-task-whatsapp',
+      destino: normalizedPhone,
+      tipo_destino: 'funcionario',
+      sucesso: success,
+      erro_msg: errorMsg,
+      zapi_status_code: sendResult.status,
+      canal: 'operacional',
+      resposta_completa: zapiResult,
     });
 
-    const zapiResult = await zapiResponse.json();
-
-    if (!zapiResponse.ok) {
-      console.error('Zapi error:', zapiResult);
+    if (!success) {
+      console.error(`${creds.provider} error:`, zapiResult);
       return new Response(
         JSON.stringify({ error: 'Failed to send WhatsApp', details: zapiResult }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    console.log('WhatsApp sent successfully:', zapiResult);
+    console.log(`${creds.provider} sent successfully:`, zapiResult);
 
     return new Response(
-      JSON.stringify({ success: true, zapiResponse: zapiResult }),
+      JSON.stringify({ success: true, zapiResponse: zapiResult, provider: creds.provider }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
+
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';

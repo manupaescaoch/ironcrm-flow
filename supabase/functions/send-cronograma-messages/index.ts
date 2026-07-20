@@ -148,16 +148,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verifica status do Z-API antes de qualquer envio
+    // Verifica status do WhatsApp antes de qualquer envio
     let zapiConnected = false;
     let zapiStatusData: any = null;
     try {
       const status = await checkZapiStatus(creds);
       zapiConnected = status.connected;
       zapiStatusData = status.raw;
-      console.log(`[send-cronograma] Z-API status: connected=${zapiConnected}`, zapiStatusData);
+      console.log(`[send-cronograma] ${creds.provider} status: connected=${zapiConnected}`, zapiStatusData);
     } catch (e) {
-      console.error('[send-cronograma] Erro ao verificar status Z-API:', e);
+      console.error(`[send-cronograma] Erro ao verificar status ${creds.provider}:`, e);
     }
 
     const supabase = createClient(

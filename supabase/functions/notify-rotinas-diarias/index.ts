@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { checkZapiStatus, getZapiCreds, sendText, logEnvio } from '../_shared/zapi.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
@@ -73,16 +74,8 @@ function shouldSendToday(frequencia: string, dayOfWeek: number): boolean {
 }
 
 
-async function __zapiStatusCheck() {
-  const id = (Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'));
-  const tk = Deno.env.get('ZAPI_OPERACIONAL_TOKEN') ?? Deno.env.get('ZAPI_TOKEN');
-  const ct = (Deno.env.get('ZAPI_OPERACIONAL_CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN')) || '';
-  if (!id || !tk) return { connected: false, raw: { error: 'sem credenciais' } };
-  try {
-    const r = await fetch(`https://api.z-api.io/instances/${id}/token/${tk}/status`, { headers: { 'Client-Token': ct } });
-    const j = await r.json().catch(() => ({}));
-    return { connected: r.ok && j?.connected === true, raw: j };
-  } catch (e) { return { connected: false, raw: { error: String(e) } }; }
+function getOperacionalCreds() {
+  return getZapiCreds('operacional');
 }
 
 Deno.serve(async (req) => {
@@ -109,35 +102,21 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const ZAPI_INSTANCE_ID = (Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'));
-    const ZAPI_TOKEN = Deno.env.get('ZAPI_OPERACIONAL_TOKEN') ?? Deno.env.get('ZAPI_TOKEN');
-    const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_OPERACIONAL_CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN');
-
-    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
+    const creds = getOperacionalCreds();
+    if (!creds) {
       return new Response(
-        JSON.stringify({ error: 'ZAPI credentials not configured' }),
+        JSON.stringify({ error: 'WhatsApp operacional não configurado' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-
-    // [Z-API health] aborta cedo se o chip estiver offline (idem cronograma)
+    // [WhatsApp health] aborta cedo se o chip estiver offline
     {
-      const __st = await __zapiStatusCheck();
+      const __st = await checkZapiStatus(creds);
       if (!__st.connected) {
-        try {
-          const __sb = (await import('https://esm.sh/@supabase/supabase-js@2')).createClient(
-            Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-          );
-          await __sb.from('whatsapp_envios_log').insert({
-            funcao: 'notify-rotinas-diarias',
-            sucesso: false, motivo_skip: 'zapi_offline',
-            erro_msg: JSON.stringify(__st.raw).slice(0, 500),
-          });
-        } catch {}
-        console.warn('[zapi] offline — abortando', __st.raw);
-        return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: __st.raw }), {
-          status: 503, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        console.warn(`[notify-rotinas] ${creds.provider} offline — abortando`, __st.raw);
+        return new Response(JSON.stringify({ error: 'WhatsApp operacional desconectado', provider: creds.provider, status: __st.raw }), {
+          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
     }
@@ -346,24 +325,14 @@ Deno.serve(async (req) => {
 
       console.log(`[notify-rotinas] Enviando para ${responsavel} (${normalizedPhone}): ${rotina.nome}`);
 
-      const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
-
       try {
-        const zapiResponse = await fetch(zapiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Client-Token': ZAPI_CLIENT_TOKEN || '',
-          },
-          body: JSON.stringify({ phone: normalizedPhone, message }),
-        });
-
-        const zapiResult = await zapiResponse.json().catch(() => ({}));
+        const sendResult = await sendText(creds, normalizedPhone, message);
+        const zapiResult = sendResult.body;
         const messageId = zapiResult?.messageId || zapiResult?.id || null;
         const zapiError = zapiResult?.error || (typeof zapiResult?.message === 'string' ? zapiResult.message : null);
-        const reallyOk = zapiResponse.ok && !!messageId && !zapiError;
+        const reallyOk = sendResult.ok && !!messageId && !zapiError;
 
-        console.log(`[notify-rotinas] Z-API status=${zapiResponse.status} messageId=${messageId} para ${rotina.nome}`);
+        console.log(`[notify-rotinas] ${creds.provider} status=${sendResult.status} messageId=${messageId} para ${rotina.nome}`);
 
         await supabase.from('rotina_notificacoes').insert({
           rotina_id: rotina.id,
@@ -371,22 +340,24 @@ Deno.serve(async (req) => {
           status: reallyOk ? 'enviado' : 'falhou',
         });
 
-        await supabase.from('whatsapp_envios_log').insert({
+        await logEnvio(supabase, {
           funcao: 'notify-rotinas-diarias',
           destino: normalizedPhone,
           tipo_destino: 'funcionario',
           unidade_id: rotina.unidade_id,
           sucesso: reallyOk,
-          erro_msg: reallyOk ? null : (zapiError || `sem messageId (HTTP ${zapiResponse.status})`),
-          zapi_status_code: zapiResponse.status,
+          erro_msg: reallyOk ? null : (zapiError || `sem messageId (HTTP ${sendResult.status})`),
+          zapi_status_code: sendResult.status,
+          canal: 'operacional',
+          resposta_completa: zapiResult,
         });
 
         if (reallyOk) {
           sentCount++;
           console.log(`[notify-rotinas] ✅ Enviado: ${rotina.nome} messageId=${messageId}`);
         } else {
-          console.error(`[notify-rotinas] ❌ Z-API NÃO entregou: ${rotina.nome}`, zapiResult);
-          errors.push(`Z-API erro: ${responsavel} - ${rotina.nome} - ${zapiError || 'sem messageId'}`);
+          console.error(`[notify-rotinas] ❌ NÃO entregou: ${rotina.nome}`, zapiResult);
+          errors.push(`${creds.provider} erro: ${responsavel} - ${rotina.nome} - ${zapiError || 'sem messageId'}`);
         }
       } catch (err) {
         console.error(`[notify-rotinas] ❌ Erro envio: ${rotina.nome}`, err);
@@ -397,13 +368,14 @@ Deno.serve(async (req) => {
           data_envio: todayStr,
           status: 'falhou',
         });
-        await supabase.from('whatsapp_envios_log').insert({
+        await logEnvio(supabase, {
           funcao: 'notify-rotinas-diarias',
           destino: normalizedPhone,
           tipo_destino: 'funcionario',
           unidade_id: rotina.unidade_id,
           sucesso: false,
           erro_msg: String(err).slice(0, 500),
+          canal: 'operacional',
         });
       }
     }

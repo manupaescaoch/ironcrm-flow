@@ -1,6 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.0'
+import { getZapiCreds, sendText, logEnvio } from '../_shared/zapi.ts'
 
 const corsHeaders = {
+
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
@@ -210,21 +212,43 @@ ${blocoUnidade('Zona Sul', 'ZS', zs)}
 • ⭐ *Conversão geral:* ${fmtPct(conversaoGeral)}
 • 🌟 *Taxa geral de comparecimento:* ${fmtPct(taxaCompGeral)}`
 
-    // Enviar resposta
-    const instanceId = (Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'))!
-    const tokenZ = Deno.env.get('ZAPI_TOKEN')!
-    const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN')!
-
-    const zapiRes = await fetch(
-      `https://api.z-api.io/instances/${instanceId}/token/${tokenZ}/send-text`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-        body: JSON.stringify({ phone: RESUMO_PHONE, message: msg }),
+    // Enviar resposta via D-API (operacional)
+    const creds = getZapiCreds('operacional')
+    let success = false
+    let zapiBody: any = null
+    let statusCode = 0
+    if (!creds) {
+      console.error('[resumo-webhook] WhatsApp operacional não configurado')
+    } else {
+      try {
+        const sendResult = await sendText(creds, RESUMO_PHONE, msg)
+        zapiBody = sendResult.body
+        statusCode = sendResult.status
+        success = sendResult.ok && !!(zapiBody?.messageId || zapiBody?.id)
+        await logEnvio(supabase, {
+          funcao: 'resumo-semanal-webhook-resposta',
+          destino: RESUMO_PHONE,
+          tipo_destino: 'funcionario',
+          sucesso: success,
+          erro_msg: success ? null : (zapiBody?.error || JSON.stringify(zapiBody).slice(0, 500)),
+          zapi_status_code: statusCode,
+          canal: 'operacional',
+          resposta_completa: zapiBody,
+        })
+        console.log(`[resumo-webhook] ${creds.provider} resumo enviado`, statusCode, zapiBody)
+      } catch (e: any) {
+        await logEnvio(supabase, {
+          funcao: 'resumo-semanal-webhook-resposta',
+          destino: RESUMO_PHONE,
+          tipo_destino: 'funcionario',
+          sucesso: false,
+          erro_msg: String(e).slice(0, 500),
+          canal: 'operacional',
+        })
+        console.error(`[resumo-webhook] Erro envio ${creds?.provider || 'operacional'}:`, e)
       }
-    )
-    const zapiBody = await zapiRes.text()
-    console.log('Z-API resumo enviado', zapiRes.status, zapiBody)
+    }
+
 
     // Atualizar pendência
     await supabase
