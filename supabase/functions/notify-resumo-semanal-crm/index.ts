@@ -138,14 +138,31 @@ Deno.serve(async (req) => {
     }
 
   try {
-    const ZAPI_INSTANCE_ID = (Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'));
-    const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
-    const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN');
+    const creds = getOperacionalCreds();
+    if (!creds) {
+      return new Response(
+        JSON.stringify({ error: 'WhatsApp operacional não configurado' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    // [WhatsApp health] aborta cedo se o chip estiver offline
+    {
+      const __st = await checkZapiStatus(creds);
+      if (!__st.connected) {
+        console.warn(`[resumo-semanal-crm] ${creds.provider} offline — abortando`, __st.raw);
+        return new Response(
+          JSON.stringify({ error: 'WhatsApp operacional desconectado', provider: creds.provider, status: __st.raw }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
+
 
     let body: any = {};
     try { body = await req.json(); } catch { /* */ }
