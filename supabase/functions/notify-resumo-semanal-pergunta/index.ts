@@ -68,32 +68,54 @@ Deno.serve(async (req) => {
 
     if (insErr) throw insErr
 
-    // Enviar pergunta via Z-API
-    const instanceId = (Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'))!
-    const token = Deno.env.get('ZAPI_TOKEN')!
-    const clientToken = Deno.env.get('ZAPI_CLIENT_TOKEN')!
-
+    // Enviar pergunta via D-API (operacional)
     const message = 'Qual foi o valor investido em tráfego pago essa semana? (ZN e ZS separado se possível)'
 
-    const zapiRes = await fetch(
-      `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Client-Token': clientToken,
-        },
-        body: JSON.stringify({ phone: TARGET_PHONE, message }),
-      }
-    )
+    const creds = getZapiCreds('operacional')
+    if (!creds) {
+      return new Response(
+        JSON.stringify({ error: 'WhatsApp operacional não configurado' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
 
-    const zapiBody = await zapiRes.text()
-    console.log('Z-API response', zapiRes.status, zapiBody)
+    // [WhatsApp health] aborta cedo se o chip estiver offline
+    {
+      const __st = await checkZapiStatus(creds)
+      if (!__st.connected) {
+        console.warn(`[resumo-semanal-pergunta] ${creds.provider} offline — abortando`, __st.raw)
+        return new Response(
+          JSON.stringify({ error: 'WhatsApp operacional desconectado', provider: creds.provider, status: __st.raw }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+    }
+
+    const sendResult = await sendText(creds, TARGET_PHONE, message)
+    const zapiBody = sendResult.body
+    const success = sendResult.ok && !!(zapiBody?.messageId || zapiBody?.id)
+    const errorMsg = success
+      ? null
+      : (zapiBody?.error || JSON.stringify(zapiBody).slice(0, 500))
+
+    await logEnvio(supabase, {
+      funcao: 'notify-resumo-semanal-pergunta',
+      destino: TARGET_PHONE,
+      tipo_destino: 'funcionario',
+      sucesso: success,
+      erro_msg: errorMsg,
+      zapi_status_code: sendResult.status,
+      canal: 'operacional',
+      resposta_completa: zapiBody,
+    })
+
+    console.log(`[resumo-semanal-pergunta] ${creds.provider} response`, sendResult.status, zapiBody)
 
     return new Response(
-      JSON.stringify({ ok: true, pendente_id: pendente.id, semana: { inicio, fim }, zapi_status: zapiRes.status }),
+      JSON.stringify({ ok: true, pendente_id: pendente.id, semana: { inicio, fim }, provider: creds.provider, status: sendResult.status, success }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
+
   } catch (e) {
     console.error('Erro notify-resumo-semanal-pergunta', e)
     return new Response(JSON.stringify({ error: String(e) }), {
