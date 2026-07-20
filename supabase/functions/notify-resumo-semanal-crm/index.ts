@@ -232,52 +232,34 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
-      return new Response(
-        JSON.stringify({ error: 'ZAPI credentials not configured', message }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
-    }
+    const sendResult = await sendText(creds, phoneOverride, message);
+    const result = sendResult.body;
+    const success = sendResult.ok && !!(result?.messageId || result?.id);
+    const errorMsg = success ? null : (result?.error || JSON.stringify(result).slice(0, 500));
 
-
-    // [Z-API health] aborta cedo se o chip estiver offline (idem cronograma)
-    {
-      const __st = await __zapiStatusCheck();
-      if (!__st.connected) {
-        try {
-          const __sb = (await import('https://esm.sh/@supabase/supabase-js@2')).createClient(
-            Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-          );
-          await __sb.from('whatsapp_envios_log').insert({
-            funcao: 'notify-resumo-semanal-crm',
-            sucesso: false, motivo_skip: 'zapi_offline',
-            erro_msg: JSON.stringify(__st.raw).slice(0, 500),
-          });
-        } catch {}
-        console.warn('[zapi] offline — abortando', __st.raw);
-        return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: __st.raw }), {
-          status: 503, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        });
-      }
-    }
-    const zapiUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
-    const resp = await fetch(zapiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_CLIENT_TOKEN || '' },
-      body: JSON.stringify({ phone: phoneOverride, message }),
+    await logEnvio(supabase, {
+      funcao: 'notify-resumo-semanal-crm',
+      destino: phoneOverride,
+      tipo_destino: 'funcionario',
+      sucesso: success,
+      erro_msg: errorMsg,
+      zapi_status_code: sendResult.status,
+      canal: 'operacional',
+      resposta_completa: result,
     });
-    const result = await resp.json().catch(() => ({}));
 
     return new Response(
       JSON.stringify({
-        success: resp.ok,
-        status: resp.status,
+        success,
+        status: sendResult.status,
+        provider: creds.provider,
         zapi: result,
         period: { sundayIso, saturdayIso },
         zn, zs,
         message,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: resp.ok ? 200 : 500 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: success ? 200 : 500 }
+
     );
   } catch (err: any) {
     console.error('[resumo-semanal] erro', err);
