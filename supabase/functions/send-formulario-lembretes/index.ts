@@ -253,8 +253,9 @@ Deno.serve(async (req) => {
       .eq('data', br.dateStr);
     const lembreteMap = new Map((lembretesHoje || []).map((l: any) => [l.chave, l]));
 
-    const ZAPI_URL = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
     const results: any[] = [];
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    let isFirstSend = true;
 
     for (const a of candidatosUnicos) {
       const tipo = detectTipo(a.titulo, a.responsavel?.nome, a.responsavel?.cargo)!;
@@ -302,27 +303,45 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // Rate-limit entre envios (10s)
+      if (!isFirstSend) await sleep(10000);
+      isFirstSend = false;
+
+      const isComercial = tipo === 'relatorio_diario';
+      const channel: 'comercial' | 'operacional' = isComercial ? 'comercial' : 'operacional';
+      const sendCreds = getZapiCreds(channel);
+      const normalizedPhone = normalizePhone(resp.telefone);
+
       let status = 'erro';
       let zapiResult: any = null;
       let erroMsg: string | null = null;
-      try {
-        const isComercial = tipo === 'relatorio_diario';
-        const instance = isComercial ? Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID') : ZAPI_INSTANCE_ID;
-        const token = isComercial ? Deno.env.get('ZAPI_COMERCIAL_TOKEN') : ZAPI_TOKEN;
-        const clientToken = isComercial ? (Deno.env.get('ZAPI_COMERCIAL_CLIENT_TOKEN') || '') : ZAPI_CLIENT_TOKEN;
-        const url = `https://api.z-api.io/instances/${instance}/token/${token}/send-text`;
 
-        const r = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-          body: JSON.stringify({ phone: normalizePhone(resp.telefone), message }),
-        });
-        zapiResult = await r.json().catch(() => ({}));
-        if (r.ok) status = 'enviado';
-        else erroMsg = `HTTP ${r.status}: ${JSON.stringify(zapiResult)}`;
-      } catch (e: any) {
-        erroMsg = e?.message || String(e);
+      if (!sendCreds) {
+        erroMsg = `Credenciais WhatsApp ausentes para canal ${channel}`;
+      } else {
+        try {
+          const sendResult = await sendText(sendCreds, normalizedPhone, message);
+          zapiResult = sendResult.body;
+          if (sendResult.ok) {
+            status = 'enviado';
+          } else {
+            erroMsg = `HTTP ${sendResult.status}: ${JSON.stringify(sendResult.body).slice(0, 500)}`;
+          }
+        } catch (e: any) {
+          erroMsg = e?.message || String(e);
+        }
       }
+
+      await logEnvio(supabase, {
+        funcao: 'send-formulario-lembretes',
+        destino: normalizedPhone,
+        tipo_destino: 'funcionario',
+        unidade_id: a.unidade_id,
+        sucesso: status === 'enviado',
+        erro_msg: erroMsg,
+        canal: channel,
+        resposta_completa: zapiResult,
+      });
 
       const tentativas = (existente?.tentativas || 0) + 1;
       await supabase.from('formulario_lembretes').upsert({
