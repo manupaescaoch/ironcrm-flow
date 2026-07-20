@@ -112,7 +112,28 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // [WhatsApp health] aborta cedo se o chip operacional estiver offline
+    {
+      const creds = getZapiCreds('operacional');
+      if (!creds) {
+        console.warn('[notify-task-deadlines] WhatsApp operacional não configurado');
+        return new Response(
+          JSON.stringify({ error: 'WhatsApp operacional não configurado' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      const __st = await checkZapiStatus(creds);
+      if (!__st.connected) {
+        console.warn(`[notify-task-deadlines] ${creds.provider} offline — abortando`, __st.raw);
+        return new Response(
+          JSON.stringify({ error: 'WhatsApp operacional desconectado', provider: creds.provider, status: __st.raw }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
+
     const now = new Date();
+
     const nowUTC = now.toISOString();
 
     // Calculate 24h from now (with some tolerance)
