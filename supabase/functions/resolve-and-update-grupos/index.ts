@@ -35,25 +35,54 @@ Deno.serve(async (req) => {
     const creds = getZapiCreds('operacional');
     if (!creds || creds.provider !== 'dapi') return json(500, { error: 'D-API não configurada' });
 
+    const headers = { 'Content-Type': 'application/json', Authorization: creds.apiKey! };
+    const candidates = (code: string) => [
+      { method: 'POST', url: `https://api.d-api.cloud/api/v1/groups/invite-info`, body: { sessionId: creds.sessionId, inviteCode: code } },
+      { method: 'POST', url: `https://api.d-api.cloud/api/v1/groups/join`, body: { sessionId: creds.sessionId, inviteCode: code } },
+      { method: 'POST', url: `https://api.d-api.cloud/api/v1/groups/accept-invite`, body: { sessionId: creds.sessionId, inviteCode: code } },
+      { method: 'GET', url: `https://api.d-api.cloud/api/v1/groups/invite-info?sessionId=${creds.sessionId}&inviteCode=${code}`, body: null },
+    ];
+
     const results: any[] = [];
     for (const m of mappings) {
-      try {
-        // D-API: get group id from invite code
-        const url = `https://api.d-api.cloud/api/v1/groups/inviteinfo?sessionId=${creds.sessionId}&inviteCode=${m.invite_code}`;
-        const r = await fetch(url, {
-          headers: { 'Authorization': `Bearer ${creds.apiKey}`, 'Content-Type': 'application/json' },
-        });
-        const txt = await r.text();
-        let parsed: any = null;
-        try { parsed = JSON.parse(txt); } catch { /* raw */ }
-        const groupId =
-          parsed?.id?._serialized ||
-          parsed?.groupId ||
-          parsed?.id ||
-          parsed?.data?.id?._serialized ||
-          parsed?.data?.id ||
-          null;
-        const groupName = parsed?.subject || parsed?.name || parsed?.data?.subject || null;
+      let groupId: string | null = null;
+      let groupName: string | null = null;
+      const attempts: any[] = [];
+      for (const c of candidates(m.invite_code)) {
+        try {
+          const r = await fetch(c.url, {
+            method: c.method,
+            headers,
+            body: c.body ? JSON.stringify(c.body) : undefined,
+          });
+          const txt = await r.text();
+          let parsed: any = null;
+          try { parsed = JSON.parse(txt); } catch { /* raw */ }
+          attempts.push({ url: c.url, http: r.status, body: txt.slice(0, 250) });
+          const id =
+            parsed?.id?._serialized ||
+            parsed?.groupId ||
+            parsed?.gid?._serialized ||
+            parsed?.data?.id?._serialized ||
+            parsed?.data?.id ||
+            parsed?.data?.groupId ||
+            parsed?.chatId ||
+            (typeof parsed?.id === 'string' ? parsed.id : null);
+          const name = parsed?.subject || parsed?.name || parsed?.data?.subject || parsed?.data?.name || null;
+          if (id && typeof id === 'string' && id.includes('@')) {
+            groupId = id;
+            groupName = name;
+            break;
+          }
+          if (id && typeof id === 'string' && /^\d+/.test(id)) {
+            groupId = id.includes('@') ? id : `${id}@g.us`;
+            groupName = name;
+            break;
+          }
+        } catch (e) {
+          attempts.push({ url: c.url, error: String(e) });
+        }
+      }
 
         if (!groupId || typeof groupId !== 'string') {
           results.push({ ...m, ok: false, http: r.status, raw: txt.slice(0, 300) });
