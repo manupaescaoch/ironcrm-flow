@@ -47,40 +47,28 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const ZAPI_INSTANCE_ID = (Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'));
-    const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN');
-    const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN');
-
-    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
-      console.error('ZAPI credentials not configured');
+    const creds = getOperacionalCreds();
+    if (!creds) {
+      console.error('WhatsApp operacional não configurado');
       return new Response(
-        JSON.stringify({ error: 'ZAPI credentials not configured' }),
+        JSON.stringify({ error: 'WhatsApp operacional não configurado' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-
-    // [Z-API health] aborta cedo se o chip estiver offline (idem cronograma)
+    // [WhatsApp health] aborta cedo se o chip estiver offline
     {
-      const __st = await __zapiStatusCheck();
+      const __st = await checkZapiStatus(creds);
       if (!__st.connected) {
-        try {
-          const __sb = (await import('https://esm.sh/@supabase/supabase-js@2')).createClient(
-            Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-          );
-          await __sb.from('whatsapp_envios_log').insert({
-            funcao: 'send-task-whatsapp',
-            sucesso: false, motivo_skip: 'zapi_offline',
-            erro_msg: JSON.stringify(__st.raw).slice(0, 500),
-          });
-        } catch {}
-        console.warn('[zapi] offline — abortando', __st.raw);
-        return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: __st.raw }), {
-          status: 503, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        });
+        console.warn(`[send-task-whatsapp] ${creds.provider} offline — abortando`, __st.raw);
+        return new Response(
+          JSON.stringify({ error: 'WhatsApp operacional desconectado', provider: creds.provider, status: __st.raw }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
       }
     }
     const supabase = createClient(
+
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
