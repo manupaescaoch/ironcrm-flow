@@ -486,10 +486,13 @@ export async function executeNotification(
   const grupoHash = (await sha1Hex(grupoId)).slice(0, 12);
   const payloadHash = (await sha1Hex(message)).slice(0, 16);
 
-  // 6. Send via Z-API
-  const send = await sendZapi(grupoId, message, ctx.tipo_formulario);
+  // 6. Send via WhatsApp (D-API operacional ou Z-API comercial)
+  const send = await sendWhatsapp(grupoId, message, ctx.tipo_formulario);
 
   // 7. Log
+  const errMsg = send.ok
+    ? null
+    : (send.body?.error || send.body?.message || `provider_${send.provider}_status_${send.status}`);
   await supabase.from('formulario_envios_log').upsert({
     idempotency_key,
     tipo_formulario: ctx.tipo_formulario,
@@ -501,11 +504,12 @@ export async function executeNotification(
     status: send.ok ? 'enviado' : 'erro',
     destino_grupo_hash: grupoHash,
     payload_hash: payloadHash,
-    error_message: send.ok ? null : `zapi_status_${send.status}`,
+    error_message: send.ok ? null : String(errMsg).slice(0, 500),
     sent_at: send.ok ? new Date().toISOString() : null,
   }, { onConflict: 'idempotency_key' });
 
   if (!send.ok) {
+    console.error('[executeNotification] envio falhou', { provider: send.provider, status: send.status, body: send.body });
     return { status: 502, body: { error: 'Falha ao notificar. Tente novamente.' } };
   }
   return { status: 200, body: { ok: true, sent: true } };
