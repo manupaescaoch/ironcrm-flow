@@ -366,38 +366,39 @@ export async function resolveGrupo(
   return data.grupo_id as string;
 }
 
-// ---------------------- Z-API dispatch ----------------------
+// ---------------------- WhatsApp dispatch (routed via shared helper) ----------------------
 
-async function sendZapi(grupoId: string, message: string, tipoFormulario: TipoFormulario): Promise<{ ok: boolean; status: number }> {
-  // O Relatório Diário Comercial deve ser enviado pelo número COMERCIAL.
-  // Os demais formulários operacionais continuam na instância OPERACIONAL.
-  const isComercial = tipoFormulario === 'relatorio_comercial';
+import { getZapiCreds, sendText } from './zapi.ts';
 
-  const instance = isComercial
-    ? (Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID'))
-    : (Deno.env.get('ZAPI_OPERACIONAL_INSTANCE_ID') ?? Deno.env.get('ZAPI_INSTANCE_ID'));
+/**
+ * Normaliza o JID do grupo. D-API exige sufixo em minúsculas (@g.us) e não aceita @G.US.
+ * Se vier apenas o ID numérico, adiciona @g.us. Se vier @G.US, converte para @g.us.
+ */
+function normalizeGroupJid(raw: string): string {
+  const trimmed = (raw || '').trim();
+  if (!trimmed) return trimmed;
+  if (/@g\.us$/i.test(trimmed)) return trimmed.replace(/@G\.US$/i, '@g.us');
+  // Puramente numérico → grupo
+  if (/^[0-9]+$/.test(trimmed)) return `${trimmed}@g.us`;
+  return trimmed;
+}
 
-  const token = isComercial
-    ? (Deno.env.get('ZAPI_COMERCIAL_TOKEN'))
-    : (Deno.env.get('ZAPI_OPERACIONAL_TOKEN') ?? Deno.env.get('ZAPI_TOKEN'));
-
-  const clientToken = isComercial
-    ? (Deno.env.get('ZAPI_COMERCIAL_CLIENT_TOKEN') ?? '')
-    : (Deno.env.get('ZAPI_OPERACIONAL_CLIENT_TOKEN') ?? Deno.env.get('ZAPI_CLIENT_TOKEN') ?? '');
-
-  if (!instance || !token) {
-    console.error(`[sendZapi] Credenciais ausentes para ${isComercial ? 'COMERCIAL' : 'OPERACIONAL'}`);
-    return { ok: false, status: 500 };
+async function sendWhatsapp(
+  grupoId: string,
+  message: string,
+  tipoFormulario: TipoFormulario,
+): Promise<{ ok: boolean; status: number; body: any; provider: string }> {
+  // Relatório Comercial → chip COMERCIAL (Z-API). Demais formulários → OPERACIONAL (D-API).
+  const channel = tipoFormulario === 'relatorio_comercial' ? 'comercial' : 'operacional';
+  const creds = getZapiCreds(channel);
+  if (!creds) {
+    console.error(`[sendWhatsapp] Credenciais ausentes para canal ${channel}`);
+    return { ok: false, status: 500, body: { error: 'creds_missing' }, provider: 'none' };
   }
-
-  const url = `https://api.z-api.io/instances/${instance}/token/${token}/send-text`;
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-    body: JSON.stringify({ phone: grupoId, message }),
-  });
-  try { await resp.text(); } catch { /* ignore */ }
-  return { ok: resp.ok, status: resp.status };
+  const jid = normalizeGroupJid(grupoId);
+  const res = await sendText(creds, jid, message);
+  const providerOk = res.ok && !res.body?.error && res.body?.success !== false;
+  return { ok: providerOk, status: res.status, body: res.body, provider: creds.provider };
 }
 
 
@@ -485,10 +486,13 @@ export async function executeNotification(
   const grupoHash = (await sha1Hex(grupoId)).slice(0, 12);
   const payloadHash = (await sha1Hex(message)).slice(0, 16);
 
-  // 6. Send via Z-API
-  const send = await sendZapi(grupoId, message, ctx.tipo_formulario);
+  // 6. Send via WhatsApp (D-API operacional ou Z-API comercial)
+  const send = await sendWhatsapp(grupoId, message, ctx.tipo_formulario);
 
   // 7. Log
+  const errMsg = send.ok
+    ? null
+    : (send.body?.error || send.body?.message || `provider_${send.provider}_status_${send.status}`);
   await supabase.from('formulario_envios_log').upsert({
     idempotency_key,
     tipo_formulario: ctx.tipo_formulario,
@@ -500,11 +504,12 @@ export async function executeNotification(
     status: send.ok ? 'enviado' : 'erro',
     destino_grupo_hash: grupoHash,
     payload_hash: payloadHash,
-    error_message: send.ok ? null : `zapi_status_${send.status}`,
+    error_message: send.ok ? null : String(errMsg).slice(0, 500),
     sent_at: send.ok ? new Date().toISOString() : null,
   }, { onConflict: 'idempotency_key' });
 
   if (!send.ok) {
+    console.error('[executeNotification] envio falhou', { provider: send.provider, status: send.status, body: send.body });
     return { status: 502, body: { error: 'Falha ao notificar. Tente novamente.' } };
   }
   return { status: 200, body: { ok: true, sent: true } };
