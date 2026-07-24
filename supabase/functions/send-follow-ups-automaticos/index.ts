@@ -285,6 +285,20 @@ Deno.serve(async (req) => {
       callerName: 'SISTEMA (automático)',
     });
 
+    // Sempre grava um log de execução (mesmo que 0 envios) para o health-check
+    // saber que a função rodou. Sem isso, quando todos os FUs pendentes têm
+    // leads inelegíveis (perdido/convertido), o healthcheck alarma falsamente.
+    if (!dryRun) {
+      await logEnvio(supabase, {
+        funcao: FUNC,
+        tipo_destino: 'interno',
+        sucesso: true,
+        motivo_skip: 'auto_run_finished',
+        canal: 'comercial',
+        erro_msg: `elegiveis=${followUps.length} enviados=${result.sent} erros=${result.errors.length}`,
+      });
+    }
+
     return new Response(
       JSON.stringify({ success: true, ...result, total_eligible: followUps.length, dry_run: dryRun }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
