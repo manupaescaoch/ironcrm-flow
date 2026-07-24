@@ -124,6 +124,43 @@ Deno.serve(async (req) => {
       );
     }
 
+    // 2.5) AUTO-RETRY — antes de alertar, tenta reexecutar send-follow-ups-automaticos.
+    // Se o retry gravar log, o próximo passo já detecta e nada de alerta é enviado.
+    if (!force && !dryRun) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        console.log('[healthcheck-follow-ups] disparando auto-retry de send-follow-ups-automaticos');
+        const retryResp = await fetch(`${supabaseUrl}/functions/v1/send-follow-ups-automaticos`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${serviceKey}`,
+          },
+          body: JSON.stringify({ auto_retry: true }),
+        });
+        console.log('[healthcheck-follow-ups] auto-retry status', retryResp.status);
+        // Aguarda o retry gravar algum log (executa em background)
+        await new Promise((r) => setTimeout(r, 5000));
+
+        // Recheca se algum log foi gravado pelo retry
+        const { count: logCount2 } = await supabase
+          .from('whatsapp_envios_log')
+          .select('id', { count: 'exact', head: true })
+          .eq('funcao', TARGET)
+          .gte('created_at', dayStartIso)
+          .lte('created_at', dayEndIso);
+        if ((logCount2 ?? 0) > 0) {
+          return new Response(
+            JSON.stringify({ ok: true, status: 'auto_retry_ok', logs_today: logCount2 }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+          );
+        }
+      } catch (retryErr) {
+        console.error('[healthcheck-follow-ups] auto-retry falhou', retryErr);
+      }
+    }
+
     // 3) Anti-duplicidade — se já disparamos alerta hoje, não envia de novo
     const { data: alreadySent, error: dupErr } = await supabase
       .from('whatsapp_envios_log')
@@ -141,6 +178,7 @@ Deno.serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
+
 
     const destinoRaw = Deno.env.get('WHATSAPP_ALERTA_ADMIN') || '';
     const destino = normalizePhone(destinoRaw);
