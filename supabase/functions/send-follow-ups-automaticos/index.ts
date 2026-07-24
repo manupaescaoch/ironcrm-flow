@@ -223,6 +223,16 @@ Deno.serve(async (req) => {
     }
 
     if (!followUps || followUps.length === 0) {
+      if (!dryRun) {
+        await logEnvio(supabase, {
+          funcao: FUNC,
+          tipo_destino: 'interno',
+          sucesso: true,
+          motivo_skip: 'auto_run_finished',
+          canal: 'comercial',
+          erro_msg: 'elegiveis=0 enviados=0',
+        });
+      }
       return new Response(
         JSON.stringify({ success: true, sent: 0, message: 'Nenhum follow-up vencido' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
