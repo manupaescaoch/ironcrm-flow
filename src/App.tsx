@@ -31,6 +31,7 @@ import ControleVencimentos from "./pages/ControleVencimentos";
 import AnamneseExperimental from "./pages/AnamneseExperimental";
 import AnamnesePublica from "./pages/AnamnesePublica";
 import AnamnesePublicaUniversal from "./pages/AnamnesePublicaUniversal";
+import FormularioPublico from "./pages/FormularioPublico";
 import EncerramentoTurno from "./pages/EncerramentoTurno";
 import EncerramentoCoordenador from "./pages/EncerramentoCoordenador";
 import EncerramentoHorario from "./pages/EncerramentoHorario";
@@ -179,6 +180,7 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/anamnese" element={<AnamnesePublicaUniversal />} />
     <Route path="/nps" element={<NpsPublico />} />
+    <Route path="/formulario/:id" element={<FormularioPublico />} />
     <Route path="/nps/respostas" element={<AdminOrCoordenadorRoute><NpsRespostas /></AdminOrCoordenadorRoute>} />
     <Route path="/nps/dashboard" element={<AdminOrCoordenadorRoute><NpsDashboard /></AdminOrCoordenadorRoute>} />
     <Route path="/nps/crm" element={<AdminOrCoordenadorRoute><NpsCrm /></AdminOrCoordenadorRoute>} />
