@@ -180,6 +180,7 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/anamnese" element={<AnamnesePublicaUniversal />} />
     <Route path="/nps" element={<NpsPublico />} />
+    <Route path="/formulario/:id" element={<FormularioPublico />} />
     <Route path="/nps/respostas" element={<AdminOrCoordenadorRoute><NpsRespostas /></AdminOrCoordenadorRoute>} />
     <Route path="/nps/dashboard" element={<AdminOrCoordenadorRoute><NpsDashboard /></AdminOrCoordenadorRoute>} />
     <Route path="/nps/crm" element={<AdminOrCoordenadorRoute><NpsCrm /></AdminOrCoordenadorRoute>} />
