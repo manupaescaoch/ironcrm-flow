@@ -131,15 +131,32 @@ export function FormulariosList({ onCreateNew, onEdit, onViewRespostas }: Formul
                     checked={form.ativo}
                     onCheckedChange={(checked) => toggleFormulario.mutate({ id: form.id, ativo: checked })}
                   />
-                  <Button variant="ghost" size="icon" onClick={() => onViewRespostas(form.id)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const url = `${window.location.origin}/formulario/${form.id}`;
+                      navigator.clipboard.writeText(url);
+                      toast.success('Link copiado');
+                    }}
+                    title="Copiar link do formulário"
+                  >
+                    <Copy className="w-4 h-4 mr-1" /> Copiar link
+                  </Button>
+                  <Button variant="outline" size="sm" asChild title="Ver formulário">
+                    <a href={`/formulario/${form.id}`} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="w-4 h-4 mr-1" /> Ver formulário
+                    </a>
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => onViewRespostas(form.id)} title="Ver respostas">
                     <Eye className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => onEdit(form.id)}>
+                  <Button variant="ghost" size="icon" onClick={() => onEdit(form.id)} title="Editar">
                     <Edit className="w-4 h-4" />
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" title="Excluir">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </AlertDialogTrigger>
