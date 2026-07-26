@@ -31,6 +31,7 @@ import ControleVencimentos from "./pages/ControleVencimentos";
 import AnamneseExperimental from "./pages/AnamneseExperimental";
 import AnamnesePublica from "./pages/AnamnesePublica";
 import AnamnesePublicaUniversal from "./pages/AnamnesePublicaUniversal";
+import FormularioPublico from "./pages/FormularioPublico";
 import EncerramentoTurno from "./pages/EncerramentoTurno";
 import EncerramentoCoordenador from "./pages/EncerramentoCoordenador";
 import EncerramentoHorario from "./pages/EncerramentoHorario";
