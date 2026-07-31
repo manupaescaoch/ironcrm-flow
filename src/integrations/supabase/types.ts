@@ -3492,6 +3492,22 @@ export type Database = {
       inativar_aluno: { Args: { p_lead_id: string }; Returns: undefined }
       normalize_cronograma_tipo: { Args: { p_titulo: string }; Returns: string }
       normalize_phone: { Args: { phone: string }; Returns: string }
+      submit_nps_resposta: {
+        Args: {
+          p_comentario?: string
+          p_estrelas_equipe: number
+          p_estrelas_estrutura: number
+          p_estrelas_treino: number
+          p_nome: string
+          p_nota_nps: number
+          p_pontos_melhoria: string[]
+          p_pontos_positivos: string[]
+          p_tempo_aluno: string
+          p_unidade_nome: string
+          p_whatsapp: string
+        }
+        Returns: string
+      }
       unaccent: { Args: { "": string }; Returns: string }
       user_can_access_reuniao_anexo: {
         Args: { _object_name: string; _user_id: string }
