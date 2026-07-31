@@ -220,31 +220,27 @@ export default function NpsPublico() {
     }
 
     setSaving(true);
-    const { data: inserted, error } = await supabase
-      .from('nps_respostas')
-      .insert({
-        nome: parsed.data.nome.toUpperCase(),
-        whatsapp: parsed.data.whatsapp.replace(/\D/g, ''),
-        unidade_nome: parsed.data.unidade_nome,
-        nota_nps: parsed.data.nota_nps,
-        estrelas_estrutura: parsed.data.estrelas_estrutura,
-        estrelas_equipe: parsed.data.estrelas_equipe,
-        estrelas_treino: parsed.data.estrelas_treino,
-        pontos_positivos: positivos,
-        pontos_melhoria: melhorias,
-        tempo_aluno: parsed.data.tempo_aluno,
-        comentario: parsed.data.comentario ?? null,
-      })
-      .select('id')
-      .single();
+    const { data: insertedId, error } = await supabase.rpc('submit_nps_resposta', {
+      p_nome: parsed.data.nome,
+      p_whatsapp: parsed.data.whatsapp.replace(/\D/g, ''),
+      p_unidade_nome: parsed.data.unidade_nome,
+      p_nota_nps: parsed.data.nota_nps,
+      p_estrelas_estrutura: parsed.data.estrelas_estrutura,
+      p_estrelas_equipe: parsed.data.estrelas_equipe,
+      p_estrelas_treino: parsed.data.estrelas_treino,
+      p_pontos_positivos: positivos,
+      p_pontos_melhoria: melhorias,
+      p_tempo_aluno: parsed.data.tempo_aluno,
+      p_comentario: parsed.data.comentario ?? null,
+    });
     setSaving(false);
     if (error) {
       toast.error('Erro ao enviar avaliação. Tente novamente.');
       return;
     }
-    if (inserted?.id) {
+    if (insertedId) {
       supabase.functions
-        .invoke('notify-nps-resposta', { body: { id: inserted.id } })
+        .invoke('notify-nps-resposta', { body: { id: insertedId } })
         .catch((err) => console.error('[nps notify]', err));
     }
     setDone(true);
