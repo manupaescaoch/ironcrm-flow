@@ -1,0 +1,1 @@
+DELETE FROM public.nps_respostas WHERE nome = 'TESTE QA' AND comentario = 'TESTE';
