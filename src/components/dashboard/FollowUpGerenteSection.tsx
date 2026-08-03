@@ -248,7 +248,7 @@ export function FollowUpGerenteSection({ urgentItems, onRefresh }: Props) {
         </CardHeader>
         <CardContent>
           {sorted.length > 0 ? (
-            <ScrollArea className="max-h-[500px]">
+            <ScrollArea className="h-[520px]">
               <div className="space-y-2 pr-4">
                 {sorted.map(renderItem)}
               </div>
