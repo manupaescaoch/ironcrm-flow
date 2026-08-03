@@ -29,6 +29,9 @@ interface DashboardKPIGridProps {
   onMatriculasClick: () => void;
   onFollowUpClick: () => void;
   onFollowUpMatriculadosClick: () => void;
+  onNaoCompareceramClick?: () => void;
+  isNaoCompareceramActive?: boolean;
+
 }
 
 
