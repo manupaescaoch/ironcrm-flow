@@ -3,6 +3,7 @@ import { Users, CalendarCheck, Calendar, Award, CheckCircle2, Filter, UserX } fr
 import { KPICard } from '@/components/ui/kpi-card';
 import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
 import { FollowUpMatriculadosKPI } from '@/components/dashboard/FollowUpMatriculadosKPI';
+import { FollowUpGerenteKPI } from '@/components/dashboard/FollowUpGerenteKPI';
 import { TaxaComparecimentoKPI } from '@/components/dashboard/TaxaComparecimentoKPI';
 import { FunilComercialCard } from '@/components/dashboard/FunilComercialCard';
 import { DiagnosticoSemanaCard } from '@/components/dashboard/DiagnosticoSemanaCard';
@@ -21,14 +22,17 @@ interface DashboardKPIGridProps {
   followUpPendingCount: number;
   followUpD1Count: number;
   followUpMatriculadosCount: number;
+  followUpGerenteCount: number;
   showExperimentaisSection: boolean;
   showMatriculasSection: boolean;
   showFollowUpSection: boolean;
   showFollowUpMatriculadosSection: boolean;
+  showFollowUpGerenteSection: boolean;
   onExperimentaisClick: () => void;
   onMatriculasClick: () => void;
   onFollowUpClick: () => void;
   onFollowUpMatriculadosClick: () => void;
+  onFollowUpGerenteClick: () => void;
   onNaoCompareceramClick?: () => void;
   isNaoCompareceramActive?: boolean;
 
@@ -46,14 +50,17 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   followUpPendingCount,
   followUpD1Count,
   followUpMatriculadosCount,
+  followUpGerenteCount,
   showExperimentaisSection,
   showMatriculasSection,
   showFollowUpSection,
   showFollowUpMatriculadosSection,
+  showFollowUpGerenteSection,
   onExperimentaisClick,
   onMatriculasClick,
   onFollowUpClick,
   onFollowUpMatriculadosClick,
+  onFollowUpGerenteClick,
   onNaoCompareceramClick,
   isNaoCompareceramActive,
 }: DashboardKPIGridProps) {
@@ -154,7 +161,7 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
       {/* Linha 3 — Operação do Dia */}
       <div>
         <h2 className="text-xs font-semibold text-foreground/80 mb-1 px-1">Operação do Dia</h2>
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-6 gap-2">
 
           <FollowUpKPI
             pendingCount={followUpPendingCount}
@@ -167,6 +174,12 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
             pendingCount={followUpMatriculadosCount}
             onClick={onFollowUpMatriculadosClick}
             isActive={showFollowUpMatriculadosSection}
+          />
+
+          <FollowUpGerenteKPI
+            pendingCount={followUpGerenteCount}
+            onClick={onFollowUpGerenteClick}
+            isActive={showFollowUpGerenteSection}
           />
 
           <KPICard
