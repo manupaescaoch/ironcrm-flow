@@ -171,7 +171,11 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
             iconColor="text-blue-500"
             valueColor="text-blue-600"
             subtitle="No período"
+            onClick={onNaoCompareceramClick}
+            isActive={isNaoCompareceramActive}
+            activeColor="blue"
           />
+
 
           <KPICard
             variant="dashboard"
