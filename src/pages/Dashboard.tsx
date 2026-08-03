@@ -249,6 +249,9 @@ export default function Dashboard() {
           onMatriculasClick={handleMatriculasCardClick}
           onFollowUpClick={handleFollowUpCardClick}
           onFollowUpMatriculadosClick={handleFollowUpMatriculadosCardClick}
+          onNaoCompareceramClick={handleNaoCompareceramClick}
+          isNaoCompareceramActive={activeTab === 'semana' && naoCompareceuNonce > 0}
+
         />
 
 
