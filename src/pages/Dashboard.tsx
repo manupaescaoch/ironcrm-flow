@@ -45,13 +45,17 @@ export default function Dashboard() {
   const [followUpTipoFilter, setFollowUpTipoFilter] = useState<string | null>(null);
   const [followUpRefreshKey, setFollowUpRefreshKey] = useState(0);
   const [alunosAtivosRefreshKey, setAlunosAtivosRefreshKey] = useState(0);
+  const [activeTab, setActiveTab] = useState<'diario' | 'semana'>('diario');
+  const [naoCompareceuNonce, setNaoCompareceuNonce] = useState(0);
 
   
   // Refs for scrolling
   const experimentaisSectionRef = useRef<HTMLDivElement>(null);
+  const periodoSectionRef = useRef<HTMLDivElement>(null);
   const matriculasSectionRef = useRef<HTMLDivElement>(null);
   const followUpSectionRef = useRef<HTMLDivElement>(null);
   const followUpMatriculadosSectionRef = useRef<HTMLDivElement>(null);
+
   
   // Modal state
   const [reagendarModalOpen, setReagendarModalOpen] = useState(false);
