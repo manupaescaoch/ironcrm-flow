@@ -1,0 +1,2 @@
+ALTER TABLE public.follow_ups DROP CONSTRAINT IF EXISTS follow_ups_tipo_check;
+ALTER TABLE public.follow_ups ADD CONSTRAINT follow_ups_tipo_check CHECK (tipo = ANY (ARRAY['D+1'::text,'D+7'::text,'D+15'::text,'D+30'::text,'M+7'::text,'M+30'::text,'G+7'::text,'G+30'::text]));
