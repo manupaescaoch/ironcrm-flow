@@ -18,15 +18,17 @@ interface ExperimentaisSemanaProps {
   onRefresh: () => void;
   startDate: Date;
   endDate: Date;
+  initialStatusFilter?: StatusFilter;
 }
 
 type StatusFilter = 'todos' | 'agendados' | 'compareceu' | 'nao_compareceu' | 'matriculou';
 
-export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, endDate }: ExperimentaisSemanaProps) {
+export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, endDate, initialStatusFilter = 'todos' }: ExperimentaisSemanaProps) {
   const { toast } = useToast();
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialStatusFilter);
+
 
   const itemDateOf = (item: EventoItem) => {
     const ds = item.tipoEvento === 'avaliacao'

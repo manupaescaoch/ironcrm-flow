@@ -45,13 +45,17 @@ export default function Dashboard() {
   const [followUpTipoFilter, setFollowUpTipoFilter] = useState<string | null>(null);
   const [followUpRefreshKey, setFollowUpRefreshKey] = useState(0);
   const [alunosAtivosRefreshKey, setAlunosAtivosRefreshKey] = useState(0);
+  const [activeTab, setActiveTab] = useState<'diario' | 'semana'>('diario');
+  const [naoCompareceuNonce, setNaoCompareceuNonce] = useState(0);
 
   
   // Refs for scrolling
   const experimentaisSectionRef = useRef<HTMLDivElement>(null);
+  const periodoSectionRef = useRef<HTMLDivElement>(null);
   const matriculasSectionRef = useRef<HTMLDivElement>(null);
   const followUpSectionRef = useRef<HTMLDivElement>(null);
   const followUpMatriculadosSectionRef = useRef<HTMLDivElement>(null);
+
   
   // Modal state
   const [reagendarModalOpen, setReagendarModalOpen] = useState(false);
@@ -96,6 +100,15 @@ export default function Dashboard() {
       experimentaisSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
   }, []);
+
+  const handleNaoCompareceramClick = useCallback(() => {
+    setActiveTab('semana');
+    setNaoCompareceuNonce((n) => n + 1);
+    setTimeout(() => {
+      periodoSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+  }, []);
+
 
   const handleMatriculasCardClick = useCallback(() => {
     setShowMatriculasSection(true);
@@ -236,6 +249,9 @@ export default function Dashboard() {
           onMatriculasClick={handleMatriculasCardClick}
           onFollowUpClick={handleFollowUpCardClick}
           onFollowUpMatriculadosClick={handleFollowUpMatriculadosCardClick}
+          onNaoCompareceramClick={handleNaoCompareceramClick}
+          isNaoCompareceramActive={activeTab === 'semana' && naoCompareceuNonce > 0}
+
         />
 
 
@@ -276,7 +292,7 @@ export default function Dashboard() {
         )}
 
         {/* Experimental Control Panels with Tabs */}
-        <Tabs defaultValue="diario" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'diario' | 'semana')} className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <TabsList>
               <TabsTrigger value="diario">Controle Diário</TabsTrigger>
@@ -367,13 +383,18 @@ export default function Dashboard() {
                 Mês Anterior
               </Button>
             </div>
-            <ExperimentaisSemana
-              items={experimentaisSemana}
-              onReagendar={handleReagendar}
-              onRefresh={() => refetchEventos(startDate, endDate)}
-              startDate={startDate}
-              endDate={endDate}
-            />
+            <div ref={periodoSectionRef}>
+              <ExperimentaisSemana
+                key={`exp-semana-${naoCompareceuNonce}`}
+                items={experimentaisSemana}
+                onReagendar={handleReagendar}
+                onRefresh={() => refetchEventos(startDate, endDate)}
+                startDate={startDate}
+                endDate={endDate}
+                initialStatusFilter={naoCompareceuNonce > 0 ? 'nao_compareceu' : 'todos'}
+              />
+            </div>
+
           </TabsContent>
         </Tabs>
 

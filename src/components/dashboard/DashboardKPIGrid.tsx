@@ -29,6 +29,9 @@ interface DashboardKPIGridProps {
   onMatriculasClick: () => void;
   onFollowUpClick: () => void;
   onFollowUpMatriculadosClick: () => void;
+  onNaoCompareceramClick?: () => void;
+  isNaoCompareceramActive?: boolean;
+
 }
 
 
@@ -51,7 +54,10 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   onMatriculasClick,
   onFollowUpClick,
   onFollowUpMatriculadosClick,
+  onNaoCompareceramClick,
+  isNaoCompareceramActive,
 }: DashboardKPIGridProps) {
+
   const naoCompareceram = Math.max(
     0,
     periodStats.experimentaisPeriodo - periodStats.comparecimentosPeriodo
@@ -171,7 +177,11 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
             iconColor="text-blue-500"
             valueColor="text-blue-600"
             subtitle="No período"
+            onClick={onNaoCompareceramClick}
+            isActive={isNaoCompareceramActive}
+            activeColor="blue"
           />
+
 
           <KPICard
             variant="dashboard"
