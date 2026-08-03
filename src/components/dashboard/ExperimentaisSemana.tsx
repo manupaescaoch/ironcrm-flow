@@ -50,7 +50,9 @@ export function ExperimentaisSemana({ items, onReagendar, onRefresh, startDate, 
       case 'compareceu':
         return compareceu === true;
       case 'nao_compareceu':
-        return compareceu === false || (isPast && compareceu === null);
+        return (compareceu === false || (isPast && compareceu === null))
+          && item.interacao.fechou_matricula !== true
+          && item.interacao.reagendou !== true;
       case 'matriculou':
         return item.interacao.fechou_matricula === true;
     }
