@@ -383,13 +383,18 @@ export default function Dashboard() {
                 Mês Anterior
               </Button>
             </div>
-            <ExperimentaisSemana
-              items={experimentaisSemana}
-              onReagendar={handleReagendar}
-              onRefresh={() => refetchEventos(startDate, endDate)}
-              startDate={startDate}
-              endDate={endDate}
-            />
+            <div ref={periodoSectionRef}>
+              <ExperimentaisSemana
+                key={`exp-semana-${naoCompareceuNonce}`}
+                items={experimentaisSemana}
+                onReagendar={handleReagendar}
+                onRefresh={() => refetchEventos(startDate, endDate)}
+                startDate={startDate}
+                endDate={endDate}
+                initialStatusFilter={naoCompareceuNonce > 0 ? 'nao_compareceu' : 'todos'}
+              />
+            </div>
+
           </TabsContent>
         </Tabs>
 
