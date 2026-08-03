@@ -1,58 +1,62 @@
-## Objetivo
-Simplificar a tela de Cronograma de Automações agrupando por tipo de atividade e por horário, sem listar cada registro individualmente. Toda a variação de dias da semana passa a ser resolvida dentro do modal de edição.
+# KPI "FU Gerente" no Dashboard
 
-## Agrupamento (nível 1 → nível 2)
+Novo KPI clicável no Dashboard, com a mesma mecânica do "Follow-up de Matriculados": lista de alunos matriculados, envio 100% manual pelo WhatsApp, com marcar como realizado e reagendar. Só duas etapas: D+7 e D+30.
 
-Nível 1 — Tipo de atividade, sempre nesta ordem fixa:
-1. Encerramento coordenador de turno
-2. Relatório Diário Comercial
-3. Grade do próximo horário
-4. Encerramento Estagiário Líder
+## Regra da régua
 
-Nível 2 (dentro de cada tipo) — **agrupar por horário + responsável + unidade**, mostrando:
-- Horário (ex.: 11:00)
-- Responsável
-- Unidade
-- Dias ativos (chips: Dom Seg Ter Qua Qui Sex Sáb — marcados = ativos)
-- Status (ativo/pausado agregado)
-- Ações: Editar · Pausar/Ativar · Excluir
+Baseada nos dias desde a data de matrícula (data de fechamento):
 
-Cada linha do grupo representa **um conjunto** de registros que compartilham título+horário+responsável+unidade e diferem apenas no dia. A lista fica curta (dezenas em vez de centenas).
+```text
+0 a 6 dias    -> não aparece
+7 a 29 dias   -> mostra D+7
+30 a 45 dias  -> mostra D+30
+acima de 45   -> não aparece
+```
 
-## Modal de edição (nova ordem de campos)
+Etapas já marcadas como realizadas (ou reagendadas para o futuro) saem da lista, igual ao painel de matriculados.
 
-Conforme o anexo:
-1. **Responsável** (select)
-2. **Horário**
-3. **Dias da semana** (chips multi-seleção Dom–Sáb + atalhos Seg–Sex / Fim de semana / Todos / Limpar)
-4. **Ação WhatsApp**: Vincular Formulário | Escrever Mensagem (+ textarea)
-5. Botões: Salvar Alterações · Excluir
+## Mensagens (campos preenchidos automaticamente)
 
-Título deixa de ser editável no modal (é o próprio tipo do grupo) — permanece somente leitura no cabeçalho do modal.
+- `[nome]` = primeiro nome do aluno
+- `[nome do gerente]` = nome do usuário logado
+- `[unidade]` = unidade atual selecionada
 
-## Comportamento ao salvar
+D+7:
 
-Aplicar a mudança a **todos os registros do conjunto** (mesmo título+horário+responsável+unidade):
-- Dias marcados que não existem → criar registro
-- Dias desmarcados que existem → excluir (ou desativar se já houver histórico de envio)
-- Horário / responsável / mensagem / formulário → atualizar em todos
-- Se o horário mudar, o conjunto inteiro migra para o novo horário
+> Olá, {nome}! Tudo bem?
+>
+> Aqui é {gerente}, gerente da Iron {unidade}. Estou passando para saber como foi sua primeira semana com a gente.
+>
+> Você conseguiu realizar os agendamentos normalmente? Foi bem recebido pela equipe e sentiu que teve o acompanhamento necessário durante os treinos?
+>
+> Também queria saber se ficou alguma dúvida sobre nossa metodologia ou se encontrou alguma dificuldade nesse início.
+>
+> Pode falar com sinceridade. Seu feedback é muito importante para garantirmos que sua experiência seja cada vez melhor.
 
-Reaproveitar a RPC `admin_bulk_update_cronograma` já existente (operação `replace_dias` + updates de campos) para executar tudo em uma chamada e registrar no histórico.
+D+30:
 
-## Escopo técnico
+> Olá, {nome}! Tudo bem?
+>
+> Você está completando seu primeiro mês na Iron e queria acompanhar um pouco mais de perto como está sendo sua experiência.
+>
+> Como você avalia sua evolução até aqui? Já percebeu alguma mudança no condicionamento, na execução dos exercícios, na disposição ou nos resultados?
+>
+> Também estamos avaliando sua frequência para entender se sua rotina de treinos está funcionando bem ou se precisamos realizar algum ajuste.
+>
+> Tem algum ponto que podemos melhorar no acompanhamento, nos horários, no atendimento ou na sua experiência dentro da unidade?
+>
+> Conte comigo e com toda a equipe. Nosso objetivo não é apenas que você treine, mas que tenha direção, constância e resultado.
 
-- `src/components/cronograma-admin/AtividadesPorTipo.tsx`
-  - Fixar ordem dos 4 tipos no topo (esconder demais tipos desta tela ou mantê-los abaixo, colapsados — a definir; padrão do plano: mostrar apenas os 4)
-  - Trocar a tabela atual por uma tabela agrupada por (horário, responsável, unidade) com coluna de dias como chips
-  - Remover coluna "Turno" e "Dia" isolado
-- `src/pages/admin/CronogramaAutomacoes.tsx` (`EditAtividadeDialog`)
-  - Reordenar campos: Responsável → Horário → Dias → Ação WhatsApp
-  - Remover campo Título editável (virar cabeçalho read-only)
-  - Salvar via bulk update no conjunto inteiro
-- Sem migração de banco; usa colunas e RPCs existentes.
+Nenhum envio automático: o clique só abre o WhatsApp com o texto pronto, sem disparar mensagem.
 
-## Perguntas rápidas (posso assumir defaults)
+## Detalhes técnicos
 
-- Os outros tipos de atividade (fora dos 4) — **ocultar** desta tela (default) ou manter num acordeão "Outros" ao final?
-- Se um conjunto tiver status misto (parte ativo, parte pausado), o toggle da linha deve **ativar todos** ao ligar e **pausar todos** ao desligar? (default: sim)
+1. Migração no banco: ampliar o CHECK de `follow_ups.tipo` para aceitar `G+7` e `G+30` (tipos exclusivos do FU Gerente, para não conflitar com os follow-ups comerciais/matriculados existentes).
+2. Novo hook `src/hooks/useFollowUpsGerente.ts`, espelhando `useFollowUpsMatriculados.ts`: busca matrículas por `unidade_id`, calcula a etapa pela régua acima, exclui etapas `G+7`/`G+30` concluídas ou reagendadas para o futuro, com realtime em `follow_ups` e `interacoes`.
+3. Nova seção `src/components/dashboard/FollowUpGerenteSection.tsx`, baseada em `FollowUpMatriculadosSection.tsx` (cards horizontais, badge da etapa, data do FU, dias em atraso, ações: WhatsApp, marcar realizado via `upsert` em `follow_ups`, reagendar, ver aluno). Nome do gerente vindo do usuário autenticado (metadata/`user_profiles`), unidade vinda de `UnidadeContext`.
+4. `DashboardKPIGrid.tsx`: novo KPI "FU Gerente" com contagem de pendentes (vencidos/hoje), clicável e com estado ativo.
+5. `Dashboard.tsx`: estado `showFollowUpGerenteSection`, handler de clique com scroll e renderização da nova seção.
+
+## Fora de escopo
+
+Nenhum cron, edge function ou envio automático será criado para este KPI.
