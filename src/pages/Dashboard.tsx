@@ -292,7 +292,7 @@ export default function Dashboard() {
         )}
 
         {/* Experimental Control Panels with Tabs */}
-        <Tabs defaultValue="diario" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'diario' | 'semana')} className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <TabsList>
               <TabsTrigger value="diario">Controle Diário</TabsTrigger>
