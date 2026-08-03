@@ -54,7 +54,10 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   onMatriculasClick,
   onFollowUpClick,
   onFollowUpMatriculadosClick,
+  onNaoCompareceramClick,
+  isNaoCompareceramActive,
 }: DashboardKPIGridProps) {
+
   const naoCompareceram = Math.max(
     0,
     periodStats.experimentaisPeriodo - periodStats.comparecimentosPeriodo
