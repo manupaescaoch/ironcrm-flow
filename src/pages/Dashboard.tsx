@@ -26,6 +26,8 @@ import { MatriculasDetailSection } from '@/components/dashboard/MatriculasDetail
 import { SyncIndicator } from '@/components/dashboard/SyncIndicator';
 import { FollowUpMatriculadosSection } from '@/components/dashboard/FollowUpMatriculadosSection';
 import { useFollowUpsMatriculados } from '@/hooks/useFollowUpsMatriculados';
+import { FollowUpGerenteSection } from '@/components/dashboard/FollowUpGerenteSection';
+import { useFollowUpsGerente } from '@/hooks/useFollowUpsGerente';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { addDays, subDays, startOfDay, endOfDay } from 'date-fns';
 export default function Dashboard() {
@@ -42,6 +44,7 @@ export default function Dashboard() {
   const [showMatriculasSection, setShowMatriculasSection] = useState(false);
   const [showFollowUpSection, setShowFollowUpSection] = useState(false);
   const [showFollowUpMatriculadosSection, setShowFollowUpMatriculadosSection] = useState(false);
+  const [showFollowUpGerenteSection, setShowFollowUpGerenteSection] = useState(false);
   const [followUpTipoFilter, setFollowUpTipoFilter] = useState<string | null>(null);
   const [followUpRefreshKey, setFollowUpRefreshKey] = useState(0);
   const [alunosAtivosRefreshKey, setAlunosAtivosRefreshKey] = useState(0);
@@ -55,6 +58,7 @@ export default function Dashboard() {
   const matriculasSectionRef = useRef<HTMLDivElement>(null);
   const followUpSectionRef = useRef<HTMLDivElement>(null);
   const followUpMatriculadosSectionRef = useRef<HTMLDivElement>(null);
+  const followUpGerenteSectionRef = useRef<HTMLDivElement>(null);
 
   
   // Modal state
@@ -139,6 +143,17 @@ export default function Dashboard() {
     }, 100);
   }, []);
 
+  const handleFollowUpGerenteCardClick = useCallback(() => {
+    setShowFollowUpGerenteSection(true);
+    setShowExperimentaisSection(false);
+    setShowMatriculasSection(false);
+    setShowFollowUpSection(false);
+    setShowFollowUpMatriculadosSection(false);
+    setTimeout(() => {
+      followUpGerenteSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }, []);
+
   const handleFollowUpTipoClick = useCallback((tipo: string) => {
     setShowFollowUpSection(true);
     setShowExperimentaisSection(false);
@@ -196,6 +211,10 @@ export default function Dashboard() {
   const { urgentItems: urgentMatriculadosFU, refetch: refetchMatriculadosFU } = useFollowUpsMatriculados();
   const followUpMatriculadosCount = urgentMatriculadosFU.length;
 
+  // Follow-ups do gerente (D+7, D+30) — envio manual
+  const { urgentItems: urgentGerenteFU, refetch: refetchGerenteFU } = useFollowUpsGerente();
+  const followUpGerenteCount = urgentGerenteFU.length;
+
   return (
     <Layout>
       <div className="p-8">
@@ -241,14 +260,17 @@ export default function Dashboard() {
           followUpPendingCount={followUpPendingCount}
           followUpD1Count={followUpD1Count}
           followUpMatriculadosCount={followUpMatriculadosCount}
+          followUpGerenteCount={followUpGerenteCount}
           showExperimentaisSection={showExperimentaisSection}
           showMatriculasSection={showMatriculasSection}
           showFollowUpSection={showFollowUpSection}
           showFollowUpMatriculadosSection={showFollowUpMatriculadosSection}
+          showFollowUpGerenteSection={showFollowUpGerenteSection}
           onExperimentaisClick={handleExperimentaisCardClick}
           onMatriculasClick={handleMatriculasCardClick}
           onFollowUpClick={handleFollowUpCardClick}
           onFollowUpMatriculadosClick={handleFollowUpMatriculadosCardClick}
+          onFollowUpGerenteClick={handleFollowUpGerenteCardClick}
           onNaoCompareceramClick={handleNaoCompareceramClick}
           isNaoCompareceramActive={activeTab === 'semana' && naoCompareceuNonce > 0}
 
@@ -265,6 +287,16 @@ export default function Dashboard() {
           </div>
         )}
 
+
+        {/* Follow Up Gerente Section */}
+        {showFollowUpGerenteSection && (
+          <div ref={followUpGerenteSectionRef} className="mb-8 space-y-4 mt-4">
+            <FollowUpGerenteSection
+              urgentItems={urgentGerenteFU}
+              onRefresh={refetchGerenteFU}
+            />
+          </div>
+        )}
 
         {/* Follow Up Section */}
         {showFollowUpSection && (
