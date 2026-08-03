@@ -97,6 +97,15 @@ export default function Dashboard() {
     }, 100);
   }, []);
 
+  const handleNaoCompareceramClick = useCallback(() => {
+    setActiveTab('semana');
+    setNaoCompareceuNonce((n) => n + 1);
+    setTimeout(() => {
+      periodoSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+  }, []);
+
+
   const handleMatriculasCardClick = useCallback(() => {
     setShowMatriculasSection(true);
     setShowExperimentaisSection(false);
