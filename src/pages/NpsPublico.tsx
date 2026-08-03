@@ -235,7 +235,12 @@ export default function NpsPublico() {
     });
     setSaving(false);
     if (error) {
-      toast.error('Erro ao enviar avaliação. Tente novamente.');
+      console.error('[nps submit]', error);
+      toast.error(
+        error.message
+          ? `Erro ao enviar avaliação: ${error.message}`
+          : 'Erro ao enviar avaliação. Tente novamente.',
+      );
       return;
     }
     if (insertedId) {
