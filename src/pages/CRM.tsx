@@ -61,6 +61,9 @@ import { cn } from '@/lib/utils';
 import { validateCsvRow, type CsvRowValidationResult } from '@/utils/csvImportValidation';
 import { NivelInteresseBadge } from '@/components/NivelInteresseBadge';
 import { calcularConversionScore } from '@/hooks/useConversionScore';
+import { canonicalPhone } from '@/lib/telefone';
+import { LeadDuplicadoDialog, type LeadDuplicado } from '@/components/crm/LeadDuplicadoDialog';
+
 
 
 // Validation schema for lead creation/update
@@ -275,6 +278,12 @@ export default function CRM() {
     status_taxa_experimental: null as StatusTaxaExperimental | null,
   });
 
+  // Lead duplicado detectado pelo telefone (bloqueia o cadastro)
+  const [leadDuplicado, setLeadDuplicado] = useState<LeadDuplicado | null>(null);
+  const [reativandoDuplicado, setReativandoDuplicado] = useState(false);
+
+
+
 
   // Get user display name for "Cadastrado Por" field - normalizado para CAIXA ALTA
   const getUserDisplayName = (): string => {
@@ -433,6 +442,21 @@ export default function CRM() {
     return todosNormalizados.sort();
   }, [leads]);
 
+  const handleReativarDuplicado = async (lead: LeadDuplicado) => {
+    setReativandoDuplicado(true);
+    const { error } = await supabase.from('leads').update({ ativo: true }).eq('id', lead.id);
+    setReativandoDuplicado(false);
+    if (error) {
+      toast({ title: 'Erro ao reativar lead', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Lead reativado', description: `"${lead.nome}" voltou para a listagem.` });
+    setLeadDuplicado(null);
+    setDialogOpen(false);
+    fetchLeads();
+    navigate(`/lead/${lead.id}`);
+  };
+
   const handleCreate = async () => {
     // Validate form data using zod schema
     const validation = leadSchema.safeParse({
@@ -450,30 +474,26 @@ export default function CRM() {
       return;
     }
 
-    // Validar telefone duplicado APENAS na unidade atual (multi-unidades permitido)
+    // Validar telefone duplicado APENAS na unidade atual (ativos e inativos)
     if (formData.telefone.trim() && unidadeAtual?.id) {
-      const telefoneNormalizado = formData.telefone.trim().replace(/\D/g, '');
+      const telefoneCanonico = canonicalPhone(formData.telefone);
 
       const { data: existingLeads } = await supabase
         .from('leads')
-        .select('id, nome, telefone, unidade_id')
-        .eq('ativo', true)
-        .eq('unidade_id', unidadeAtual.id);
+        .select('id, nome, telefone, ativo, created_at, cadastrado_por')
+        .eq('unidade_id', unidadeAtual.id)
+        .eq('telefone_normalizado', telefoneCanonico)
+        .order('ativo', { ascending: false })
+        .limit(1);
 
-      const duplicado = existingLeads?.find(lead => {
-        const leadTelefone = lead.telefone?.replace(/\D/g, '');
-        return leadTelefone === telefoneNormalizado;
-      });
+      const duplicado = existingLeads?.[0];
 
       if (duplicado) {
-        toast({
-          title: 'Telefone já cadastrado nesta unidade',
-          description: `Este telefone já está cadastrado para "${duplicado.nome}" na unidade atual.`,
-          variant: 'destructive'
-        });
+        setLeadDuplicado(duplicado as LeadDuplicado);
         return;
       }
     }
+
 
     // Validar data obrigatória quando status é Experimental Agendada
     if (formData.status_funil === 'aula_agendada' && !formData.data_aula_experimental) {
@@ -684,7 +704,7 @@ export default function CRM() {
       // Detectar duplicidade de telefone dentro do próprio CSV
       const seenPhones = new Set<string>();
       results.forEach((r) => {
-        const phone = r.data?.telefone;
+        const phone = canonicalPhone(r.data?.telefone);
         if (phone) {
           if (seenPhones.has(phone)) {
             r.duplicate = true;
@@ -799,7 +819,7 @@ export default function CRM() {
       );
       const seen = new Set<string>();
       results.forEach((r) => {
-        const phone = r.data?.telefone;
+        const phone = canonicalPhone(r.data?.telefone);
         if (phone) {
           if (seen.has(phone)) {
             r.duplicate = true;
@@ -817,13 +837,12 @@ export default function CRM() {
       const { data: existingLeads } = await supabase
         .from('leads')
         .select('telefone')
-        .eq('ativo', true)
         .eq('unidade_id', unidadeAtual?.id || '')
         .not('telefone', 'is', null);
 
       const existingPhones = new Set(
         (existingLeads || [])
-          .map((l) => l.telefone?.replace(/\D/g, ''))
+          .map((l) => canonicalPhone(l.telefone))
           .filter(Boolean)
       );
 
@@ -838,7 +857,7 @@ export default function CRM() {
         const chunk = validResults.slice(i, i + chunkSize);
         const leadsToInsert = chunk
           .filter((r) => {
-            const phone = r.data!.telefone;
+            const phone = canonicalPhone(r.data!.telefone);
             if (phone && existingPhones.has(phone)) {
               duplicateCount++;
               return false;
@@ -1792,7 +1811,20 @@ export default function CRM() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <LeadDuplicadoDialog
+          open={!!leadDuplicado}
+          lead={leadDuplicado}
+          reativando={reativandoDuplicado}
+          onCancelar={() => setLeadDuplicado(null)}
+          onAbrirLead={(lead) => {
+            setLeadDuplicado(null);
+            navigate(`/lead/${lead.id}`);
+          }}
+          onReativar={handleReativarDuplicado}
+        />
       </div>
+
     </Layout>
   );
 }

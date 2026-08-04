@@ -3709,6 +3709,7 @@ export type Database = {
         Returns: undefined
       }
       can_manage_contas_pagar: { Args: { _user_id: string }; Returns: boolean }
+      canonical_phone: { Args: { phone: string }; Returns: string }
       generate_follow_ups_for_lead: {
         Args: { p_lead_id: string }
         Returns: undefined
