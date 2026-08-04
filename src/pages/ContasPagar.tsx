@@ -196,12 +196,6 @@ export default function ContasPagar() {
             setBusca={setBusca}
             status={status}
             setStatus={setStatus}
-            categoria={categoria}
-            setCategoria={setCategoria}
-            prioridade={prioridade}
-            setPrioridade={setPrioridade}
-            forma={forma}
-            setForma={setForma}
           />
         </Card>
 
