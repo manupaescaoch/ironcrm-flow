@@ -19,7 +19,7 @@ import {
   Gift,
   Package,
   CalendarDays,
-  CalendarClock,
+  
   Shield,
   Menu,
   CheckSquare,
