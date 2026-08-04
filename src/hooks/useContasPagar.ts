@@ -4,7 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { getTodayInBrasilia } from '@/lib/brasilia';
+import { useToast } from '@/hooks/use-toast';
 import {
+  ContaEnvio,
   ContaHistorico,
   ContaPagar,
   ContaStatusView,
@@ -27,6 +29,10 @@ export interface ContaFormPayload {
   linha_digitavel: string | null;
   chave_pix: string | null;
   codigo_pix: string | null;
+  banco: string | null;
+  agencia: string | null;
+  conta_bancaria: string | null;
+  favorecido: string | null;
   documento_url: string | null;
 }
 
@@ -44,6 +50,7 @@ export interface BaixaPayload {
 
 export function useContasPagar(from: string, to: string) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const { user, userRole, isAdmin } = useAuth();
   const { unidadeAtual } = useUnidade();
   const unidadeId = unidadeAtual?.id ?? null;
@@ -121,9 +128,52 @@ export function useContasPagar(from: string, to: string) {
         .select('*')
         .single();
       if (error) throw error;
-      return inserted as unknown as ContaPagar;
+      const conta = inserted as unknown as ContaPagar;
+
+      // Envio ao grupo financeiro: falha aqui NUNCA impede o cadastro.
+      try {
+        const { data: envio, error: envioErr } = await supabase.functions.invoke(
+          'send-conta-pagar-whatsapp',
+          { body: { conta_id: conta.id, tipo_envio: 'CADASTRO' } },
+        );
+        if (envioErr || (envio && envio.ok === false && !envio.skipped)) {
+          toast({
+            title: 'Conta cadastrada, mas o WhatsApp falhou',
+            description:
+              (envio?.erro as string | undefined) ||
+              'A mensagem ficou na fila e será reenviada automaticamente.',
+            variant: 'destructive',
+          });
+        } else if (envio?.ok) {
+          toast({ title: 'Mensagem enviada ao grupo financeiro.' });
+        }
+      } catch {
+        toast({
+          title: 'Conta cadastrada, mas o WhatsApp falhou',
+          description: 'A mensagem ficou na fila e será reenviada automaticamente.',
+          variant: 'destructive',
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['contas-pagar-envios'] });
+      return conta;
     },
     onSuccess: invalidate,
+  });
+
+  const reenviarWhatsapp = useMutation({
+    mutationFn: async ({ contaId, tipo }: { contaId: string; tipo: 'CADASTRO' | 'VENCIMENTO' }) => {
+      const { data, error } = await supabase.functions.invoke('send-conta-pagar-whatsapp', {
+        body: { conta_id: contaId, tipo_envio: tipo, reenviar: true },
+      });
+      if (error) throw error;
+      if (data?.ok !== true) throw new Error((data?.erro as string) || 'Não foi possível reenviar');
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contas-pagar-envios'] });
+      queryClient.invalidateQueries({ queryKey: ['contas-pagar-historico'] });
+    },
   });
 
   const atualizarConta = useMutation({
@@ -267,7 +317,25 @@ export function useContasPagar(from: string, to: string) {
     cancelarConta,
     excluirConta,
     buscarDuplicidade,
+    reenviarWhatsapp,
   };
+}
+
+export function useContaEnvios(contaId: string | null) {
+  return useQuery({
+    queryKey: ['contas-pagar-envios', contaId],
+    queryFn: async (): Promise<ContaEnvio[]> => {
+      if (!contaId) return [];
+      const { data, error } = await supabase
+        .from('contas_pagar_envios')
+        .select('*')
+        .eq('conta_id', contaId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data || []) as unknown as ContaEnvio[];
+    },
+    enabled: !!contaId,
+  });
 }
 
 export function useContaHistorico(contaId: string | null) {
