@@ -2,6 +2,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Table,
   TableBody,
   TableCell,
@@ -9,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { CheckCircle2, Copy, Eye, Loader2, Pencil } from 'lucide-react';
+import { CalendarClock, Check, Copy, Eye, Loader2, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -32,9 +39,21 @@ interface Props {
   onVer: (conta: ContaPagar) => void;
   onEditar: (conta: ContaPagar) => void;
   onDarBaixa: (conta: ContaPagar) => void;
+  onReagendar: (conta: ContaPagar) => void;
+  onExcluir: (conta: ContaPagar) => void;
 }
 
-export function ContasTable({ contas, isLoading, statusDe, canManage, onVer, onEditar, onDarBaixa }: Props) {
+export function ContasTable({
+  contas,
+  isLoading,
+  statusDe,
+  canManage,
+  onVer,
+  onEditar,
+  onDarBaixa,
+  onReagendar,
+  onExcluir,
+}: Props) {
   const { toast } = useToast();
 
   const copiarPagamento = async (conta: ContaPagar) => {
@@ -50,6 +69,47 @@ export function ContasTable({ contas, isLoading, statusDe, canManage, onVer, onE
       toast({ title: 'Não foi possível copiar', variant: 'destructive' });
     }
   };
+
+  const AcoesMenu = ({ conta }: { conta: ContaPagar }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button size="icon" variant="ghost" title="Ações" onClick={(e) => e.stopPropagation()}>
+          <MoreVertical className="w-4 h-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        {canManage && conta.status === 'pendente' && (
+          <DropdownMenuItem onClick={() => onDarBaixa(conta)}>
+            <Check className="w-4 h-4 mr-2" /> Marcar como Pago
+          </DropdownMenuItem>
+        )}
+        {canManage && (
+          <DropdownMenuItem onClick={() => onEditar(conta)}>
+            <Pencil className="w-4 h-4 mr-2" /> Editar
+          </DropdownMenuItem>
+        )}
+        {canManage && (
+          <DropdownMenuItem onClick={() => onReagendar(conta)}>
+            <CalendarClock className="w-4 h-4 mr-2" /> Reagendar
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={() => onVer(conta)}>
+          <Eye className="w-4 h-4 mr-2" /> Ver detalhes
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => copiarPagamento(conta)}>
+          <Copy className="w-4 h-4 mr-2" /> Copiar dados de pagamento
+        </DropdownMenuItem>
+        {canManage && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onExcluir(conta)}>
+              <Trash2 className="w-4 h-4 mr-2" /> Excluir
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   if (isLoading) {
     return (
@@ -110,28 +170,8 @@ export function ContasTable({ contas, isLoading, statusDe, canManage, onVer, onE
                       {labelFormaPagamento(conta.forma_pagamento)}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-1">
-                        <Button size="icon" variant="ghost" title="Ver detalhes" onClick={() => onVer(conta)}>
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          title="Copiar dados de pagamento"
-                          onClick={() => copiarPagamento(conta)}
-                        >
-                          <Copy className="w-4 h-4" />
-                        </Button>
-                        {canManage && (
-                          <Button size="icon" variant="ghost" title="Editar" onClick={() => onEditar(conta)}>
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                        )}
-                        {canManage && conta.status === 'pendente' && (
-                          <Button size="icon" variant="ghost" title="Dar baixa" onClick={() => onDarBaixa(conta)}>
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                          </Button>
-                        )}
+                      <div className="flex items-center justify-end">
+                        <AcoesMenu conta={conta} />
                       </div>
                     </TableCell>
                   </TableRow>
@@ -153,26 +193,18 @@ export function ContasTable({ contas, isLoading, statusDe, canManage, onVer, onE
                   <p className="font-medium truncate">{conta.descricao}</p>
                   <p className="text-xs text-muted-foreground truncate">{conta.fornecedor || ''}</p>
                 </div>
-                <Badge variant="outline" className={cn('text-xs shrink-0', statusBadgeClass(status))}>
-                  {labelStatus(status)}
-                </Badge>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Badge variant="outline" className={cn('text-xs', statusBadgeClass(status))}>
+                    {labelStatus(status)}
+                  </Badge>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <AcoesMenu conta={conta} />
+                  </div>
+                </div>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="font-semibold">{formatCurrency(Number(conta.valor))}</span>
                 <span className="text-muted-foreground">venc. {formatDateBR(conta.data_vencimento)}</span>
-              </div>
-              <div className="flex flex-wrap gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
-                <Button size="sm" variant="outline" onClick={() => onVer(conta)}>
-                  <Eye className="w-3.5 h-3.5 mr-1" /> Detalhes
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => copiarPagamento(conta)}>
-                  <Copy className="w-3.5 h-3.5 mr-1" /> Copiar
-                </Button>
-                {canManage && conta.status === 'pendente' && (
-                  <Button size="sm" onClick={() => onDarBaixa(conta)}>
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Baixa
-                  </Button>
-                )}
               </div>
             </Card>
           );

@@ -21,6 +21,8 @@ import { ContasPagarKPIs } from '@/components/contas-pagar/ContasPagarKPIs';
 import { PeriodoSelector, PeriodoModo } from '@/components/contas-pagar/PeriodoSelector';
 import { ContasFiltros } from '@/components/contas-pagar/ContasFiltros';
 import { ContasTable } from '@/components/contas-pagar/ContasTable';
+import { ReagendarModal } from '@/components/contas-pagar/ReagendarModal';
+
 import { NovaContaModal } from '@/components/contas-pagar/NovaContaModal';
 import { BaixaModal } from '@/components/contas-pagar/BaixaModal';
 import { ContaDetalhesDrawer } from '@/components/contas-pagar/ContaDetalhesDrawer';
@@ -96,6 +98,8 @@ export default function ContasPagar() {
   const [contaEdicao, setContaEdicao] = useState<ContaPagar | null>(null);
   const [baixaConta, setBaixaConta] = useState<ContaPagar | null>(null);
   const [detalhe, setDetalhe] = useState<ContaPagar | null>(null);
+  const [reagendarConta, setReagendarConta] = useState<ContaPagar | null>(null);
+
   const [confirmacao, setConfirmacao] = useState<{
     tipo: 'reabrir' | 'cancelar' | 'excluir';
     conta: ContaPagar;
@@ -218,8 +222,33 @@ export default function ContasPagar() {
             setNovaOpen(true);
           }}
           onDarBaixa={(c) => setBaixaConta(c)}
+          onReagendar={(c) => setReagendarConta(c)}
+          onExcluir={(c) => setConfirmacao({ tipo: 'excluir', conta: c })}
         />
       </div>
+
+      <ReagendarModal
+        conta={reagendarConta}
+        open={!!reagendarConta}
+        onOpenChange={(open) => !open && setReagendarConta(null)}
+        saving={atualizarConta.isPending}
+        onConfirm={async (novaData) => {
+          if (!reagendarConta) return;
+          try {
+            await atualizarConta.mutateAsync({
+              id: reagendarConta.id,
+              payload: { data_vencimento: novaData } as never,
+            });
+            toast({ title: 'Vencimento reagendado.' });
+            setReagendarConta(null);
+          } catch (error) {
+            const msg = error instanceof Error ? error.message : 'Não foi possível reagendar';
+            toast({ title: 'Erro', description: msg, variant: 'destructive' });
+          }
+        }}
+      />
+
+
 
       <NovaContaModal
         open={novaOpen}
