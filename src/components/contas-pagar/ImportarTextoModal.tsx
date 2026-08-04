@@ -82,13 +82,13 @@ export function ImportarTextoModal({
       return;
     }
     const parsed = parseContaTexto(texto, unidadesNomes);
-    setForm({
+    const nextForm: ContaFormState = {
       ...emptyContaForm,
       descricao: parsed.descricao.toUpperCase(),
       fornecedor: parsed.fornecedor.toUpperCase(),
       categoria: parsed.categoria,
       prioridade: parsed.prioridade,
-      valor: parsed.valor ? String(parsed.valor).replace('.', ',') : '',
+      valor: parsed.valor ? parsed.valor.replace('.', ',') : '',
       data_vencimento: parsed.data_vencimento,
       forma_pagamento: parsed.forma_pagamento,
       chave_pix: parsed.chave_pix,
@@ -97,7 +97,8 @@ export function ImportarTextoModal({
       codigo_barras: parsed.codigo_barras,
       numero_fatura: parsed.numero_fatura,
       observacoes: parsed.observacoes,
-    });
+    };
+    setForm(nextForm);
 
     const mencionada = parsed.unidadeMencionada;
     const atualLimpa = unidadeNome.toUpperCase().replace(/^IRON\s+/, '').trim();
@@ -107,19 +108,10 @@ export function ImportarTextoModal({
       setAlertaUnidade(null);
     }
 
-    const validation = validateContaForm({
-      ...emptyContaForm,
-      descricao: parsed.descricao,
-      fornecedor: parsed.fornecedor,
-      categoria: parsed.categoria,
-      prioridade: parsed.prioridade,
-      valor: parsed.valor,
-      data_vencimento: parsed.data_vencimento,
-      forma_pagamento: parsed.forma_pagamento,
-    });
-    setErrors(validation);
+    setErrors(validateContaForm(nextForm));
     setEtapa('conferencia');
   };
+
 
   const confirmar = async (ignorarDuplicidade: boolean) => {
     if (saving) return;
