@@ -105,7 +105,7 @@ export function NovaContaModal({
     setAvisoUnidade(null);
   }, [open, contaEdicao]);
 
-  const analisarTexto = () => {
+  const analisarTexto = async () => {
     if (!texto.trim()) {
       toast({ title: 'Cole o texto da conta antes de analisar', variant: 'destructive' });
       return;
@@ -140,24 +140,34 @@ export function NovaContaModal({
         unidadeNome.toUpperCase().replace(/^IRON\s+/, '').trim();
     setAvisoUnidade(divergente ? mencionada : null);
 
-    setAba('manual');
     const qtdFaltando = Object.keys(faltando).length;
+
+    // Texto completo e unidade compatível: cadastra automaticamente
+    if (qtdFaltando === 0 && !divergente) {
+      await salvar(false, next);
+      return;
+    }
+
+    setAba('manual');
     toast({
-      title: qtdFaltando ? 'Texto analisado com pendências' : 'Texto analisado',
+      title: qtdFaltando ? 'Texto analisado com pendências' : 'Confirme a unidade',
       description: qtdFaltando
         ? 'Revise e preencha os campos destacados antes de cadastrar.'
-        : 'Revise os dados e clique em Cadastrar conta.',
+        : 'O texto menciona outra unidade. Confirme antes de cadastrar.',
+      variant: qtdFaltando ? 'destructive' : undefined,
     });
   };
 
-  const salvar = async (ignorarDuplicidade: boolean) => {
+  const salvar = async (ignorarDuplicidade: boolean, formOverride?: ContaFormState) => {
     if (saving) return;
-    const validation = validateContaForm(form);
+    const formAtual = formOverride ?? form;
+    const validation = validateContaForm(formAtual);
     setErrors(validation);
     if (Object.keys(validation).length > 0) {
       toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' });
       return;
     }
+
     if (!unidadeId) {
       toast({ title: 'Nenhuma unidade selecionada', variant: 'destructive' });
       return;
