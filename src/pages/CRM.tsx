@@ -450,30 +450,26 @@ export default function CRM() {
       return;
     }
 
-    // Validar telefone duplicado APENAS na unidade atual (multi-unidades permitido)
+    // Validar telefone duplicado APENAS na unidade atual (ativos e inativos)
     if (formData.telefone.trim() && unidadeAtual?.id) {
-      const telefoneNormalizado = formData.telefone.trim().replace(/\D/g, '');
+      const telefoneCanonico = canonicalPhone(formData.telefone);
 
       const { data: existingLeads } = await supabase
         .from('leads')
-        .select('id, nome, telefone, unidade_id')
-        .eq('ativo', true)
-        .eq('unidade_id', unidadeAtual.id);
+        .select('id, nome, telefone, ativo, created_at, cadastrado_por')
+        .eq('unidade_id', unidadeAtual.id)
+        .eq('telefone_normalizado', telefoneCanonico)
+        .order('ativo', { ascending: false })
+        .limit(1);
 
-      const duplicado = existingLeads?.find(lead => {
-        const leadTelefone = lead.telefone?.replace(/\D/g, '');
-        return leadTelefone === telefoneNormalizado;
-      });
+      const duplicado = existingLeads?.[0];
 
       if (duplicado) {
-        toast({
-          title: 'Telefone já cadastrado nesta unidade',
-          description: `Este telefone já está cadastrado para "${duplicado.nome}" na unidade atual.`,
-          variant: 'destructive'
-        });
+        setLeadDuplicado(duplicado as LeadDuplicado);
         return;
       }
     }
+
 
     // Validar data obrigatória quando status é Experimental Agendada
     if (formData.status_funil === 'aula_agendada' && !formData.data_aula_experimental) {
