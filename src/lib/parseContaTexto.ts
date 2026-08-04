@@ -204,7 +204,7 @@ export function parseContaTexto(rawText: string, unidadesNomes: string[] = []): 
   const upper = text.toUpperCase();
   const unidadeMencionada =
     unidadesNomes.find((nome) => {
-      const clean = nome.toUpperCase().replace(/^IRON\s+/, '').trim();
+      const clean = nome.toUpperCase().replace(/^(EVO|IRON)\s+/, '').trim();
       return clean.length > 2 && upper.includes(clean);
     }) || null;
 

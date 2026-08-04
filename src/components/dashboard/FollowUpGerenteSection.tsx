@@ -80,7 +80,7 @@ export function FollowUpGerenteSection({ urgentItems, onRefresh }: Props) {
   }, [user]);
 
   const unidadeNome = useMemo(() => {
-    const nome = (unidadeAtual?.nome || '').replace(/^iron\s+/i, '').trim();
+    const nome = (unidadeAtual?.nome || '').replace(/^(evo|iron)\s+/i, '').trim();
     return nome || 'Club';
   }, [unidadeAtual?.nome]);
 

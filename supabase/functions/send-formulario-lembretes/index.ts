@@ -98,8 +98,8 @@ function inferTurno(horario: string): string {
 }
 
 function unidadeNomeShort(nome: string) {
-  // 'Iron Zona Norte' -> 'ZONA NORTE'
-  return nome.replace(/^iron\s+/i, '').toUpperCase();
+  // 'EVO Boa Viagem' -> 'BOA VIAGEM'
+  return nome.replace(/^(evo|iron)\s+/i, '').toUpperCase();
 }
 
 
