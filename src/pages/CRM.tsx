@@ -704,7 +704,7 @@ export default function CRM() {
       // Detectar duplicidade de telefone dentro do próprio CSV
       const seenPhones = new Set<string>();
       results.forEach((r) => {
-        const phone = r.data?.telefone;
+        const phone = canonicalPhone(r.data?.telefone);
         if (phone) {
           if (seenPhones.has(phone)) {
             r.duplicate = true;
@@ -819,7 +819,7 @@ export default function CRM() {
       );
       const seen = new Set<string>();
       results.forEach((r) => {
-        const phone = r.data?.telefone;
+        const phone = canonicalPhone(r.data?.telefone);
         if (phone) {
           if (seen.has(phone)) {
             r.duplicate = true;
@@ -837,13 +837,12 @@ export default function CRM() {
       const { data: existingLeads } = await supabase
         .from('leads')
         .select('telefone')
-        .eq('ativo', true)
         .eq('unidade_id', unidadeAtual?.id || '')
         .not('telefone', 'is', null);
 
       const existingPhones = new Set(
         (existingLeads || [])
-          .map((l) => l.telefone?.replace(/\D/g, ''))
+          .map((l) => canonicalPhone(l.telefone))
           .filter(Boolean)
       );
 
@@ -858,7 +857,7 @@ export default function CRM() {
         const chunk = validResults.slice(i, i + chunkSize);
         const leadsToInsert = chunk
           .filter((r) => {
-            const phone = r.data!.telefone;
+            const phone = canonicalPhone(r.data!.telefone);
             if (phone && existingPhones.has(phone)) {
               duplicateCount++;
               return false;
