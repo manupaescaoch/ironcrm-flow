@@ -325,10 +325,12 @@ export type Database = {
       }
       contas_pagar: {
         Row: {
+          agencia: string | null
           baixa_observacoes: string | null
           baixado_em: string | null
           baixado_por: string | null
           baixado_por_nome: string | null
+          banco: string | null
           cancelado_em: string | null
           cancelado_por_nome: string | null
           categoria: string
@@ -338,6 +340,7 @@ export type Database = {
           codigo_pix: string | null
           competencia: string | null
           comprovante_url: string | null
+          conta_bancaria: string | null
           created_at: string
           created_by: string | null
           created_by_nome: string | null
@@ -347,6 +350,7 @@ export type Database = {
           desconto: number
           descricao: string
           documento_url: string | null
+          favorecido: string | null
           forma_pagamento: string
           forma_pagamento_baixa: string | null
           fornecedor: string
@@ -364,10 +368,12 @@ export type Database = {
           valor_pago: number | null
         }
         Insert: {
+          agencia?: string | null
           baixa_observacoes?: string | null
           baixado_em?: string | null
           baixado_por?: string | null
           baixado_por_nome?: string | null
+          banco?: string | null
           cancelado_em?: string | null
           cancelado_por_nome?: string | null
           categoria: string
@@ -377,6 +383,7 @@ export type Database = {
           codigo_pix?: string | null
           competencia?: string | null
           comprovante_url?: string | null
+          conta_bancaria?: string | null
           created_at?: string
           created_by?: string | null
           created_by_nome?: string | null
@@ -386,6 +393,7 @@ export type Database = {
           desconto?: number
           descricao: string
           documento_url?: string | null
+          favorecido?: string | null
           forma_pagamento: string
           forma_pagamento_baixa?: string | null
           fornecedor: string
@@ -403,10 +411,12 @@ export type Database = {
           valor_pago?: number | null
         }
         Update: {
+          agencia?: string | null
           baixa_observacoes?: string | null
           baixado_em?: string | null
           baixado_por?: string | null
           baixado_por_nome?: string | null
+          banco?: string | null
           cancelado_em?: string | null
           cancelado_por_nome?: string | null
           categoria?: string
@@ -416,6 +426,7 @@ export type Database = {
           codigo_pix?: string | null
           competencia?: string | null
           comprovante_url?: string | null
+          conta_bancaria?: string | null
           created_at?: string
           created_by?: string | null
           created_by_nome?: string | null
@@ -425,6 +436,7 @@ export type Database = {
           desconto?: number
           descricao?: string
           documento_url?: string | null
+          favorecido?: string | null
           forma_pagamento?: string
           forma_pagamento_baixa?: string | null
           fornecedor?: string
@@ -447,6 +459,68 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contas_pagar_envios: {
+        Row: {
+          conta_id: string
+          created_at: string
+          erro_msg: string | null
+          grupo_destino: string | null
+          id: string
+          instancia_id: string | null
+          mensagem_enviada: string | null
+          proxima_tentativa_em: string | null
+          status: string
+          tentativas: number
+          tipo_envio: string
+          ultima_tentativa_em: string | null
+          unidade_id: string
+          updated_at: string
+          zapi_message_id: string | null
+        }
+        Insert: {
+          conta_id: string
+          created_at?: string
+          erro_msg?: string | null
+          grupo_destino?: string | null
+          id?: string
+          instancia_id?: string | null
+          mensagem_enviada?: string | null
+          proxima_tentativa_em?: string | null
+          status?: string
+          tentativas?: number
+          tipo_envio: string
+          ultima_tentativa_em?: string | null
+          unidade_id: string
+          updated_at?: string
+          zapi_message_id?: string | null
+        }
+        Update: {
+          conta_id?: string
+          created_at?: string
+          erro_msg?: string | null
+          grupo_destino?: string | null
+          id?: string
+          instancia_id?: string | null
+          mensagem_enviada?: string | null
+          proxima_tentativa_em?: string | null
+          status?: string
+          tentativas?: number
+          tipo_envio?: string
+          ultima_tentativa_em?: string | null
+          unidade_id?: string
+          updated_at?: string
+          zapi_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pagar_envios_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
             referencedColumns: ["id"]
           },
         ]
@@ -3238,6 +3312,8 @@ export type Database = {
           created_at: string
           grupo_anamnese_id: string | null
           grupo_anamnese_nome: string | null
+          grupo_contas_pagar_id: string | null
+          grupo_contas_pagar_nome: string | null
           grupo_fu_id: string | null
           grupo_fu_nome: string | null
           telefone_recepcao: string | null
@@ -3249,6 +3325,8 @@ export type Database = {
           created_at?: string
           grupo_anamnese_id?: string | null
           grupo_anamnese_nome?: string | null
+          grupo_contas_pagar_id?: string | null
+          grupo_contas_pagar_nome?: string | null
           grupo_fu_id?: string | null
           grupo_fu_nome?: string | null
           telefone_recepcao?: string | null
@@ -3260,6 +3338,8 @@ export type Database = {
           created_at?: string
           grupo_anamnese_id?: string | null
           grupo_anamnese_nome?: string | null
+          grupo_contas_pagar_id?: string | null
+          grupo_contas_pagar_nome?: string | null
           grupo_fu_id?: string | null
           grupo_fu_nome?: string | null
           telefone_recepcao?: string | null
@@ -3665,6 +3745,32 @@ export type Database = {
       inativar_aluno: { Args: { p_lead_id: string }; Returns: undefined }
       normalize_cronograma_tipo: { Args: { p_titulo: string }; Returns: string }
       normalize_phone: { Args: { phone: string }; Returns: string }
+      reservar_envio_conta: {
+        Args: { p_conta_id: string; p_tipo: string }
+        Returns: {
+          conta_id: string
+          created_at: string
+          erro_msg: string | null
+          grupo_destino: string | null
+          id: string
+          instancia_id: string | null
+          mensagem_enviada: string | null
+          proxima_tentativa_em: string | null
+          status: string
+          tentativas: number
+          tipo_envio: string
+          ultima_tentativa_em: string | null
+          unidade_id: string
+          updated_at: string
+          zapi_message_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "contas_pagar_envios"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       submit_nps_resposta: {
         Args: {
           p_comentario?: string

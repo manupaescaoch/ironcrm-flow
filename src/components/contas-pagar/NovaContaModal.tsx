@@ -59,7 +59,12 @@ function contaToForm(conta: ContaPagar): ContaFormState {
     linha_digitavel: conta.linha_digitavel || '',
     chave_pix: conta.chave_pix || '',
     codigo_pix: conta.codigo_pix || '',
+    banco: conta.banco || '',
+    agencia: conta.agencia || '',
+    conta_bancaria: conta.conta_bancaria || '',
+    favorecido: conta.favorecido || '',
   };
+
 }
 
 export function NovaContaModal({

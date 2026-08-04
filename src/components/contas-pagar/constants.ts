@@ -28,6 +28,10 @@ export interface ContaPagar {
   linha_digitavel: string | null;
   chave_pix: string | null;
   codigo_pix: string | null;
+  banco: string | null;
+  agencia: string | null;
+  conta_bancaria: string | null;
+  favorecido: string | null;
   documento_url: string | null;
   status: ContaStatusBase;
   valor_pago: number | null;
@@ -60,6 +64,37 @@ export interface ContaHistorico {
   user_nome: string | null;
   created_at: string;
 }
+
+export type ContaEnvioTipo = 'CADASTRO' | 'VENCIMENTO';
+
+export interface ContaEnvio {
+  id: string;
+  conta_id: string;
+  tipo_envio: ContaEnvioTipo;
+  status: string;
+  tentativas: number;
+  proxima_tentativa_em: string | null;
+  ultima_tentativa_em: string | null;
+  grupo_destino: string | null;
+  zapi_message_id: string | null;
+  mensagem_enviada: string | null;
+  erro_msg: string | null;
+  created_at: string;
+}
+
+export const ENVIO_TIPO_LABEL: Record<string, string> = {
+  CADASTRO: 'Cadastro',
+  VENCIMENTO: 'Vencimento',
+};
+
+export const ENVIO_STATUS_LABEL: Record<string, string> = {
+  aguardando_envio: 'Na fila',
+  enviando: 'Enviando',
+  enviado: 'Enviado',
+  falhou: 'Falhou',
+  cancelado_pago: 'Cancelado (conta paga)',
+  cancelado_cancelada: 'Cancelado (conta cancelada)',
+};
 
 export const CATEGORIAS = [
   'Aluguel',

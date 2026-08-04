@@ -22,6 +22,10 @@ export interface ContaFormState {
   linha_digitavel: string;
   chave_pix: string;
   codigo_pix: string;
+  banco: string;
+  agencia: string;
+  conta_bancaria: string;
+  favorecido: string;
 }
 
 export const emptyContaForm: ContaFormState = {
@@ -40,6 +44,10 @@ export const emptyContaForm: ContaFormState = {
   linha_digitavel: '',
   chave_pix: '',
   codigo_pix: '',
+  banco: '',
+  agencia: '',
+  conta_bancaria: '',
+  favorecido: '',
 };
 
 export function parseValor(valor: string): number {
@@ -79,6 +87,10 @@ export function contaFormToPayload(form: ContaFormState, documentoUrl: string | 
     chave_pix: nn(form.chave_pix),
     // Código Pix é salvo integralmente, sem alterar espaços ou sequência
     codigo_pix: form.codigo_pix.trim() ? form.codigo_pix : null,
+    banco: nn(form.banco)?.toUpperCase() ?? null,
+    agencia: nn(form.agencia),
+    conta_bancaria: nn(form.conta_bancaria),
+    favorecido: nn(form.favorecido)?.toUpperCase() ?? null,
     documento_url: documentoUrl,
   };
 }
@@ -245,6 +257,38 @@ export function ContaFormFields({ form, setForm, errors, unidadeNome, documentoS
               rows={3}
             />
           </div>
+          {form.forma_pagamento === 'transferencia' && (
+            <>
+              <div>
+                <Label>Banco</Label>
+                <Input
+                  value={form.banco}
+                  onChange={(e) => set('banco')(e.target.value.toUpperCase())}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Agência</Label>
+                <Input value={form.agencia} onChange={(e) => set('agencia')(e.target.value)} className="mt-1" />
+              </div>
+              <div>
+                <Label>Conta</Label>
+                <Input
+                  value={form.conta_bancaria}
+                  onChange={(e) => set('conta_bancaria')(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Favorecido</Label>
+                <Input
+                  value={form.favorecido}
+                  onChange={(e) => set('favorecido')(e.target.value.toUpperCase())}
+                  className="mt-1"
+                />
+              </div>
+            </>
+          )}
           {documentoSlot && <div className="sm:col-span-2">{documentoSlot}</div>}
         </div>
       </section>
