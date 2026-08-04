@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { CATEGORIAS, FORMAS_PAGAMENTO, PRIORIDADES } from './constants';
+import { CATEGORIAS, FORMAS_PAGAMENTO } from './constants';
 import type { ContaFormPayload } from '@/hooks/useContasPagar';
 
 export interface ContaFormState {
@@ -53,7 +53,6 @@ export function validateContaForm(form: ContaFormState): Record<string, string> 
   if (!form.descricao.trim()) errors.descricao = 'Informe a descrição';
   if (!form.fornecedor.trim()) errors.fornecedor = 'Informe o fornecedor ou favorecido';
   if (!form.categoria) errors.categoria = 'Selecione a categoria';
-  if (!form.prioridade) errors.prioridade = 'Selecione a prioridade';
   const valor = parseValor(form.valor);
   if (!form.valor.trim() || Number.isNaN(valor) || valor <= 0) errors.valor = 'Informe um valor válido';
   if (!form.data_vencimento) errors.data_vencimento = 'Informe a data de vencimento';
@@ -67,7 +66,7 @@ export function contaFormToPayload(form: ContaFormState, documentoUrl: string | 
     descricao: form.descricao.trim().toUpperCase(),
     fornecedor: form.fornecedor.trim().toUpperCase(),
     categoria: form.categoria,
-    prioridade: form.prioridade,
+    prioridade: form.prioridade || 'normal',
     centro_custo: nn(form.centro_custo)?.toUpperCase() ?? null,
     competencia: nn(form.competencia),
     observacoes: nn(form.observacoes),
@@ -143,22 +142,6 @@ export function ContaFormFields({ form, setForm, errors, unidadeNome, documentoS
               </SelectContent>
             </Select>
             <FieldError msg={errors.categoria} />
-          </div>
-          <div>
-            <Label>Prioridade *</Label>
-            <Select value={form.prioridade} onValueChange={set('prioridade')}>
-              <SelectTrigger className={cn('mt-1', errClass('prioridade'))}>
-                <SelectValue placeholder="Selecione" />
-              </SelectTrigger>
-              <SelectContent>
-                {PRIORIDADES.map((p) => (
-                  <SelectItem key={p.value} value={p.value}>
-                    {p.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldError msg={errors.prioridade} />
           </div>
           <div>
             <Label>Unidade</Label>
