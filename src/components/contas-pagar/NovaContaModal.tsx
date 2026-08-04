@@ -255,19 +255,31 @@ export function NovaContaModal({
               {aba === 'texto' && !isEdicao ? (
                 <div className="flex-1 overflow-y-auto pr-1 space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    Cole abaixo as informações da conta. O sistema preencherá os dados automaticamente.
+                    Cole abaixo as informações da conta. Se todos os dados forem identificados, a conta é cadastrada
+                    automaticamente.
                   </p>
                   <Textarea
                     value={texto}
                     onChange={(e) => setTexto(e.target.value)}
                     rows={12}
                     className="font-mono text-xs"
-                    placeholder={`EVO BOA VIAGEM\nDescrição: CONTA TIM\nVencimento: 15/04/2026\nPix:\n00020126940014br.gov.bcb.pix...\nValor: R$ 149,99`}
+                    placeholder={`EVO BOA VIAGEM\nDescrição: CONTA TIM\nVencimento: 15/04/2026\nValor: R$ 149,99\nPix:\n\n00020126940014br.gov.bcb.pix...`}
                   />
-                  <Button type="button" variant="secondary" onClick={analisarTexto} className="w-full sm:w-auto">
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Analisar texto
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={analisarTexto}
+                    disabled={saving}
+                    className="w-full sm:w-auto"
+                  >
+                    {saving ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 mr-2" />
+                    )}
+                    {saving ? 'Cadastrando...' : 'Analisar e cadastrar'}
                   </Button>
+
                 </div>
               ) : (
               <div className="flex-1 overflow-y-auto pr-1">
