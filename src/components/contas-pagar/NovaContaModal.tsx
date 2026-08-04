@@ -105,7 +105,7 @@ export function NovaContaModal({
     setAvisoUnidade(null);
   }, [open, contaEdicao]);
 
-  const analisarTexto = () => {
+  const analisarTexto = async () => {
     if (!texto.trim()) {
       toast({ title: 'Cole o texto da conta antes de analisar', variant: 'destructive' });
       return;
@@ -140,24 +140,34 @@ export function NovaContaModal({
         unidadeNome.toUpperCase().replace(/^IRON\s+/, '').trim();
     setAvisoUnidade(divergente ? mencionada : null);
 
-    setAba('manual');
     const qtdFaltando = Object.keys(faltando).length;
+
+    // Texto completo e unidade compatível: cadastra automaticamente
+    if (qtdFaltando === 0 && !divergente) {
+      await salvar(false, next);
+      return;
+    }
+
+    setAba('manual');
     toast({
-      title: qtdFaltando ? 'Texto analisado com pendências' : 'Texto analisado',
+      title: qtdFaltando ? 'Texto analisado com pendências' : 'Confirme a unidade',
       description: qtdFaltando
         ? 'Revise e preencha os campos destacados antes de cadastrar.'
-        : 'Revise os dados e clique em Cadastrar conta.',
+        : 'O texto menciona outra unidade. Confirme antes de cadastrar.',
+      variant: qtdFaltando ? 'destructive' : undefined,
     });
   };
 
-  const salvar = async (ignorarDuplicidade: boolean) => {
+  const salvar = async (ignorarDuplicidade: boolean, formOverride?: ContaFormState) => {
     if (saving) return;
-    const validation = validateContaForm(form);
+    const formAtual = formOverride ?? form;
+    const validation = validateContaForm(formAtual);
     setErrors(validation);
     if (Object.keys(validation).length > 0) {
       toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' });
       return;
     }
+
     if (!unidadeId) {
       toast({ title: 'Nenhuma unidade selecionada', variant: 'destructive' });
       return;
@@ -167,7 +177,7 @@ export function NovaContaModal({
     try {
       let documentoUrl = contaEdicao?.documento_url ?? null;
       if (file) documentoUrl = await uploadContaArquivo(file, unidadeId, 'documentos');
-      const payload = contaFormToPayload(form, documentoUrl);
+      const payload = contaFormToPayload(formAtual, documentoUrl);
 
       if (isEdicao && contaEdicao) {
         await onAtualizar(contaEdicao.id, payload);
@@ -245,19 +255,31 @@ export function NovaContaModal({
               {aba === 'texto' && !isEdicao ? (
                 <div className="flex-1 overflow-y-auto pr-1 space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    Cole abaixo as informações da conta. O sistema preencherá os dados automaticamente.
+                    Cole abaixo as informações da conta. Se todos os dados forem identificados, a conta é cadastrada
+                    automaticamente.
                   </p>
                   <Textarea
                     value={texto}
                     onChange={(e) => setTexto(e.target.value)}
                     rows={12}
                     className="font-mono text-xs"
-                    placeholder={`EVO BOA VIAGEM\nDescrição: CONTA TIM\nVencimento: 15/04/2026\nPix:\n00020126940014br.gov.bcb.pix...\nValor: R$ 149,99`}
+                    placeholder={`EVO BOA VIAGEM\nDescrição: CONTA TIM\nVencimento: 15/04/2026\nValor: R$ 149,99\nPix:\n\n00020126940014br.gov.bcb.pix...`}
                   />
-                  <Button type="button" variant="secondary" onClick={analisarTexto} className="w-full sm:w-auto">
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Analisar texto
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={analisarTexto}
+                    disabled={saving}
+                    className="w-full sm:w-auto"
+                  >
+                    {saving ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 mr-2" />
+                    )}
+                    {saving ? 'Cadastrando...' : 'Analisar e cadastrar'}
                   </Button>
+
                 </div>
               ) : (
               <div className="flex-1 overflow-y-auto pr-1">
