@@ -265,6 +265,18 @@ export function useContasPagar(from: string, to: string) {
       if (!unidadeId) return [];
       const encontrados = new Map<string, ContaPagar>();
 
+      // Normalizações: chaves comparadas sem espaços/pontuação; descrição sem prefixo de unidade.
+      const normChave = (v?: string | null) =>
+        (v || '').replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
+      const normDesc = (v?: string | null) =>
+        (v || '')
+          .toUpperCase()
+          .replace(/^(EVO|IRON)\s+(BOA VIAGEM|MADALENA|SETÚBAL|SETUBAL)\s*[-–|]?\s*/i, '')
+          .replace(/[^0-9A-ZÀ-Ú ]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+      // 1) Mesmo valor + mesmo vencimento na unidade = duplicidade (independente da descrição).
       const { data: mesmoVenc } = await supabase
         .from('contas_pagar')
         .select('*')
@@ -274,30 +286,49 @@ export function useContasPagar(from: string, to: string) {
         .eq('valor', payload.valor);
 
       ((mesmoVenc || []) as unknown as ContaPagar[]).forEach((c) => {
-        const a = c.descricao.trim().toUpperCase();
-        const b = payload.descricao.trim().toUpperCase();
-        if (a === b || a.includes(b) || b.includes(a)) encontrados.set(c.id, c);
+        if (c.status === 'cancelada') return;
+        encontrados.set(c.id, c);
       });
 
-      const chaves: string[] = [];
-      if (payload.codigo_pix) chaves.push(`codigo_pix.eq.${payload.codigo_pix}`);
-      if (payload.linha_digitavel) chaves.push(`linha_digitavel.eq.${payload.linha_digitavel}`);
-      if (payload.numero_fatura) chaves.push(`numero_fatura.eq.${payload.numero_fatura}`);
+      // 2) Mesma chave de pagamento (Pix / linha digitável / fatura), normalizada.
+      const chavesPayload = [
+        normChave(payload.codigo_pix),
+        normChave(payload.linha_digitavel),
+        normChave(payload.numero_fatura),
+      ].filter((v) => v.length >= 8);
 
-      if (chaves.length) {
-        const { data: porChave } = await supabase
+      if (chavesPayload.length) {
+        const { data: candidatos } = await supabase
           .from('contas_pagar')
           .select('*')
           .eq('unidade_id', unidadeId)
           .is('deleted_at', null)
-          .or(chaves.join(','));
-        ((porChave || []) as unknown as ContaPagar[]).forEach((c) => encontrados.set(c.id, c));
+          .neq('status', 'cancelada')
+          .order('created_at', { ascending: false })
+          .limit(1000);
+
+        ((candidatos || []) as unknown as ContaPagar[]).forEach((c) => {
+          const chavesConta = [
+            normChave(c.codigo_pix),
+            normChave(c.linha_digitavel),
+            normChave(c.numero_fatura),
+          ].filter((v) => v.length >= 8);
+          if (chavesConta.some((k) => chavesPayload.includes(k))) encontrados.set(c.id, c);
+          // Mesma descrição normalizada + mesmo valor também é duplicidade provável.
+          else if (
+            Number(c.valor) === Number(payload.valor) &&
+            normDesc(c.descricao) === normDesc(payload.descricao)
+          ) {
+            encontrados.set(c.id, c);
+          }
+        });
       }
 
       return Array.from(encontrados.values());
     },
     [unidadeId],
   );
+
 
   const statusDe = useCallback((conta: ContaPagar): ContaStatusView => computeStatus(conta, hoje), [hoje]);
 
