@@ -19,7 +19,7 @@ import {
   formatDateTimeBR,
   labelFormaPagamento,
   labelStatus,
-  labelStatus,
+
   statusBadgeClass,
 } from './constants';
 
