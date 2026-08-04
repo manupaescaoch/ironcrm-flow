@@ -4,14 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Copy, ExternalLink, CheckCircle2, Pencil, RotateCcw, Ban, Trash2 } from 'lucide-react';
+import { Copy, ExternalLink, CheckCircle2, Pencil, RotateCcw, Ban, Trash2, Send, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useContaHistorico } from '@/hooks/useContasPagar';
+import { useContaEnvios, useContaHistorico } from '@/hooks/useContasPagar';
 import { getContaArquivoUrl } from './uploadHelpers';
 import {
   ContaPagar,
   ContaStatusView,
+  ENVIO_STATUS_LABEL,
+  ENVIO_TIPO_LABEL,
   formatCurrency,
   formatDateBR,
   formatDateTimeBR,
@@ -33,6 +35,8 @@ interface Props {
   onReabrir: (conta: ContaPagar) => void;
   onCancelar: (conta: ContaPagar) => void;
   onExcluir: (conta: ContaPagar) => void;
+  onReenviarWhatsapp?: (conta: ContaPagar, tipo: 'CADASTRO' | 'VENCIMENTO') => void;
+  reenviando?: boolean;
 }
 
 const ACAO_LABEL: Record<string, string> = {
@@ -67,9 +71,12 @@ export function ContaDetalhesDrawer({
   onReabrir,
   onCancelar,
   onExcluir,
+  onReenviarWhatsapp,
+  reenviando,
 }: Props) {
   const { toast } = useToast();
   const { data: historico } = useContaHistorico(open ? conta?.id ?? null : null);
+  const { data: envios } = useContaEnvios(open ? conta?.id ?? null : null);
   const [abrindo, setAbrindo] = useState(false);
 
   const copiar = async (value: string | null, label: string) => {
@@ -195,6 +202,64 @@ export function ContaDetalhesDrawer({
                   <Linha label="Observações da baixa" value={conta.baixa_observacoes} />
                 </>
               )}
+            </div>
+
+            <Separator />
+
+            <div>
+              <h4 className="text-sm font-semibold mb-2">Envios no WhatsApp</h4>
+              <div className="space-y-2">
+                {(envios || []).length === 0 && (
+                  <p className="text-sm text-muted-foreground">Nenhum envio registrado.</p>
+                )}
+                {(envios || []).map((e) => (
+                  <div key={e.id} className="rounded-lg border p-2 text-xs space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium flex items-center gap-1">
+                        <Send className="w-3 h-3" /> {ENVIO_TIPO_LABEL[e.tipo_envio] || e.tipo_envio}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'text-[10px]',
+                          e.status === 'enviado'
+                            ? 'border-emerald-500 text-emerald-600'
+                            : e.status === 'falhou'
+                              ? 'border-destructive text-destructive'
+                              : 'text-muted-foreground',
+                        )}
+                      >
+                        {ENVIO_STATUS_LABEL[e.status] || e.status}
+                      </Badge>
+                    </div>
+                    <p className="text-muted-foreground">
+                      Tentativas: {e.tentativas} · Última: {formatDateTimeBR(e.ultima_tentativa_em) || '—'}
+                    </p>
+                    {e.grupo_destino && <p className="text-muted-foreground">Grupo: {e.grupo_destino}</p>}
+                    {e.erro_msg && <p className="text-destructive break-words">{e.erro_msg}</p>}
+                    {canManage && e.status !== 'enviado' && onReenviarWhatsapp && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={reenviando}
+                        onClick={() => onReenviarWhatsapp(conta, e.tipo_envio)}
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 mr-1" /> Reenviar agora
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                {canManage && conta.status === 'pendente' && onReenviarWhatsapp && (envios || []).length === 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={reenviando}
+                    onClick={() => onReenviarWhatsapp(conta, 'CADASTRO')}
+                  >
+                    <Send className="w-3.5 h-3.5 mr-1" /> Enviar ao grupo agora
+                  </Button>
+                )}
+              </div>
             </div>
 
             <Separator />
