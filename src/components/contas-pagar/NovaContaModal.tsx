@@ -177,7 +177,7 @@ export function NovaContaModal({
     try {
       let documentoUrl = contaEdicao?.documento_url ?? null;
       if (file) documentoUrl = await uploadContaArquivo(file, unidadeId, 'documentos');
-      const payload = contaFormToPayload(form, documentoUrl);
+      const payload = contaFormToPayload(formAtual, documentoUrl);
 
       if (isEdicao && contaEdicao) {
         await onAtualizar(contaEdicao.id, payload);
