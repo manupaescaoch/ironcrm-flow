@@ -87,9 +87,10 @@ export default function NpsRespostas() {
 
   const { data: respostas = [], isLoading } = useQuery({
     queryKey: ['nps-respostas', unidade, from?.toISOString(), to?.toISOString(), categoria],
+    enabled: !!unidade,
     queryFn: async () => {
       let q = supabase.from('nps_respostas').select('*').order('created_at', { ascending: false });
-      if (unidade !== 'todas') q = q.eq('unidade_id', unidade);
+      q = q.eq('unidade_id', unidade);
       if (categoria !== 'todas') q = q.eq('categoria', categoria);
       if (from) q = q.gte('created_at', from.toISOString());
       if (to) q = q.lte('created_at', to.toISOString());
@@ -121,7 +122,7 @@ export default function NpsRespostas() {
         total: n,
       };
     };
-    const porUnidade = unidades.map((u) => ({
+    const porUnidade = unidades.filter((u) => u.id === unidade).map((u) => ({
       unidade: u,
       stats: calc(respostas.filter((r) => r.unidade_id === u.id)),
     }));

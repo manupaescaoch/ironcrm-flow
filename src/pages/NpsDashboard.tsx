@@ -90,6 +90,7 @@ export default function NpsDashboard() {
 
   const { data: respostas = [], isLoading } = useQuery({
     queryKey: ['nps-dash-respostas', unidade, from?.toISOString(), to?.toISOString()],
+    enabled: !!unidade,
     queryFn: async () => {
       let q = supabase
         .from('nps_respostas')
@@ -97,7 +98,7 @@ export default function NpsDashboard() {
           'id, unidade_id, unidade_nome, nota_nps, estrelas_estrutura, estrelas_equipe, estrelas_treino, categoria, created_at',
         )
         .order('created_at', { ascending: true });
-      if (unidade !== 'todas') q = q.eq('unidade_id', unidade);
+      q = q.eq('unidade_id', unidade);
       if (from) q = q.gte('created_at', from.toISOString());
       if (to) q = q.lte('created_at', to.toISOString());
       const { data, error } = await q;

@@ -136,6 +136,7 @@ export default function NpsCrm() {
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['nps-crm-list', filters, page],
     placeholderData: keepPreviousData,
+    enabled: !!filters.unidade,
     queryFn: async () => {
       let q = supabase
         .from('nps_respostas')
@@ -146,7 +147,7 @@ export default function NpsCrm() {
         .order('created_at', { ascending: false })
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
 
-      if (filters.unidade !== 'todas') q = q.eq('unidade_id', filters.unidade);
+      q = q.eq('unidade_id', filters.unidade);
       if (filters.categoria !== 'todas') q = q.eq('categoria', filters.categoria);
       if (filters.vinculo === 'com_lead') q = q.not('lead_id', 'is', null);
       if (filters.vinculo === 'sem_lead') q = q.is('lead_id', null);
@@ -183,7 +184,6 @@ export default function NpsCrm() {
 
   const hasFilters =
     !!filters.search ||
-    filters.unidade !== 'todas' ||
     filters.categoria !== 'todas' ||
     filters.vinculo !== 'todos' ||
     !!range.from ||
@@ -191,7 +191,6 @@ export default function NpsCrm() {
 
   const limparFiltros = () => {
     setSearch('');
-    setUnidade('todas');
     setCategoria('todas');
     setVinculo('todos');
     setRange({});
