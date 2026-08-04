@@ -137,6 +137,26 @@ All colors MUST be HSL.
   .safe-bottom {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
+
+  /* Contas a Pagar — coloração de linha por status/proximidade de vencimento */
+  .row-paid {
+    background-color: hsl(var(--success) / 0.12);
+  }
+  .row-paid:hover {
+    background-color: hsl(var(--success) / 0.20);
+  }
+  .row-due-tomorrow {
+    background-color: hsl(var(--warning) / 0.12);
+  }
+  .row-due-tomorrow:hover {
+    background-color: hsl(var(--warning) / 0.20);
+  }
+  .row-overdue {
+    background-color: hsl(var(--destructive) / 0.12);
+  }
+  .row-overdue:hover {
+    background-color: hsl(var(--destructive) / 0.20);
+  }
 }
 
 /* Tiptap editor — bloco de notas */
