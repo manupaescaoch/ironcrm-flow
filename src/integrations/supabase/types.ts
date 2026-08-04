@@ -323,6 +323,178 @@ export type Database = {
         }
         Relationships: []
       }
+      contas_pagar: {
+        Row: {
+          baixa_observacoes: string | null
+          baixado_em: string | null
+          baixado_por: string | null
+          baixado_por_nome: string | null
+          cancelado_em: string | null
+          cancelado_por_nome: string | null
+          categoria: string
+          centro_custo: string | null
+          chave_pix: string | null
+          codigo_barras: string | null
+          codigo_pix: string | null
+          competencia: string | null
+          comprovante_url: string | null
+          created_at: string
+          created_by: string | null
+          created_by_nome: string | null
+          data_pagamento: string | null
+          data_vencimento: string
+          deleted_at: string | null
+          desconto: number
+          descricao: string
+          documento_url: string | null
+          forma_pagamento: string
+          forma_pagamento_baixa: string | null
+          fornecedor: string
+          id: string
+          juros: number
+          linha_digitavel: string | null
+          multa: number
+          numero_fatura: string | null
+          observacoes: string | null
+          prioridade: string
+          status: string
+          unidade_id: string
+          updated_at: string
+          valor: number
+          valor_pago: number | null
+        }
+        Insert: {
+          baixa_observacoes?: string | null
+          baixado_em?: string | null
+          baixado_por?: string | null
+          baixado_por_nome?: string | null
+          cancelado_em?: string | null
+          cancelado_por_nome?: string | null
+          categoria: string
+          centro_custo?: string | null
+          chave_pix?: string | null
+          codigo_barras?: string | null
+          codigo_pix?: string | null
+          competencia?: string | null
+          comprovante_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_nome?: string | null
+          data_pagamento?: string | null
+          data_vencimento: string
+          deleted_at?: string | null
+          desconto?: number
+          descricao: string
+          documento_url?: string | null
+          forma_pagamento: string
+          forma_pagamento_baixa?: string | null
+          fornecedor: string
+          id?: string
+          juros?: number
+          linha_digitavel?: string | null
+          multa?: number
+          numero_fatura?: string | null
+          observacoes?: string | null
+          prioridade?: string
+          status?: string
+          unidade_id: string
+          updated_at?: string
+          valor: number
+          valor_pago?: number | null
+        }
+        Update: {
+          baixa_observacoes?: string | null
+          baixado_em?: string | null
+          baixado_por?: string | null
+          baixado_por_nome?: string | null
+          cancelado_em?: string | null
+          cancelado_por_nome?: string | null
+          categoria?: string
+          centro_custo?: string | null
+          chave_pix?: string | null
+          codigo_barras?: string | null
+          codigo_pix?: string | null
+          competencia?: string | null
+          comprovante_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_nome?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string
+          deleted_at?: string | null
+          desconto?: number
+          descricao?: string
+          documento_url?: string | null
+          forma_pagamento?: string
+          forma_pagamento_baixa?: string | null
+          fornecedor?: string
+          id?: string
+          juros?: number
+          linha_digitavel?: string | null
+          multa?: number
+          numero_fatura?: string | null
+          observacoes?: string | null
+          prioridade?: string
+          status?: string
+          unidade_id?: string
+          updated_at?: string
+          valor?: number
+          valor_pago?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pagar_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contas_pagar_historico: {
+        Row: {
+          acao: string
+          campo: string | null
+          conta_id: string
+          created_at: string
+          id: string
+          user_id: string | null
+          user_nome: string | null
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          acao: string
+          campo?: string | null
+          conta_id: string
+          created_at?: string
+          id?: string
+          user_id?: string | null
+          user_nome?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          acao?: string
+          campo?: string | null
+          conta_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string | null
+          user_nome?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pagar_historico_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cronograma_atividades: {
         Row: {
           ativo: boolean
@@ -3453,6 +3625,7 @@ export type Database = {
         Args: { p_jobid: number; p_schedule: string }
         Returns: undefined
       }
+      can_manage_contas_pagar: { Args: { _user_id: string }; Returns: boolean }
       generate_follow_ups_for_lead: {
         Args: { p_lead_id: string }
         Returns: undefined
@@ -3509,6 +3682,10 @@ export type Database = {
         Returns: string
       }
       unaccent: { Args: { "": string }; Returns: string }
+      user_can_access_conta_pagar_doc: {
+        Args: { _object_name: string; _user_id: string }
+        Returns: boolean
+      }
       user_can_access_reuniao_anexo: {
         Args: { _object_name: string; _user_id: string }
         Returns: boolean

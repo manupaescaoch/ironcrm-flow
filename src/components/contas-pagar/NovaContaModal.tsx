@@ -1,0 +1,224 @@
+import { useEffect, useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import {
+  ContaFormFields,
+  ContaFormState,
+  contaFormToPayload,
+  emptyContaForm,
+  validateContaForm,
+} from './ContaFormFields';
+import { DuplicidadeDialog } from './DuplicidadeDialog';
+import { SucessoConta } from './SucessoConta';
+import { uploadContaArquivo } from './uploadHelpers';
+import { ContaPagar } from './constants';
+import type { ContaFormPayload } from '@/hooks/useContasPagar';
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  unidadeId: string | null;
+  unidadeNome: string;
+  canManage: boolean;
+  contaEdicao?: ContaPagar | null;
+  onCriar: (payload: ContaFormPayload) => Promise<ContaPagar>;
+  onAtualizar: (id: string, payload: Partial<ContaFormPayload>) => Promise<void>;
+  buscarDuplicidade: (p: {
+    descricao: string;
+    valor: number;
+    data_vencimento: string;
+    codigo_pix?: string | null;
+    linha_digitavel?: string | null;
+    numero_fatura?: string | null;
+  }) => Promise<ContaPagar[]>;
+  onVerConta: (conta: ContaPagar) => void;
+}
+
+function contaToForm(conta: ContaPagar): ContaFormState {
+  return {
+    descricao: conta.descricao,
+    fornecedor: conta.fornecedor,
+    categoria: conta.categoria,
+    prioridade: conta.prioridade,
+    centro_custo: conta.centro_custo || '',
+    competencia: conta.competencia || '',
+    observacoes: conta.observacoes || '',
+    valor: String(conta.valor).replace('.', ','),
+    data_vencimento: conta.data_vencimento?.slice(0, 10) || '',
+    forma_pagamento: conta.forma_pagamento,
+    numero_fatura: conta.numero_fatura || '',
+    codigo_barras: conta.codigo_barras || '',
+    linha_digitavel: conta.linha_digitavel || '',
+    chave_pix: conta.chave_pix || '',
+    codigo_pix: conta.codigo_pix || '',
+  };
+}
+
+export function NovaContaModal({
+  open,
+  onOpenChange,
+  unidadeId,
+  unidadeNome,
+  canManage,
+  contaEdicao,
+  onCriar,
+  onAtualizar,
+  buscarDuplicidade,
+  onVerConta,
+}: Props) {
+  const { toast } = useToast();
+  const isEdicao = !!contaEdicao;
+  const [form, setForm] = useState<ContaFormState>(emptyContaForm);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [file, setFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [duplicados, setDuplicados] = useState<ContaPagar[]>([]);
+  const [criada, setCriada] = useState<ContaPagar | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setForm(contaEdicao ? contaToForm(contaEdicao) : emptyContaForm);
+    setErrors({});
+    setFile(null);
+    setDuplicados([]);
+    setCriada(null);
+    setSaving(false);
+  }, [open, contaEdicao]);
+
+  const salvar = async (ignorarDuplicidade: boolean) => {
+    if (saving) return;
+    const validation = validateContaForm(form);
+    setErrors(validation);
+    if (Object.keys(validation).length > 0) {
+      toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' });
+      return;
+    }
+    if (!unidadeId) {
+      toast({ title: 'Nenhuma unidade selecionada', variant: 'destructive' });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      let documentoUrl = contaEdicao?.documento_url ?? null;
+      if (file) documentoUrl = await uploadContaArquivo(file, unidadeId, 'documentos');
+      const payload = contaFormToPayload(form, documentoUrl);
+
+      if (isEdicao && contaEdicao) {
+        await onAtualizar(contaEdicao.id, payload);
+        toast({ title: 'Conta atualizada com sucesso.' });
+        onOpenChange(false);
+        return;
+      }
+
+      if (!ignorarDuplicidade) {
+        const encontrados = await buscarDuplicidade({
+          descricao: payload.descricao,
+          valor: payload.valor,
+          data_vencimento: payload.data_vencimento,
+          codigo_pix: payload.codigo_pix,
+          linha_digitavel: payload.linha_digitavel,
+          numero_fatura: payload.numero_fatura,
+        });
+        if (encontrados.length > 0) {
+          setDuplicados(encontrados);
+          setSaving(false);
+          return;
+        }
+      }
+
+      const conta = await onCriar(payload);
+      setDuplicados([]);
+      setCriada(conta);
+      toast({ title: 'Conta cadastrada com sucesso.' });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Erro ao salvar a conta';
+      toast({ title: 'Erro ao salvar', description: msg, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{isEdicao ? 'Editar conta' : 'Nova Conta'}</DialogTitle>
+          </DialogHeader>
+
+          {criada ? (
+            <SucessoConta
+              conta={criada}
+              unidadeNome={unidadeNome}
+              onVerConta={() => {
+                onOpenChange(false);
+                onVerConta(criada);
+              }}
+              onCadastrarOutra={() => {
+                setCriada(null);
+                setForm(emptyContaForm);
+                setFile(null);
+                setErrors({});
+              }}
+              onFechar={() => onOpenChange(false)}
+            />
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto pr-1">
+                <ContaFormFields
+                  form={form}
+                  setForm={setForm}
+                  errors={errors}
+                  unidadeNome={unidadeNome}
+                  documentoSlot={
+                    <div>
+                      <Label>Documento, boleto ou nota fiscal</Label>
+                      <Input
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg,.webp"
+                        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                        className="mt-1"
+                      />
+                      {contaEdicao?.documento_url && !file && (
+                        <p className="text-xs text-muted-foreground mt-1">Documento já anexado.</p>
+                      )}
+                    </div>
+                  }
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 sm:justify-end pt-3 border-t">
+                <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+                  Cancelar
+                </Button>
+                <Button onClick={() => salvar(false)} disabled={saving}>
+                  {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {isEdicao ? 'Salvar alterações' : 'Cadastrar conta'}
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <DuplicidadeDialog
+        open={duplicados.length > 0}
+        duplicados={duplicados}
+        canForce={canManage}
+        saving={saving}
+        onVerExistente={(conta) => {
+          setDuplicados([]);
+          onOpenChange(false);
+          onVerConta(conta);
+        }}
+        onCancelar={() => setDuplicados([])}
+        onCadastrarMesmoAssim={() => salvar(true)}
+      />
+    </>
+  );
+}
