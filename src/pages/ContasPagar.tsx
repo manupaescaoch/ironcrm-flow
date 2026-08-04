@@ -22,7 +22,6 @@ import { PeriodoSelector, PeriodoModo } from '@/components/contas-pagar/PeriodoS
 import { ContasFiltros } from '@/components/contas-pagar/ContasFiltros';
 import { ContasTable } from '@/components/contas-pagar/ContasTable';
 import { NovaContaModal } from '@/components/contas-pagar/NovaContaModal';
-import { ImportarTextoModal } from '@/components/contas-pagar/ImportarTextoModal';
 import { BaixaModal } from '@/components/contas-pagar/BaixaModal';
 import { ContaDetalhesDrawer } from '@/components/contas-pagar/ContaDetalhesDrawer';
 import { ContaPagar } from '@/components/contas-pagar/constants';
@@ -93,7 +92,6 @@ export default function ContasPagar() {
   const [forma, setForma] = useState('todas');
 
   const [novaOpen, setNovaOpen] = useState(false);
-  const [importarOpen, setImportarOpen] = useState(false);
   const [contaEdicao, setContaEdicao] = useState<ContaPagar | null>(null);
   const [baixaConta, setBaixaConta] = useState<ContaPagar | null>(null);
   const [detalhe, setDetalhe] = useState<ContaPagar | null>(null);
@@ -161,10 +159,6 @@ export default function ContasPagar() {
 
           {canManage && (
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => setImportarOpen(true)} disabled={!unidadeId}>
-                <ClipboardPaste className="w-4 h-4 mr-2" />
-                Importar por texto
-              </Button>
               <Button
                 onClick={() => {
                   setContaEdicao(null);
@@ -234,6 +228,7 @@ export default function ContasPagar() {
         }}
         unidadeId={unidadeId}
         unidadeNome={unidadeNome}
+        unidadesNomes={unidades.map((u) => u.nome)}
         canManage={canManage}
         contaEdicao={contaEdicao}
         onCriar={(payload) => criarConta.mutateAsync(payload)}
@@ -242,17 +237,6 @@ export default function ContasPagar() {
         onVerConta={(c) => setDetalhe(c)}
       />
 
-      <ImportarTextoModal
-        open={importarOpen}
-        onOpenChange={setImportarOpen}
-        unidadeId={unidadeId}
-        unidadeNome={unidadeNome}
-        unidadesNomes={unidades.map((u) => u.nome)}
-        canManage={canManage}
-        onCriar={(payload) => criarConta.mutateAsync(payload)}
-        buscarDuplicidade={buscarDuplicidade}
-        onVerConta={(c) => setDetalhe(c)}
-      />
 
       <BaixaModal
         open={!!baixaConta}
