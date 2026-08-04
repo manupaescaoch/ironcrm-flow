@@ -370,6 +370,14 @@ const AppRoutes = () => (
       }
     />
     <Route
+      path="/contas-pagar"
+      element={
+        <ProtectedRoute>
+          <ContasPagar />
+        </ProtectedRoute>
+      }
+    />
+    <Route
       path="/reunioes"
       element={
         <AdminOrComercialRoute>
