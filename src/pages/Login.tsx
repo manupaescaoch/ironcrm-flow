@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { z } from 'zod';
-import ironClubLogo from '@/assets/iron-club-logo.png';
+import evoLogo from '@/assets/evo-logo.png.asset.json';
 
 const authSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -67,9 +67,9 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto w-20 h-20 rounded-xl overflow-hidden mb-4 shadow-md">
-            <img src={ironClubLogo} alt="Iron Club" className="w-full h-full object-cover" />
+            <img src={evoLogo.url} alt="EVO Training Club" className="w-full h-full object-cover" />
           </div>
-          <CardTitle className="text-2xl font-bold">IRON CLUB</CardTitle>
+          <CardTitle className="text-2xl font-bold">EVO TRAINING CLUB CRM</CardTitle>
           <CardDescription>Sistema de CRM para gestão de leads</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
