@@ -61,6 +61,9 @@ import { cn } from '@/lib/utils';
 import { validateCsvRow, type CsvRowValidationResult } from '@/utils/csvImportValidation';
 import { NivelInteresseBadge } from '@/components/NivelInteresseBadge';
 import { calcularConversionScore } from '@/hooks/useConversionScore';
+import { canonicalPhone } from '@/lib/telefone';
+import { LeadDuplicadoDialog, type LeadDuplicado } from '@/components/crm/LeadDuplicadoDialog';
+
 
 
 // Validation schema for lead creation/update
