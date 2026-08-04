@@ -118,18 +118,12 @@ export function ContaDetalhesDrawer({
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-4">
             <div>
-              <Linha label="Fornecedor" value={conta.fornecedor} />
-              <Linha label="Categoria" value={conta.categoria} />
-              <Linha label="Prioridade" value={labelPrioridade(conta.prioridade)} />
               <Linha label="Unidade" value={unidadeNome} />
-              <Linha label="Centro de custo" value={conta.centro_custo} />
-              <Linha label="Competência" value={conta.competencia} />
               <Linha label="Valor" value={formatCurrency(Number(conta.valor))} />
               <Linha label="Vencimento" value={formatDateBR(conta.data_vencimento)} />
               <Linha label="Forma de pagamento" value={labelFormaPagamento(conta.forma_pagamento)} />
-              <Linha label="Número da fatura" value={conta.numero_fatura} />
-              <Linha label="Observações" value={conta.observacoes} />
             </div>
+
 
             <Separator />
 
