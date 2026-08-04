@@ -35,7 +35,10 @@ export function DuplicidadeDialog({
       <AlertDialogContent className="max-w-lg">
         <AlertDialogHeader>
           <AlertDialogTitle>Já existe uma conta semelhante cadastrada nesta unidade.</AlertDialogTitle>
-          <AlertDialogDescription>Confira os dados antes de continuar.</AlertDialogDescription>
+          <AlertDialogDescription>
+            O cadastro foi bloqueado e nenhuma mensagem foi enviada ao grupo financeiro. Confira os
+            dados abaixo — ao cadastrar mesmo assim, uma nova mensagem será enviada.
+          </AlertDialogDescription>
         </AlertDialogHeader>
 
         <div className="space-y-2 max-h-64 overflow-y-auto">
