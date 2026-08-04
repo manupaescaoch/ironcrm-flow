@@ -27,7 +27,7 @@ import DashboardExecutivoEstoque from "./pages/DashboardExecutivoEstoque";
 import RelatorioGastosEstoque from "./pages/RelatorioGastosEstoque";
 import Escala from "./pages/Escala";
 import Operacional from "./pages/Operacional";
-import ControleVencimentos from "./pages/ControleVencimentos";
+
 import ContasPagar from "./pages/ContasPagar";
 import AnamneseExperimental from "./pages/AnamneseExperimental";
 import AnamnesePublica from "./pages/AnamnesePublica";
@@ -358,14 +358,6 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <Operacional />
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/vencimentos"
-      element={
-        <ProtectedRoute>
-          <ControleVencimentos />
         </ProtectedRoute>
       }
     />
