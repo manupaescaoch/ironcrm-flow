@@ -362,14 +362,6 @@ const AppRoutes = () => (
       }
     />
     <Route
-      path="/vencimentos"
-      element={
-        <ProtectedRoute>
-          <ControleVencimentos />
-        </ProtectedRoute>
-      }
-    />
-    <Route
       path="/contas-pagar"
       element={
         <ProtectedRoute>
