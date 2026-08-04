@@ -96,6 +96,8 @@ export default function ContasPagar() {
   const [contaEdicao, setContaEdicao] = useState<ContaPagar | null>(null);
   const [baixaConta, setBaixaConta] = useState<ContaPagar | null>(null);
   const [detalhe, setDetalhe] = useState<ContaPagar | null>(null);
+  const [reagendarConta, setReagendarConta] = useState<ContaPagar | null>(null);
+
   const [confirmacao, setConfirmacao] = useState<{
     tipo: 'reabrir' | 'cancelar' | 'excluir';
     conta: ContaPagar;
