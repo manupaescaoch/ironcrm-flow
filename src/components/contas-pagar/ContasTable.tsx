@@ -92,8 +92,8 @@ export function ContasTable({ contas, isLoading, statusDe, canManage, onVer, onE
                 return (
                   <TableRow key={conta.id} className="cursor-pointer" onClick={() => onVer(conta)}>
                     <TableCell className="font-medium max-w-[220px] truncate">{conta.descricao}</TableCell>
-                    <TableCell className="max-w-[160px] truncate text-muted-foreground">{conta.fornecedor}</TableCell>
-                    <TableCell className="text-muted-foreground">{conta.categoria}</TableCell>
+                    <TableCell className="max-w-[160px] truncate text-muted-foreground">{conta.fornecedor || '—'}</TableCell>
+                    <TableCell className="text-muted-foreground">{conta.categoria || '—'}</TableCell>
                     <TableCell>{formatDateBR(conta.data_vencimento)}</TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(Number(conta.valor))}</TableCell>
                     <TableCell>
@@ -151,7 +151,7 @@ export function ContasTable({ contas, isLoading, statusDe, canManage, onVer, onE
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="font-medium truncate">{conta.descricao}</p>
-                  <p className="text-xs text-muted-foreground truncate">{conta.fornecedor}</p>
+                  <p className="text-xs text-muted-foreground truncate">{conta.fornecedor || ''}</p>
                 </div>
                 <Badge variant="outline" className={cn('text-xs shrink-0', statusBadgeClass(status))}>
                   {labelStatus(status)}
