@@ -218,7 +218,32 @@ export default function ContasPagar() {
             setNovaOpen(true);
           }}
           onDarBaixa={(c) => setBaixaConta(c)}
+          onReagendar={(c) => setReagendarConta(c)}
+          onExcluir={(c) => setConfirmacao({ tipo: 'excluir', conta: c })}
         />
+      </div>
+
+      <ReagendarModal
+        conta={reagendarConta}
+        open={!!reagendarConta}
+        onOpenChange={(open) => !open && setReagendarConta(null)}
+        saving={atualizarConta.isPending}
+        onConfirm={async (novaData) => {
+          if (!reagendarConta) return;
+          try {
+            await atualizarConta.mutateAsync({
+              id: reagendarConta.id,
+              payload: { data_vencimento: novaData } as never,
+            });
+            toast({ title: 'Vencimento reagendado.' });
+            setReagendarConta(null);
+          } catch (error) {
+            const msg = error instanceof Error ? error.message : 'Não foi possível reagendar';
+            toast({ title: 'Erro', description: msg, variant: 'destructive' });
+          }
+        }}
+      />
+
       </div>
 
       <NovaContaModal
