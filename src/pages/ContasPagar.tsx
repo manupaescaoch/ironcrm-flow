@@ -109,7 +109,7 @@ export default function ContasPagar() {
       if (prioridade !== 'todas' && c.prioridade !== prioridade) return false;
       if (forma !== 'todas' && c.forma_pagamento !== forma) return false;
       if (termo) {
-        const alvo = `${c.descricao} ${c.fornecedor} ${c.numero_fatura || ''} ${c.centro_custo || ''}`.toUpperCase();
+        const alvo = `${c.descricao} ${c.fornecedor || ''} ${c.numero_fatura || ''} ${c.centro_custo || ''}`.toUpperCase();
         if (!alvo.includes(termo)) return false;
       }
       return true;

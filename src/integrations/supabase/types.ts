@@ -333,7 +333,7 @@ export type Database = {
           banco: string | null
           cancelado_em: string | null
           cancelado_por_nome: string | null
-          categoria: string
+          categoria: string | null
           centro_custo: string | null
           chave_pix: string | null
           codigo_barras: string | null
@@ -351,12 +351,13 @@ export type Database = {
           descricao: string
           documento_url: string | null
           favorecido: string | null
-          forma_pagamento: string
+          forma_pagamento: string | null
           forma_pagamento_baixa: string | null
-          fornecedor: string
+          fornecedor: string | null
           id: string
           juros: number
           linha_digitavel: string | null
+          link_pagamento: string | null
           multa: number
           numero_fatura: string | null
           observacoes: string | null
@@ -376,7 +377,7 @@ export type Database = {
           banco?: string | null
           cancelado_em?: string | null
           cancelado_por_nome?: string | null
-          categoria: string
+          categoria?: string | null
           centro_custo?: string | null
           chave_pix?: string | null
           codigo_barras?: string | null
@@ -394,12 +395,13 @@ export type Database = {
           descricao: string
           documento_url?: string | null
           favorecido?: string | null
-          forma_pagamento: string
+          forma_pagamento?: string | null
           forma_pagamento_baixa?: string | null
-          fornecedor: string
+          fornecedor?: string | null
           id?: string
           juros?: number
           linha_digitavel?: string | null
+          link_pagamento?: string | null
           multa?: number
           numero_fatura?: string | null
           observacoes?: string | null
@@ -419,7 +421,7 @@ export type Database = {
           banco?: string | null
           cancelado_em?: string | null
           cancelado_por_nome?: string | null
-          categoria?: string
+          categoria?: string | null
           centro_custo?: string | null
           chave_pix?: string | null
           codigo_barras?: string | null
@@ -437,12 +439,13 @@ export type Database = {
           descricao?: string
           documento_url?: string | null
           favorecido?: string | null
-          forma_pagamento?: string
+          forma_pagamento?: string | null
           forma_pagamento_baixa?: string | null
-          fornecedor?: string
+          fornecedor?: string | null
           id?: string
           juros?: number
           linha_digitavel?: string | null
+          link_pagamento?: string | null
           multa?: number
           numero_fatura?: string | null
           observacoes?: string | null

@@ -15,20 +15,21 @@ import {
 
 export interface ContaFormPayload {
   descricao: string;
-  fornecedor: string;
-  categoria: string;
+  fornecedor: string | null;
+  categoria: string | null;
   prioridade: string;
   centro_custo: string | null;
   competencia: string | null;
   observacoes: string | null;
   valor: number;
   data_vencimento: string;
-  forma_pagamento: string;
+  forma_pagamento: string | null;
   numero_fatura: string | null;
   codigo_barras: string | null;
   linha_digitavel: string | null;
   chave_pix: string | null;
   codigo_pix: string | null;
+  link_pagamento: string | null;
   banco: string | null;
   agencia: string | null;
   conta_bancaria: string | null;

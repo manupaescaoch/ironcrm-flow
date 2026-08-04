@@ -160,9 +160,28 @@ export function ContaDetalhesDrawer({
                 </div>
               )}
               {conta.codigo_barras && <Linha label="Código de barras" value={conta.codigo_barras} />}
-              {!conta.chave_pix && !conta.codigo_pix && !conta.linha_digitavel && !conta.codigo_barras && (
-                <p className="text-sm text-muted-foreground">Nenhum dado de pagamento informado.</p>
+              {conta.link_pagamento && (
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <a
+                    href={conta.link_pagamento}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="truncate underline text-primary"
+                  >
+                    {conta.link_pagamento}
+                  </a>
+                  <Button size="sm" variant="outline" onClick={() => copiar(conta.link_pagamento, 'Link')}>
+                    <Copy className="w-3.5 h-3.5 mr-1" /> Link
+                  </Button>
+                </div>
               )}
+              {!conta.chave_pix &&
+                !conta.codigo_pix &&
+                !conta.linha_digitavel &&
+                !conta.codigo_barras &&
+                !conta.link_pagamento && (
+                  <p className="text-sm text-muted-foreground">Nenhum dado de pagamento informado.</p>
+                )}
             </div>
 
             {(conta.documento_url || conta.comprovante_url) && (
