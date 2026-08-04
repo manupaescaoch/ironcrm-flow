@@ -442,6 +442,21 @@ export default function CRM() {
     return todosNormalizados.sort();
   }, [leads]);
 
+  const handleReativarDuplicado = async (lead: LeadDuplicado) => {
+    setReativandoDuplicado(true);
+    const { error } = await supabase.from('leads').update({ ativo: true }).eq('id', lead.id);
+    setReativandoDuplicado(false);
+    if (error) {
+      toast({ title: 'Erro ao reativar lead', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Lead reativado', description: `"${lead.nome}" voltou para a listagem.` });
+    setLeadDuplicado(null);
+    setDialogOpen(false);
+    fetchLeads();
+    navigate(`/lead/${lead.id}`);
+  };
+
   const handleCreate = async () => {
     // Validate form data using zod schema
     const validation = leadSchema.safeParse({
@@ -1805,7 +1820,7 @@ export default function CRM() {
           onCancelar={() => setLeadDuplicado(null)}
           onAbrirLead={(lead) => {
             setLeadDuplicado(null);
-            navigate(`/leads/${lead.id}`);
+            navigate(`/lead/${lead.id}`);
           }}
           onReativar={handleReativarDuplicado}
         />
