@@ -12,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ClipboardPaste, Plus, Wallet } from 'lucide-react';
+import { Plus, Wallet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { getTodayInBrasilia } from '@/lib/brasilia';
