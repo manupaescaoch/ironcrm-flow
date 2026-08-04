@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useUnidade } from '@/contexts/UnidadeContext';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -56,7 +57,13 @@ const COLORS = {
 };
 
 export default function NpsDashboard() {
-  const [unidade, setUnidade] = useState<string>('todas');
+  const { unidadeAtual } = useUnidade();
+  const [unidade, setUnidade] = useState<string>(unidadeAtual?.id ?? '');
+
+  // A visualização é sempre restrita à unidade ativa selecionada no menu
+  useEffect(() => {
+    if (unidadeAtual?.id) setUnidade(unidadeAtual.id);
+  }, [unidadeAtual?.id]);
   const [periodo, setPeriodo] = useState<'7' | '30' | '90' | '180' | 'custom'>('30');
   const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
 
@@ -83,6 +90,7 @@ export default function NpsDashboard() {
 
   const { data: respostas = [], isLoading } = useQuery({
     queryKey: ['nps-dash-respostas', unidade, from?.toISOString(), to?.toISOString()],
+    enabled: !!unidade,
     queryFn: async () => {
       let q = supabase
         .from('nps_respostas')
@@ -90,7 +98,7 @@ export default function NpsDashboard() {
           'id, unidade_id, unidade_nome, nota_nps, estrelas_estrutura, estrelas_equipe, estrelas_treino, categoria, created_at',
         )
         .order('created_at', { ascending: true });
-      if (unidade !== 'todas') q = q.eq('unidade_id', unidade);
+      q = q.eq('unidade_id', unidade);
       if (from) q = q.gte('created_at', from.toISOString());
       if (to) q = q.lte('created_at', to.toISOString());
       const { data, error } = await q;
@@ -219,7 +227,6 @@ export default function NpsDashboard() {
               <Select value={unidade} onValueChange={setUnidade}>
                 <SelectTrigger><SelectValue placeholder="Unidade" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todas">Todas as unidades</SelectItem>
                   {unidades.map((u) => (
                     <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
                   ))}

@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useUnidade } from '@/contexts/UnidadeContext';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -88,7 +89,13 @@ function categoriaCls(cat: string) {
 
 export default function NpsCrm() {
   const [search, setSearch] = useState('');
-  const [unidade, setUnidade] = useState('todas');
+  const { unidadeAtual } = useUnidade();
+  const [unidade, setUnidade] = useState<string>(unidadeAtual?.id ?? '');
+
+  // A visualização é sempre restrita à unidade ativa selecionada no menu
+  useEffect(() => {
+    if (unidadeAtual?.id) setUnidade(unidadeAtual.id);
+  }, [unidadeAtual?.id]);
   const [categoria, setCategoria] = useState('todas');
   const [vinculo, setVinculo] = useState<'todos' | 'com_lead' | 'sem_lead'>('todos');
   const [range, setRange] = useState<{ from?: Date; to?: Date }>({});
@@ -129,6 +136,7 @@ export default function NpsCrm() {
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['nps-crm-list', filters, page],
     placeholderData: keepPreviousData,
+    enabled: !!filters.unidade,
     queryFn: async () => {
       let q = supabase
         .from('nps_respostas')
@@ -139,7 +147,7 @@ export default function NpsCrm() {
         .order('created_at', { ascending: false })
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
 
-      if (filters.unidade !== 'todas') q = q.eq('unidade_id', filters.unidade);
+      q = q.eq('unidade_id', filters.unidade);
       if (filters.categoria !== 'todas') q = q.eq('categoria', filters.categoria);
       if (filters.vinculo === 'com_lead') q = q.not('lead_id', 'is', null);
       if (filters.vinculo === 'sem_lead') q = q.is('lead_id', null);
@@ -176,7 +184,6 @@ export default function NpsCrm() {
 
   const hasFilters =
     !!filters.search ||
-    filters.unidade !== 'todas' ||
     filters.categoria !== 'todas' ||
     filters.vinculo !== 'todos' ||
     !!range.from ||
@@ -184,7 +191,6 @@ export default function NpsCrm() {
 
   const limparFiltros = () => {
     setSearch('');
-    setUnidade('todas');
     setCategoria('todas');
     setVinculo('todos');
     setRange({});
@@ -228,7 +234,6 @@ export default function NpsCrm() {
                 <Select value={unidade} onValueChange={setUnidade}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="todas">Todas as unidades</SelectItem>
                     {unidades.map((u) => (
                       <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
                     ))}

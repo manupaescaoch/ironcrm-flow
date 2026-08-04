@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useUnidade } from '@/contexts/UnidadeContext';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -51,7 +52,13 @@ function StarsInline({ value }: { value: number }) {
 }
 
 export default function NpsRespostas() {
-  const [unidade, setUnidade] = useState<string>('todas');
+  const { unidadeAtual } = useUnidade();
+  const [unidade, setUnidade] = useState<string>(unidadeAtual?.id ?? '');
+
+  // A visualização é sempre restrita à unidade ativa selecionada no menu
+  useEffect(() => {
+    if (unidadeAtual?.id) setUnidade(unidadeAtual.id);
+  }, [unidadeAtual?.id]);
   const [periodo, setPeriodo] = useState<'7' | '30' | '90' | 'custom'>('30');
   const [categoria, setCategoria] = useState<string>('todas');
   const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
@@ -80,9 +87,10 @@ export default function NpsRespostas() {
 
   const { data: respostas = [], isLoading } = useQuery({
     queryKey: ['nps-respostas', unidade, from?.toISOString(), to?.toISOString(), categoria],
+    enabled: !!unidade,
     queryFn: async () => {
       let q = supabase.from('nps_respostas').select('*').order('created_at', { ascending: false });
-      if (unidade !== 'todas') q = q.eq('unidade_id', unidade);
+      q = q.eq('unidade_id', unidade);
       if (categoria !== 'todas') q = q.eq('categoria', categoria);
       if (from) q = q.gte('created_at', from.toISOString());
       if (to) q = q.lte('created_at', to.toISOString());
@@ -114,7 +122,7 @@ export default function NpsRespostas() {
         total: n,
       };
     };
-    const porUnidade = unidades.map((u) => ({
+    const porUnidade = unidades.filter((u) => u.id === unidade).map((u) => ({
       unidade: u,
       stats: calc(respostas.filter((r) => r.unidade_id === u.id)),
     }));
@@ -149,7 +157,6 @@ export default function NpsRespostas() {
               <Select value={unidade} onValueChange={setUnidade}>
                 <SelectTrigger><SelectValue placeholder="Unidade" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todas">Todas as unidades</SelectItem>
                   {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
