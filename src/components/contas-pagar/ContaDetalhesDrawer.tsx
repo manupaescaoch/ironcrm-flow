@@ -18,7 +18,7 @@ import {
   formatDateBR,
   formatDateTimeBR,
   labelFormaPagamento,
-  labelPrioridade,
+  labelStatus,
   labelStatus,
   statusBadgeClass,
 } from './constants';
