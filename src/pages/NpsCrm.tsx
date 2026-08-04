@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useUnidade } from '@/contexts/UnidadeContext';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -88,7 +89,13 @@ function categoriaCls(cat: string) {
 
 export default function NpsCrm() {
   const [search, setSearch] = useState('');
-  const [unidade, setUnidade] = useState('todas');
+  const { unidadeAtual } = useUnidade();
+  const [unidade, setUnidade] = useState<string>(unidadeAtual?.id ?? '');
+
+  // A visualização é sempre restrita à unidade ativa selecionada no menu
+  useEffect(() => {
+    if (unidadeAtual?.id) setUnidade(unidadeAtual.id);
+  }, [unidadeAtual?.id]);
   const [categoria, setCategoria] = useState('todas');
   const [vinculo, setVinculo] = useState<'todos' | 'com_lead' | 'sem_lead'>('todos');
   const [range, setRange] = useState<{ from?: Date; to?: Date }>({});
@@ -228,7 +235,6 @@ export default function NpsCrm() {
                 <Select value={unidade} onValueChange={setUnidade}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="todas">Todas as unidades</SelectItem>
                     {unidades.map((u) => (
                       <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
                     ))}
