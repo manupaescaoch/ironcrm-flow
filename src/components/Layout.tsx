@@ -139,13 +139,14 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
                   )}
                 >
                   <div className={cn(
-                    'w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold shrink-0',
+                    'w-7 h-6 rounded flex items-center justify-center text-[10px] font-bold shrink-0',
                     isSelected
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-sidebar-accent/70 text-muted-foreground'
                   )}>
-                    {unidade.nome.substring(0, 2).toUpperCase()}
+                    {getUnidadeSigla(unidade.nome)}
                   </div>
+
                   <span className={cn(
                     'flex-1 min-w-0 text-[13px] font-medium truncate',
                     isSelected ? 'text-primary' : 'text-sidebar-foreground'
