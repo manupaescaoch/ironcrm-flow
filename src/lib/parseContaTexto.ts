@@ -69,7 +69,7 @@ function findVencimento(text: string): string {
 
 function findLabelled(text: string, labels: string[]): string {
   for (const label of labels) {
-    const re = new RegExp(`${label}\\s*[:\\-]\\s*([^\\n\\r/]+)`, 'i');
+    const re = new RegExp(`${label}\\s*[:\\-]\\s*([^\\n\\r]+)`, 'i');
     const m = text.match(re);
     if (m) {
       const value = normalizeSpaces(m[1]);
