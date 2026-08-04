@@ -21,6 +21,8 @@ import { ContasPagarKPIs } from '@/components/contas-pagar/ContasPagarKPIs';
 import { PeriodoSelector, PeriodoModo } from '@/components/contas-pagar/PeriodoSelector';
 import { ContasFiltros } from '@/components/contas-pagar/ContasFiltros';
 import { ContasTable } from '@/components/contas-pagar/ContasTable';
+import { ReagendarModal } from '@/components/contas-pagar/ReagendarModal';
+
 import { NovaContaModal } from '@/components/contas-pagar/NovaContaModal';
 import { BaixaModal } from '@/components/contas-pagar/BaixaModal';
 import { ContaDetalhesDrawer } from '@/components/contas-pagar/ContaDetalhesDrawer';
