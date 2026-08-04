@@ -145,22 +145,6 @@ export function ContaFormFields({ form, setForm, errors, unidadeNome, documentoS
             <FieldError msg={errors.categoria} />
           </div>
           <div>
-            <Label>Prioridade *</Label>
-            <Select value={form.prioridade} onValueChange={set('prioridade')}>
-              <SelectTrigger className={cn('mt-1', errClass('prioridade'))}>
-                <SelectValue placeholder="Selecione" />
-              </SelectTrigger>
-              <SelectContent>
-                {PRIORIDADES.map((p) => (
-                  <SelectItem key={p.value} value={p.value}>
-                    {p.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldError msg={errors.prioridade} />
-          </div>
-          <div>
             <Label>Unidade</Label>
             <Input value={unidadeNome} disabled readOnly className="mt-1 bg-muted" />
           </div>
