@@ -31,6 +31,8 @@ import {
   Wallet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getUnidadeSigla } from '@/lib/unidadeSigla';
+
 import logo from '@/assets/evo-logo.png.asset.json';
 import {
   Tooltip,
