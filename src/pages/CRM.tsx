@@ -1797,7 +1797,20 @@ export default function CRM() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <LeadDuplicadoDialog
+          open={!!leadDuplicado}
+          lead={leadDuplicado}
+          reativando={reativandoDuplicado}
+          onCancelar={() => setLeadDuplicado(null)}
+          onAbrirLead={(lead) => {
+            setLeadDuplicado(null);
+            navigate(`/leads/${lead.id}`);
+          }}
+          onReativar={handleReativarDuplicado}
+        />
       </div>
+
     </Layout>
   );
 }
