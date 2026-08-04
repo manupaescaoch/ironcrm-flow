@@ -6,7 +6,7 @@ import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -62,6 +62,7 @@ export default function NpsRespostas() {
   const [periodo, setPeriodo] = useState<'7' | '30' | '90' | 'custom'>('30');
   const [categoria, setCategoria] = useState<string>('todas');
   const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
+  const [selected, setSelected] = useState<Resposta | null>(null);
 
   const { from, to } = useMemo(() => {
     if (periodo === 'custom') return { from: customRange.from, to: customRange.to };
