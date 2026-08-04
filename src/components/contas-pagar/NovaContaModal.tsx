@@ -3,7 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Loader2, Sparkles, AlertTriangle } from 'lucide-react';
+import { parseContaTexto } from '@/lib/parseContaTexto';
 import { useToast } from '@/hooks/use-toast';
 import {
   ContaFormFields,
@@ -23,6 +26,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   unidadeId: string | null;
   unidadeNome: string;
+  unidadesNomes?: string[];
   canManage: boolean;
   contaEdicao?: ContaPagar | null;
   onCriar: (payload: ContaFormPayload) => Promise<ContaPagar>;
@@ -63,6 +67,7 @@ export function NovaContaModal({
   onOpenChange,
   unidadeId,
   unidadeNome,
+  unidadesNomes = [],
   canManage,
   contaEdicao,
   onCriar,
@@ -78,6 +83,9 @@ export function NovaContaModal({
   const [saving, setSaving] = useState(false);
   const [duplicados, setDuplicados] = useState<ContaPagar[]>([]);
   const [criada, setCriada] = useState<ContaPagar | null>(null);
+  const [aba, setAba] = useState<'manual' | 'texto'>('manual');
+  const [texto, setTexto] = useState('');
+  const [avisoUnidade, setAvisoUnidade] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -87,7 +95,55 @@ export function NovaContaModal({
     setDuplicados([]);
     setCriada(null);
     setSaving(false);
+    setAba('manual');
+    setTexto('');
+    setAvisoUnidade(null);
   }, [open, contaEdicao]);
+
+  const analisarTexto = () => {
+    if (!texto.trim()) {
+      toast({ title: 'Cole o texto da conta antes de analisar', variant: 'destructive' });
+      return;
+    }
+    const parsed = parseContaTexto(texto, unidadesNomes);
+    const next: ContaFormState = {
+      ...emptyContaForm,
+      descricao: parsed.descricao.toUpperCase(),
+      fornecedor: parsed.fornecedor.toUpperCase(),
+      categoria: parsed.categoria || '',
+      valor: parsed.valor ? parsed.valor.replace('.', ',') : '',
+      data_vencimento: parsed.data_vencimento,
+      forma_pagamento: parsed.forma_pagamento,
+      numero_fatura: parsed.numero_fatura,
+      codigo_barras: parsed.codigo_barras,
+      linha_digitavel: parsed.linha_digitavel,
+      chave_pix: parsed.chave_pix,
+      codigo_pix: parsed.codigo_pix,
+      observacoes: parsed.observacoes,
+    };
+    setForm(next);
+
+    // Destaca em vermelho apenas os campos obrigatórios que não foram identificados
+    const faltando = validateContaForm(next);
+    setErrors(faltando);
+
+    const mencionada = parsed.unidadeMencionada;
+    const divergente =
+      mencionada &&
+      unidadeNome &&
+      mencionada.toUpperCase().replace(/^IRON\s+/, '').trim() !==
+        unidadeNome.toUpperCase().replace(/^IRON\s+/, '').trim();
+    setAvisoUnidade(divergente ? mencionada : null);
+
+    setAba('manual');
+    const qtdFaltando = Object.keys(faltando).length;
+    toast({
+      title: qtdFaltando ? 'Texto analisado com pendências' : 'Texto analisado',
+      description: qtdFaltando
+        ? 'Revise e preencha os campos destacados antes de cadastrar.'
+        : 'Revise os dados e clique em Cadastrar conta.',
+    });
+  };
 
   const salvar = async (ignorarDuplicidade: boolean) => {
     if (saving) return;
@@ -162,6 +218,9 @@ export function NovaContaModal({
               onCadastrarOutra={() => {
                 setCriada(null);
                 setForm(emptyContaForm);
+                setTexto('');
+                setAvisoUnidade(null);
+                setAba('manual');
                 setFile(null);
                 setErrors({});
               }}
@@ -169,7 +228,43 @@ export function NovaContaModal({
             />
           ) : (
             <>
+              {!isEdicao && (
+                <Tabs value={aba} onValueChange={(v) => setAba(v as 'manual' | 'texto')}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="manual">Preencher manualmente</TabsTrigger>
+                    <TabsTrigger value="texto">Importar por texto</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              )}
+
+              {aba === 'texto' && !isEdicao ? (
+                <div className="flex-1 overflow-y-auto pr-1 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Cole abaixo as informações da conta. O sistema preencherá os dados automaticamente.
+                  </p>
+                  <Textarea
+                    value={texto}
+                    onChange={(e) => setTexto(e.target.value)}
+                    rows={12}
+                    className="font-mono text-xs"
+                    placeholder={`EVO BOA VIAGEM\nDescrição: CONTA TIM\nVencimento: 15/04/2026\nPix:\n00020126940014br.gov.bcb.pix...\nValor: R$ 149,99`}
+                  />
+                  <Button type="button" variant="secondary" onClick={analisarTexto} className="w-full sm:w-auto">
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Analisar texto
+                  </Button>
+                </div>
+              ) : (
               <div className="flex-1 overflow-y-auto pr-1">
+                {avisoUnidade && (
+                  <div className="mb-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                    <span>
+                      O texto menciona a unidade <strong>{avisoUnidade}</strong>, mas a conta será cadastrada em{' '}
+                      <strong>{unidadeNome}</strong>.
+                    </span>
+                  </div>
+                )}
                 <ContaFormFields
                   form={form}
                   setForm={setForm}
@@ -191,12 +286,13 @@ export function NovaContaModal({
                   }
                 />
               </div>
+              )}
 
               <div className="flex flex-col sm:flex-row gap-2 sm:justify-end pt-3 border-t">
                 <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
                   Cancelar
                 </Button>
-                <Button onClick={() => salvar(false)} disabled={saving}>
+                <Button onClick={() => salvar(false)} disabled={saving || (aba === 'texto' && !isEdicao)}>
                   {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   {isEdicao ? 'Salvar alterações' : 'Cadastrar conta'}
                 </Button>
