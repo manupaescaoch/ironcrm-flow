@@ -203,6 +203,7 @@ export default function ContasPagar() {
           contas={contasFiltradas}
           isLoading={isLoading}
           statusDe={statusDe}
+          hoje={hoje}
           canManage={canManage}
           onVer={(c) => setDetalhe(c)}
           onEditar={(c) => {

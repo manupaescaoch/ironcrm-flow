@@ -19,6 +19,7 @@ import {
 import { CalendarClock, Check, Copy, Eye, Loader2, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { addDaysToDateOnly } from '@/lib/brasilia';
 import {
   ContaPagar,
   ContaStatusView,
@@ -32,6 +33,7 @@ interface Props {
   contas: ContaPagar[];
   isLoading: boolean;
   statusDe: (conta: ContaPagar) => ContaStatusView;
+  hoje: string;
   canManage: boolean;
   onVer: (conta: ContaPagar) => void;
   onEditar: (conta: ContaPagar) => void;
@@ -40,10 +42,19 @@ interface Props {
   onExcluir: (conta: ContaPagar) => void;
 }
 
+function rowHighlightClass(conta: ContaPagar, hoje: string): string {
+  if (conta.status === 'paga') return 'row-paid';
+  const amanha = addDaysToDateOnly(hoje, 1);
+  if (conta.data_vencimento === amanha) return 'row-due-tomorrow';
+  if (conta.data_vencimento < hoje) return 'row-overdue';
+  return '';
+}
+
 export function ContasTable({
   contas,
   isLoading,
   statusDe,
+  hoje,
   canManage,
   onVer,
   onEditar,
@@ -143,7 +154,11 @@ export function ContasTable({
               {contas.map((conta) => {
                 const status = statusDe(conta);
                 return (
-                  <TableRow key={conta.id} className="cursor-pointer" onClick={() => onVer(conta)}>
+                  <TableRow
+                    key={conta.id}
+                    className={cn('cursor-pointer', rowHighlightClass(conta, hoje))}
+                    onClick={() => onVer(conta)}
+                  >
                     <TableCell className="font-medium max-w-[320px] truncate">{conta.descricao}</TableCell>
                     <TableCell>{formatDateBR(conta.data_vencimento)}</TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(Number(conta.valor))}</TableCell>
@@ -170,7 +185,11 @@ export function ContasTable({
         {contas.map((conta) => {
           const status = statusDe(conta);
           return (
-            <Card key={conta.id} className="p-3 space-y-2" onClick={() => onVer(conta)}>
+            <Card
+              key={conta.id}
+              className={cn('p-3 space-y-2', rowHighlightClass(conta, hoje))}
+              onClick={() => onVer(conta)}
+            >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="font-medium truncate">{conta.descricao}</p>
