@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { CalendarClock, Check, Copy, Eye, Loader2, Loader, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { CalendarClock, Check, Copy, Eye, Loader2, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import {
