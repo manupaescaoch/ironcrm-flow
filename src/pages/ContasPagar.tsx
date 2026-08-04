@@ -244,7 +244,7 @@ export default function ContasPagar() {
         }}
       />
 
-      </div>
+
 
       <NovaContaModal
         open={novaOpen}
