@@ -238,6 +238,3 @@ function DadosPagamentoSelector({
     </div>
   );
 }
-    </div>
-  );
-}
