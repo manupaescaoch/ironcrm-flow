@@ -210,71 +210,144 @@ export default function NpsRespostas() {
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Avaliações ({respostas.length})</CardTitle>
           </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
+          <CardContent className="p-4">
             {isLoading ? (
               <div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
             ) : respostas.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground text-sm">Nenhuma avaliação no período.</div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Unidade</TableHead>
-                    <TableHead>Nota</TableHead>
-                    <TableHead>Estrutura</TableHead>
-                    <TableHead>Equipe</TableHead>
-                    <TableHead>Treino</TableHead>
-                    <TableHead>Tempo</TableHead>
-                    <TableHead>Positivos</TableHead>
-                    <TableHead>Melhorias</TableHead>
-                    <TableHead>Comentário</TableHead>
-                    <TableHead>Data</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {respostas.map((r) => (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-medium">{r.nome}</TableCell>
-                      <TableCell className="text-xs">
-                        {(r.unidade_id && unidadeNomeById.get(r.unidade_id)) || r.unidade_nome}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={cn('font-bold', categoriaBadge(r.categoria))}>{r.nota_nps}</Badge>
-                      </TableCell>
-                      <TableCell><StarsInline value={r.estrelas_estrutura} /></TableCell>
-                      <TableCell><StarsInline value={r.estrelas_equipe} /></TableCell>
-                      <TableCell><StarsInline value={r.estrelas_treino} /></TableCell>
-                      <TableCell className="text-xs">{r.tempo_aluno}</TableCell>
-                      <TableCell className="max-w-[180px]">
-                        <div className="flex flex-wrap gap-1">
-                          {r.pontos_positivos.map((p) => <Badge key={p} variant="outline" className="text-[10px]">{p}</Badge>)}
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {respostas.map((r) => (
+                  <button
+                    key={r.id}
+                    onClick={() => setSelected(r)}
+                    className="text-left rounded-lg border bg-card p-4 hover:border-primary/50 hover:shadow-sm transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-semibold truncate">{r.nome}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(r.created_at), "dd/MM/yy 'às' HH:mm")} · {r.tempo_aluno}
                         </div>
-                      </TableCell>
-                      <TableCell className="max-w-[180px]">
-                        <div className="flex flex-wrap gap-1">
-                          {r.pontos_melhoria.map((p) => <Badge key={p} variant="outline" className="text-[10px]">{p}</Badge>)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-[240px]">
-                        <span className="text-xs text-muted-foreground line-clamp-2" title={r.comentario ?? ''}>
-                          {r.comentario || '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">
-                        {format(new Date(r.created_at), 'dd/MM/yy HH:mm')}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </div>
+                      <Badge className={cn('font-bold shrink-0', categoriaBadge(r.categoria))}>{r.nota_nps}</Badge>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
+                      <div>
+                        <div className="uppercase tracking-wide">Estrutura</div>
+                        <StarsInline value={r.estrelas_estrutura} />
+                      </div>
+                      <div>
+                        <div className="uppercase tracking-wide">Equipe</div>
+                        <StarsInline value={r.estrelas_equipe} />
+                      </div>
+                      <div>
+                        <div className="uppercase tracking-wide">Treino</div>
+                        <StarsInline value={r.estrelas_treino} />
+                      </div>
+                    </div>
+
+                    {r.comentario && (
+                      <p className="mt-3 text-xs text-muted-foreground line-clamp-2 italic">“{r.comentario}”</p>
+                    )}
+
+                    <div className="mt-3 flex flex-wrap gap-1">
+                      {r.pontos_positivos.slice(0, 3).map((p) => (
+                        <Badge key={p} variant="outline" className="text-[10px] border-success/40 text-success">{p}</Badge>
+                      ))}
+                      {r.pontos_positivos.length > 3 && (
+                        <Badge variant="outline" className="text-[10px]">+{r.pontos_positivos.length - 3}</Badge>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>
+
+        <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+            {selected && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    {selected.nome}
+                    <Badge className={cn('font-bold', categoriaBadge(selected.categoria))}>
+                      {selected.nota_nps}
+                    </Badge>
+                  </DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-4 text-sm">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Info label="Unidade" value={(selected.unidade_id && unidadeNomeById.get(selected.unidade_id)) || selected.unidade_nome} />
+                    <Info label="WhatsApp" value={selected.whatsapp} />
+                    <Info label="Tempo de aluno" value={selected.tempo_aluno} />
+                    <Info label="Data" value={format(new Date(selected.created_at), "dd/MM/yyyy 'às' HH:mm")} />
+                  </div>
+
+                  <div className="rounded-lg border p-3 space-y-2">
+                    {[
+                      ['Estrutura', selected.estrelas_estrutura],
+                      ['Equipe', selected.estrelas_equipe],
+                      ['Treino', selected.estrelas_treino],
+                    ].map(([label, value]) => (
+                      <div key={label as string} className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
+                        <StarsInline value={value as number} />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Pontos positivos</div>
+                    <div className="flex flex-wrap gap-1">
+                      {selected.pontos_positivos.length
+                        ? selected.pontos_positivos.map((p) => (
+                            <Badge key={p} variant="outline" className="text-[11px] border-success/40 text-success">{p}</Badge>
+                          ))
+                        : <span className="text-muted-foreground text-xs">—</span>}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Pontos de melhoria</div>
+                    <div className="flex flex-wrap gap-1">
+                      {selected.pontos_melhoria.length
+                        ? selected.pontos_melhoria.map((p) => (
+                            <Badge key={p} variant="outline" className="text-[11px] border-warning/40 text-warning">{p}</Badge>
+                          ))
+                        : <span className="text-muted-foreground text-xs">—</span>}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Comentário</div>
+                    <p className="text-sm text-muted-foreground italic">
+                      {selected.comentario || '—'}
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
 }
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-xs text-muted-foreground uppercase tracking-wide">{label}</div>
+      <div className="font-medium break-words">{value}</div>
+    </div>
+  );
+}
+
 
 function KpiCard({
   label,
