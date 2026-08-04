@@ -162,49 +162,82 @@ export function ContaFormFields({ form, setForm, errors, unidadeNome }: Props) {
       <section className="space-y-3">
         <div>
           <h4 className="text-sm font-semibold text-foreground">Dados de pagamento</h4>
-          <p className="text-xs text-muted-foreground">Preencha apenas o que tiver.</p>
+          <p className="text-xs text-muted-foreground">Escolha o tipo e cole o dado abaixo.</p>
         </div>
-        <div className="space-y-3">
-          <div>
-            <Label>Código Pix (copia e cola)</Label>
-            <Textarea
-              value={form.codigo_pix}
-              onChange={(e) => setForm((prev) => ({ ...prev, codigo_pix: e.target.value }))}
-              className="mt-1 font-mono text-xs"
-              rows={3}
-            />
-          </div>
-          <div>
-            <Label>Chave Pix</Label>
-            <Input value={form.chave_pix} onChange={(e) => set('chave_pix')(e.target.value)} className="mt-1" />
-          </div>
-          <div>
-            <Label>Linha digitável</Label>
-            <Input
-              value={form.linha_digitavel}
-              onChange={(e) => set('linha_digitavel')(e.target.value)}
-              className="mt-1 font-mono text-xs"
-            />
-          </div>
-          <div>
-            <Label>Código de barras</Label>
-            <Input
-              value={form.codigo_barras}
-              onChange={(e) => set('codigo_barras')(e.target.value)}
-              className="mt-1 font-mono text-xs"
-            />
-          </div>
-          <div>
-            <Label>Link de pagamento</Label>
-            <Input
-              value={form.link_pagamento}
-              onChange={(e) => set('link_pagamento')(e.target.value)}
-              placeholder="https://"
-              className="mt-1"
-            />
-          </div>
-        </div>
+        <DadosPagamentoSelector form={form} setForm={setForm} />
       </section>
+    </div>
+  );
+}
+
+const TIPOS_PAGAMENTO: { key: PagamentoKey; label: string; placeholder?: string; mono?: boolean }[] = [
+  { key: 'codigo_pix', label: 'Código Pix (copia e cola)', placeholder: '00020126940014br.gov.bcb.pix...', mono: true },
+  { key: 'chave_pix', label: 'Chave Pix', placeholder: 'CNPJ, e-mail, telefone ou chave aleatória' },
+  { key: 'linha_digitavel', label: 'Linha digitável', placeholder: '00000.00000 00000.000000 ...', mono: true },
+  { key: 'codigo_barras', label: 'Código de barras', placeholder: '00000000000000000000000000000000000000000000', mono: true },
+  { key: 'link_pagamento', label: 'Link de pagamento', placeholder: 'https://' },
+];
+
+type PagamentoKey = 'codigo_pix' | 'chave_pix' | 'linha_digitavel' | 'codigo_barras' | 'link_pagamento';
+
+function DadosPagamentoSelector({
+  form,
+  setForm,
+}: {
+  form: ContaFormState;
+  setForm: (updater: (prev: ContaFormState) => ContaFormState) => void;
+}) {
+  const preenchido = TIPOS_PAGAMENTO.find((t) => (form[t.key] || '').trim())?.key;
+  const [tipo, setTipo] = useState<PagamentoKey>(preenchido ?? 'codigo_pix');
+
+  useEffect(() => {
+    if (preenchido && preenchido !== tipo) setTipo(preenchido);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preenchido]);
+
+  const atual = TIPOS_PAGAMENTO.find((t) => t.key === tipo)!;
+
+  const trocarTipo = (novo: PagamentoKey) => {
+    setTipo(novo);
+    setForm((prev) => {
+      const next = { ...prev };
+      TIPOS_PAGAMENTO.forEach((t) => {
+        if (t.key !== novo) next[t.key] = '';
+      });
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label>Tipo de dado</Label>
+        <Select value={tipo} onValueChange={(v) => trocarTipo(v as PagamentoKey)}>
+          <SelectTrigger className="mt-1">
+            <SelectValue placeholder="Selecione" />
+          </SelectTrigger>
+          <SelectContent>
+            {TIPOS_PAGAMENTO.map((t) => (
+              <SelectItem key={t.key} value={t.key}>
+                {t.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label>{atual.label}</Label>
+        <Textarea
+          value={form[atual.key]}
+          onChange={(e) => setForm((prev) => ({ ...prev, [atual.key]: e.target.value }))}
+          rows={3}
+          placeholder={atual.placeholder}
+          className={cn('mt-1', atual.mono && 'font-mono text-xs')}
+        />
+      </div>
+    </div>
+  );
+}
     </div>
   );
 }
