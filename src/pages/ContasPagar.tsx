@@ -90,9 +90,6 @@ export default function ContasPagar() {
 
   const [busca, setBusca] = useState('');
   const [status, setStatus] = useState('todos');
-  const [categoria, setCategoria] = useState('todas');
-  const [prioridade, setPrioridade] = useState('todas');
-  const [forma, setForma] = useState('todas');
 
   const [novaOpen, setNovaOpen] = useState(false);
   const [contaEdicao, setContaEdicao] = useState<ContaPagar | null>(null);
@@ -109,16 +106,13 @@ export default function ContasPagar() {
     const termo = busca.trim().toUpperCase();
     return contas.filter((c) => {
       if (status !== 'todos' && statusDe(c) !== status) return false;
-      if (categoria !== 'todas' && c.categoria !== categoria) return false;
-      if (prioridade !== 'todas' && c.prioridade !== prioridade) return false;
-      if (forma !== 'todas' && c.forma_pagamento !== forma) return false;
       if (termo) {
-        const alvo = `${c.descricao} ${c.fornecedor || ''} ${c.numero_fatura || ''} ${c.centro_custo || ''}`.toUpperCase();
+        const alvo = `${c.descricao} ${c.numero_fatura || ''}`.toUpperCase();
         if (!alvo.includes(termo)) return false;
       }
       return true;
     });
-  }, [contas, busca, status, categoria, prioridade, forma, statusDe]);
+  }, [contas, busca, status, statusDe]);
 
   const contaAtual = detalhe ? contas.find((c) => c.id === detalhe.id) ?? detalhe : null;
 
@@ -202,12 +196,6 @@ export default function ContasPagar() {
             setBusca={setBusca}
             status={status}
             setStatus={setStatus}
-            categoria={categoria}
-            setCategoria={setCategoria}
-            prioridade={prioridade}
-            setPrioridade={setPrioridade}
-            forma={forma}
-            setForma={setForma}
           />
         </Card>
 

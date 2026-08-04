@@ -1,33 +1,16 @@
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search } from 'lucide-react';
-import { CATEGORIAS, FORMAS_PAGAMENTO, PRIORIDADES, STATUS_VIEW } from './constants';
+import { STATUS_VIEW } from './constants';
 
 interface Props {
   busca: string;
   setBusca: (v: string) => void;
   status: string;
   setStatus: (v: string) => void;
-  categoria: string;
-  setCategoria: (v: string) => void;
-  prioridade: string;
-  setPrioridade: (v: string) => void;
-  forma: string;
-  setForma: (v: string) => void;
 }
 
-export function ContasFiltros({
-  busca,
-  setBusca,
-  status,
-  setStatus,
-  categoria,
-  setCategoria,
-  prioridade,
-  setPrioridade,
-  forma,
-  setForma,
-}: Props) {
+export function ContasFiltros({ busca, setBusca, status, setStatus }: Props) {
   return (
     <div className="flex flex-col lg:flex-row gap-2">
       <div className="relative flex-1 min-w-[220px]">
@@ -35,7 +18,7 @@ export function ContasFiltros({
         <Input
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
-          placeholder="Buscar descrição ou fornecedor..."
+          placeholder="Buscar descrição..."
           className="pl-9"
         />
       </div>
@@ -49,48 +32,6 @@ export function ContasFiltros({
             {STATUS_VIEW.map((s) => (
               <SelectItem key={s.value} value={s.value}>
                 {s.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={categoria} onValueChange={setCategoria}>
-          <SelectTrigger className="lg:w-44">
-            <SelectValue placeholder="Categoria" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas as categorias</SelectItem>
-            {CATEGORIAS.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={prioridade} onValueChange={setPrioridade}>
-          <SelectTrigger className="lg:w-36">
-            <SelectValue placeholder="Prioridade" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas</SelectItem>
-            {PRIORIDADES.map((p) => (
-              <SelectItem key={p.value} value={p.value}>
-                {p.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={forma} onValueChange={setForma}>
-          <SelectTrigger className="lg:w-44">
-            <SelectValue placeholder="Forma de pagamento" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas</SelectItem>
-            {FORMAS_PAGAMENTO.map((f) => (
-              <SelectItem key={f.value} value={f.value}>
-                {f.label}
               </SelectItem>
             ))}
           </SelectContent>

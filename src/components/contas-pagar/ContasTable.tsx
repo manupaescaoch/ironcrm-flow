@@ -24,10 +24,7 @@ import {
   ContaStatusView,
   formatCurrency,
   formatDateBR,
-  labelFormaPagamento,
-  labelPrioridade,
   labelStatus,
-  prioridadeBadgeClass,
   statusBadgeClass,
 } from './constants';
 
@@ -136,13 +133,9 @@ export function ContasTable({
             <TableHeader>
               <TableRow>
                 <TableHead>Descrição</TableHead>
-                <TableHead>Fornecedor</TableHead>
-                <TableHead>Categoria</TableHead>
                 <TableHead>Vencimento</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Prioridade</TableHead>
-                <TableHead>Forma</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -151,23 +144,13 @@ export function ContasTable({
                 const status = statusDe(conta);
                 return (
                   <TableRow key={conta.id} className="cursor-pointer" onClick={() => onVer(conta)}>
-                    <TableCell className="font-medium max-w-[220px] truncate">{conta.descricao}</TableCell>
-                    <TableCell className="max-w-[160px] truncate text-muted-foreground">{conta.fornecedor || '—'}</TableCell>
-                    <TableCell className="text-muted-foreground">{conta.categoria || '—'}</TableCell>
+                    <TableCell className="font-medium max-w-[320px] truncate">{conta.descricao}</TableCell>
                     <TableCell>{formatDateBR(conta.data_vencimento)}</TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(Number(conta.valor))}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn('text-xs', statusBadgeClass(status))}>
                         {labelStatus(status)}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={cn('text-xs', prioridadeBadgeClass(conta.prioridade))}>
-                        {labelPrioridade(conta.prioridade)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {labelFormaPagamento(conta.forma_pagamento)}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end">
@@ -191,7 +174,6 @@ export function ContasTable({
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="font-medium truncate">{conta.descricao}</p>
-                  <p className="text-xs text-muted-foreground truncate">{conta.fornecedor || ''}</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <Badge variant="outline" className={cn('text-xs', statusBadgeClass(status))}>
