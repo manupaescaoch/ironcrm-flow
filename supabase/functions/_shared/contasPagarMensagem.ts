@@ -12,6 +12,7 @@ export interface ContaParaMensagem {
   chave_pix?: string | null;
   linha_digitavel?: string | null;
   codigo_barras?: string | null;
+  link_pagamento?: string | null;
   banco?: string | null;
   agencia?: string | null;
   conta_bancaria?: string | null;
@@ -63,6 +64,9 @@ export function resolverDadoPagamento(conta: ContaParaMensagem): { label: string
   }
   if (conta.linha_digitavel || conta.codigo_barras) {
     return { label: 'Boleto', dado: (conta.linha_digitavel || conta.codigo_barras)! };
+  }
+  if (conta.link_pagamento) {
+    return { label: 'Link de pagamento', dado: conta.link_pagamento };
   }
 
   return null;

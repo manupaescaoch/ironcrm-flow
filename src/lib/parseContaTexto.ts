@@ -13,6 +13,7 @@ export interface ParsedConta {
   linha_digitavel: string;
   codigo_barras: string;
   numero_fatura: string;
+  link_pagamento: string;
   observacoes: string;
   unidadeMencionada: string | null;
 }
@@ -137,6 +138,11 @@ function findChavePix(text: string, pixPayload: string): string {
   return '';
 }
 
+function findLinkPagamento(text: string): string {
+  const m = text.match(/https?:\/\/[^\s"'<>]+/i);
+  return m ? m[0] : '';
+}
+
 function findFatura(text: string): string {
   const labelled = findLabelled(text, ['n[uú]mero da fatura', 'fatura', 'nota fiscal', 'nf', 'documento']);
   if (labelled) {
@@ -185,6 +191,7 @@ export function parseContaTexto(rawText: string, unidadesNomes: string[] = []): 
   const chave_pix = findChavePix(text, pixPayload);
   const numero_fatura = findFatura(text);
   const observacoes = findLabelled(text, ['observa[cç][oõ]es', 'obs']);
+  const link_pagamento = findLinkPagamento(text);
 
   let forma_pagamento: ContaFormaPagamento | '' = '';
   if (pixPayload || chave_pix || /\bpix\b/i.test(text)) forma_pagamento = 'pix';
@@ -216,6 +223,7 @@ export function parseContaTexto(rawText: string, unidadesNomes: string[] = []): 
     linha_digitavel,
     codigo_barras,
     numero_fatura,
+    link_pagamento,
     observacoes,
     unidadeMencionada,
   };

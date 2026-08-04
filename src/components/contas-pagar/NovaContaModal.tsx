@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Loader2, Sparkles, AlertTriangle } from 'lucide-react';
@@ -17,7 +15,6 @@ import {
 } from './ContaFormFields';
 import { DuplicidadeDialog } from './DuplicidadeDialog';
 import { SucessoConta } from './SucessoConta';
-import { uploadContaArquivo } from './uploadHelpers';
 import { ContaPagar } from './constants';
 import type { ContaFormPayload } from '@/hooks/useContasPagar';
 
@@ -53,12 +50,12 @@ function contaToForm(conta: ContaPagar): ContaFormState {
     observacoes: conta.observacoes || '',
     valor: String(conta.valor).replace('.', ','),
     data_vencimento: conta.data_vencimento?.slice(0, 10) || '',
-    forma_pagamento: conta.forma_pagamento,
     numero_fatura: conta.numero_fatura || '',
     codigo_barras: conta.codigo_barras || '',
     linha_digitavel: conta.linha_digitavel || '',
     chave_pix: conta.chave_pix || '',
     codigo_pix: conta.codigo_pix || '',
+    link_pagamento: conta.link_pagamento || '',
     banco: conta.banco || '',
     agencia: conta.agencia || '',
     conta_bancaria: conta.conta_bancaria || '',
@@ -84,7 +81,6 @@ export function NovaContaModal({
   const isEdicao = !!contaEdicao;
   const [form, setForm] = useState<ContaFormState>(emptyContaForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [duplicados, setDuplicados] = useState<ContaPagar[]>([]);
   const [criada, setCriada] = useState<ContaPagar | null>(null);
@@ -96,7 +92,6 @@ export function NovaContaModal({
     if (!open) return;
     setForm(contaEdicao ? contaToForm(contaEdicao) : emptyContaForm);
     setErrors({});
-    setFile(null);
     setDuplicados([]);
     setCriada(null);
     setSaving(false);
@@ -114,17 +109,13 @@ export function NovaContaModal({
     const next: ContaFormState = {
       ...emptyContaForm,
       descricao: parsed.descricao.toUpperCase(),
-      fornecedor: parsed.fornecedor.toUpperCase(),
-      categoria: parsed.categoria || '',
       valor: parsed.valor ? parsed.valor.replace('.', ',') : '',
       data_vencimento: parsed.data_vencimento,
-      forma_pagamento: parsed.forma_pagamento,
-      numero_fatura: parsed.numero_fatura,
       codigo_barras: parsed.codigo_barras,
       linha_digitavel: parsed.linha_digitavel,
       chave_pix: parsed.chave_pix,
       codigo_pix: parsed.codigo_pix,
-      observacoes: parsed.observacoes,
+      link_pagamento: parsed.link_pagamento,
     };
     setForm(next);
 
@@ -175,8 +166,7 @@ export function NovaContaModal({
 
     setSaving(true);
     try {
-      let documentoUrl = contaEdicao?.documento_url ?? null;
-      if (file) documentoUrl = await uploadContaArquivo(file, unidadeId, 'documentos');
+      const documentoUrl = contaEdicao?.documento_url ?? null;
       const payload = contaFormToPayload(formAtual, documentoUrl);
 
       if (isEdicao && contaEdicao) {
@@ -236,7 +226,6 @@ export function NovaContaModal({
                 setTexto('');
                 setAvisoUnidade(null);
                 setAba('manual');
-                setFile(null);
                 setErrors({});
               }}
               onFechar={() => onOpenChange(false)}
@@ -297,20 +286,6 @@ export function NovaContaModal({
                   setForm={setForm}
                   errors={errors}
                   unidadeNome={unidadeNome}
-                  documentoSlot={
-                    <div>
-                      <Label>Documento, boleto ou nota fiscal</Label>
-                      <Input
-                        type="file"
-                        accept=".pdf,.png,.jpg,.jpeg,.webp"
-                        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                        className="mt-1"
-                      />
-                      {contaEdicao?.documento_url && !file && (
-                        <p className="text-xs text-muted-foreground mt-1">Documento já anexado.</p>
-                      )}
-                    </div>
-                  }
                 />
               </div>
               )}
