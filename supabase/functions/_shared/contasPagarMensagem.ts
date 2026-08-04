@@ -43,8 +43,9 @@ export function resolverDadoPagamento(conta: ContaParaMensagem): { label: string
 
   if (forma === 'boleto') {
     const dado = conta.linha_digitavel || conta.codigo_barras;
-    if (dado) return { label: 'Linha digitável', dado };
+    if (dado) return { label: 'Boleto', dado };
   }
+
 
   if (forma === 'transferencia') {
     const linhas: string[] = [];
