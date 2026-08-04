@@ -127,8 +127,8 @@ export function NovaContaModal({
     const divergente =
       mencionada &&
       unidadeNome &&
-      mencionada.toUpperCase().replace(/^IRON\s+/, '').trim() !==
-        unidadeNome.toUpperCase().replace(/^IRON\s+/, '').trim();
+      mencionada.toUpperCase().replace(/^(EVO|IRON)\s+/, '').trim() !==
+        unidadeNome.toUpperCase().replace(/^(EVO|IRON)\s+/, '').trim();
     setAvisoUnidade(divergente ? mencionada : null);
 
     const qtdFaltando = Object.keys(faltando).length;
