@@ -31,7 +31,7 @@ import {
   Wallet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import logo from '@/assets/logo.png';
+import logo from '@/assets/evo-logo.png.asset.json';
 import {
   Tooltip,
   TooltipContent,
@@ -103,9 +103,9 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
       <div className="px-4 py-4 border-b border-sidebar-border/60">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src={logo} alt="Logo" className="w-9 h-9 rounded-lg" />
+            <img src={logo.url} alt="EVO Training Club" className="w-9 h-9 rounded-lg" />
             <div className="leading-tight">
-              <h1 className="font-bold text-[15px] text-sidebar-foreground tracking-tight">IRON CLUB</h1>
+              <h1 className="font-bold text-[15px] text-sidebar-foreground tracking-tight">EVO TRAINING CLUB</h1>
               <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider">CRM</p>
             </div>
           </div>
@@ -273,8 +273,8 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
             </SheetContent>
           </Sheet>
           <div className="flex items-center gap-2">
-            <img src={logo} alt="Logo" className="w-8 h-8 rounded-lg" />
-            <span className="font-bold text-sidebar-foreground">IRON CLUB</span>
+            <img src={logo.url} alt="EVO Training Club" className="w-8 h-8 rounded-lg" />
+            <span className="font-bold text-sidebar-foreground">EVO TRAINING CLUB</span>
           </div>
           <div className="ml-auto flex items-center gap-2">
             {unidadeAtual && (

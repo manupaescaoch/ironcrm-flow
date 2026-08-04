@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { z } from 'zod';
-import ironClubLogo from '@/assets/iron-club-logo.png';
+import evoLogo from '@/assets/evo-logo.png.asset.json';
 
 const schema = z
   .object({
@@ -64,7 +64,7 @@ export default function ResetPassword() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto w-20 h-20 rounded-xl overflow-hidden mb-4 shadow-md">
-            <img src={ironClubLogo} alt="Iron Club" className="w-full h-full object-cover" />
+            <img src={evoLogo.url} alt="EVO Training Club" className="w-full h-full object-cover" />
           </div>
           <CardTitle className="text-2xl font-bold">Redefinir senha</CardTitle>
           <CardDescription>
