@@ -294,7 +294,10 @@ export function NovaContaModal({
                 <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
                   Cancelar
                 </Button>
-                <Button onClick={() => salvar(false)} disabled={saving || (aba === 'texto' && !isEdicao)}>
+                <Button
+                  onClick={() => (aba === 'texto' && !isEdicao ? analisarTexto() : salvar(false))}
+                  disabled={saving}
+                >
                   {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   {isEdicao ? 'Salvar alterações' : 'Cadastrar conta'}
                 </Button>
