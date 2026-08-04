@@ -43,8 +43,9 @@ export function resolverDadoPagamento(conta: ContaParaMensagem): { label: string
 
   if (forma === 'boleto') {
     const dado = conta.linha_digitavel || conta.codigo_barras;
-    if (dado) return { label: 'Linha digitável', dado };
+    if (dado) return { label: 'Boleto', dado };
   }
+
 
   if (forma === 'transferencia') {
     const linhas: string[] = [];
@@ -61,7 +62,7 @@ export function resolverDadoPagamento(conta: ContaParaMensagem): { label: string
     return { label: 'Pix', dado: (conta.codigo_pix || conta.chave_pix)! };
   }
   if (conta.linha_digitavel || conta.codigo_barras) {
-    return { label: 'Linha digitável', dado: (conta.linha_digitavel || conta.codigo_barras)! };
+    return { label: 'Boleto', dado: (conta.linha_digitavel || conta.codigo_barras)! };
   }
 
   return null;
@@ -71,7 +72,7 @@ export function montarMensagemConta(conta: ContaParaMensagem, unidadeNome: strin
   const pagamento = resolverDadoPagamento(conta);
 
   const blocoPagamento = pagamento
-    ? `${pagamento.label}:\n${pagamento.dado}`
+    ? `${pagamento.label}:\n\n${pagamento.dado}`
     : 'Forma de pagamento: Outro\nDados para pagamento não informados.';
 
   return [
@@ -79,9 +80,9 @@ export function montarMensagemConta(conta: ContaParaMensagem, unidadeNome: strin
     '',
     `Descrição: ${(conta.descricao || '').toUpperCase()}`,
     `Vencimento: ${formatarDataBR(conta.data_vencimento)}`,
+    `Valor: ${formatarValorBR(conta.valor)}`,
     '',
     blocoPagamento,
-    '',
-    `Valor: ${formatarValorBR(conta.valor)}`,
   ].join('\n');
 }
+
