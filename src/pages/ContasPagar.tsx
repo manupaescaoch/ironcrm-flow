@@ -83,6 +83,7 @@ export default function ContasPagar() {
     cancelarConta,
     excluirConta,
     buscarDuplicidade,
+    reenviarWhatsapp,
   } = useContasPagar(from, to);
 
   const [busca, setBusca] = useState('');
@@ -260,6 +261,16 @@ export default function ContasPagar() {
         onReabrir={(c) => setConfirmacao({ tipo: 'reabrir', conta: c })}
         onCancelar={(c) => setConfirmacao({ tipo: 'cancelar', conta: c })}
         onExcluir={(c) => setConfirmacao({ tipo: 'excluir', conta: c })}
+        reenviando={reenviarWhatsapp.isPending}
+        onReenviarWhatsapp={async (c, tipo) => {
+          try {
+            await reenviarWhatsapp.mutateAsync({ contaId: c.id, tipo });
+            toast({ title: 'Mensagem enviada ao grupo financeiro.' });
+          } catch (error) {
+            const msg = error instanceof Error ? error.message : 'Não foi possível reenviar';
+            toast({ title: 'Falha no envio', description: msg, variant: 'destructive' });
+          }
+        }}
       />
 
       <AlertDialog open={!!confirmacao} onOpenChange={(open) => !open && setConfirmacao(null)}>
