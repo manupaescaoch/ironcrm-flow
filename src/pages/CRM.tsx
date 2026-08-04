@@ -278,6 +278,12 @@ export default function CRM() {
     status_taxa_experimental: null as StatusTaxaExperimental | null,
   });
 
+  // Lead duplicado detectado pelo telefone (bloqueia o cadastro)
+  const [leadDuplicado, setLeadDuplicado] = useState<LeadDuplicado | null>(null);
+  const [reativandoDuplicado, setReativandoDuplicado] = useState(false);
+
+
+
 
   // Get user display name for "Cadastrado Por" field - normalizado para CAIXA ALTA
   const getUserDisplayName = (): string => {
