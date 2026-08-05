@@ -55,7 +55,8 @@ export function OperacionalDashboard() {
     start: inicial.start,
     end: inicial.end,
   });
-  const [drill, setDrill] = useState<{ titulo: string; itens: string[] } | null>(null);
+  const [drill, setDrill] = useState<{ titulo: string; itens: DrillItem[] } | null>(null);
+  const [origem, setOrigem] = useState<FormularioOrigem | null>(null);
 
   const { data, isLoading, error } = useOperacionalDashboard(filtros);
 
