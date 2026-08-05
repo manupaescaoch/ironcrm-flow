@@ -275,7 +275,10 @@ export function NewAtividadeDialog({ tipo, open, onOpenChange }: Props) {
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => create.mutate()} disabled={create.isPending}>
+          <Button
+            onClick={() => create.mutate()}
+            disabled={create.isPending || (modo === 'mensagem' && contemNomeToken(mensagem) && !respSelecionado)}
+          >
             {create.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
             Criar automação
           </Button>
