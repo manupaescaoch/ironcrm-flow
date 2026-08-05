@@ -91,7 +91,7 @@ async function sendEmailNotification(
     <body>
       <div class="container">
         <div class="header">
-          <h1>🔒 IRON CRM - Backup Diário</h1>
+          <h1>🔒 EVO CRM - Backup Diário</h1>
           <p>${formattedDate}</p>
           <span class="success-badge">✓ Backup Concluído</span>
         </div>
@@ -138,7 +138,7 @@ async function sendEmailNotification(
         </div>
         
         <div class="footer">
-          <p>Este é um email automático do IRON CRM.</p>
+          <p>Este é um email automático do EVO CRM.</p>
           <p>Backup realizado em ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Recife' })}</p>
         </div>
       </div>
@@ -154,9 +154,9 @@ async function sendEmailNotification(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'IRON CRM <onboarding@resend.dev>',
+        from: 'EVO CRM <onboarding@resend.dev>',
         to: [adminEmail],
-        subject: `✅ IRON CRM – Backup Diário ${formattedDate}`,
+        subject: `✅ EVO CRM – Backup Diário ${formattedDate}`,
         html: emailHtml,
       }),
     });

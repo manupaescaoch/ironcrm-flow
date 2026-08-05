@@ -130,7 +130,7 @@ function renderEstagiarioLider(row: Record<string, unknown>): Item[] {
     { label: 'Turno', value: sanitizeText(row.turno) },
     { label: 'Experimentais realizadas', value: String(row.experimentais_realizadas ?? 0) },
     { label: 'Teve ocorrência?', value: row.teve_ocorrencia ? `Sim — ${sanitizeText(row.ocorrencia_descricao)}` : 'Não' },
-    { label: 'Manteve o padrão IRON?', value: row.manteve_padrao ? 'Sim' : `Não — ${sanitizeText(row.padrao_observacao)}` },
+    { label: 'Manteve o padrão EVO?', value: row.manteve_padrao ? 'Sim' : `Não — ${sanitizeText(row.padrao_observacao)}` },
     { label: 'Recebeu feedback?', value: row.recebeu_feedback ? `Sim — ${sanitizeText(row.feedback_descricao)}` : 'Não' },
     { label: 'Clima da equipe', value: rating(row.clima_equipe) },
     { label: 'Influência do clima', value: sanitizeText(row.clima_influencia) },
@@ -160,7 +160,7 @@ function renderCoordenadorUnidade(row: Record<string, unknown>): Item[] {
     { label: 'Reclamação de aluno?', value: row.reclamacao_aluno ? `Sim — ${sanitizeText(row.reclamacao_descricao)}` : 'Não' },
     { label: 'Elogio de aluno?', value: row.elogio_aluno ? `Sim — ${sanitizeText(row.elogio_descricao)}` : 'Não' },
     { label: 'Teve ocorrência?', value: row.teve_ocorrencia ? `Sim — ${sanitizeText(row.ocorrencia_descricao)}` : 'Não' },
-    { label: 'Manteve padrão IRON?', value: row.padrao_iron ? 'Sim' : `Não — ${sanitizeText(row.fora_padrao_descricao)}` },
+    { label: 'Manteve padrão EVO?', value: row.padrao_iron ? 'Sim' : `Não — ${sanitizeText(row.fora_padrao_descricao)}` },
     { label: 'Funcionou bem', value: sanitizeText(row.funcionou_bem) },
     { label: 'Nota geral', value: rating(row.nota_geral) },
   ];
@@ -265,7 +265,7 @@ export function buildMessage(tipo: TipoFormulario, unidade: string, row: Record<
   const dataHora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
   const cabecalho = tipo === 'relatorio_comercial'
-    ? `📊 *GESTÃO OPERACIONAL IRON CLUB*`
+    ? `📊 *GESTÃO OPERACIONAL EVO TRAINING CLUB*`
     : `✅ *${TIPO_TITULO[tipo]}*`;
 
   const corpo = items

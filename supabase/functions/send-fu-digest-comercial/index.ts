@@ -35,10 +35,10 @@ function getBrasiliaParts() {
 }
 
 const TEMPLATES: Record<string, (nome: string) => string> = {
-  'D+1': (n) => `Oi, ${n}! Tudo bem? Passando pra saber da sua experiência ontem na IRON. Como foi o treino? Se fizer sentido continuar, me chama por aqui que te explico os planos.`,
-  'D+7': (n) => `Oi, ${n}! Tudo bem? Passando pra saber se ficou alguma dúvida depois da sua experiência aqui na IRON. Se quiser concluir sua matrícula, é só me chamar.`,
-  'D+15': (n) => `Oi, ${n}! Tudo bem? Já faz alguns dias desde sua experiência. Como trabalhamos com limite de alunos, prefiro te chamar antes de encerrar seu atendimento. Se a IRON ainda fizer sentido, me fala.`,
-  'D+30': (n) => `Oi, ${n}! Passando pra deixar o contato aberto. Se em algum momento quiser treinar com mais acompanhamento, a IRON está aqui. 🤝`,
+  'D+1': (n) => `Oi, ${n}! Tudo bem? Passando pra saber da sua experiência ontem na EVO. Como foi o treino? Se fizer sentido continuar, me chama por aqui que te explico os planos.`,
+  'D+7': (n) => `Oi, ${n}! Tudo bem? Passando pra saber se ficou alguma dúvida depois da sua experiência aqui na EVO. Se quiser concluir sua matrícula, é só me chamar.`,
+  'D+15': (n) => `Oi, ${n}! Tudo bem? Já faz alguns dias desde sua experiência. Como trabalhamos com limite de alunos, prefiro te chamar antes de encerrar seu atendimento. Se a EVO ainda fizer sentido, me fala.`,
+  'D+30': (n) => `Oi, ${n}! Passando pra deixar o contato aberto. Se em algum momento quiser treinar com mais acompanhamento, a EVO está aqui. 🤝`,
 };
 
 function daysOverdue(dataPrevista: string): number {

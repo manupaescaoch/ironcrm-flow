@@ -47,7 +47,7 @@ Caso esteja sentindo algum desconforto muscular, pode ficar tranquilo: é normal
 Aproveitando, ficou com alguma dúvida sobre os nossos planos ou sobre como funciona o acompanhamento?`,
   'D+7': (nome) => `Oi, ${nome}! Tudo bem?
 
-Passando pra saber se ficou alguma dúvida depois da sua experiência aqui na IRON.
+Passando pra saber se ficou alguma dúvida depois da sua experiência aqui na EVO.
 
 Muitas vezes a pessoa curte a experiência, mas acaba deixando a decisão para depois por conta da rotina corrida...
 
@@ -56,30 +56,30 @@ Se tiver sido o seu caso, me fala. Podemos concluir sua matrícula por aqui mesm
 Como trabalhamos com limite de alunos por horário, fico à disposição pra tirar qualquer dúvida e te ajudar a decidir, sem deixar você perder a oportunidade de entrar nesse momento.`,
   'D+15': (nome) => `Oi, ${nome}! Tudo bem?
 
-Passando por aqui porque já faz alguns dias desde sua experiência na IRON.
+Passando por aqui porque já faz alguns dias desde sua experiência na EVO.
 
 Quando a pessoa conhece a estrutura, gosta do treino e mesmo assim deixa pra depois, normalmente é por algum detalhe que ficou em aberto.
 
 Como trabalhamos com limite de alunos matriculados, prefiro te chamar antes de encerrar seu atendimento por aqui.
 
-Se a IRON ainda fizer sentido pra você, me fala. Posso te ajudar a tirar qualquer dúvida e ver o melhor caminho pra você começar.`,
+Se a EVO ainda fizer sentido pra você, me fala. Posso te ajudar a tirar qualquer dúvida e ver o melhor caminho pra você começar.`,
   'D+30': (nome) => `Oi, ${nome}!
 
-Passando pra deixar o contato aberto. Se em algum momento quiser treinar com mais acompanhamento e uma experiência diferente, a Iron está aqui.
+Passando pra deixar o contato aberto. Se em algum momento quiser treinar com mais acompanhamento e uma experiência diferente, a EVO está aqui.
 
 Qualquer coisa é só chamar. 🤝`,
   'M+7': (nome) => `Olá, ${nome}! Tudo bem? 💙
 
-Já faz alguns dias que você começou sua experiência com a gente na Iron, e queremos saber como está sendo para você até aqui.
+Já faz alguns dias que você começou sua experiência com a gente na EVO, e queremos saber como está sendo para você até aqui.
 
 Você conseguiu se adaptar bem aos agendamentos, à rotina de treino e ao acompanhamento da equipe?
 
-Lembrando que, sempre que precisar, a recepção está à disposição por aqui para ajudar com dúvidas, avaliação física ou qualquer orientação sobre sua experiência na Iron.
+Lembrando que, sempre que precisar, a recepção está à disposição por aqui para ajudar com dúvidas, avaliação física ou qualquer orientação sobre sua experiência na EVO.
 
 Estamos felizes em ter você com a gente.`,
   'M+30': (nome) => `Olá, ${nome}! Tudo bem? 💙
 
-Hoje você completa seu primeiro mês na Iron, e queremos saber como está sendo sua experiência com a nossa estrutura, os agendamentos, o acompanhamento dos treinadores e os benefícios inclusos no seu plano.
+Hoje você completa seu primeiro mês na EVO, e queremos saber como está sendo sua experiência com a nossa estrutura, os agendamentos, o acompanhamento dos treinadores e os benefícios inclusos no seu plano.
 
 Esse também é um ótimo momento para fazer sua avaliação física mensal e ajustar o treino, caso necessário, de acordo com sua evolução e seus objetivos.
 

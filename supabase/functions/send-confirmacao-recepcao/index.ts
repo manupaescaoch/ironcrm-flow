@@ -43,10 +43,10 @@ function normalizePhone(raw: string) {
 const ANAMNESE_URL = 'https://ironclub-app.com/anamnese';
 
 function template24h(nome: string, dataBR: string, hora: string) {
-  return `Oi, ${nome}! Tudo certo, sua experimental está confirmada! 🔵\n\n📅 ${dataBR} ⏰ ${hora}\n\nChega 15 minutinhos antes, tá? Qualquer imprevisto é só me chamar.\n\nEquipe Iron`;
+  return `Oi, ${nome}! Tudo certo, sua experimental está confirmada! 🔵\n\n📅 ${dataBR} ⏰ ${hora}\n\nChega 15 minutinhos antes, tá? Qualquer imprevisto é só me chamar.\n\nEquipe EVO`;
 }
 function template2h(nome: string, hora: string) {
-  return `Oi, ${nome}! Daqui a pouco é hora do treino. 💪\n\nPreenche essa ficha rapidinho:\n👉 ${ANAMNESE_URL}\n\nTe esperamos às ${hora}. Qualquer imprevisto é só me chamar. 🔵\n\nEquipe Iron`;
+  return `Oi, ${nome}! Daqui a pouco é hora do treino. 💪\n\nPreenche essa ficha rapidinho:\n👉 ${ANAMNESE_URL}\n\nTe esperamos às ${hora}. Qualquer imprevisto é só me chamar. 🔵\n\nEquipe EVO`;
 }
 
 // Combina data (YYYY-MM-DD) + hora (HH:MM:SS) em UTC ms assumindo timezone Brasília (-03)
