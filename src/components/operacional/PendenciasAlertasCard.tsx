@@ -218,6 +218,8 @@ export function PendenciasAlertasCard({ pendencias }: { pendencias: PendenciaIte
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <FormularioOrigemDialog origem={origem} onClose={() => setOrigem(null)} />
     </>
   );
 }
