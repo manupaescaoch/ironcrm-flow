@@ -42,15 +42,91 @@ function findGrupo(unidadeNome: string): string | null {
   return null;
 }
 
-function acaoSugerida(classificacao: string): string {
-  if (classificacao === 'Detrator') {
-    return '⚠️ *Ação:* entre em contato com o aluno o quanto antes para entender o que aconteceu.';
+const RODAPE_REGRAS =
+  `\n\n*REGRAS GERAIS DA TRATATIVA*\n` +
+  `• Promotor: agradecer e solicitar indicação;\n` +
+  `• Passivo: identificar o que falta para a experiência ser excelente;\n` +
+  `• Detrator: contato prioritário, resolução e acompanhamento;\n` +
+  `• Não utilizar mensagens automáticas frias ou genéricas;\n` +
+  `• Personalizar a abordagem usando o nome e o comentário do aluno;\n` +
+  `• Todo contato precisa gerar um registro no sistema;\n` +
+  `• Casos graves ou sem solução imediata devem ser escalados para a gerência;\n` +
+  `• O NPS não termina na leitura da nota. Ele termina quando a ação foi realizada e acompanhada.`;
+
+function montarMensagemCoordenador(
+  classificacao: string,
+  nome: string,
+  unidade: string,
+  nota: number,
+  comentario: string,
+  alunoPhone: string,
+  coordenadorNome?: string,
+): string {
+  const primeiroNomeAluno = (nome || '').trim().split(/\s+/)[0] || nome || 'aluno';
+  const unidadeLabel = unidade || '—';
+  const linkWhatsapp = `https://wa.me/${alunoPhone}`;
+  const coord = coordenadorNome || '[NOME DO COORDENADOR]';
+
+  const cabecalho =
+    `🟦 *NOVA RESPOSTA NPS — EVO TRAINING CLUB*\n\n` +
+    `📍 *Unidade:* ${unidadeLabel}\n` +
+    `👤 *Aluno:* ${nome}\n` +
+    `📞 *Contato:* ${alunoPhone}\n` +
+    `⭐ *Nota NPS:* ${nota}\n` +
+    `📊 *Classificação:* ${classificacao}\n` +
+    `💬 *Comentário:* ${comentario || 'Não deixou comentário'}\n`;
+
+  let bloco = '';
+
+  if (classificacao === 'Promotor') {
+    bloco =
+      `\n🟢 *ANÁLISE DA RESPOSTA*\n` +
+      `O aluno demonstrou estar satisfeito com a experiência na EVO e possui alto potencial de permanecer, indicar novos alunos e fortalecer a reputação da unidade.\n\n` +
+      `📋 *AÇÃO NECESSÁRIA*\n` +
+      `Entre em contato com o aluno de forma pessoal, agradeça pela avaliação e aproveite o momento positivo para solicitar uma indicação.\n\n` +
+      `*Mensagem sugerida:*\n` +
+      `"Oi, ${primeiroNomeAluno}! Tudo bem? Aqui é ${coord}, da EVO ${unidadeLabel}.\n\n` +
+      `Vi que você deu nota ${nota} para a sua experiência com a gente e queria agradecer pela confiança. Ficamos muito felizes em saber que você está satisfeito!\n\n` +
+      `Você conhece alguém que também gostaria de viver essa experiência na EVO? Pode me enviar o contato por aqui. Temos uma condição especial para receber a sua indicação."\n\n` +
+      `💬 *Falar com o aluno:*\n${linkWhatsapp}\n\n` +
+      `✅ Após o contato: registre no sistema se o aluno respondeu e se realizou alguma indicação.`;
+  } else if (classificacao === 'Passivo') {
+    bloco =
+      `\n🟡 *ANÁLISE DA RESPOSTA*\n` +
+      `O aluno não está necessariamente insatisfeito, mas ainda não percebe a experiência como excelente. Existe algum ponto da jornada que precisa ser identificado e ajustado antes que essa percepção piore.\n\n` +
+      `📋 *AÇÃO NECESSÁRIA*\n` +
+      `Entre em contato com o aluno para entender o que faltou para a experiência ser nota 9 ou 10. Não envie uma resposta genérica. Escute, registre o motivo e direcione o ajuste ao responsável.\n\n` +
+      `*Mensagem sugerida:*\n` +
+      `"Oi, ${primeiroNomeAluno}! Tudo bem? Aqui é ${coord}, da EVO ${unidadeLabel}.\n\n` +
+      `Vi que você avaliou a sua experiência com a nota ${nota} e queria entender melhor a sua percepção.\n\n` +
+      `O que poderíamos melhorar para que a sua experiência fosse nota 10? Pode falar com sinceridade. A sua opinião é importante para ajustarmos o que for necessário."\n\n` +
+      `💬 *Falar com o aluno:*\n${linkWhatsapp}\n\n` +
+      `✅ Após o contato: registre o motivo da nota, a ação definida, o responsável pelo ajuste e o prazo para retorno ao aluno.`;
+  } else {
+    bloco =
+      `\n🔴 *ANÁLISE DA RESPOSTA*\n` +
+      `O aluno demonstrou insatisfação e existe risco de cancelamento, reclamação pública ou perda de confiança na unidade. Essa resposta precisa ser tratada como prioridade.\n\n` +
+      `🚨 *AÇÃO IMEDIATA*\n` +
+      `O coordenador deve entrar em contato com o aluno no mesmo dia. Sempre que possível, priorize uma ligação. O objetivo inicial não é justificar ou se defender, mas ouvir, entender o problema e assumir a condução da solução.\n\n` +
+      `*Mensagem sugerida:*\n` +
+      `"Oi, ${primeiroNomeAluno}. Tudo bem? Aqui é ${coord}, coordenador da EVO ${unidadeLabel}.\n\n` +
+      `Vi a sua avaliação e percebi que a sua experiência não está acontecendo como deveria. Quero entender pessoalmente o que aconteceu e o que precisamos fazer para corrigir isso.\n\n` +
+      `Posso te ligar agora ou existe um horário melhor para conversarmos?"\n\n` +
+      `💬 *Falar com o aluno:*\n${linkWhatsapp}\n\n` +
+      `✅ Após o contato, registre obrigatoriamente:\n` +
+      `• Motivo da insatisfação;\n` +
+      `• O que foi relatado pelo aluno;\n` +
+      `• Ação corretiva definida;\n` +
+      `• Responsável pela resolução;\n` +
+      `• Prazo combinado;\n` +
+      `• Data do próximo contato;\n` +
+      `• Situação final do caso.\n\n` +
+      `⚠️ *Importante:* a tratativa só deve ser considerada concluída depois que o aluno receber um retorno sobre o que foi feito.`;
   }
-  if (classificacao === 'Passivo') {
-    return '🟡 *Ação:* fale com o aluno e descubra o que faltou para ser nota 10.';
-  }
-  return '🟢 *Ação:* aluno promotor — considere agradecer e pedir uma indicação.';
+
+  return cabecalho + bloco + RODAPE_REGRAS;
 }
+
 
 function classificar(nota: number): 'Detrator' | 'Passivo' | 'Promotor' {
   if (nota <= 6) return 'Detrator';
@@ -162,10 +238,15 @@ Deno.serve(async (req) => {
 
     // 1) Interno ao responsável
     if (responsavel) {
-      const msgInterna =
-        msgBase + `\n\n` +
-        acaoSugerida(classificacao) +
-        `\n\n💬 *Falar com o aluno:* https://wa.me/${alunoPhone}`;
+      const msgInterna = montarMensagemCoordenador(
+        classificacao,
+        resp.nome,
+        resp.unidade_nome || '',
+        nota,
+        comentario,
+        alunoPhone,
+        responsavel.nome,
+      );
 
       const chaveInterna = buildIdempotencyKey(['notify-nps-resposta', resp.id, 'interno', responsavel.phone]);
       const r = await sendTextIdempotent(supabase, creds, responsavel.phone, msgInterna, { chave: chaveInterna, funcao: 'notify-nps-resposta' });
