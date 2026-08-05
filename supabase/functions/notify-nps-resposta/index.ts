@@ -18,9 +18,25 @@ const RESPONSAVEIS: Record<string, { nome: string; phone: string }> = {
   'BOA VIAGEM': { nome: 'Marcelo Santana', phone: '5581994145218' },
 };
 
+// Grupo da unidade no WhatsApp — recebe a mesma resposta (sem ação sugerida).
+// Z-API envia para grupo pelo mesmo endpoint de texto, trocando o "phone" pelo
+// ID do grupo no formato `<id>-group` (o `@g.us` do link não é aceito).
+const GRUPOS: Record<string, string> = {
+  MADALENA: '120363425937067624-group',
+  'BOA VIAGEM': '120363405337702455-group',
+};
+
 function findCoordenador(unidadeNome: string) {
   const key = (unidadeNome || '').toUpperCase().trim();
   for (const [k, v] of Object.entries(RESPONSAVEIS)) {
+    if (key.includes(k)) return v;
+  }
+  return null;
+}
+
+function findGrupo(unidadeNome: string): string | null {
+  const key = (unidadeNome || '').toUpperCase().trim();
+  for (const [k, v] of Object.entries(GRUPOS)) {
     if (key.includes(k)) return v;
   }
   return null;
@@ -135,16 +151,21 @@ Deno.serve(async (req) => {
       aluno_telefone: alunoPhone,
     };
 
+    // Conteúdo base (reaproveitado no grupo, sem a ação sugerida)
+    const msgBase =
+      `🟦 *Nova resposta NPS — EVO TRAINING CLUB*\n\n` +
+      `*Unidade:* ${resp.unidade_nome || '—'}\n` +
+      `*Aluno:* ${resp.nome}\n` +
+      `*Contato:* ${alunoPhone}\n` +
+      `*Nota NPS:* ${nota} (${classificacao})\n` +
+      `*Comentário:* ${comentario || '—'}`;
+
     // 1) Interno ao responsável
     if (responsavel) {
       const msgInterna =
-        `🟦 *Nova resposta NPS — EVO TRAINING CLUB*\n\n` +
-        `*Unidade:* ${resp.unidade_nome || '—'}\n` +
-        `*Aluno:* ${resp.nome}\n` +
-        `*Contato:* ${alunoPhone}\n` +
-        `*Nota NPS:* ${nota} (${classificacao})\n` +
-        `*Comentário:* ${comentario || '—'}\n\n` +
-        acaoSugerida(classificacao);
+        msgBase + `\n\n` +
+        acaoSugerida(classificacao) +
+        `\n\n💬 *Falar com o aluno:* https://wa.me/${alunoPhone}`;
 
       const chaveInterna = buildIdempotencyKey(['notify-nps-resposta', resp.id, 'interno', responsavel.phone]);
       const r = await sendTextIdempotent(supabase, creds, responsavel.phone, msgInterna, { chave: chaveInterna, funcao: 'notify-nps-resposta' });
@@ -172,8 +193,40 @@ Deno.serve(async (req) => {
       });
     }
 
+    // 2) Grupo da unidade (mesmo endpoint de texto do Z-API, "phone" = ID do grupo)
+    const grupoId = findGrupo(resp.unidade_nome || '');
+    if (grupoId) {
+      const chaveGrupo = buildIdempotencyKey(['notify-nps-resposta', resp.id, 'grupo', grupoId]);
+      const rg = await sendTextIdempotent(supabase, creds, grupoId, msgBase, { chave: chaveGrupo, funcao: 'notify-nps-resposta' });
+      log.payload = {
+        grupo_id: grupoId,
+        grupo_status: rg.skipped ? 'duplicado' : rg.ok ? 'enviado' : 'erro',
+        grupo_message_id: (rg.body as any)?.messageId ?? (rg.body as any)?.zaapId ?? null,
+        grupo_erro: rg.ok ? null : JSON.stringify(rg.body).slice(0, 500),
+      };
+      await logEnvio(supabase, {
+        funcao: 'notify-nps-resposta',
+        destino: grupoId,
+        tipo_destino: 'grupo',
+        sucesso: rg.ok,
+        zapi_status_code: rg.status,
+        erro_msg: rg.ok ? null : JSON.stringify(rg.body).slice(0, 500),
+        canal: 'comercial',
+        resposta_completa: rg.body,
+      });
+    } else {
+      log.payload = { grupo_status: 'skip', grupo_erro: `unidade-sem-grupo:${unidadeKey}` };
+      await logEnvio(supabase, {
+        funcao: 'notify-nps-resposta',
+        tipo_destino: 'grupo',
+        sucesso: false,
+        motivo_skip: `unidade-sem-grupo:${unidadeKey}`,
+        canal: 'comercial',
+      });
+    }
+
     // Fluxo NPS: NENHUMA mensagem vai direto para o aluno.
-    // Toda resposta é encaminhada apenas ao coordenador da unidade.
+    // Toda resposta é encaminhada ao coordenador e ao grupo da unidade.
     log.aluno_status = 'skip';
     log.aluno_erro = 'fluxo-coordenador-apenas';
 
