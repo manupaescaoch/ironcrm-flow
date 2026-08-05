@@ -116,37 +116,27 @@ Deno.serve(async (req) => {
       .in('id', leadIds);
     const leadMap = new Map((leads || []).map((l: any) => [l.id, l]));
 
-    const unidadeIds = Array.from(new Set((leads || []).map((l: any) => l.unidade_id).filter(Boolean)));
-    const { data: cfgs } = await supabase
-      .from('unidade_whatsapp_config')
-      .select('unidade_id, telefone_recepcao')
-      .eq('ativo', true)
-      .not('telefone_recepcao', 'is', null)
-      .in('unidade_id', unidadeIds);
-    const recepcaoMap = new Map((cfgs || []).map((c: any) => [c.unidade_id, c.telefone_recepcao]));
-
     for (const inter of interacoes) {
       const lead: any = leadMap.get(inter.lead_id);
       if (!lead) { errors.push(`Lead não encontrado: ${inter.lead_id}`); continue; }
 
-      const recepcao = recepcaoMap.get(lead.unidade_id);
-      if (!recepcao) {
-        errors.push(`Sem telefone de recepção para unidade ${lead.unidade_id} (aluno ${lead.nome})`);
+      const phone = normalizePhone(lead.telefone || '');
+      if (!phone) {
+        errors.push(`Sem telefone do aluno ${lead.nome}`);
         continue;
       }
 
-      const message = `🎉 *Nova matrícula*
+      const primeiroNome = String(lead.nome || '').trim().split(/\s+/)[0] || '';
+      const message = `Olá, ${primeiroNome}! Tudo bem? 💙
 
-👤 *Aluno:* ${lead.nome}
-📱 *Telefone:* ${formatPhoneBR(lead.telefone || '')}
-⏰ *Fechada há:* ~${HOURS_AFTER_MATRICULA}h
+Passando para agradecer pela confiança e dar as boas-vindas oficialmente! Ficamos muito felizes em ter você com a gente.
 
-Enviar boas-vindas ao aluno e iniciar onboarding.`;
+Agora, nossa equipe vai acompanhar de perto os seus primeiros passos para que você tenha a melhor experiência possível desde o início.
 
-      const phone = normalizePhone(recepcao);
+Caso precise de ajuda com agendamentos, avaliação física ou tenha qualquer dúvida, pode falar com a gente por aqui. Conte conosco! 👊`;
 
       if (dryRun) {
-        results.push({ aluno: lead.nome, destino_recepcao: phone, unidade_id: lead.unidade_id, preview: message });
+        results.push({ aluno: lead.nome, destino: phone, unidade_id: lead.unidade_id, preview: message });
         continue;
       }
 
