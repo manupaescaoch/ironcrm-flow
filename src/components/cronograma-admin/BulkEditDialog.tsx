@@ -55,6 +55,7 @@ export function BulkEditDialog({ open, onOpenChange, field, selected, unidadesOp
   const [turno, setTurno] = useState('');
   const [mensagem, setMensagem] = useState('');
   const [dias, setDias] = useState<number[]>([]);
+  const mensagemRef = useRef<HTMLTextAreaElement | null>(null);
   const [diasMode, setDiasMode] = useState<'replace' | 'add'>('replace');
   const [confirmed, setConfirmed] = useState(false);
 
