@@ -125,14 +125,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const canAccessAdminUsers = userRole === 'admin';
   const canEditEscala = !!userRole;
 
-  // Check if user can edit a lead
-  // Admin can edit any lead
-  // Recepção/Comercial can only edit leads they created
-  const canEditLead = (leadCreatedBy: string | null): boolean => {
-    if (isAdmin) return true;
-    if (!user || !leadCreatedBy) return false;
-    return leadCreatedBy === user.id;
+  // Qualquer usuário autenticado pode editar/excluir leads da(s) unidade(s) a que tem acesso
+  // (o isolamento por unidade é garantido no banco via RLS).
+  const canEditLead = (_leadCreatedBy: string | null): boolean => {
+    return !!user;
   };
+
 
   // Get user display name from email
   const userName = user?.email?.split('@')[0] || null;
