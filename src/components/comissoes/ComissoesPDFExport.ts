@@ -167,7 +167,7 @@ export function exportComissoesToPDF({
     doc.setPage(i);
     doc.setFontSize(8);
     doc.text(
-      `IRON CLUB - Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} - Página ${i} de ${pageCount}`,
+      `EVO TRAINING CLUB - Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} - Página ${i} de ${pageCount}`,
       pageWidth / 2,
       doc.internal.pageSize.getHeight() - 10,
       { align: 'center' }

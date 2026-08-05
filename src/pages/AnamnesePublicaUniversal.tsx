@@ -54,7 +54,7 @@ export default function AnamnesePublicaUniversal() {
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
             <p className="font-display text-xs uppercase tracking-[0.3em] text-anamnese-royal">
-              IRON CLUB
+              EVO TRAINING CLUB
             </p>
             <h1 className="mt-2 font-display text-4xl uppercase tracking-tight">
               Anamnese da Aula Experimental

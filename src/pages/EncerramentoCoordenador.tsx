@@ -352,7 +352,7 @@ export default function EncerramentoCoordenador() {
 
     // ===== Avaliação do turno
     list.push({
-      key: 'padraoIron', categoria: 'Avaliação', pergunta: 'A operação transcorreu dentro do padrão Iron?',
+      key: 'padraoIron', categoria: 'Avaliação', pergunta: 'A operação transcorreu dentro do padrão EVO?',
       canContinue: r.padraoIron !== null,
       render: () => sim_nao(r.padraoIron, () => set('padraoIron', true), () => set('padraoIron', false)),
     });
@@ -406,7 +406,7 @@ export default function EncerramentoCoordenador() {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-anamnese-royal p-6 text-anamnese-royal-foreground">
         <div className="w-full max-w-md space-y-8 text-center">
-          <p className="font-display-condensed text-xs uppercase tracking-[0.4em] opacity-80">Iron Club</p>
+          <p className="font-display-condensed text-xs uppercase tracking-[0.4em] opacity-80">EVO TRAINING CLUB</p>
           <h1 className="font-display text-5xl font-extrabold uppercase leading-[0.95] tracking-tight">
             Formulário<br />de Encerramento
           </h1>
@@ -456,7 +456,7 @@ export default function EncerramentoCoordenador() {
       push('Ação tomada', r.ocorrenciaAcao);
       push('Ocorrência resolvida?', r.ocorrenciaResolvida ? 'Sim' : `Não — ${r.ocorrenciaPendencia}`);
     }
-    push('Padrão Iron?', r.padraoIron ? 'Sim' : `Não — ${r.foraPadraoDescricao}`);
+    push('Padrão EVO?', r.padraoIron ? 'Sim' : `Não — ${r.foraPadraoDescricao}`);
     push('Funcionou bem', r.funcionouBem);
     push('Nota geral', r.notaGeral !== null ? `${r.notaGeral}/5` : '');
     if (r.ultimoTurnoDia) {
@@ -519,7 +519,7 @@ export default function EncerramentoCoordenador() {
       <div className="flex min-h-[100dvh] flex-col bg-anamnese-bg">
         <header className="sticky top-0 z-20 bg-anamnese-royal text-anamnese-royal-foreground">
           <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
-            <span className="font-display-condensed text-lg font-extrabold uppercase tracking-wider">Iron Club</span>
+            <span className="font-display-condensed text-lg font-extrabold uppercase tracking-wider">EVO TRAINING CLUB</span>
             <span className="text-xs font-semibold uppercase tracking-wider opacity-90">Resumo</span>
           </div>
         </header>

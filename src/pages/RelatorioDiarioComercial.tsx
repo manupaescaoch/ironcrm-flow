@@ -298,11 +298,11 @@ export default function RelatorioDiarioComercial() {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-anamnese-royal p-6 text-anamnese-royal-foreground">
         <div className="w-full max-w-md space-y-8 text-center">
-          <p className="font-display-condensed text-xs uppercase tracking-[0.4em] opacity-80">Iron Club</p>
+          <p className="font-display-condensed text-xs uppercase tracking-[0.4em] opacity-80">EVO TRAINING CLUB</p>
           <h1 className="font-display text-5xl font-extrabold uppercase leading-[0.95] tracking-tight">
             Relatório Diário<br />Comercial
           </h1>
-          <p className="text-sm uppercase tracking-[0.2em] opacity-90">Recepção — Iron Club</p>
+          <p className="text-sm uppercase tracking-[0.2em] opacity-90">Recepção — EVO TRAINING CLUB</p>
           <p className="mx-auto max-w-xs text-base opacity-90">
             Preencha ao final do seu dia. Leva menos de 3 minutos.
           </p>
@@ -408,7 +408,7 @@ export default function RelatorioDiarioComercial() {
       <div className="flex min-h-[100dvh] flex-col bg-anamnese-bg">
         <header className="sticky top-0 z-20 bg-anamnese-royal text-anamnese-royal-foreground">
           <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
-            <span className="font-display-condensed text-lg font-extrabold uppercase tracking-wider">Iron Club</span>
+            <span className="font-display-condensed text-lg font-extrabold uppercase tracking-wider">EVO TRAINING CLUB</span>
             <span className="text-xs font-semibold uppercase tracking-wider opacity-90">Resumo</span>
           </div>
         </header>

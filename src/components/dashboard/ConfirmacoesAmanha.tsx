@@ -102,7 +102,7 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
     const hora = horaEvento ? horaEvento.slice(0, 5) : '';
     const tipoTexto = isAvaliacao ? 'avaliação física' : 'aula experimental';
     const message = isAvaliacao
-      ? `Olá, ${item.lead.nome}!\n\nSua ${tipoTexto} está confirmada para:\n📅 ${dataFormatada}\n🕙 ${hora}\n\nEquipe IRON CLUB`
+      ? `Olá, ${item.lead.nome}!\n\nSua ${tipoTexto} está confirmada para:\n📅 ${dataFormatada}\n🕙 ${hora}\n\nEquipe EVO TRAINING CLUB`
       : `Oi, ${item.lead.nome}! Sua aula experimental está confirmada:\n\n📅 ${dataFormatada}\n🕙 ${hora}\n\nChegar com 10min de antecedência.\n\nEquipe IRON`;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
   };

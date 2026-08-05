@@ -36,7 +36,7 @@ export function StepShell({
       <header className="sticky top-0 z-20 bg-anamnese-royal text-anamnese-royal-foreground">
         <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
           <span className="font-display-condensed text-lg font-extrabold uppercase tracking-wider">
-            Iron Club
+            EVO TRAINING CLUB
           </span>
           <span className="text-xs font-semibold uppercase tracking-wider opacity-90">
             {stepNumber} de {totalSteps}

@@ -235,7 +235,7 @@ export default function Indicacoes() {
   return (
     <Layout>
       <Helmet>
-        <title>Indicações | Iron Club CRM</title>
+        <title>Indicações | EVO TRAINING CLUB CRM</title>
         <meta name="description" content="Visualize indicações de alunos por período" />
       </Helmet>
 

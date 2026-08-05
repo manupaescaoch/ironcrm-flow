@@ -203,7 +203,7 @@ Em caso de dúvidas ou necessidade de reagendamento, entre em contato conosco.
 
 Aguardamos você! 💪`;
     } else {
-      message = `Olá ${primeiroNome}! Sua aula experimental na IRON CLUB está confirmada para hoje (${dataFormatada}) às ${hora}. Estamos te esperando! 💪`;
+      message = `Olá ${primeiroNome}! Sua aula experimental na EVO TRAINING CLUB está confirmada para hoje (${dataFormatada}) às ${hora}. Estamos te esperando! 💪`;
     }
     
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;

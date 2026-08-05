@@ -28,17 +28,17 @@ const TIPO_CONFIG: Record<FollowUpMatriculadoTipo, { label: string; color: strin
 };
 
 const MESSAGES: Record<FollowUpMatriculadoTipo, (nome: string) => string> = {
-  'D+1': (nome) => `Oi, ${nome}! Seja muito bem-vindo(a) à IRON CLUB.
+  'D+1': (nome) => `Oi, ${nome}! Seja muito bem-vindo(a) à EVO TRAINING CLUB.
 
 Tô passando pra confirmar sua matrícula e tirar qualquer dúvida do primeiro treino. Qualquer coisa, me chama por aqui.`,
-  'D+7': (nome) => `Oi, ${nome}! Aqui é da IRON CLUB.
+  'D+7': (nome) => `Oi, ${nome}! Aqui é da EVO TRAINING CLUB.
 
 Faz uma semana desde sua matrícula. Como está sendo a adaptação aos treinos?
 
 Qualquer dúvida sobre execução, frequência ou ajuste de treino, é só me chamar.`,
   'D+30': (nome) => `Oi, ${nome}! Tudo bem?
 
-Já fechou 1 mês desde sua matrícula na IRON CLUB. Bora bater um papo rápido sobre evolução, frequência e próximos passos do seu treino?`,
+Já fechou 1 mês desde sua matrícula na EVO TRAINING CLUB. Bora bater um papo rápido sobre evolução, frequência e próximos passos do seu treino?`,
 };
 
 // alvo de dias por etapa para calcular atraso visual

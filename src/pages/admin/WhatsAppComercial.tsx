@@ -209,7 +209,7 @@ export default function WhatsAppComercial() {
             Saúde dos Chips Z-API
             {(['comercial', 'operacional'] as const).map((ch) => {
               const st = health?.zapiByChannel?.[ch];
-              const label = ch === 'comercial' ? 'Iron Comercial' : 'Iron Operacional';
+              const label = ch === 'comercial' ? 'EVO Comercial' : 'EVO Operacional';
               if (!st) {
                 return health?.zapi ? null : (
                   <Badge key={ch} variant="outline">{label}: —</Badge>
