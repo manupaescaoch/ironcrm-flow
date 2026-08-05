@@ -9,6 +9,7 @@ import {
   TurnoRow,
   TURNOS,
   calcularDistribuicao,
+  calcularDistribuicaoPorUnidade,
   calcularIndice,
   dateFromTimestamp,
   derivarPendencias,
