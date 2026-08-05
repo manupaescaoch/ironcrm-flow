@@ -3632,6 +3632,42 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_idempotencia: {
+        Row: {
+          canal: string | null
+          chave: string
+          created_at: string
+          destino: string | null
+          expires_at: string
+          funcao: string
+          id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          canal?: string | null
+          chave: string
+          created_at?: string
+          destino?: string | null
+          expires_at?: string
+          funcao: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          canal?: string | null
+          chave?: string
+          created_at?: string
+          destino?: string | null
+          expires_at?: string
+          funcao?: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       whatsapp_messages: {
         Row: {
           contact_name: string | null
@@ -3783,6 +3819,16 @@ export type Database = {
       }
       can_manage_contas_pagar: { Args: { _user_id: string }; Returns: boolean }
       canonical_phone: { Args: { phone: string }; Returns: string }
+      claim_whatsapp_envio: {
+        Args: {
+          p_canal?: string
+          p_chave: string
+          p_destino?: string
+          p_funcao: string
+          p_ttl_minutes?: number
+        }
+        Returns: boolean
+      }
       generate_follow_ups_for_lead: {
         Args: { p_lead_id: string }
         Returns: undefined
@@ -3829,6 +3875,7 @@ export type Database = {
           treinador: string
         }[]
       }
+      release_whatsapp_envio: { Args: { p_chave: string }; Returns: undefined }
       reservar_envio_conta: {
         Args: { p_conta_id: string; p_tipo: string }
         Returns: {
