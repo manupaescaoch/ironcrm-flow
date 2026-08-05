@@ -238,10 +238,15 @@ Deno.serve(async (req) => {
 
     // 1) Interno ao responsável
     if (responsavel) {
-      const msgInterna =
-        msgBase + `\n\n` +
-        acaoSugerida(classificacao) +
-        `\n\n💬 *Falar com o aluno:* https://wa.me/${alunoPhone}`;
+      const msgInterna = montarMensagemCoordenador(
+        classificacao,
+        resp.nome,
+        resp.unidade_nome || '',
+        nota,
+        comentario,
+        alunoPhone,
+        responsavel.nome,
+      );
 
       const chaveInterna = buildIdempotencyKey(['notify-nps-resposta', resp.id, 'interno', responsavel.phone]);
       const r = await sendTextIdempotent(supabase, creds, responsavel.phone, msgInterna, { chave: chaveInterna, funcao: 'notify-nps-resposta' });
