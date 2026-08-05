@@ -16,6 +16,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { KPICard } from '@/components/ui/kpi-card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -41,6 +42,14 @@ import { IndiceOperacionalCard } from './IndiceOperacionalCard';
 import { PendenciasAlertasCard } from './PendenciasAlertasCard';
 import { InsightsCard } from './InsightsCard';
 import { CronogramaDashboard } from '@/components/cronograma/CronogramaDashboard';
+import { FormularioOrigem, FormularioOrigemDialog } from './FormularioOrigemDialog';
+
+interface DrillItem {
+  texto: string;
+  origem?: FormularioOrigem;
+}
+
+const txt = (itens: string[]): DrillItem[] => itens.map((texto) => ({ texto }));
 
 const fmtNum = (v: number | null, dec = 1) => (v === null || v === undefined ? 'Sem registro' : v.toFixed(dec).replace('.', ','));
 
@@ -55,13 +64,14 @@ export function OperacionalDashboard() {
     start: inicial.start,
     end: inicial.end,
   });
-  const [drill, setDrill] = useState<{ titulo: string; itens: string[] } | null>(null);
+  const [drill, setDrill] = useState<{ titulo: string; itens: DrillItem[] } | null>(null);
+  const [origem, setOrigem] = useState<FormularioOrigem | null>(null);
 
   const { data, isLoading, error } = useOperacionalDashboard(filtros);
 
   const mediaEquipe = data?.produtividade.mediaTreinador ?? null;
 
-  const registrosQualidade = useMemo(() => data?.registros ?? null, [data]);
+  
 
   if (error) {
     return (
@@ -138,7 +148,7 @@ export function OperacionalDashboard() {
               onClick={() =>
                 setDrill({
                   titulo: 'Atendimentos por registro',
-                  itens: data.porTreinador.map((t) => `${t.treinador}: ${t.total} atendimentos (média ${t.mediaDiaria.toFixed(1)}/dia)`),
+                  itens: txt(data.porTreinador.map((t) => `${t.treinador}: ${t.total} atendimentos (média ${t.mediaDiaria.toFixed(1)}/dia)`)),
                 })
               }
             />
@@ -184,11 +194,33 @@ export function OperacionalDashboard() {
               onClick={() =>
                 setDrill({
                   titulo: 'Turnos que não mantiveram o Padrão EVO',
-                  itens: data.padraoEvo.fora.map(
-                    (f) => `${format(parseISODate(f.data), 'dd/MM')} · ${f.unidade} · ${f.responsavel} — ${f.justificativa || 'sem justificativa registrada'}`,
-                  ),
+                  itens: data.padraoEvo.fora.map((f) => ({
+                    texto: `${format(parseISODate(f.data), 'dd/MM')} · ${f.unidade} · ${f.responsavel} — ${f.justificativa || 'sem justificativa registrada'}`,
+                    origem: { tabela: f.tabela, id: f.id },
+                  })),
                 })
               }
+            />
+            <KPICard
+              title="Treinadores ativos"
+              value={data.produtividade.treinadoresAtivos}
+              icon={Users}
+              variant="compact"
+              subtitle={`Anterior: ${data.produtividade.treinadoresAtivosAnt ?? '—'}`}
+              onClick={() =>
+                setDrill({
+                  titulo: 'Treinadores com atendimento no período',
+                  itens: txt(data.porTreinador.map((t) => `${t.treinador} — ${t.total} atendimento(s) · ${t.turnos.join(', ') || 'sem turno'}`)),
+                })
+              }
+            />
+            <KPICard
+              title="Turnos encerrados"
+              value={`${data.turnos.encerrados}/${data.turnos.previstos}`}
+              icon={ClipboardCheck}
+              variant="compact"
+              color={data.turnos.pendentes > 0 ? 'amber' : 'green'}
+              subtitle={`${data.turnos.pendentes} pendente(s)`}
             />
           </div>
 
@@ -275,10 +307,10 @@ export function OperacionalDashboard() {
                     onClick={() =>
                       setDrill({
                         titulo: `${q.label} — registros do período`,
-                        itens:
-                          registrosQualidade?.coordenador.map(
-                            (r) => `${format(new Date(r.created_at), 'dd/MM')} · ${r.unidade} · ${r.turno} · ${r.nome}`,
-                          ) ?? [],
+                        itens: q.registros.map((r) => ({
+                          texto: `${format(new Date(r.created_at), 'dd/MM')} · ${r.unidade}${r.turno ? ` · ${r.turno}` : ''} · ${r.nome ?? '—'} — nota ${r.nota.toString().replace('.', ',')}`,
+                          origem: { tabela: r.tabela, id: r.id },
+                        })),
                       })
                     }
                   >
@@ -327,7 +359,7 @@ export function OperacionalDashboard() {
               />
               <KPICard title="Faltas" value={data.equipe.faltas} icon={AlertTriangle} variant="compact" color={data.equipe.faltas > 0 ? 'amber' : 'green'}
                 subtitle={`${data.equipe.justificadas} justificadas · ${data.equipe.naoJustificadas} não justificadas`}
-                onClick={() => setDrill({ titulo: 'Faltas e atrasos registrados', itens: data.equipe.detalhesFaltas })}
+                onClick={() => setDrill({ titulo: 'Faltas e atrasos registrados', itens: txt(data.equipe.detalhesFaltas) })}
               />
               <KPICard title="Atrasos" value={data.equipe.atrasos} icon={AlertTriangle} variant="compact" />
               <KPICard title="Feedbacks corretivos" value={data.equipe.feedbacksCorretivos} icon={ClipboardList} variant="compact" />
@@ -363,13 +395,26 @@ export function OperacionalDashboard() {
                 <p className="text-sm text-muted-foreground">Sem registros para exibir.</p>
               ) : (
                 drill?.itens.map((i, idx) => (
-                  <p key={idx} className="rounded-md border p-2 text-xs">{i}</p>
+                  <div key={idx} className="rounded-md border p-2 text-xs flex items-start justify-between gap-2">
+                    <span className="whitespace-pre-wrap">{i.texto}</span>
+                    {i.origem && (
+                      <Button
+                        variant="link"
+                        className="h-auto shrink-0 p-0 text-xs"
+                        onClick={() => setOrigem(i.origem!)}
+                      >
+                        Ver formulário
+                      </Button>
+                    )}
+                  </div>
                 ))
               )}
             </div>
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      <FormularioOrigemDialog origem={origem} onClose={() => setOrigem(null)} />
     </div>
   );
 }

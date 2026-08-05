@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CATEGORIAS, GRAVIDADE_LABEL, PendenciaItem, STATUS_LABEL, parseISODate } from '@/lib/operacionalDashboard';
+import { FormularioOrigem, FormularioOrigemDialog } from './FormularioOrigemDialog';
 
 const statusVariant: Record<string, string> = {
   pendente: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
@@ -27,6 +28,7 @@ export function PendenciasAlertasCard({ pendencias }: { pendencias: PendenciaIte
   const [statusFiltro, setStatusFiltro] = useState('abertas');
   const [categoria, setCategoria] = useState('all');
   const [sel, setSel] = useState<PendenciaItem | null>(null);
+  const [origem, setOrigem] = useState<FormularioOrigem | null>(null);
   const [form, setForm] = useState({ responsavel: '', prazo: '', status: 'pendente', solucao: '' });
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -172,9 +174,13 @@ export function PendenciasAlertasCard({ pendencias }: { pendencias: PendenciaIte
                 <p><span className="text-muted-foreground">Data / turno:</span> {format(parseISODate(sel.data), 'dd/MM/yyyy')} · {sel.turno ?? '—'}</p>
                 <p><span className="text-muted-foreground">Registrado por:</span> {sel.registrado_por ?? '—'}</p>
                 <p className="whitespace-pre-wrap"><span className="text-muted-foreground">Descrição:</span> {sel.descricao}</p>
-                <p className="flex items-center gap-1 text-muted-foreground">
-                  <ExternalLink className="w-3 h-3" /> Formulário de origem: {sel.source_tabela.replace(/_/g, ' ')}
-                </p>
+                <Button
+                  variant="link"
+                  className="h-auto p-0 text-xs gap-1"
+                  onClick={() => setOrigem({ tabela: sel.source_tabela, id: sel.source_id })}
+                >
+                  <ExternalLink className="w-3 h-3" /> Consultar formulário original
+                </Button>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
@@ -212,6 +218,8 @@ export function PendenciasAlertasCard({ pendencias }: { pendencias: PendenciaIte
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <FormularioOrigemDialog origem={origem} onClose={() => setOrigem(null)} />
     </>
   );
 }

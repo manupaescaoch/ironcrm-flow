@@ -74,6 +74,15 @@ export interface QualidadeKPI {
   mediaAnterior: number | null;
   avaliacoes: number;
   abaixoDe4: number;
+  registros: {
+    nota: number;
+    unidade: string;
+    turno: string | null;
+    nome: string | null;
+    created_at: string;
+    tabela: string;
+    id: string;
+  }[];
 }
 
 export function useOperacionalDashboard(filtros: OperacionalFiltros) {
@@ -170,31 +179,72 @@ export function useOperacionalDashboard(filtros: OperacionalFiltros) {
     const taxaPreenchimentoAnt = previstosAnt.length ? (preenchidosAnt.size / previstosAnt.length) * 100 : null;
 
     /* --------------------------- Qualidade (1-5) --------------------------- */
-    const qualDefs: { key: string; label: string; get: (s: typeof atual) => (number | null)[] }[] = [
-      { key: 'limpeza', label: 'Limpeza', get: (s) => s.coordenador.map((r) => r.limpeza_geral) },
-      { key: 'organizacao', label: 'Organização do espaço', get: (s) => s.coordenador.map((r) => r.organizacao_espaco) },
-      { key: 'climatizacao', label: 'Climatização', get: (s) => s.coordenador.map((r) => r.climatizacao) },
-      { key: 'equipamentos', label: 'Equipamentos funcionando', get: (s) => s.coordenador.map((r) => r.equipamentos_funcionando) },
-      { key: 'infraestrutura', label: 'Infraestrutura', get: (s) => s.coordenador.map((r) => r.infraestrutura) },
-      { key: 'postura', label: 'Postura no atendimento', get: (s) => s.coordenador.map((r) => r.postura_atendimento) },
-      { key: 'proatividade', label: 'Proatividade', get: (s) => s.coordenador.map((r) => r.proatividade) },
-      { key: 'clima', label: 'Clima da equipe', get: (s) => s.turno.map((r) => r.clima_equipe) },
+    type QualRow = { nota: number | null; unidade: string; turno: string | null; nome: string | null; created_at: string; tabela: string; id: string };
+    const coordRows = (s: typeof atual, pick: (r: (typeof atual)['coordenador'][number]) => number | null): QualRow[] =>
+      s.coordenador.map((r) => ({
+        nota: pick(r),
+        unidade: r.unidade,
+        turno: (r as { turno?: string | null }).turno ?? null,
+        nome: r.nome,
+        created_at: r.created_at,
+        tabela: 'encerramento_coordenador_respostas',
+        id: r.id,
+      }));
+
+    const qualDefs: { key: string; label: string; rows: (s: typeof atual) => QualRow[] }[] = [
+      { key: 'limpeza', label: 'Limpeza', rows: (s) => coordRows(s, (r) => r.limpeza_geral) },
+      { key: 'organizacao', label: 'Organização do espaço', rows: (s) => coordRows(s, (r) => r.organizacao_espaco) },
+      { key: 'climatizacao', label: 'Climatização', rows: (s) => coordRows(s, (r) => r.climatizacao) },
+      { key: 'equipamentos', label: 'Equipamentos funcionando', rows: (s) => coordRows(s, (r) => r.equipamentos_funcionando) },
+      { key: 'infraestrutura', label: 'Infraestrutura', rows: (s) => coordRows(s, (r) => r.infraestrutura) },
+      { key: 'postura', label: 'Postura no atendimento', rows: (s) => coordRows(s, (r) => r.postura_atendimento) },
+      { key: 'proatividade', label: 'Proatividade', rows: (s) => coordRows(s, (r) => r.proatividade) },
+      {
+        key: 'clima',
+        label: 'Clima da equipe',
+        rows: (s) =>
+          s.turno.map((r) => ({
+            nota: r.clima_equipe,
+            unidade: r.unidade,
+            turno: (r as { turno?: string | null }).turno ?? null,
+            nome: r.nome,
+            created_at: r.created_at,
+            tabela: 'encerramento_turno_respostas',
+            id: r.id,
+          })),
+      },
       {
         key: 'nota_geral',
         label: 'Nota geral do turno',
-        get: (s) => [...s.coordenador.map((r) => r.nota_geral), ...s.horario.map((r) => r.nota_geral)],
+        rows: (s) => [
+          ...coordRows(s, (r) => r.nota_geral),
+          ...s.horario.map((r) => ({
+            nota: r.nota_geral,
+            unidade: r.unidade,
+            turno: (r as { turno?: string | null }).turno ?? null,
+            nome: r.nome,
+            created_at: r.created_at,
+            tabela: 'encerramento_horario_respostas',
+            id: r.id,
+          })),
+        ],
       },
     ];
 
     const qualidade: QualidadeKPI[] = qualDefs.map((d) => {
-      const vals = d.get(atual).filter((v): v is number => typeof v === 'number' && v >= 1 && v <= 5);
+      const rowsAtual = d.rows(atual);
+      const notas = rowsAtual.map((r) => r.nota);
+      const vals = notas.filter((v): v is number => typeof v === 'number' && v >= 1 && v <= 5);
       return {
         key: d.key,
         label: d.label,
-        media: mediaNotas(d.get(atual)),
-        mediaAnterior: mediaNotas(d.get(anterior)),
+        media: mediaNotas(notas),
+        mediaAnterior: mediaNotas(d.rows(anterior).map((r) => r.nota)),
         avaliacoes: vals.length,
         abaixoDe4: vals.filter((v) => v < 4).length,
+        registros: rowsAtual
+          .filter((r) => typeof r.nota === 'number')
+          .map((r) => ({ nota: r.nota as number, unidade: r.unidade, turno: r.turno, nome: r.nome, created_at: r.created_at, tabela: r.tabela, id: r.id })),
       };
     });
     const qualMap = Object.fromEntries(qualidade.map((q) => [q.key, q.media]));
