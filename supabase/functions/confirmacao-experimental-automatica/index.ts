@@ -1,7 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
 import {
-  RATE_LIMIT_MS, checkZapiStatus, getZapiCreds, logEnvio, phoneExists, sendText, sleep,
+  RATE_LIMIT_MS, buildIdempotencyKey, checkZapiStatus, getZapiCreds, logEnvio, phoneExists,
+  sendTextIdempotent, sleep,
 } from '../_shared/zapi.ts';
 
 const corsHeaders = {
