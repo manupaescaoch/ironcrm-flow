@@ -22,10 +22,10 @@ interface Props {
 
 const PRESETS: { value: PeriodoPreset; label: string }[] = [
   { value: 'hoje', label: 'Hoje' },
-  { value: '7d', label: '7 dias' },
-  { value: '15d', label: '15 dias' },
-  { value: '30d', label: '30 dias' },
-  { value: 'custom', label: 'Personalizado' },
+  { value: '7d', label: 'Semana (7 dias)' },
+  { value: '30d', label: 'Mês (30 dias)' },
+  { value: '60d', label: 'Últimos 60 dias' },
+  { value: 'custom', label: 'Período personalizado' },
 ];
 
 export function OperacionalDashboardFiltros({ filtros, onChange, preset, onPreset, unidades, funcionarios }: Props) {

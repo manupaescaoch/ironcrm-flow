@@ -1,7 +1,7 @@
 // Cálculos e regras do Dashboard Operacional EVO
 // Todas as funções são puras para permitir teste e reuso.
 
-export type PeriodoPreset = 'hoje' | '7d' | '15d' | '30d' | 'custom';
+export type PeriodoPreset = 'hoje' | '7d' | '30d' | '60d' | 'custom';
 
 export const TURNOS = ['MANHÃ', 'TARDE', 'NOITE'] as const;
 
@@ -177,7 +177,7 @@ export function eachDate(start: string, end: string): string[] {
 export function presetRange(preset: PeriodoPreset): { start: string; end: string } {
   const hoje = new Date();
   const end = isoDate(hoje);
-  const dias = preset === 'hoje' ? 0 : preset === '7d' ? 6 : preset === '15d' ? 14 : 29;
+  const dias = preset === 'hoje' ? 0 : preset === '7d' ? 6 : preset === '30d' ? 29 : 59;
   return { start: isoDate(addDays(hoje, -dias)), end };
 }
 
