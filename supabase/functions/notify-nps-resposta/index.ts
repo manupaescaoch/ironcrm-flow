@@ -18,9 +18,25 @@ const RESPONSAVEIS: Record<string, { nome: string; phone: string }> = {
   'BOA VIAGEM': { nome: 'Marcelo Santana', phone: '5581994145218' },
 };
 
+// Grupo da unidade no WhatsApp — recebe a mesma resposta (sem ação sugerida).
+// Z-API envia para grupo pelo mesmo endpoint de texto, trocando o "phone" pelo
+// ID do grupo no formato `<id>-group` (o `@g.us` do link não é aceito).
+const GRUPOS: Record<string, string> = {
+  MADALENA: '120363425937067624-group',
+  'BOA VIAGEM': '120363405337702455-group',
+};
+
 function findCoordenador(unidadeNome: string) {
   const key = (unidadeNome || '').toUpperCase().trim();
   for (const [k, v] of Object.entries(RESPONSAVEIS)) {
+    if (key.includes(k)) return v;
+  }
+  return null;
+}
+
+function findGrupo(unidadeNome: string): string | null {
+  const key = (unidadeNome || '').toUpperCase().trim();
+  for (const [k, v] of Object.entries(GRUPOS)) {
     if (key.includes(k)) return v;
   }
   return null;
