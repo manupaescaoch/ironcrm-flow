@@ -170,7 +170,7 @@ export function AtividadesPorTipo({ atividades, selected, setSelected, onEditGru
       {grupos.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-8">Nenhuma atividade encontrada.</p>
       ) : (
-        <Accordion type="multiple" defaultValue={grupos.map(g => g.td)} className="space-y-2">
+        <Accordion type="multiple" className="space-y-2">
           {grupos.map(g => {
             const totalIds = g.conjuntos.flatMap(c => c.ids);
             const ativos = g.conjuntos.reduce((s, c) => s + c.itens.filter(i => i.ativo).length, 0);
