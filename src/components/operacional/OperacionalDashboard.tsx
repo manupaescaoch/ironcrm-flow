@@ -209,8 +209,8 @@ export function OperacionalDashboard() {
               subtitle={`Anterior: ${data.produtividade.treinadoresAtivosAnt ?? '—'}`}
               onClick={() =>
                 setDrill({
-                  titulo: 'Treinadores com atendimento no período',
-                  itens: txt(data.porTreinador.map((t) => `${t.treinador} — ${t.total} atendimento(s) · ${t.turnos.join(', ') || 'sem turno'}`)),
+                  titulo: 'Treinadores com atendimento no período (por unidade)',
+                  itens: txt(data.porTreinador.map((t) => `${t.unidade} · ${t.treinador} — ${t.total} atendimento(s) · ${t.turnos.join(', ') || 'sem turno'}`)),
                 })
               }
             />
