@@ -134,7 +134,11 @@ export function useOperacionalDashboard(filtros: OperacionalFiltros) {
     const somaAtendimentos = (rows: AtendimentoRow[]) =>
       rows.reduce((acc, r) => acc + (r.quantidade && r.quantidade > 0 ? r.quantidade : 0), 0);
     const treinadoresAtivos = (rows: AtendimentoRow[]) =>
-      new Set(rows.filter((r) => r.treinador && (r.quantidade ?? 0) > 0).map((r) => r.treinador as string));
+      new Set(
+        rows
+          .filter((r) => r.treinador && (r.quantidade ?? 0) > 0)
+          .map((r) => `${r.unidade}|${r.treinador}`),
+      );
 
     const totalAtendimentos = somaAtendimentos(atual.atendimentos);
     const totalAtendimentosAnt = somaAtendimentos(anterior.atendimentos);
