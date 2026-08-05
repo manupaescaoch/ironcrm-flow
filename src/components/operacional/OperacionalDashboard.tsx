@@ -41,6 +41,14 @@ import { IndiceOperacionalCard } from './IndiceOperacionalCard';
 import { PendenciasAlertasCard } from './PendenciasAlertasCard';
 import { InsightsCard } from './InsightsCard';
 import { CronogramaDashboard } from '@/components/cronograma/CronogramaDashboard';
+import { FormularioOrigem, FormularioOrigemDialog } from './FormularioOrigemDialog';
+
+interface DrillItem {
+  texto: string;
+  origem?: FormularioOrigem;
+}
+
+const txt = (itens: string[]): DrillItem[] => itens.map((texto) => ({ texto }));
 
 const fmtNum = (v: number | null, dec = 1) => (v === null || v === undefined ? 'Sem registro' : v.toFixed(dec).replace('.', ','));
 
