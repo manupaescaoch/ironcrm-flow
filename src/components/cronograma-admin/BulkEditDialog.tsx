@@ -159,6 +159,7 @@ export function BulkEditDialog({ open, onOpenChange, field, selected, unidadesOp
               <Textarea
                 ref={mensagemRef}
                 preserveCase
+                className="!normal-case"
                 rows={5}
                 value={mensagem}
                 onChange={e => setMensagem(e.target.value)}
