@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
 
     const { data: lead, error: leadErr } = await supabase
       .from('leads')
-      .select('id, nome, telefone, unidade_id, ativo')
+      .select('id, nome, telefone, unidade_id, ativo, data_aula_experimental')
       .eq('id', leadId)
       .single();
 
@@ -167,7 +167,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 4) Envia
     // 4) Envia (com idempotência: 1 mensagem de reagendamento por lead/dia da aula)
     const chaveReag = buildIdempotencyKey([
       FUNC, lead.id, String(lead.data_aula_experimental ?? '').slice(0, 10) || 'sem_data',
