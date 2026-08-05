@@ -26,11 +26,12 @@ function constantTimeEqual(a: string, b: string): boolean {
  * Used for automation functions that may be called by pg_cron OR by authenticated staff.
  */
 export async function authorizeCronOrJwt(req: Request): Promise<AuthResult> {
-  const cronSecret = Deno.env.get('BACKUP_CRON_SECRET');
+  const cronSecret = Deno.env.get('CRON_JOB_SECRET') || Deno.env.get('BACKUP_CRON_SECRET');
   // Fail closed if server is misconfigured.
   if (!cronSecret || cronSecret.length < 16) {
     return { ok: false, status: 500, error: 'Server misconfigured: cron secret unset' };
   }
+
 
   const requestSecret = req.headers.get('x-cron-secret');
   if (requestSecret && constantTimeEqual(requestSecret, cronSecret)) {
