@@ -29,14 +29,24 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get optional unidade_id from request body
+    // Get optional unidade_id from request body (deve ser UUID quando informado)
     let unidadeId: string | null = null;
     try {
       const body = await req.json();
-      unidadeId = body.unidade_id || null;
+      const raw = body?.unidade_id;
+      if (typeof raw === 'string' && raw) {
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) {
+          return new Response(JSON.stringify({ error: 'unidade_id inválido' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        unidadeId = raw;
+      }
     } catch {
       // No body or invalid JSON, proceed with all unidades
     }
+
 
     console.log('Starting follow-up generation (attendance-based)...', { unidadeId });
 
