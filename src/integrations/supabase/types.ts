@@ -1801,6 +1801,7 @@ export type Database = {
           comissao_comercial: number | null
           comissao_recepcao: number | null
           compareceu: boolean | null
+          compareceu_em: string | null
           confirmado: boolean | null
           created_at: string
           created_by: string | null
@@ -1841,6 +1842,7 @@ export type Database = {
           comissao_comercial?: number | null
           comissao_recepcao?: number | null
           compareceu?: boolean | null
+          compareceu_em?: string | null
           confirmado?: boolean | null
           created_at?: string
           created_by?: string | null
@@ -1881,6 +1883,7 @@ export type Database = {
           comissao_comercial?: number | null
           comissao_recepcao?: number | null
           compareceu?: boolean | null
+          compareceu_em?: string | null
           confirmado?: boolean | null
           created_at?: string
           created_by?: string | null
