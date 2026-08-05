@@ -239,58 +239,64 @@ export function OperacionalDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {!data.distribuicao ? (
+              {data.distribuicoesPorUnidade.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Sem atendimentos registrados para avaliar a distribuição.</p>
               ) : (
-                <div className="space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge
-                      className={
-                        data.distribuicao.classe === 'equilibrada'
-                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-                          : data.distribuicao.classe === 'atencao'
-                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
-                            : 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
-                      }
-                      variant="outline"
-                    >
-                      {DISTRIBUICAO_LABEL[data.distribuicao.classe]}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      Diferença de {data.distribuicao.amplitude} atendimento(s) entre o maior e o menor
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                    <div className="rounded-md border p-2">
-                      <p className="text-muted-foreground">Maior individual</p>
-                      <p className="font-semibold">{data.distribuicao.maior?.treinador} · {data.distribuicao.maior?.quantidade}</p>
+                <div className="space-y-4">
+                  {data.distribuicoesPorUnidade.map((d) => (
+                    <div key={d.unidade} className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold">{d.unidade}</span>
+                        <Badge
+                          className={
+                            d.classe === 'equilibrada'
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                              : d.classe === 'atencao'
+                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                                : 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                          }
+                          variant="outline"
+                        >
+                          {DISTRIBUICAO_LABEL[d.classe]}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          Diferença de {d.amplitude} atendimento(s) entre o maior e o menor
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                        <div className="rounded-md border p-2">
+                          <p className="text-muted-foreground">Maior individual</p>
+                          <p className="font-semibold">{d.maior?.treinador} · {d.maior?.quantidade}</p>
+                        </div>
+                        <div className="rounded-md border p-2">
+                          <p className="text-muted-foreground">Menor individual</p>
+                          <p className="font-semibold">{d.menor?.treinador} · {d.menor?.quantidade}</p>
+                        </div>
+                        <div className="rounded-md border p-2">
+                          <p className="text-muted-foreground">Média</p>
+                          <p className="font-semibold">{fmtNum(d.media)}</p>
+                        </div>
+                        <div className="rounded-md border p-2">
+                          <p className="text-muted-foreground">Treinadores que atuaram</p>
+                          <p className="font-semibold">{d.totalTreinadores}</p>
+                        </div>
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-md bg-muted/50 p-2">
+                          <p className="text-muted-foreground mb-1">Acima da média</p>
+                          <p>{d.acimaMedia.join(', ') || '—'}</p>
+                        </div>
+                        <div className="rounded-md bg-muted/50 p-2">
+                          <p className="text-muted-foreground mb-1">Abaixo da média</p>
+                          <p>{d.abaixoMedia.join(', ') || '—'}</p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="rounded-md border p-2">
-                      <p className="text-muted-foreground">Menor individual</p>
-                      <p className="font-semibold">{data.distribuicao.menor?.treinador} · {data.distribuicao.menor?.quantidade}</p>
-                    </div>
-                    <div className="rounded-md border p-2">
-                      <p className="text-muted-foreground">Média</p>
-                      <p className="font-semibold">{fmtNum(data.distribuicao.media)}</p>
-                    </div>
-                    <div className="rounded-md border p-2">
-                      <p className="text-muted-foreground">Treinadores que atuaram</p>
-                      <p className="font-semibold">{data.distribuicao.totalTreinadores}</p>
-                    </div>
-                  </div>
-                  <div className="grid md:grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-md bg-muted/50 p-2">
-                      <p className="text-muted-foreground mb-1">Acima da média</p>
-                      <p>{data.distribuicao.acimaMedia.join(', ') || '—'}</p>
-                    </div>
-                    <div className="rounded-md bg-muted/50 p-2">
-                      <p className="text-muted-foreground mb-1">Abaixo da média</p>
-                      <p>{data.distribuicao.abaixoMedia.join(', ') || '—'}</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               )}
             </CardContent>
+
           </Card>
 
           {/* 2ª linha — qualidade operacional */}
