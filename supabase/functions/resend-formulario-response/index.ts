@@ -50,6 +50,14 @@ Deno.serve(async (req) => {
   if (!Array.isArray(items) || items.length === 0) {
     return new Response(JSON.stringify({ error: 'no_items' }), { status: 400, headers: corsHeaders });
   }
+  if (items.length > 50) {
+    return new Response(JSON.stringify({ error: 'too_many_items' }), { status: 400, headers: corsHeaders });
+  }
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (items.some((it) => typeof it?.resposta_id !== 'string' || !UUID_RE.test(it.resposta_id))) {
+    return new Response(JSON.stringify({ error: 'resposta_id inválido' }), { status: 400, headers: corsHeaders });
+  }
+
 
   const results: unknown[] = [];
   for (const it of items) {
