@@ -21,20 +21,29 @@ function constantTimeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+/** Segredos aceitos no header x-cron-secret (permite rotação sem downtime). */
+function cronSecrets(): string[] {
+  return [Deno.env.get('CRON_JOB_SECRET'), Deno.env.get('BACKUP_CRON_SECRET')]
+    .filter((s): s is string => !!s && s.length >= 16);
+}
+
+function matchesCronSecret(req: Request): boolean {
+  const requestSecret = req.headers.get('x-cron-secret');
+  if (!requestSecret) return false;
+  return cronSecrets().some((s) => constantTimeEqual(requestSecret, s));
+}
+
 /**
  * Allow either a valid cron secret header (X-Cron-Secret) or a valid Supabase JWT.
  * Used for automation functions that may be called by pg_cron OR by authenticated staff.
  */
 export async function authorizeCronOrJwt(req: Request): Promise<AuthResult> {
-  const cronSecret = Deno.env.get('CRON_JOB_SECRET') || Deno.env.get('BACKUP_CRON_SECRET');
   // Fail closed if server is misconfigured.
-  if (!cronSecret || cronSecret.length < 16) {
+  if (cronSecrets().length === 0) {
     return { ok: false, status: 500, error: 'Server misconfigured: cron secret unset' };
   }
 
-
-  const requestSecret = req.headers.get('x-cron-secret');
-  if (requestSecret && constantTimeEqual(requestSecret, cronSecret)) {
+  if (matchesCronSecret(req)) {
     return { ok: true, method: 'cron' };
   }
 
@@ -63,16 +72,15 @@ export async function authorizeCronOrJwt(req: Request): Promise<AuthResult> {
  * with no legitimate frontend caller.
  */
 export function authorizeCronOnly(req: Request): AuthResult {
-  const cronSecret = Deno.env.get('BACKUP_CRON_SECRET');
-  if (!cronSecret || cronSecret.length < 16) {
+  if (cronSecrets().length === 0) {
     return { ok: false, status: 500, error: 'Server misconfigured: cron secret unset' };
   }
-  const requestSecret = req.headers.get('x-cron-secret');
-  if (!requestSecret || !constantTimeEqual(requestSecret, cronSecret)) {
+  if (!matchesCronSecret(req)) {
     return { ok: false, status: 401, error: 'Unauthorized' };
   }
   return { ok: true, method: 'cron' };
 }
+
 
 export const CRON_CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
