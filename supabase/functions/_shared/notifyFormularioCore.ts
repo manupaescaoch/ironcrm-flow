@@ -3,6 +3,7 @@
 // and Z-API dispatch lives here so the two entrypoints share one trusted path.
 
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { buildIdempotencyKey, getZapiCreds, sendTextIdempotent } from './zapi.ts';
 
 export const TIPOS_FORMULARIO = [
   'estagiario_lider',
