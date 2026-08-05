@@ -9,6 +9,7 @@ import {
   TurnoRow,
   TURNOS,
   calcularDistribuicao,
+  calcularDistribuicaoPorUnidade,
   calcularIndice,
   dateFromTimestamp,
   derivarPendencias,
@@ -133,7 +134,11 @@ export function useOperacionalDashboard(filtros: OperacionalFiltros) {
     const somaAtendimentos = (rows: AtendimentoRow[]) =>
       rows.reduce((acc, r) => acc + (r.quantidade && r.quantidade > 0 ? r.quantidade : 0), 0);
     const treinadoresAtivos = (rows: AtendimentoRow[]) =>
-      new Set(rows.filter((r) => r.treinador && (r.quantidade ?? 0) > 0).map((r) => r.treinador as string));
+      new Set(
+        rows
+          .filter((r) => r.treinador && (r.quantidade ?? 0) > 0)
+          .map((r) => `${r.unidade}|${r.treinador}`),
+      );
 
     const totalAtendimentos = somaAtendimentos(atual.atendimentos);
     const totalAtendimentosAnt = somaAtendimentos(anterior.atendimentos);
@@ -254,35 +259,39 @@ export function useOperacionalDashboard(filtros: OperacionalFiltros) {
     const indiceAnterior = calcularIndice(qualMapAnt);
 
     /* ------------------------------ Distribuição ---------------------------- */
-    const distribuicao = calcularDistribuicao(atual.atendimentos);
+    const distribuicoesPorUnidade = calcularDistribuicaoPorUnidade(atual.atendimentos);
+    const distribuicao = distribuicoesPorUnidade.length === 1 ? distribuicoesPorUnidade[0] : null;
 
     /* -------------------------- Atendimentos/treinador ---------------------- */
+    // Chave composta treinador + unidade: um treinador que atua em mais de uma
+    // unidade aparece com os atendimentos separados por unidade (nunca somados).
     const porTreinadorMap = new Map<
       string,
-      { treinador: string; total: number; dias: Set<string>; unidades: Set<string>; turnos: Set<string>; registros: AtendimentoRow[] }
+      { treinador: string; unidade: string; total: number; dias: Set<string>; turnos: Set<string>; registros: AtendimentoRow[] }
     >();
     atual.atendimentos.forEach((r) => {
       if (!r.treinador || !r.quantidade || r.quantidade <= 0) return;
+      const key = `${r.unidade}|${r.treinador}`;
       const cur =
-        porTreinadorMap.get(r.treinador) ??
-        { treinador: r.treinador, total: 0, dias: new Set<string>(), unidades: new Set<string>(), turnos: new Set<string>(), registros: [] };
+        porTreinadorMap.get(key) ??
+        { treinador: r.treinador, unidade: r.unidade, total: 0, dias: new Set<string>(), turnos: new Set<string>(), registros: [] };
       cur.total += r.quantidade;
       cur.dias.add(r.data);
-      cur.unidades.add(r.unidade);
       cur.turnos.add(r.turno);
       cur.registros.push(r);
-      porTreinadorMap.set(r.treinador, cur);
+      porTreinadorMap.set(key, cur);
     });
     const porTreinador = [...porTreinadorMap.values()]
       .map((t) => ({
         treinador: t.treinador,
+        unidade: t.unidade,
         total: t.total,
         mediaDiaria: t.dias.size ? t.total / t.dias.size : 0,
-        unidades: [...t.unidades],
+        unidades: [t.unidade],
         turnos: [...t.turnos],
         registros: t.registros.slice().sort((a, b) => (a.data < b.data ? 1 : -1)),
       }))
-      .sort((a, b) => b.total - a.total);
+      .sort((a, b) => (a.unidade === b.unidade ? b.total - a.total : a.unidade < b.unidade ? -1 : 1));
 
     /* ------------------------------- Evolução ------------------------------- */
     const buildSerie = (granularidade: 'dia' | 'semana' | 'mes') => {
@@ -471,26 +480,29 @@ export function useOperacionalDashboard(filtros: OperacionalFiltros) {
 
     /* --------------------------------- Insights ---------------------------- */
     const insights: { texto: string; tipo: 'positivo' | 'atencao' | 'neutro' }[] = [];
-    if (distribuicao) {
+    distribuicoesPorUnidade.forEach((d) => {
       insights.push({
         texto:
-          distribuicao.classe === 'equilibrada'
-            ? `Distribuição dos atendimentos equilibrada (amplitude de ${distribuicao.amplitude} atendimento(s) entre ${distribuicao.totalTreinadores} treinadores).`
-            : `Distribuição ${distribuicao.classe === 'atencao' ? 'em atenção' : 'desequilibrada'}: ${distribuicao.maior?.treinador} fez ${distribuicao.maior?.quantidade} e ${distribuicao.menor?.treinador} fez ${distribuicao.menor?.quantidade}.`,
-        tipo: distribuicao.classe === 'equilibrada' ? 'positivo' : 'atencao',
+          d.classe === 'equilibrada'
+            ? `${d.unidade}: distribuição dos atendimentos equilibrada (amplitude de ${d.amplitude} atendimento(s) entre ${d.totalTreinadores} treinadores).`
+            : `${d.unidade}: distribuição ${d.classe === 'atencao' ? 'em atenção' : 'desequilibrada'} — ${d.maior?.treinador} fez ${d.maior?.quantidade} e ${d.menor?.treinador} fez ${d.menor?.quantidade}.`,
+        tipo: d.classe === 'equilibrada' ? 'positivo' : 'atencao',
       });
-    }
+    });
     const porTurno = new Map<string, number>();
     atual.atendimentos.forEach((r) => {
-      if ((r.quantidade ?? 0) > 0) porTurno.set(r.turno, (porTurno.get(r.turno) ?? 0) + (r.quantidade as number));
+      if ((r.quantidade ?? 0) > 0) porTurno.set(`${r.unidade} · ${r.turno}`, (porTurno.get(`${r.unidade} · ${r.turno}`) ?? 0) + (r.quantidade as number));
     });
     const turnoTop = [...porTurno.entries()].sort((a, b) => b[1] - a[1])[0];
     if (turnoTop) insights.push({ texto: `Turno com maior volume: ${turnoTop[0]} com ${turnoTop[1]} atendimentos no período.`, tipo: 'neutro' });
-    if (porTreinador[0])
-      insights.push({
-        texto: `${porTreinador[0].treinador} lidera com ${porTreinador[0].total} atendimentos (média de ${porTreinador[0].mediaDiaria.toFixed(1)}/dia).`,
-        tipo: 'positivo',
-      });
+    [...new Set(porTreinador.map((t) => t.unidade))].forEach((u) => {
+      const top = porTreinador.filter((t) => t.unidade === u).sort((a, b) => b.total - a.total)[0];
+      if (top)
+        insights.push({
+          texto: `${top.treinador} lidera em ${u} com ${top.total} atendimentos (média de ${top.mediaDiaria.toFixed(1)}/dia).`,
+          tipo: 'positivo',
+        });
+    });
     qualidade.forEach((q) => {
       if (q.media !== null && q.mediaAnterior !== null && q.media < q.mediaAnterior - 0.3) {
         insights.push({
@@ -587,6 +599,7 @@ export function useOperacionalDashboard(filtros: OperacionalFiltros) {
       },
       turnos,
       distribuicao,
+      distribuicoesPorUnidade,
       qualidade,
       indice,
       indiceAnterior: indiceAnterior.indice,
