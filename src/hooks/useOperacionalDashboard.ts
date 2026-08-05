@@ -480,26 +480,29 @@ export function useOperacionalDashboard(filtros: OperacionalFiltros) {
 
     /* --------------------------------- Insights ---------------------------- */
     const insights: { texto: string; tipo: 'positivo' | 'atencao' | 'neutro' }[] = [];
-    if (distribuicao) {
+    distribuicoesPorUnidade.forEach((d) => {
       insights.push({
         texto:
-          distribuicao.classe === 'equilibrada'
-            ? `Distribuição dos atendimentos equilibrada (amplitude de ${distribuicao.amplitude} atendimento(s) entre ${distribuicao.totalTreinadores} treinadores).`
-            : `Distribuição ${distribuicao.classe === 'atencao' ? 'em atenção' : 'desequilibrada'}: ${distribuicao.maior?.treinador} fez ${distribuicao.maior?.quantidade} e ${distribuicao.menor?.treinador} fez ${distribuicao.menor?.quantidade}.`,
-        tipo: distribuicao.classe === 'equilibrada' ? 'positivo' : 'atencao',
+          d.classe === 'equilibrada'
+            ? `${d.unidade}: distribuição dos atendimentos equilibrada (amplitude de ${d.amplitude} atendimento(s) entre ${d.totalTreinadores} treinadores).`
+            : `${d.unidade}: distribuição ${d.classe === 'atencao' ? 'em atenção' : 'desequilibrada'} — ${d.maior?.treinador} fez ${d.maior?.quantidade} e ${d.menor?.treinador} fez ${d.menor?.quantidade}.`,
+        tipo: d.classe === 'equilibrada' ? 'positivo' : 'atencao',
       });
-    }
+    });
     const porTurno = new Map<string, number>();
     atual.atendimentos.forEach((r) => {
-      if ((r.quantidade ?? 0) > 0) porTurno.set(r.turno, (porTurno.get(r.turno) ?? 0) + (r.quantidade as number));
+      if ((r.quantidade ?? 0) > 0) porTurno.set(`${r.unidade} · ${r.turno}`, (porTurno.get(`${r.unidade} · ${r.turno}`) ?? 0) + (r.quantidade as number));
     });
     const turnoTop = [...porTurno.entries()].sort((a, b) => b[1] - a[1])[0];
     if (turnoTop) insights.push({ texto: `Turno com maior volume: ${turnoTop[0]} com ${turnoTop[1]} atendimentos no período.`, tipo: 'neutro' });
-    if (porTreinador[0])
-      insights.push({
-        texto: `${porTreinador[0].treinador} lidera com ${porTreinador[0].total} atendimentos (média de ${porTreinador[0].mediaDiaria.toFixed(1)}/dia).`,
-        tipo: 'positivo',
-      });
+    [...new Set(porTreinador.map((t) => t.unidade))].forEach((u) => {
+      const top = porTreinador.filter((t) => t.unidade === u).sort((a, b) => b.total - a.total)[0];
+      if (top)
+        insights.push({
+          texto: `${top.treinador} lidera em ${u} com ${top.total} atendimentos (média de ${top.mediaDiaria.toFixed(1)}/dia).`,
+          tipo: 'positivo',
+        });
+    });
     qualidade.forEach((q) => {
       if (q.media !== null && q.mediaAnterior !== null && q.media < q.mediaAnterior - 0.3) {
         insights.push({
