@@ -147,8 +147,8 @@ export function OperacionalDashboard() {
               subtitle={`Anterior: ${data.produtividade.totalAtendimentosAnt}`}
               onClick={() =>
                 setDrill({
-                  titulo: 'Atendimentos por registro',
-                  itens: txt(data.porTreinador.map((t) => `${t.treinador}: ${t.total} atendimentos (média ${t.mediaDiaria.toFixed(1)}/dia)`)),
+                  titulo: 'Atendimentos por treinador (separado por unidade)',
+                  itens: txt(data.porTreinador.map((t) => `${t.unidade} · ${t.treinador}: ${t.total} atendimentos (média ${t.mediaDiaria.toFixed(1)}/dia)`)),
                 })
               }
             />
