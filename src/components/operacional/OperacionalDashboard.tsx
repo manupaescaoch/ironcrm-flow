@@ -71,7 +71,7 @@ export function OperacionalDashboard() {
 
   const mediaEquipe = data?.produtividade.mediaTreinador ?? null;
 
-  const registrosQualidade = useMemo(() => data?.registros ?? null, [data]);
+  
 
   if (error) {
     return (
