@@ -283,30 +283,24 @@ Deno.serve(async (req) => {
             await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, motivo_skip: 'phone_nao_existe', canal: 'comercial' });
             resultados.push({ lead_id: lead.id, tipo: '2h', skipped: 'phone_nao_existe' });
           } else {
-            const { data: reserva2, error: reservaErr2 } = await supabase
-              .from('leads')
-              .update({ confirmacao_2h_enviada_em: new Date().toISOString() })
-              .eq('id', lead.id)
-              .is('confirmacao_2h_enviada_em', null)
-              .select('id');
+            const chave = buildIdempotencyKey([FUNC, '2h', lead.id, dataAula, `${h}${m}`]);
+            await rateGate();
+            const r = await sendTextIdempotent(supabase, creds, phone, message, { chave, funcao: FUNC });
 
-            if (reservaErr2 || !reserva2 || reserva2.length === 0) {
-              console.error('[confirmacao-experimental] reserva 2h falhou', { lead_id: lead.id, error: reservaErr2?.message });
-              await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, motivo_skip: 'reserva_2h_falhou', erro_msg: reservaErr2?.message?.slice(0, 500), canal: 'comercial' });
-              resultados.push({ lead_id: lead.id, tipo: '2h', skipped: 'reserva_falhou' });
+            if (r.skipped) {
+              await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, motivo_skip: 'idempotencia_duplicado', canal: 'comercial' });
+              resultados.push({ lead_id: lead.id, tipo: '2h', skipped: 'duplicado' });
+            } else if (r.ok) {
+              envios++;
+              await supabase.from('leads').update({ confirmacao_2h_enviada_em: new Date().toISOString() }).eq('id', lead.id);
+              await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: true, zapi_status_code: r.status, canal: 'comercial', status_envio: 'enviado' });
+              resultados.push({ lead_id: lead.id, tipo: '2h', sent: true, status: r.status });
             } else {
-              await rateGate();
-              const r = await sendText(creds, phone, message);
-              if (r.ok) {
-                envios++;
-                await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: true, zapi_status_code: r.status, canal: 'comercial' });
-              } else {
-                await supabase.from('leads').update({ confirmacao_2h_enviada_em: null }).eq('id', lead.id);
-                await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, zapi_status_code: r.status, erro_msg: JSON.stringify(r.body).slice(0, 500), canal: 'comercial' });
-              }
-              resultados.push({ lead_id: lead.id, tipo: '2h', sent: r.ok, status: r.status });
+              await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, zapi_status_code: r.status, erro_msg: JSON.stringify(r.body).slice(0, 500), canal: 'comercial', status_envio: 'falhou' });
+              resultados.push({ lead_id: lead.id, tipo: '2h', sent: false, status: r.status });
             }
           }
+
 
         }
       }
