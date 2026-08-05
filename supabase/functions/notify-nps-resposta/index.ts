@@ -12,10 +12,29 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Coordenador de cada unidade — TODA notificação de NPS vai para ele (nunca para o aluno)
 const RESPONSAVEIS: Record<string, { nome: string; phone: string }> = {
   MADALENA: { nome: 'Gabriela Lima', phone: '5581991642282' },
   'BOA VIAGEM': { nome: 'Marcelo Santana', phone: '5581994145218' },
 };
+
+function findCoordenador(unidadeNome: string) {
+  const key = (unidadeNome || '').toUpperCase().trim();
+  for (const [k, v] of Object.entries(RESPONSAVEIS)) {
+    if (key.includes(k)) return v;
+  }
+  return null;
+}
+
+function acaoSugerida(classificacao: string): string {
+  if (classificacao === 'Detrator') {
+    return '⚠️ *Ação:* entre em contato com o aluno o quanto antes para entender o que aconteceu.';
+  }
+  if (classificacao === 'Passivo') {
+    return '🟡 *Ação:* fale com o aluno e descubra o que faltou para ser nota 10.';
+  }
+  return '🟢 *Ação:* aluno promotor — considere agradecer e pedir uma indicação.';
+}
 
 function classificar(nota: number): 'Detrator' | 'Passivo' | 'Promotor' {
   if (nota <= 6) return 'Detrator';
@@ -90,7 +109,7 @@ Deno.serve(async (req) => {
     const nota = Number(resp.nota_nps);
     const classificacao = classificar(nota);
     const unidadeKey = (resp.unidade_nome || '').toUpperCase().trim();
-    const responsavel = RESPONSAVEIS[unidadeKey];
+    const responsavel = findCoordenador(resp.unidade_nome || '');
     const alunoPhone = formatPhoneBR(resp.whatsapp || '');
     const comentario = (resp.comentario || '').trim();
 
@@ -119,12 +138,13 @@ Deno.serve(async (req) => {
     // 1) Interno ao responsável
     if (responsavel) {
       const msgInterna =
-        `🟦 *Nova resposta NPS — Iron*\n\n` +
-        `*Nome do aluno:* ${resp.nome}\n` +
-        `*Telefone do aluno:* ${alunoPhone}\n` +
-        `*Nota NPS:* ${nota}\n` +
-        `*Mensagem do aluno:* ${comentario || '—'}\n` +
-        `*Classificação:* ${classificacao}`;
+        `🟦 *Nova resposta NPS — EVO TRAINING CLUB*\n\n` +
+        `*Unidade:* ${resp.unidade_nome || '—'}\n` +
+        `*Aluno:* ${resp.nome}\n` +
+        `*Contato:* ${alunoPhone}\n` +
+        `*Nota NPS:* ${nota} (${classificacao})\n` +
+        `*Comentário:* ${comentario || '—'}\n\n` +
+        acaoSugerida(classificacao);
 
       const chaveInterna = buildIdempotencyKey(['notify-nps-resposta', resp.id, 'interno', responsavel.phone]);
       const r = await sendTextIdempotent(supabase, creds, responsavel.phone, msgInterna, { chave: chaveInterna, funcao: 'notify-nps-resposta' });
