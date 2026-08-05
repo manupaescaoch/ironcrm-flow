@@ -276,6 +276,7 @@ function EditGrupoDialog({
                 <Textarea
                   ref={textareaRef}
                   preserveCase
+                  className="!normal-case"
                   value={mensagem}
                   onChange={(e) => setMensagem(e.target.value)}
                   placeholder="Mensagem enviada via WhatsApp..."

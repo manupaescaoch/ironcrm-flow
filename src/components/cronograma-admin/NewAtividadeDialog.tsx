@@ -249,6 +249,7 @@ export function NewAtividadeDialog({ tipo, open, onOpenChange }: Props) {
                 <Textarea
                   ref={mensagemRef}
                   preserveCase
+                  className="!normal-case"
                   value={mensagem}
                   onChange={(e) => setMensagem(e.target.value)}
                   placeholder="Mensagem enviada via WhatsApp..."
