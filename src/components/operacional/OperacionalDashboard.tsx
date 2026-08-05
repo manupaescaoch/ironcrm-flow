@@ -372,13 +372,26 @@ export function OperacionalDashboard() {
                 <p className="text-sm text-muted-foreground">Sem registros para exibir.</p>
               ) : (
                 drill?.itens.map((i, idx) => (
-                  <p key={idx} className="rounded-md border p-2 text-xs">{i}</p>
+                  <div key={idx} className="rounded-md border p-2 text-xs flex items-start justify-between gap-2">
+                    <span className="whitespace-pre-wrap">{i.texto}</span>
+                    {i.origem && (
+                      <Button
+                        variant="link"
+                        className="h-auto shrink-0 p-0 text-xs"
+                        onClick={() => setOrigem(i.origem!)}
+                      >
+                        Ver formulário
+                      </Button>
+                    )}
+                  </div>
                 ))
               )}
             </div>
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      <FormularioOrigemDialog origem={origem} onClose={() => setOrigem(null)} />
     </div>
   );
 }
