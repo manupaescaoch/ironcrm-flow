@@ -47,6 +47,15 @@ function getBrasiliaDateOnly(date: Date = new Date()) {
 
 const HOURS_AFTER_CLASS = 3;
 
+// Mensagem definida para o FU pós-experimental (mesma base do D+1, ajustada para o mesmo dia)
+const buildMensagemLead = (nome: string) => `Oi, ${nome}! Tudo bem?
+
+Passando pra saber da experiência com a gente hoje! Como foi o treino? Faz toda a diferença ter um acompanhamento de verdade, né?
+
+Espero que tenha curtido a experiência aqui na EVO. Se fizer sentido pra você continuar treinando com a gente, me chama por aqui que te explico os planos.
+
+Qualquer dúvida, estamos à disposição!`;
+
 
 // Eliminando redundância com _shared/zapi.ts
 
@@ -153,15 +162,7 @@ Deno.serve(async (req) => {
       .in('id', leadIds);
     const leadMap = new Map((leads || []).map((l: any) => [l.id, l]));
 
-    // Carrega telefones de recepção por unidade
-    const unidadeIds = Array.from(new Set((leads || []).map((l: any) => l.unidade_id).filter(Boolean)));
-    const { data: cfgs } = await supabase
-      .from('unidade_whatsapp_config')
-      .select('unidade_id, telefone_recepcao')
-      .eq('ativo', true)
-      .not('telefone_recepcao', 'is', null)
-      .in('unidade_id', unidadeIds);
-    const recepcaoMap = new Map((cfgs || []).map((c: any) => [c.unidade_id, c.telefone_recepcao]));
+    // FU pós-experimental vai DIRETO ao lead pelo chip comercial (sem recepção)
 
     
     let sent = 0;
@@ -202,25 +203,16 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const recepcao = recepcaoMap.get(lead.unidade_id);
-      if (!recepcao) {
-        errors.push(`Sem telefone de recepção para unidade ${lead.unidade_id} (lead ${lead.nome})`);
+      const phone = normalizePhone(lead.telefone || '');
+      if (!phone || phone.length < 12) {
+        errors.push(`Telefone inválido para lead ${lead.nome}`);
         continue;
       }
 
-      const horaAula = (inter.hora_experimental || '').slice(0, 5);
-      const message = `📞 *Feedback pós-aula experimental*
-
-👤 *Lead:* ${lead.nome}
-📱 *Telefone:* ${formatPhoneBR(lead.telefone || '')}
-🕒 *Aula:* hoje às ${horaAula}
-
-Entrar em contato para coletar feedback da experiência e oferecer o plano.`;
-
-      const phone = normalizePhone(recepcao);
+      const message = buildMensagemLead((lead.nome || '').split(' ')[0] || lead.nome || '');
 
       if (dryRun) {
-        results.push({ lead: lead.nome, destino_recepcao: phone, unidade_id: lead.unidade_id, preview: message });
+        results.push({ lead: lead.nome, destino_lead: phone, unidade_id: lead.unidade_id, preview: message });
         continue;
       }
 
@@ -244,7 +236,7 @@ Entrar em contato para coletar feedback da experiência e oferecer o plano.`;
           await logEnvio(supabase, {
             funcao: FUNC,
             destino: phone,
-            tipo_destino: 'recepcao',
+            tipo_destino: 'lead',
             unidade_id: lead.unidade_id,
             sucesso: true,
             zapi_status_code: r.status,
@@ -277,7 +269,7 @@ Entrar em contato para coletar feedback da experiência e oferecer o plano.`;
           await logEnvio(supabase, {
             funcao: FUNC,
             destino: phone,
-            tipo_destino: 'recepcao',
+            tipo_destino: 'lead',
             unidade_id: lead.unidade_id,
             sucesso: false,
             zapi_status_code: r.status,
@@ -291,7 +283,7 @@ Entrar em contato para coletar feedback da experiência e oferecer o plano.`;
         await logEnvio(supabase, {
           funcao: FUNC,
           destino: phone,
-          tipo_destino: 'recepcao',
+          tipo_destino: 'lead',
           unidade_id: lead.unidade_id,
           sucesso: false,
           erro_msg: e?.message ?? String(e),
