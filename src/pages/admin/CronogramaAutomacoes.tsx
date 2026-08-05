@@ -100,17 +100,23 @@ function EditGrupoDialog({
   const [mensagem, setMensagem] = useState('');
   const [formularioId, setFormularioId] = useState<string>('');
 
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const grupoKey = grupo?.key ?? null;
+
   useEffect(() => {
-    if (open && grupo && first) {
-      setHorario(grupo.horario?.slice(0, 5) || '');
-      setDias(Array.from(new Set(grupo.diasAtivos)).sort((a, b) => a - b));
-      setRespId(grupo.responsavel_id || '');
-      const hasForm = !!first.formulario_id;
-      setModo(hasForm ? 'formulario' : 'mensagem');
-      setMensagem(first.mensagem || '');
-      setFormularioId(first.formulario_id || '');
-    }
-  }, [open, grupo, first]);
+    if (!open || !grupo || !first) return;
+    setHorario(grupo.horario?.slice(0, 5) || '');
+    setDias(Array.from(new Set(grupo.diasAtivos)).sort((a, b) => a - b));
+    setRespId(grupo.responsavel_id || '');
+    const hasForm = !!first.formulario_id;
+    setModo(hasForm ? 'formulario' : 'mensagem');
+    setMensagem(first.mensagem || '');
+    setFormularioId(first.formulario_id || '');
+    // Reinicializa apenas ao abrir ou ao trocar a atividade editada (evita o cursor
+    // voltar para o fim do texto quando o componente pai re-renderiza).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, grupoKey]);
+
 
   const { data: funcionarios = [] } = useQuery({
     queryKey: ['cronograma-funcionarios-full', grupo?.unidade_id],
