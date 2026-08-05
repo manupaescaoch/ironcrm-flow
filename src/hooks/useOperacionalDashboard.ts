@@ -599,6 +599,7 @@ export function useOperacionalDashboard(filtros: OperacionalFiltros) {
       },
       turnos,
       distribuicao,
+      distribuicoesPorUnidade,
       qualidade,
       indice,
       indiceAnterior: indiceAnterior.indice,
