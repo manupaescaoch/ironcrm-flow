@@ -6,11 +6,12 @@ import {
   sendTextIdempotent,
   logEnvio,
 } from '../_shared/zapi.ts';
+import { authorizeCronOrJwt, CRON_CORS_HEADERS } from '../_shared/cronAuth.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const corsHeaders = CRON_CORS_HEADERS;
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 
 // Coordenador de cada unidade — TODA notificação de NPS vai para ele (nunca para o aluno)
 const RESPONSAVEIS: Record<string, { nome: string; phone: string }> = {
