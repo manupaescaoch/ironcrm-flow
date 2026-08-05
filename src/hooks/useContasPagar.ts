@@ -58,6 +58,9 @@ export function useContasPagar(from: string, to: string) {
   const hoje = getTodayInBrasilia();
 
   const canManage = isAdmin || userRole === 'comercial';
+  // Qualquer usuário autenticado pode cadastrar contas da própria unidade.
+  const canCreate = !!user;
+
 
   const userNome = useMemo(() => {
     const meta = (user?.user_metadata || {}) as Record<string, string>;
@@ -339,6 +342,8 @@ export function useContasPagar(from: string, to: string) {
     kpis,
     hoje,
     canManage,
+    canCreate,
+
     unidadeId,
     unidadeNome: unidadeAtual?.nome ?? '',
     statusDe,

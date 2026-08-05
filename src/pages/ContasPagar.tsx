@@ -75,6 +75,8 @@ export default function ContasPagar() {
     isLoading,
     kpis,
     canManage,
+    canCreate,
+
     unidadeId,
     unidadeNome,
     statusDe,
@@ -156,7 +158,7 @@ export default function ContasPagar() {
             </div>
           </div>
 
-          {canManage && (
+          {canCreate && (
             <div className="flex flex-wrap gap-2">
               <Button
                 onClick={() => {
