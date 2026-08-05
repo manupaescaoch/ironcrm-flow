@@ -47,7 +47,7 @@ const TREINADORES = [
 
 const FOLLOW_UP_MESSAGE = `Oi, {{nome}}! Tudo bem?
 
-Queria saber como você se sentiu na IRON! Gostou do treino e do espaço?
+Queria saber como você se sentiu na EVO! Gostou do treino e do espaço?
 
 A gente se dedica muito a criar um ambiente acolhedor e exclusivo, com acompanhamento de perto pra você treinar com tranquilidade e ter resultados de verdade.
 
@@ -203,7 +203,7 @@ Em caso de dúvidas ou necessidade de reagendamento, entre em contato conosco.
 
 Aguardamos você! 💪`;
     } else {
-      message = `Olá ${primeiroNome}! Sua aula experimental na IRON CLUB está confirmada para hoje (${dataFormatada}) às ${hora}. Estamos te esperando! 💪`;
+      message = `Olá ${primeiroNome}! Sua aula experimental na EVO TRAINING CLUB está confirmada para hoje (${dataFormatada}) às ${hora}. Estamos te esperando! 💪`;
     }
     
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;

@@ -21,7 +21,7 @@ export function AnamneseFinal({ onSave, saving }: AnamneseFinalProps) {
         </h1>
 
         <p className="mt-6 max-w-sm text-base leading-relaxed text-white/85">
-          Agora a equipe da Iron já tem as informações necessárias para conduzir sua aula com mais
+          Agora a equipe da EVO já tem as informações necessárias para conduzir sua aula com mais
           cuidado e personalização.
         </p>
 

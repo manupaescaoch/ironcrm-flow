@@ -323,6 +323,27 @@ export type Database = {
         }
         Relationships: []
       }
+      app_config: {
+        Row: {
+          chave: string
+          created_at: string
+          updated_at: string
+          valor: string
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          updated_at?: string
+          valor: string
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          updated_at?: string
+          valor?: string
+        }
+        Relationships: []
+      }
       contas_pagar: {
         Row: {
           agencia: string | null

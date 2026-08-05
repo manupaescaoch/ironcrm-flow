@@ -65,23 +65,23 @@ function template24h(nome: string, data: string, hora: string): string {
 
 📅 ${data} ⏰ ${hora}
 
-Chega 15 minutinhos antes, tá? Assim a gente te apresenta como funciona a Iron e já preenche sua ficha antes de começar.
+Chega 15 minutinhos antes, tá? Assim a gente te apresenta como funciona a EVO e já preenche sua ficha antes de começar.
 
 Qualquer imprevisto é só me chamar aqui. A gente se vê em breve! 💪
 
-Equipe Iron`;
+Equipe EVO`;
 }
 
 function template2h(nome: string, hora: string): string {
   return `Oi, ${nome}! Daqui a pouco é hora do treino. 💪
 
-Queremos te conhecer melhor! Preenche essa ficha rapidinho antes de vir assim a gente garante a melhor experiência pra você aqui na Iron. 😊
+Queremos te conhecer melhor! Preenche essa ficha rapidinho antes de vir assim a gente garante a melhor experiência pra você aqui na EVO. 😊
 
 👉 ${ANAMNESE_URL}
 
 Te esperamos às ${hora}. Qualquer imprevisto é só me chamar aqui. 🔵
 
-Equipe Iron`;
+Equipe EVO`;
 }
 
 function normalizePhone(raw: string): string {

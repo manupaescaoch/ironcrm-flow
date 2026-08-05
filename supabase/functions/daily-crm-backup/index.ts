@@ -1,10 +1,7 @@
+import { adminCorsHeaders } from '../_shared/cors.ts';
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
-};
 
 // Helper to convert array to CSV
 function arrayToCSV(data: Record<string, unknown>[], columns: string[]): string {
@@ -91,7 +88,7 @@ async function sendEmailNotification(
     <body>
       <div class="container">
         <div class="header">
-          <h1>🔒 IRON CRM - Backup Diário</h1>
+          <h1>🔒 EVO CRM - Backup Diário</h1>
           <p>${formattedDate}</p>
           <span class="success-badge">✓ Backup Concluído</span>
         </div>
@@ -138,7 +135,7 @@ async function sendEmailNotification(
         </div>
         
         <div class="footer">
-          <p>Este é um email automático do IRON CRM.</p>
+          <p>Este é um email automático do EVO CRM.</p>
           <p>Backup realizado em ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Recife' })}</p>
         </div>
       </div>
@@ -154,9 +151,9 @@ async function sendEmailNotification(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'IRON CRM <onboarding@resend.dev>',
+        from: 'EVO CRM <onboarding@resend.dev>',
         to: [adminEmail],
-        subject: `✅ IRON CRM – Backup Diário ${formattedDate}`,
+        subject: `✅ EVO CRM – Backup Diário ${formattedDate}`,
         html: emailHtml,
       }),
     });
@@ -176,6 +173,7 @@ async function sendEmailNotification(
 }
 
 serve(async (req) => {
+  const corsHeaders = adminCorsHeaders(req);
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

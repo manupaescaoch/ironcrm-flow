@@ -735,7 +735,7 @@ export default function GestaoOperacional() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-3xl font-bold">Gestão Operacional</h1>
-            <p className="text-muted-foreground">Visão consolidada das unidades Iron Club</p>
+            <p className="text-muted-foreground">Visão consolidada das unidades EVO TRAINING CLUB</p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">

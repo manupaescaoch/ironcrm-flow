@@ -52,7 +52,7 @@ Aproveitando, ficou com alguma dúvida sobre os nossos planos ou sobre como func
 
   'D+7': `Oi, {{nome}}! Tudo bem?
 
-Passando pra saber se ficou alguma dúvida depois da sua experiência aqui na IRON.
+Passando pra saber se ficou alguma dúvida depois da sua experiência aqui na EVO.
 
 Muitas vezes a pessoa curte a experiência, mas acaba deixando a decisão para depois por conta da rotina corrida...
 
@@ -62,17 +62,17 @@ Como trabalhamos com limite de alunos por horário, fico à disposição pra tir
 
   'D+15': `Oi, {{nome}}! Tudo bem?
 
-Passando por aqui porque já faz alguns dias desde sua experiência na IRON.
+Passando por aqui porque já faz alguns dias desde sua experiência na EVO.
 
 Quando a pessoa conhece a estrutura, gosta do treino e mesmo assim deixa pra depois, normalmente é por algum detalhe que ficou em aberto.
 
 Como trabalhamos com limite de alunos matriculados, prefiro te chamar antes de encerrar seu atendimento por aqui.
 
-Se a IRON ainda fizer sentido pra você, me fala. Posso te ajudar a tirar qualquer dúvida e ver o melhor caminho pra você começar.`,
+Se a EVO ainda fizer sentido pra você, me fala. Posso te ajudar a tirar qualquer dúvida e ver o melhor caminho pra você começar.`,
 
   'D+30': `Oi, {{nome}}!
 
-Passando pra deixar o contato aberto. Se em algum momento quiser treinar com mais acompanhamento e uma experiência diferente, a Iron está aqui.
+Passando pra deixar o contato aberto. Se em algum momento quiser treinar com mais acompanhamento e uma experiência diferente, a EVO está aqui.
 
 Qualquer coisa é só chamar. 🤝`,
 };

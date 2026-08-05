@@ -169,7 +169,7 @@ export default function EncerramentoTurno() {
     list.push({
       key: 'padrao',
       categoria: 'Equipe',
-      pergunta: 'A equipe manteve o padrão de atendimento Iron durante o turno?',
+      pergunta: 'A equipe manteve o padrão de atendimento EVO durante o turno?',
       canContinue: r.manteveProtocolo !== null,
       render: () => (
         <>
@@ -372,7 +372,7 @@ export default function EncerramentoTurno() {
       <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-anamnese-royal p-6 text-anamnese-royal-foreground">
         <div className="w-full max-w-md space-y-8 text-center">
           <p className="font-display-condensed text-xs uppercase tracking-[0.4em] opacity-80">
-            Iron Club
+            EVO TRAINING CLUB
           </p>
           <h1 className="font-display text-5xl font-extrabold uppercase leading-[0.95] tracking-tight">
             Encerramento<br />de Turno
@@ -468,7 +468,7 @@ export default function EncerramentoTurno() {
       <div className="flex min-h-[100dvh] flex-col bg-anamnese-bg">
         <header className="sticky top-0 z-20 bg-anamnese-royal text-anamnese-royal-foreground">
           <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
-            <span className="font-display-condensed text-lg font-extrabold uppercase tracking-wider">Iron Club</span>
+            <span className="font-display-condensed text-lg font-extrabold uppercase tracking-wider">EVO TRAINING CLUB</span>
             <span className="text-xs font-semibold uppercase tracking-wider opacity-90">Resumo</span>
           </div>
         </header>

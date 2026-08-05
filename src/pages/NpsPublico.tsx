@@ -243,12 +243,9 @@ export default function NpsPublico() {
       );
       return;
     }
-    if (insertedId) {
-      supabase.functions
-        .invoke('notify-nps-resposta', { body: { id: insertedId } })
-        .catch((err) => console.error('[nps notify]', err));
-    }
+    // A notificação ao grupo da unidade é disparada pelo servidor após a gravação.
     setDone(true);
+
   }
 
   if (done) {
@@ -265,7 +262,7 @@ export default function NpsPublico() {
             Avaliação enviada
           </h1>
           <p className="text-slate-600">
-            Obrigado por ajudar a Iron a evoluir.
+            Obrigado por ajudar a EVO a evoluir.
           </p>
         </div>
       </div>
@@ -275,7 +272,7 @@ export default function NpsPublico() {
   return (
     <div className="min-h-screen bg-[#f6f7f9]">
       <div className="w-full bg-black flex items-center justify-center py-3 sm:py-4 px-4 relative">
-        <img src={ironLogo.url} alt="Iron Lifting Club" className="h-[60px] sm:h-[72px] md:h-[84px] w-auto object-contain my-[-10px] sm:my-[-12px] relative z-10" />
+        <img src={ironLogo.url} alt="EVO TRAINING CLUB" className="h-[60px] sm:h-[72px] md:h-[84px] w-auto object-contain my-[-10px] sm:my-[-12px] relative z-10" />
       </div>
       <div className="py-10 sm:py-14 px-4">
       <div className="max-w-[780px] mx-auto">
@@ -288,13 +285,13 @@ export default function NpsPublico() {
               backgroundColor: 'rgba(10,108,255,0.1)',
             }}
           >
-            Iron Lifting Club
+            EVO TRAINING CLUB
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
-            Pesquisa de Experiência Iron
+            Pesquisa de Experiência EVO
           </h1>
           <p className="text-slate-600 mt-3 text-base sm:text-lg max-w-xl mx-auto">
-            Sua opinião ajuda a Iron a evoluir todos os dias.
+            Sua opinião ajuda a EVO a evoluir todos os dias.
           </p>
           <p className="text-sm text-slate-500 mt-2">
             Leva menos de 1 minuto e faz diferença de verdade.
@@ -372,7 +369,7 @@ export default function NpsPublico() {
 
           {/* NPS */}
           <SectionCard
-            title="O quanto você recomendaria a Iron?"
+            title="O quanto você recomendaria a EVO?"
             description="De 0 (nada provável) a 10 (muito provável)."
           >
             <div className="grid grid-cols-6 sm:grid-cols-11 gap-2">
@@ -481,7 +478,7 @@ export default function NpsPublico() {
           <div className="pt-2 space-y-4">
             <p className="flex items-center justify-center gap-2 text-xs text-slate-500 text-center">
               <ShieldCheck className="w-4 h-4 shrink-0" />
-              Sua resposta é confidencial e será usada para melhorar sua experiência dentro da Iron.
+              Sua resposta é confidencial e será usada para melhorar sua experiência dentro da EVO.
             </p>
             <Button
               type="submit"

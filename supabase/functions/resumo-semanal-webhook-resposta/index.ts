@@ -4,13 +4,27 @@ import { buildIdempotencyKey, getZapiCreds, sendTextIdempotent, logEnvio } from 
 const corsHeaders = {
 
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret',
 }
 
 const TARGET_PHONE = '5581996392285' // de quem recebemos a resposta
 const RESUMO_PHONE = '5581999095748' // para quem enviamos o resumo
 const ZN_ID = 'b4df0ba8-7fa8-4f28-8924-d5ce6a9b50c6'
 const ZS_ID = 'f3d048da-31d7-48df-b1f1-7e2a809c9a9a'
+
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
+}
+
+function maskPhone(p: string | undefined): string {
+  const d = (p || '').replace(/\D/g, '')
+  if (d.length < 6) return '***'
+  return `${d.slice(0, 4)}****${d.slice(-2)}`
+}
+
 
 interface ZapiWebhook {
   phone?: string
@@ -132,6 +146,20 @@ function blocoUnidade(nome: string, sigla: string, u: any) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
+  // Autenticação do webhook: exige x-webhook-secret válido (fail closed)
+  const expectedSecret = Deno.env.get('ZAPI_WEBHOOK_SECRET') || ''
+  const providedSecret = req.headers.get('x-webhook-secret') || ''
+  if (
+    expectedSecret.length < 16 ||
+    !providedSecret ||
+    !constantTimeEqual(providedSecret, expectedSecret)
+  ) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -139,7 +167,14 @@ Deno.serve(async (req) => {
     )
 
     const body = (await req.json()) as ZapiWebhook
-    console.log('Webhook recebido', JSON.stringify(body))
+    console.log('[resumo-semanal-webhook] recebido', JSON.stringify({
+      phone: maskPhone(body.phone),
+      type: body.type ?? null,
+      fromMe: !!body.fromMe,
+      hasText: !!body.text?.message,
+    }))
+
+
 
     if (body.fromMe || body.isStatusReply) {
       return new Response(JSON.stringify({ ok: true, ignored: true }), {

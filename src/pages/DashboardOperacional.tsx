@@ -284,7 +284,7 @@ export default function DashboardOperacional() {
               <Link to="/"><ArrowLeft className="w-4 h-4 mr-1" /> Voltar</Link>
             </Button>
             <div>
-              <h1 className="text-xl font-bold tracking-tight" style={{ color: COR_PRIMARIA }}>Iron Club · Dashboard Operacional</h1>
+              <h1 className="text-xl font-bold tracking-tight" style={{ color: COR_PRIMARIA }}>EVO TRAINING CLUB · Dashboard Operacional</h1>
               <p className="text-xs text-muted-foreground">Visão consolidada de operação · Recife</p>
             </div>
           </div>
@@ -455,7 +455,7 @@ export default function DashboardOperacional() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Operação dentro do padrão Iron</span>
+                      <span className="text-muted-foreground">Operação dentro do padrão EVO</span>
                       <YesNoBadge ok={t.padraoIron} />
                     </div>
 
@@ -627,11 +627,11 @@ export default function DashboardOperacional() {
 
               <Card className="bg-white shadow-sm border-0 rounded-xl">
                 <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-base">Padrão Iron</CardTitle>
+                  <CardTitle className="text-base">Padrão EVO</CardTitle>
                   <YesNoBadge ok={m.coordUnidade.padraoIron} labelOk="DENTRO DO PADRÃO" labelNo="FORA DO PADRÃO" />
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-slate-600">A unidade encerrou o turno mantendo todos os critérios da operação Iron Club.</p>
+                  <p className="text-sm text-slate-600">A unidade encerrou o turno mantendo todos os critérios da operação EVO TRAINING CLUB.</p>
                 </CardContent>
               </Card>
             </div>

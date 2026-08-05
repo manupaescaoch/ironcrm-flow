@@ -9,7 +9,7 @@ interface WhatsAppLinkProps {
   message?: string;
 }
 
-const DEFAULT_MESSAGE = "Olá! Aqui é da IRON CLUB. Tudo bem?";
+const DEFAULT_MESSAGE = "Olá! Aqui é da EVO TRAINING CLUB. Tudo bem?";
 
 /**
  * Normalizes a Brazilian phone number to WhatsApp format (55DDDNUMERO)

@@ -31,8 +31,8 @@ const SECRETS: Record<Channel, string[]> = {
 };
 
 const TITLE: Record<Channel, string> = {
-  comercial: 'Iron Comercial',
-  operacional: 'Iron Operacional',
+  comercial: 'EVO Comercial',
+  operacional: 'EVO Operacional',
 };
 
 const DESC: Record<Channel, string> = {

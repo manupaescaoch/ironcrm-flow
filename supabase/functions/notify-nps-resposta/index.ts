@@ -6,11 +6,12 @@ import {
   sendTextIdempotent,
   logEnvio,
 } from '../_shared/zapi.ts';
+import { authorizeCronOrJwt, CRON_CORS_HEADERS } from '../_shared/cronAuth.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const corsHeaders = CRON_CORS_HEADERS;
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 
 // Coordenador de cada unidade — TODA notificação de NPS vai para ele (nunca para o aluno)
 const RESPONSAVEIS: Record<string, { nome: string; phone: string }> = {
@@ -142,19 +143,37 @@ function formatPhoneBR(raw: string): string {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+  // Só o próprio servidor (trigger/cron) ou um usuário autenticado pode disparar.
+  const auth = await authorizeCronOrJwt(req);
+  if (!auth.ok) {
+    return new Response(JSON.stringify({ error: auth.error }), {
+      status: auth.status ?? 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
 
   try {
-    const { id } = await req.json();
-    if (!id) {
-      return new Response(JSON.stringify({ error: 'id obrigatório' }), {
+    let id: unknown;
+    try {
+      ({ id } = await req.json());
+    } catch {
+      return new Response(JSON.stringify({ error: 'payload inválido' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    if (typeof id !== 'string' || !UUID_RE.test(id)) {
+      return new Response(JSON.stringify({ error: 'id inválido' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
 
     const { data: resp, error } = await supabase
       .from('nps_respostas')
