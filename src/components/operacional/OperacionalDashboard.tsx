@@ -201,6 +201,27 @@ export function OperacionalDashboard() {
                 })
               }
             />
+            <KPICard
+              title="Treinadores ativos"
+              value={data.produtividade.treinadoresAtivos}
+              icon={Users}
+              variant="compact"
+              subtitle={`Anterior: ${data.produtividade.treinadoresAtivosAnt ?? '—'}`}
+              onClick={() =>
+                setDrill({
+                  titulo: 'Treinadores com atendimento no período',
+                  itens: txt(data.porTreinador.map((t) => `${t.treinador} — ${t.total} atendimento(s) · ${t.turnos.join(', ') || 'sem turno'}`)),
+                })
+              }
+            />
+            <KPICard
+              title="Turnos encerrados"
+              value={`${data.turnos.encerrados}/${data.turnos.previstos}`}
+              icon={ClipboardCheck}
+              variant="compact"
+              color={data.turnos.pendentes > 0 ? 'amber' : 'green'}
+              subtitle={`${data.turnos.pendentes} pendente(s)`}
+            />
           </div>
 
           {data.produtividade.pendentesRevisao > 0 && (
