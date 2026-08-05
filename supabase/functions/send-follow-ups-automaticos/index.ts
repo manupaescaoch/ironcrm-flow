@@ -40,13 +40,11 @@ function getBrasiliaParts() {
 }
 
 const TEMPLATES: Record<string, (nome: string) => string> = {
-  'D+1': (nome) => `Oi, ${nome}! Tudo bem?
+  'D+1': (nome) => `Oi, ${nome}! Como você está se sentindo hoje depois da sua aula experimental?
 
-Passando pra saber da experiência com a gente ontem! Como foi o treino? Faz toda a diferença ter um acompanhamento de verdade, né?
+Caso esteja sentindo algum desconforto muscular, pode ficar tranquilo: é normal, principalmente se você estava há algum tempo sem treinar. 😊
 
-Espero que tenha curtido a experiência aqui na IRON. Se fizer sentido pra você continuar treinando com a gente, me chama por aqui que te explico os planos.
-
-Qualquer dúvida, estamos à disposição!`,
+Aproveitando, ficou com alguma dúvida sobre os nossos planos ou sobre como funciona o acompanhamento?`,
   'D+7': (nome) => `Oi, ${nome}! Tudo bem?
 
 Passando pra saber se ficou alguma dúvida depois da sua experiência aqui na IRON.
