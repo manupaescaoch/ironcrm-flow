@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CATEGORIAS, GRAVIDADE_LABEL, PendenciaItem, STATUS_LABEL, parseISODate } from '@/lib/operacionalDashboard';
+import { FormularioOrigem, FormularioOrigemDialog } from './FormularioOrigemDialog';
 
 const statusVariant: Record<string, string> = {
   pendente: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
