@@ -138,11 +138,32 @@ export function BulkEditDialog({ open, onOpenChange, field, selected, unidadesOp
             </div>
           )}
           {field === 'mensagem' && (
-            <div>
+            <div className="space-y-2">
               <Label>Nova mensagem</Label>
-              <Textarea rows={5} value={mensagem} onChange={e => setMensagem(e.target.value)} />
+              <Textarea
+                ref={mensagemRef}
+                rows={5}
+                value={mensagem}
+                onChange={e => setMensagem(e.target.value)}
+                className="normal-case"
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => inserirToken(mensagemRef.current, mensagem, NOME_TOKEN, setMensagem)}
+                >
+                  Inserir [nome]
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  [nome] é trocado pelo primeiro nome do responsável no envio.
+                </span>
+              </div>
             </div>
           )}
+
           {field === 'dias' && (
             <div className="space-y-3">
               <RadioGroup value={diasMode} onValueChange={(v: any) => setDiasMode(v)} className="flex gap-4">
