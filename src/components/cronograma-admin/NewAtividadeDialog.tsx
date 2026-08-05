@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, MessageCircle, FileText } from 'lucide-react';
 import { DIAS_LABEL_SHORT, TIPO_DISPLAY_LABEL, type TipoDisplay } from '@/lib/cronogramaTipos';
-import { NOME_TOKEN, inserirToken } from '@/lib/mensagemPlaceholder';
+import { NOME_TOKEN, aplicarPlaceholders, contemNomeToken, inserirToken } from '@/lib/mensagemPlaceholder';
 
 // Título e tipo_atividade padrão por grupo de exibição
 const DEFAULTS: Record<TipoDisplay, { titulo: string; tipo: string }> = {
@@ -232,14 +232,6 @@ export function NewAtividadeDialog({ tipo, open, onOpenChange }: Props) {
               </Select>
             ) : (
               <div className="space-y-2">
-                <Textarea
-                  ref={mensagemRef}
-                  value={mensagem}
-                  onChange={(e) => setMensagem(e.target.value)}
-                  placeholder="Mensagem enviada via WhatsApp..."
-                  rows={4}
-                  className="normal-case"
-                />
                 <div className="flex items-center gap-2">
                   <Button
                     type="button"
@@ -248,21 +240,45 @@ export function NewAtividadeDialog({ tipo, open, onOpenChange }: Props) {
                     className="h-7 text-xs"
                     onClick={() => inserirToken(mensagemRef.current, mensagem, NOME_TOKEN, setMensagem)}
                   >
-                    Inserir [nome]
+                    + Inserir nome
                   </Button>
-                  <span className="text-xs text-muted-foreground">
-                    [nome] é trocado pelo primeiro nome do responsável no envio.
+                  <span className="text-xs text-muted-foreground normal-case">
+                    [NOME] é trocado pelo primeiro nome do responsável no envio.
                   </span>
                 </div>
+                <Textarea
+                  ref={mensagemRef}
+                  preserveCase
+                  value={mensagem}
+                  onChange={(e) => setMensagem(e.target.value)}
+                  placeholder="Mensagem enviada via WhatsApp..."
+                  rows={4}
+                />
+                {contemNomeToken(mensagem) && (
+                  respSelecionado ? (
+                    <div className="text-xs bg-muted/40 rounded-md px-3 py-2 whitespace-pre-wrap normal-case">
+                      <span className="font-semibold">Prévia: </span>
+                      {aplicarPlaceholders(mensagem, (respSelecionado as any).nome)}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-destructive normal-case">
+                      Selecione um responsável para usar a variável [NOME].
+                    </div>
+                  )
+                )}
               </div>
             )}
+
 
           </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => create.mutate()} disabled={create.isPending}>
+          <Button
+            onClick={() => create.mutate()}
+            disabled={create.isPending || (modo === 'mensagem' && contemNomeToken(mensagem) && !respSelecionado)}
+          >
             {create.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
             Criar automação
           </Button>

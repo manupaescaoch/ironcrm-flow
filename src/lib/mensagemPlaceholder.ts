@@ -1,10 +1,24 @@
-export const NOME_TOKEN = '[nome]';
+export const NOME_TOKEN = '[NOME]';
 
-/** Substitui [nome] / {nome} / [NOME] pelo primeiro nome informado. */
-export function aplicarPlaceholders(texto: string, nomeCompleto?: string | null): string {
+const NOME_REGEX = /[[{]\s*nome\s*[\]}]/gi;
+
+/** Verifica se o texto contém a variável [NOME] (em qualquer capitalização). */
+export function contemNomeToken(texto?: string | null): boolean {
+  if (!texto) return false;
+  return new RegExp(NOME_REGEX.source, 'i').test(texto);
+}
+
+/** Retorna o primeiro nome capitalizado (JOSA MARIA -> Josa). */
+export function primeiroNomeCapitalizado(nomeCompleto?: string | null): string {
   const primeiro = (nomeCompleto || '').trim().split(/\s+/)[0] || '';
+  if (!primeiro) return '';
+  return primeiro.charAt(0).toUpperCase() + primeiro.slice(1).toLowerCase();
+}
+
+/** Substitui [NOME] / [nome] / {nome} pelo primeiro nome capitalizado. */
+export function aplicarPlaceholders(texto: string, nomeCompleto?: string | null): string {
   if (!texto) return texto;
-  return texto.replace(/[\[{]\s*nome\s*[\]}]/gi, primeiro);
+  return texto.replace(NOME_REGEX, primeiroNomeCapitalizado(nomeCompleto));
 }
 
 /** Insere um token na posição do cursor de um textarea. */

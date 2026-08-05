@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DIAS_SEMANA } from '@/lib/cronUtils';
-import { NOME_TOKEN, inserirToken } from '@/lib/mensagemPlaceholder';
+import { NOME_TOKEN, contemNomeToken, inserirToken } from '@/lib/mensagemPlaceholder';
 import type { CronogramaAtividadeAdmin } from '@/hooks/useCronogramaAdmin';
 
 export type BulkField =
@@ -142,13 +142,6 @@ export function BulkEditDialog({ open, onOpenChange, field, selected, unidadesOp
           {field === 'mensagem' && (
             <div className="space-y-2">
               <Label>Nova mensagem</Label>
-              <Textarea
-                ref={mensagemRef}
-                rows={5}
-                value={mensagem}
-                onChange={e => setMensagem(e.target.value)}
-                className="normal-case"
-              />
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
@@ -157,14 +150,28 @@ export function BulkEditDialog({ open, onOpenChange, field, selected, unidadesOp
                   className="h-7 text-xs"
                   onClick={() => inserirToken(mensagemRef.current, mensagem, NOME_TOKEN, setMensagem)}
                 >
-                  Inserir [nome]
+                  + Inserir nome
                 </Button>
-                <span className="text-xs text-muted-foreground">
-                  [nome] é trocado pelo primeiro nome do responsável no envio.
+                <span className="text-xs text-muted-foreground normal-case">
+                  [NOME] é trocado pelo primeiro nome do responsável no envio.
                 </span>
               </div>
+              <Textarea
+                ref={mensagemRef}
+                preserveCase
+                rows={5}
+                value={mensagem}
+                onChange={e => setMensagem(e.target.value)}
+              />
+              {contemNomeToken(mensagem) && (
+                <div className="text-xs bg-muted/40 rounded-md px-3 py-2 normal-case">
+                  A variável será trocada, em cada envio, pelo primeiro nome do responsável
+                  daquela linha selecionada.
+                </div>
+              )}
             </div>
           )}
+
 
           {field === 'dias' && (
             <div className="space-y-3">

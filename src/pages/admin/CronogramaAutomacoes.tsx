@@ -21,7 +21,7 @@ import { BulkEditDialog, type BulkField } from '@/components/cronograma-admin/Bu
 import { HistoricoDialog } from '@/components/cronograma-admin/HistoricoDialog';
 import { NewAtividadeDialog } from '@/components/cronograma-admin/NewAtividadeDialog';
 import { DIAS_LABEL_SHORT, type TipoDisplay } from '@/lib/cronogramaTipos';
-import { NOME_TOKEN, aplicarPlaceholders, inserirToken } from '@/lib/mensagemPlaceholder';
+import { NOME_TOKEN, aplicarPlaceholders, contemNomeToken, inserirToken } from '@/lib/mensagemPlaceholder';
 
 
 function atvToGrupo(a: CronogramaAtividadeAdmin): GrupoConjunto {
@@ -259,14 +259,6 @@ function EditGrupoDialog({
               </Select>
             ) : (
               <div className="space-y-2">
-                <Textarea
-                  ref={textareaRef}
-                  value={mensagem}
-                  onChange={(e) => setMensagem(e.target.value)}
-                  placeholder="Mensagem enviada via WhatsApp..."
-                  rows={4}
-                  className="normal-case"
-                />
                 <div className="flex items-center gap-2">
                   <Button
                     type="button"
@@ -275,20 +267,35 @@ function EditGrupoDialog({
                     className="h-7 text-xs"
                     onClick={() => inserirToken(textareaRef.current, mensagem, NOME_TOKEN, setMensagem)}
                   >
-                    Inserir [nome]
+                    + Inserir nome
                   </Button>
-                  <span className="text-xs text-muted-foreground">
-                    [nome] é trocado pelo primeiro nome do responsável no envio.
+                  <span className="text-xs text-muted-foreground normal-case">
+                    [NOME] é trocado pelo primeiro nome do responsável no envio.
                   </span>
                 </div>
-                {mensagem.match(/[[{]\s*nome\s*[\]}]/i) && (
-                  <div className="text-xs bg-muted/40 rounded-md px-3 py-2 whitespace-pre-wrap">
-                    <span className="font-semibold">Preview: </span>
-                    {aplicarPlaceholders(mensagem, respSelecionado?.nome)}
-                  </div>
+                <Textarea
+                  ref={textareaRef}
+                  preserveCase
+                  value={mensagem}
+                  onChange={(e) => setMensagem(e.target.value)}
+                  placeholder="Mensagem enviada via WhatsApp..."
+                  rows={4}
+                />
+                {contemNomeToken(mensagem) && (
+                  respSelecionado ? (
+                    <div className="text-xs bg-muted/40 rounded-md px-3 py-2 whitespace-pre-wrap normal-case">
+                      <span className="font-semibold">Prévia: </span>
+                      {aplicarPlaceholders(mensagem, respSelecionado.nome)}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-destructive normal-case">
+                      Selecione um responsável para usar a variável [NOME].
+                    </div>
+                  )
                 )}
               </div>
             )}
+
 
           </div>
         </div>

@@ -340,9 +340,11 @@ Deno.serve(async (req) => {
           coordenador: coordMatch ? coordMatch[1].trim() : null,
         });
       } else if (atividade.mensagem) {
-        // Mensagem customizada — substitui [nome]/{nome} pelo primeiro nome do responsável
-        const primeiroNome = (resp.nome || '').trim().split(/\s+/)[0] || '';
+        // Mensagem customizada — troca [NOME]/[nome]/{nome} pelo primeiro nome capitalizado
+        const bruto = (resp.nome || '').trim().split(/\s+/)[0] || '';
+        const primeiroNome = bruto ? bruto.charAt(0).toUpperCase() + bruto.slice(1).toLowerCase() : '';
         message = atividade.mensagem.replace(/[\[{]\s*nome\s*[\]}]/gi, primeiroNome);
+
 
       } else if (atividade.formulario_id) {
         const formTitulo = formularioMap.get(atividade.formulario_id) || 'Formulário';
