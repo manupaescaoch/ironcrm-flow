@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
-import { checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendText } from '../_shared/zapi.ts';
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendTextIdempotent } from '../_shared/zapi.ts';
 import { maybeSendZapiOfflineAlert } from '../_shared/zapi-alert.ts';
 
 
@@ -404,7 +404,12 @@ Deno.serve(async (req) => {
 
       try {
         // Usa helper compartilhado — roteia automaticamente para D-API ou Z-API.
-        const sendResult = await sendText(creds, normalizedPhone, message);
+        const idemKey = buildIdempotencyKey(['send-cronograma-messages', atividade.id, funcionarioId, todayStr, normalizedPhone]);
+        const sendResult = await sendTextIdempotent(supabase, creds, normalizedPhone, message, { chave: idemKey, funcao: 'send-cronograma-messages' });
+        if (sendResult.skipped) {
+          console.log(`[send-cronograma] Duplicidade bloqueada: ${atividade.titulo} → ${resp.nome}`);
+          continue;
+        }
         const body = sendResult.body ?? {};
 
         // Detecção de sucesso por provedor:

@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { checkZapiStatus, getZapiCreds, sendText, logEnvio } from '../_shared/zapi.ts';
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, sendTextIdempotent, logEnvio } from '../_shared/zapi.ts';
 
 const corsHeaders = {
 
@@ -27,7 +27,7 @@ interface Task {
   notificado_prazo: boolean;
 }
 
-async function sendWhatsApp(phone: string, message: string, supabase: any): Promise<boolean> {
+async function sendWhatsApp(phone: string, message: string, supabase: any, context: string[]): Promise<boolean> {
   const creds = getZapiCreds('operacional');
   if (!creds) {
     console.log("WhatsApp operacional não configurado");
@@ -45,7 +45,9 @@ async function sendWhatsApp(phone: string, message: string, supabase: any): Prom
   const phoneToSend = normalizePhoneNumber(phone);
 
   try {
-    const sendResult = await sendText(creds, phoneToSend, message);
+    const chave = buildIdempotencyKey(['notify-task-deadlines', ...context, phoneToSend]);
+    const sendResult = await sendTextIdempotent(supabase, creds, phoneToSend, message, { chave, funcao: 'notify-task-deadlines' });
+    if (sendResult.skipped) return true;
     const success = sendResult.ok && !!(sendResult.body?.messageId || sendResult.body?.id);
     await logEnvio(supabase, {
       funcao: 'notify-task-deadlines',
@@ -197,7 +199,7 @@ serve(async (req) => {
         if (task.descricao) message += `\n💬 *Descrição:*\n${task.descricao}\n`;
         message += `\nNão esqueça de concluí-la! ✅`;
 
-        const sent = await sendWhatsApp(phone, message, supabase);
+        const sent = await sendWhatsApp(phone, message, supabase, [task.id, '24h', task.prazo, task.hora_prazo]);
         if (sent) {
           await supabase
             .from("tasks")
@@ -255,7 +257,7 @@ serve(async (req) => {
         if (task.descricao) message += `\n💬 *Descrição:*\n${task.descricao}\n`;
         message += `\nPor favor, conclua o quanto antes. ✅`;
 
-        const sent = await sendWhatsApp(phone, message, supabase);
+        const sent = await sendWhatsApp(phone, message, supabase, [task.id, 'prazo', task.prazo, task.hora_prazo]);
         if (sent) {
           await supabase
             .from("tasks")

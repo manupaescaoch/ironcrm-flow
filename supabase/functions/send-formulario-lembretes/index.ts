@@ -103,7 +103,7 @@ function unidadeNomeShort(nome: string) {
 }
 
 
-import { checkZapiStatus, getZapiCreds, sendText, logEnvio } from '../_shared/zapi.ts';
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, sendTextIdempotent, logEnvio } from '../_shared/zapi.ts';
 
 function getOperacionalCreds() {
   return getZapiCreds('operacional');
@@ -320,12 +320,18 @@ Deno.serve(async (req) => {
         erroMsg = `Credenciais WhatsApp ausentes para canal ${channel}`;
       } else {
         try {
-          const sendResult = await sendText(sendCreds, normalizedPhone, message);
+          const idemKey = buildIdempotencyKey(['send-formulario-lembretes', chave, normalizedPhone]);
+          const sendResult = await sendTextIdempotent(supabase, sendCreds, normalizedPhone, message, { chave: idemKey, funcao: 'send-formulario-lembretes' });
+          if (sendResult.skipped) {
+            status = 'enviado';
+            zapiResult = { skipped: 'duplicado' };
+          } else {
           zapiResult = sendResult.body;
           if (sendResult.ok) {
             status = 'enviado';
           } else {
             erroMsg = `HTTP ${sendResult.status}: ${JSON.stringify(sendResult.body).slice(0, 500)}`;
+          }
           }
         } catch (e: any) {
           erroMsg = e?.message || String(e);
