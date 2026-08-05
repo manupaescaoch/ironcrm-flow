@@ -337,7 +337,7 @@ export function OperacionalDashboard() {
               />
               <KPICard title="Faltas" value={data.equipe.faltas} icon={AlertTriangle} variant="compact" color={data.equipe.faltas > 0 ? 'amber' : 'green'}
                 subtitle={`${data.equipe.justificadas} justificadas · ${data.equipe.naoJustificadas} não justificadas`}
-                onClick={() => setDrill({ titulo: 'Faltas e atrasos registrados', itens: data.equipe.detalhesFaltas })}
+                onClick={() => setDrill({ titulo: 'Faltas e atrasos registrados', itens: txt(data.equipe.detalhesFaltas) })}
               />
               <KPICard title="Atrasos" value={data.equipe.atrasos} icon={AlertTriangle} variant="compact" />
               <KPICard title="Feedbacks corretivos" value={data.equipe.feedbacksCorretivos} icon={ClipboardList} variant="compact" />
