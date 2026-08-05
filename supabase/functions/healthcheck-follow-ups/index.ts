@@ -11,7 +11,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
-import { checkZapiStatus, getZapiCreds, sendText } from '../_shared/zapi.ts';
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, sendTextIdempotent } from '../_shared/zapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -256,7 +256,8 @@ Deno.serve(async (req) => {
       `Provável causa: chip comercial (Z-API) offline ou falha na execução do cron.\n\n` +
       `👉 Verifique em /admin/whatsapp-comercial e reconecte o chip se necessário.`;
 
-    const r = await sendText(creds, destino, msg);
+    const chave = buildIdempotencyKey([FUNC, 'alerta', dateStr, destino]);
+    const r = await sendTextIdempotent(supabase, creds, destino, msg, { chave, funcao: FUNC });
 
     if (r.ok) {
       await supabase

@@ -368,7 +368,7 @@ export async function resolveGrupo(
 
 // ---------------------- WhatsApp dispatch (routed via shared helper) ----------------------
 
-import { getZapiCreds, sendText } from './zapi.ts';
+import { buildIdempotencyKey, getZapiCreds, sendTextIdempotent } from './zapi.ts';
 
 /**
  * Normaliza o ID do grupo conforme o provedor:
@@ -384,9 +384,11 @@ function normalizeGroupJid(raw: string, provider: string): string {
 }
 
 async function sendWhatsapp(
+  supabase: SupabaseClient,
   grupoId: string,
   message: string,
   tipoFormulario: TipoFormulario,
+  eventKey: string,
 ): Promise<{ ok: boolean; status: number; body: any; provider: string }> {
   // Relatório Comercial → chip COMERCIAL (Z-API). Demais formulários → OPERACIONAL (D-API).
   const channel = tipoFormulario === 'relatorio_comercial' ? 'comercial' : 'operacional';
@@ -396,7 +398,8 @@ async function sendWhatsapp(
     return { ok: false, status: 500, body: { error: 'creds_missing' }, provider: 'none' };
   }
   const jid = normalizeGroupJid(grupoId, creds.provider);
-  const res = await sendText(creds, jid, message);
+  const chave = buildIdempotencyKey(['formulario', tipoFormulario, eventKey, jid]);
+  const res = await sendTextIdempotent(supabase, creds, jid, message, { chave, funcao: 'notify-formulario-encerramento' });
   const providerOk = res.ok && !res.body?.error && res.body?.success !== false;
   return { ok: providerOk, status: res.status, body: res.body, provider: creds.provider };
 }
@@ -487,7 +490,7 @@ export async function executeNotification(
   const payloadHash = (await sha1Hex(message)).slice(0, 16);
 
   // 6. Send via WhatsApp (D-API operacional ou Z-API comercial)
-  const send = await sendWhatsapp(grupoId, message, ctx.tipo_formulario);
+  const send = await sendWhatsapp(supabase, grupoId, message, ctx.tipo_formulario, idempotency_key);
 
   // 7. Log
   const errMsg = send.ok

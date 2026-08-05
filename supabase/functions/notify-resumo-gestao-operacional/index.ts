@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { buildIdempotencyKey, getZapiCreds, sendTextIdempotent } from '../_shared/zapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -255,22 +256,15 @@ Evasão: ${zs.evasao}%
 
 ${focos.join(', ')}.`;
 
-    const instance = Deno.env.get('ZAPI_COMERCIAL_INSTANCE_ID');
-    const token = Deno.env.get('ZAPI_COMERCIAL_TOKEN');
-    const clientToken = Deno.env.get('ZAPI_COMERCIAL_CLIENT_TOKEN') || '';
-
-    if (!instance || !token) {
+    const creds = getZapiCreds('comercial');
+    if (!creds) {
        return new Response(JSON.stringify({ error: 'ZAPI Comercial credentials missing' }), { status: 500, headers: corsHeaders });
     }
+    const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+    const chave = buildIdempotencyKey(['notify-resumo-gestao-operacional', dateStr, destPhone]);
+    const resp = await sendTextIdempotent(supabase, creds, destPhone, message, { chave, funcao: 'notify-resumo-gestao-operacional' });
 
-    const zapiUrl = `https://api.z-api.io/instances/${instance}/token/${token}/send-text`;
-    const resp = await fetch(zapiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': clientToken },
-      body: JSON.stringify({ phone: destPhone, message }),
-    });
-
-    return new Response(JSON.stringify({ success: resp.ok, status: resp.status, message }), {
+    return new Response(JSON.stringify({ success: resp.ok || resp.skipped, status: resp.status, duplicate: resp.skipped, message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
