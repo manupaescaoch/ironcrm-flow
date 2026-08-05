@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
-import { checkZapiStatus, getZapiCreds, sendText, logEnvio } from '../_shared/zapi.ts';
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, sendTextIdempotent, logEnvio } from '../_shared/zapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -182,7 +182,9 @@ Deno.serve(async (req) => {
     }
 
     // Enviar via D-API (operacional)
-    const sendResult = await sendText(creds, normalizedPhone, message);
+    const chave = buildIdempotencyKey(['send-task-whatsapp', task_id, notificationType, targetUser.id, prazo, hora_prazo, normalizedPhone]);
+    const sendResult = await sendTextIdempotent(supabase, creds, normalizedPhone, message, { chave, funcao: 'send-task-whatsapp' });
+    if (sendResult.skipped) return new Response(JSON.stringify({ success: true, duplicate: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     const zapiResult = sendResult.body;
     const success = sendResult.ok && !!(zapiResult?.messageId || zapiResult?.id);
     const errorMsg = success ? null : (zapiResult?.error || JSON.stringify(zapiResult).slice(0, 500));

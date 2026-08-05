@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
-import { checkZapiStatus, getZapiCreds, logEnvio, sendText } from '../_shared/zapi.ts';
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, logEnvio, sendTextIdempotent } from '../_shared/zapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -76,11 +76,6 @@ Deno.serve(async (req) => {
         });
       }
     }
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
-
     let body: any = {};
     try { body = await req.json(); } catch { /* sem body */ }
     const dryRun = body?.dry_run === true;
@@ -152,7 +147,12 @@ Enviar boas-vindas ao aluno e iniciar onboarding.`;
       }
 
       try {
-        const r = await sendText(creds, phone, message);
+        const chave = buildIdempotencyKey([FUNC, inter.id, lead.id, inter.data_interacao, phone]);
+        const r = await sendTextIdempotent(supabase, creds, phone, message, { chave, funcao: FUNC });
+        if (r.skipped) {
+          await supabase.from('interacoes').update({ boas_vindas_enviada_em: new Date().toISOString() }).eq('id', inter.id);
+          continue;
+        }
         
         if (r.ok) {
           sent++;

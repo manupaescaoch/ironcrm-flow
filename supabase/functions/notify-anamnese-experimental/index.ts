@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
-import { checkZapiStatus, getZapiCreds, logEnvio, sendText } from '../_shared/zapi.ts';
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, logEnvio, sendTextIdempotent } from '../_shared/zapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -183,7 +183,12 @@ _Anamnese preenchida pela recepção no momento da chegada do lead._`;
       }
     }
 
-    const r = await sendText(creds, grupo, message);
+    const chave = buildIdempotencyKey([FUNC, anamnese_id, a.lead_id, grupo]);
+    const r = await sendTextIdempotent(supabase, creds, grupo, message, { chave, funcao: FUNC });
+    if (r.skipped) {
+      await supabase.from('anamneses_experimental').update({ notificado_em: new Date().toISOString(), notificacao_ultimo_erro: null }).eq('id', anamnese_id);
+      return new Response(JSON.stringify({ ok: true, sent: false, reason: 'duplicate' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
     const messageId = r.body?.messageId || r.body?.id || null;
     const zapiError = r.body?.error || (typeof r.body?.message === 'string' ? r.body.message : null);
     const reallyOk = r.ok && !!messageId && !zapiError;

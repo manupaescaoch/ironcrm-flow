@@ -3,7 +3,8 @@ import {
   getZapiCreds,
   checkZapiStatus,
   phoneExists,
-  sendText,
+  buildIdempotencyKey,
+  sendTextIdempotent,
   sleep,
   logEnvio,
   RATE_LIMIT_MS,
@@ -139,7 +140,8 @@ Deno.serve(async (req) => {
         `*Mensagem do aluno:* ${comentario || '—'}\n` +
         `*Classificação:* ${classificacao}`;
 
-      const r = await sendText(creds, responsavel.phone, msgInterna);
+      const chaveInterna = buildIdempotencyKey(['notify-nps-resposta', resp.id, 'interno', responsavel.phone]);
+      const r = await sendTextIdempotent(supabase, creds, responsavel.phone, msgInterna, { chave: chaveInterna, funcao: 'notify-nps-resposta' });
       log.interna_status = r.ok ? 'enviado' : 'erro';
       log.interna_message_id = (r.body as any)?.messageId ?? (r.body as any)?.zaapId ?? null;
       log.interna_erro = r.ok ? null : JSON.stringify(r.body).slice(0, 500);
@@ -181,7 +183,8 @@ Deno.serve(async (req) => {
       });
     } else {
       const msgAluno = mensagemAluno(classificacao, resp.nome, nota);
-      const r = await sendText(creds, alunoPhone, msgAluno);
+      const chaveAluno = buildIdempotencyKey(['notify-nps-resposta', resp.id, 'aluno', alunoPhone]);
+      const r = await sendTextIdempotent(supabase, creds, alunoPhone, msgAluno, { chave: chaveAluno, funcao: 'notify-nps-resposta' });
       log.aluno_status = r.ok ? 'enviado' : 'erro';
       log.aluno_message_id = (r.body as any)?.messageId ?? (r.body as any)?.zaapId ?? null;
       log.aluno_erro = r.ok ? null : JSON.stringify(r.body).slice(0, 500);

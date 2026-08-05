@@ -1,7 +1,7 @@
 // Núcleo do envio de contas a pagar para o grupo financeiro no WhatsApp.
 // Usa exclusivamente o canal COMERCIAL (Z-API) já configurado em secrets.
 // Nunca expõe token/client-token em retornos, logs ou mensagens.
-import { checkZapiStatus, getZapiCreds, logEnvio, sendText } from './zapi.ts';
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, logEnvio, sendTextIdempotent } from './zapi.ts';
 import { montarMensagemConta } from './contasPagarMensagem.ts';
 
 export type TipoEnvio = 'CADASTRO' | 'VENCIMENTO';
@@ -137,7 +137,9 @@ export async function processarEnvio(
   const mensagem = montarMensagemConta(conta, unidade?.nome ?? '');
 
   // 5. Envio
-  const resp = await sendText(creds, destino, mensagem);
+  const chave = buildIdempotencyKey(['contas-pagar', contaId, tipo, destino]);
+  const resp = await sendTextIdempotent(supabase, creds, destino, mensagem, { chave, funcao: `contas-pagar-${tipo.toLowerCase()}` });
+  if (resp.skipped) return { ok: false, skipped: 'duplicidade_bloqueada' };
   const messageId = resp.body?.messageId ?? resp.body?.id ?? null;
 
   await logEnvio(supabase, {

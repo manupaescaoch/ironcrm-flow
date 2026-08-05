@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.0'
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts'
-import { checkZapiStatus, getZapiCreds, sendText, logEnvio } from '../_shared/zapi.ts'
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, sendTextIdempotent, logEnvio } from '../_shared/zapi.ts'
 
 
 const corsHeaders = {
@@ -91,7 +91,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    const sendResult = await sendText(creds, TARGET_PHONE, message)
+    const chave = buildIdempotencyKey(['notify-resumo-semanal-pergunta', inicio, fim, TARGET_PHONE])
+    const sendResult = await sendTextIdempotent(supabase, creds, TARGET_PHONE, message, { chave, funcao: 'notify-resumo-semanal-pergunta' })
     const zapiBody = sendResult.body
     const success = sendResult.ok && !!(zapiBody?.messageId || zapiBody?.id)
     const errorMsg = success

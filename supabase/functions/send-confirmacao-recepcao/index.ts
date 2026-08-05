@@ -2,7 +2,7 @@
 // confirmações de aula experimental que precisam ser disparadas (24h e 2h antes).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
-import { checkZapiStatus, getZapiCreds, logEnvio, sendText } from '../_shared/zapi.ts';
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, logEnvio, sendTextIdempotent } from '../_shared/zapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -210,7 +210,13 @@ ${blocos.join('\n\n━━━━━━━━━━━━━━━\n\n')}
 
       try {
         const phone = normalizePhone(cfg.telefone_recepcao);
-        const r = await sendText(creds!, phone, message);
+        const contextIds = [...itens24.map((l) => `24h:${l.id}`), ...itens2.map((l) => `2h:${l.id}`)].sort().join(',');
+        const chave = buildIdempotencyKey([FUNC, cfg.unidade_id, contextIds, phone]);
+        const r = await sendTextIdempotent(supabase, creds!, phone, message, { chave, funcao: FUNC });
+        if (r.skipped) {
+          results.push({ unidade_id: cfg.unidade_id, status: 'duplicate' });
+          continue;
+        }
         const ok = r.ok;
 
         await logEnvio(supabase, {

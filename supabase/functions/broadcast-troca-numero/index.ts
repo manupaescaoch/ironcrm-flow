@@ -2,7 +2,7 @@
 // Executado manualmente. Delay randômico de 20-30s entre envios para evitar bloqueio.
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { getZapiCreds, sendText, sleep, logEnvio } from '../_shared/zapi.ts';
+import { buildIdempotencyKey, getZapiCreds, sendTextIdempotent, sleep, logEnvio } from '../_shared/zapi.ts';
 
 const GROUPS: { id: string; nome: string }[] = [
   { id: '120363403516159035-group', nome: 'IRON CLUB ZN GERAL' },
@@ -64,7 +64,8 @@ Deno.serve(async (req) => {
         const g = GROUPS[i];
         const to = creds.provider === 'dapi' ? toDapiJid(g.id) : g.id;
         try {
-          const r = await sendText(creds, to, MESSAGE);
+          const chave = buildIdempotencyKey(['broadcast-troca-numero', to, await crypto.subtle.digest('SHA-256', new TextEncoder().encode(MESSAGE)).then((b) => Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, '0')).join('').slice(0, 16))]);
+          const r = await sendTextIdempotent(supabase, creds, to, MESSAGE, { chave, funcao: 'broadcast-troca-numero' });
           const messageId = r.body?.messageId || r.body?.id || null;
           const ok = r.ok && !!messageId;
           results.push({ nome: g.nome, to, ok, status: r.status, messageId, body: r.body });

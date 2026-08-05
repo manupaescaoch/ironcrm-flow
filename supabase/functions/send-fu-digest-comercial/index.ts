@@ -2,7 +2,7 @@
 // pendentes do dia. NÃO conclui os follow-ups — humano marca manualmente na CRM.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
-import { checkZapiStatus, getZapiCreds, logEnvio, sendText } from '../_shared/zapi.ts';
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, logEnvio, sendTextIdempotent } from '../_shared/zapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -180,7 +180,12 @@ ${linhas}
 
       // Envia ao grupo
       try {
-        const r = await sendText(creds!, cfg.grupo_fu_id, message);
+        const chave = buildIdempotencyKey([FUNC, cfg.unidade_id, todayStr, cfg.grupo_fu_id]);
+        const r = await sendTextIdempotent(supabase, creds!, cfg.grupo_fu_id, message, { chave, funcao: FUNC });
+        if (r.skipped) {
+          results.push({ unidade_id: cfg.unidade_id, status: 'duplicate' });
+          continue;
+        }
         const ok = r.ok;
 
         await logEnvio(supabase, {

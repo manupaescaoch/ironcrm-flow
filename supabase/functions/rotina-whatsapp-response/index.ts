@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { z } from 'https://esm.sh/zod@3.23.8';
-import { getZapiCreds, sendText } from '../_shared/zapi.ts';
+import { buildIdempotencyKey, getZapiCreds, sendTextIdempotent } from '../_shared/zapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -526,7 +526,8 @@ Deno.serve(async (req) => {
         const confirmMessage = concluida
           ? `✅ *Rotina concluída*\n\n🔹 *${rotina.nome}*\n👤 *Registrado por:* ${matchedUserName}`
           : `⚠️ *Rotina não realizada*\n\n🔹 *${rotina.nome}*\n👤 *Registrado por:* ${matchedUserName}`;
-        await sendText(creds, senderPhone, confirmMessage);
+        const chave = buildIdempotencyKey(['rotina-whatsapp-response', messageId, rotina.id, desiredStatus, senderPhone]);
+        await sendTextIdempotent(supabase, creds, senderPhone, confirmMessage, { chave, funcao: 'rotina-whatsapp-response' });
       }
     } catch (err) {
       console.error('[rotina-response] Erro confirmação:', err);

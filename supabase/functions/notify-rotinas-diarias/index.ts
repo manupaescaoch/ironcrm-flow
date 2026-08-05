@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
-import { checkZapiStatus, getZapiCreds, sendText, logEnvio } from '../_shared/zapi.ts';
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, sendTextIdempotent, logEnvio } from '../_shared/zapi.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
@@ -326,7 +326,13 @@ Deno.serve(async (req) => {
       console.log(`[notify-rotinas] Enviando para ${responsavel} (${normalizedPhone}): ${rotina.nome}`);
 
       try {
-        const sendResult = await sendText(creds, normalizedPhone, message);
+        const idemKey = buildIdempotencyKey(['notify-rotinas-diarias', rotina.id, todayStr, normalizedPhone]);
+        const sendResult = await sendTextIdempotent(supabase, creds, normalizedPhone, message, { chave: idemKey, funcao: 'notify-rotinas-diarias' });
+        if (sendResult.skipped) {
+          await supabase.from('rotina_notificacoes').insert({ rotina_id: rotina.id, data_envio: todayStr, status: 'enviado' });
+          skippedNotificada++;
+          continue;
+        }
         const zapiResult = sendResult.body;
         const messageId = zapiResult?.messageId || zapiResult?.id || null;
         const zapiError = zapiResult?.error || (typeof zapiResult?.message === 'string' ? zapiResult.message : null);

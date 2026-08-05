@@ -1,6 +1,6 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendText, logEnvio } from '../_shared/zapi.ts';
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendTextIdempotent, logEnvio } from '../_shared/zapi.ts';
 
 const MAX_MESSAGE_LEN = 1000;
 
@@ -88,7 +88,9 @@ Deno.serve(async (req) => {
     ]);
 
     const sendPhone = lookup.exists && lookup.phone ? lookup.phone : normalizedPhone;
-    const result = await sendText(creds, sendPhone, message);
+    const requestId = typeof body?.idempotency_key === 'string' && body.idempotency_key.trim() ? body.idempotency_key.trim() : crypto.randomUUID();
+    const chave = buildIdempotencyKey(['send-zapi-test', userId, sendPhone, requestId]);
+    const result = await sendTextIdempotent(supabase, creds, sendPhone, message, { chave, funcao: 'send-zapi-test' });
     const messageId = result.body?.messageId || result.body?.id || null;
     const reallyOk = result.ok && !!messageId;
 

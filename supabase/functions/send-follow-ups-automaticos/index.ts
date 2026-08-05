@@ -6,7 +6,8 @@ import {
   getZapiCreds,
   logEnvio,
   phoneExists,
-  sendText,
+  buildIdempotencyKey,
+  sendTextIdempotent,
   sleep,
 } from '../_shared/zapi.ts';
 
@@ -422,7 +423,13 @@ async function processFollowUps(
     }
 
     try {
-      const r = await sendText(creds, phone, message);
+      const chave = buildIdempotencyKey([FUNC, fu.id, lead.id, fu.tipo, fu.data_prevista, phone]);
+      const r = await sendTextIdempotent(supabase, creds, phone, message, { chave, funcao: FUNC });
+      if (r.skipped) {
+        await supabase.from('follow_ups').update({ status: 'concluido', concluido_em: new Date().toISOString(), concluido_por: 'SISTEMA (duplicidade bloqueada)', updated_at: new Date().toISOString() }).eq('id', fu.id);
+        results.push({ tipo: fu.tipo, lead: lead.nome, status: 'skipped_idempotency' });
+        continue;
+      }
       if (r.ok) {
         sent++;
         const nowIso = new Date().toISOString();
