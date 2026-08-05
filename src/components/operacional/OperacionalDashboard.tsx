@@ -147,7 +147,7 @@ export function OperacionalDashboard() {
               onClick={() =>
                 setDrill({
                   titulo: 'Atendimentos por registro',
-                  itens: data.porTreinador.map((t) => `${t.treinador}: ${t.total} atendimentos (média ${t.mediaDiaria.toFixed(1)}/dia)`),
+                  itens: txt(data.porTreinador.map((t) => `${t.treinador}: ${t.total} atendimentos (média ${t.mediaDiaria.toFixed(1)}/dia)`)),
                 })
               }
             />
