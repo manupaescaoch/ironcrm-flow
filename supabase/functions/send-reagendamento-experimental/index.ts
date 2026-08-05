@@ -4,11 +4,12 @@
 // 3) Loga uma interação para aparecer no histórico/timeline
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import {
+  buildIdempotencyKey,
   checkZapiStatus,
   getZapiCreds,
   logEnvio,
   phoneExists,
-  sendText,
+  sendTextIdempotent,
 } from '../_shared/zapi.ts';
 
 const corsHeaders = {
