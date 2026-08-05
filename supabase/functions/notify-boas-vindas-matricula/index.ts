@@ -25,7 +25,7 @@ function formatPhoneBR(phone: string): string {
   return phone || '';
 }
 
-const HOURS_AFTER_MATRICULA = 2;
+const HOURS_AFTER_MATRICULA = 1;
 const FUNC = 'notify-boas-vindas-matricula';
 
 Deno.serve(async (req) => {
@@ -158,7 +158,7 @@ Caso precise de ajuda com agendamentos, avaliação física ou tenha qualquer d�
           await logEnvio(supabase, {
             funcao: FUNC,
             destino: phone,
-            tipo_destino: 'recepcao',
+            tipo_destino: 'lead',
             unidade_id: lead.unidade_id,
             sucesso: true,
             zapi_status_code: r.status,
@@ -170,7 +170,7 @@ Caso precise de ajuda com agendamentos, avaliação física ou tenha qualquer d�
           await logEnvio(supabase, {
             funcao: FUNC,
             destino: phone,
-            tipo_destino: 'recepcao',
+            tipo_destino: 'lead',
             unidade_id: lead.unidade_id,
             sucesso: false,
             zapi_status_code: r.status,
@@ -184,7 +184,7 @@ Caso precise de ajuda com agendamentos, avaliação física ou tenha qualquer d�
         await logEnvio(supabase, {
           funcao: FUNC,
           destino: phone,
-          tipo_destino: 'recepcao',
+          tipo_destino: 'lead',
           unidade_id: lead.unidade_id,
           sucesso: false,
           erro_msg: e?.message ?? String(e),
