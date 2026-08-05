@@ -244,7 +244,7 @@ Deno.serve(async (req) => {
           await logEnvio(supabase, {
             funcao: FUNC,
             destino: phone,
-            tipo_destino: 'recepcao',
+            tipo_destino: 'lead',
             unidade_id: lead.unidade_id,
             sucesso: true,
             zapi_status_code: r.status,
@@ -277,7 +277,7 @@ Deno.serve(async (req) => {
           await logEnvio(supabase, {
             funcao: FUNC,
             destino: phone,
-            tipo_destino: 'recepcao',
+            tipo_destino: 'lead',
             unidade_id: lead.unidade_id,
             sucesso: false,
             zapi_status_code: r.status,
@@ -291,7 +291,7 @@ Deno.serve(async (req) => {
         await logEnvio(supabase, {
           funcao: FUNC,
           destino: phone,
-          tipo_destino: 'recepcao',
+          tipo_destino: 'lead',
           unidade_id: lead.unidade_id,
           sucesso: false,
           erro_msg: e?.message ?? String(e),
