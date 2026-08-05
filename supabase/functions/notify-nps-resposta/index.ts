@@ -2,12 +2,9 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
   getZapiCreds,
   checkZapiStatus,
-  phoneExists,
   buildIdempotencyKey,
   sendTextIdempotent,
-  sleep,
   logEnvio,
-  RATE_LIMIT_MS,
 } from '../_shared/zapi.ts';
 
 const corsHeaders = {
@@ -24,17 +21,6 @@ function classificar(nota: number): 'Detrator' | 'Passivo' | 'Promotor' {
   if (nota <= 6) return 'Detrator';
   if (nota <= 8) return 'Passivo';
   return 'Promotor';
-}
-
-function mensagemAluno(classificacao: string, nome: string, nota: number): string {
-  const primeiroNome = (nome || '').split(' ')[0] || nome;
-  if (classificacao === 'Detrator') {
-    return `Oi, ${primeiroNome}. Vi sua avaliação e quero entender o que aconteceu. Você tem 5 minutos pra conversar?`;
-  }
-  if (classificacao === 'Passivo') {
-    return `Oi, ${primeiroNome}, valeu pelo feedback! Vi que você deu ${nota} pra Iron. O que faltou pra ser um 10? Me conta aqui.`;
-  }
-  return `Oi, ${primeiroNome}, que bom ouvir isso! Fico feliz que você tá curtindo a Iron. Se você conhece alguém que se encaixaria aqui, me manda o contato. Tenho um presente pra você.`;
 }
 
 function formatPhoneBR(raw: string): string {
@@ -166,38 +152,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 2) Mensagem ao aluno
-    await sleep(RATE_LIMIT_MS);
-
-    const exists = await phoneExists(creds, alunoPhone);
-    if (exists === false) {
-      log.aluno_status = 'skip';
-      log.aluno_erro = 'phone-not-on-whatsapp';
-      await logEnvio(supabase, {
-        funcao: 'notify-nps-resposta',
-        destino: alunoPhone,
-        tipo_destino: 'lead',
-        sucesso: false,
-        motivo_skip: 'phone-not-on-whatsapp',
-        canal: 'comercial',
-      });
-    } else {
-      const msgAluno = mensagemAluno(classificacao, resp.nome, nota);
-      const chaveAluno = buildIdempotencyKey(['notify-nps-resposta', resp.id, 'aluno', alunoPhone]);
-      const r = await sendTextIdempotent(supabase, creds, alunoPhone, msgAluno, { chave: chaveAluno, funcao: 'notify-nps-resposta' });
-      log.aluno_status = r.ok ? 'enviado' : 'erro';
-      log.aluno_message_id = (r.body as any)?.messageId ?? (r.body as any)?.zaapId ?? null;
-      log.aluno_erro = r.ok ? null : JSON.stringify(r.body).slice(0, 500);
-      await logEnvio(supabase, {
-        funcao: 'notify-nps-resposta',
-        destino: alunoPhone,
-        tipo_destino: 'lead',
-        sucesso: r.ok,
-        zapi_status_code: r.status,
-        erro_msg: r.ok ? null : JSON.stringify(r.body).slice(0, 500),
-        canal: 'comercial',
-      });
-    }
+    // Fluxo NPS: NENHUMA mensagem vai direto para o aluno.
+    // Toda resposta é encaminhada apenas ao coordenador da unidade.
+    log.aluno_status = 'skip';
+    log.aluno_erro = 'fluxo-coordenador-apenas';
 
     await supabase.from('nps_notificacoes_log').insert(log);
 
