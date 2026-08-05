@@ -371,16 +371,16 @@ export async function resolveGrupo(
 import { getZapiCreds, sendText } from './zapi.ts';
 
 /**
- * Normaliza o JID do grupo. D-API exige sufixo em minúsculas (@g.us) e não aceita @G.US.
- * Se vier apenas o ID numérico, adiciona @g.us. Se vier @G.US, converte para @g.us.
+ * Normaliza o ID do grupo conforme o provedor:
+ * - D-API: exige `<id>@g.us` (minúsculo; não aceita @G.US)
+ * - Z-API: exige `<id>-group` (se enviar @g.us, a Z-API trata como telefone e a msg não chega)
  */
-function normalizeGroupJid(raw: string): string {
+function normalizeGroupJid(raw: string, provider: string): string {
   const trimmed = (raw || '').trim();
   if (!trimmed) return trimmed;
-  if (/@g\.us$/i.test(trimmed)) return trimmed.replace(/@G\.US$/i, '@g.us');
-  // Puramente numérico → grupo
-  if (/^[0-9]+$/.test(trimmed)) return `${trimmed}@g.us`;
-  return trimmed;
+  const digits = trimmed.replace(/@g\.us$/i, '').replace(/-group$/i, '').trim();
+  if (!/^[0-9]+$/.test(digits)) return trimmed;
+  return provider === 'zapi' ? `${digits}-group` : `${digits}@g.us`;
 }
 
 async function sendWhatsapp(
@@ -395,7 +395,7 @@ async function sendWhatsapp(
     console.error(`[sendWhatsapp] Credenciais ausentes para canal ${channel}`);
     return { ok: false, status: 500, body: { error: 'creds_missing' }, provider: 'none' };
   }
-  const jid = normalizeGroupJid(grupoId);
+  const jid = normalizeGroupJid(grupoId, creds.provider);
   const res = await sendText(creds, jid, message);
   const providerOk = res.ok && !res.body?.error && res.body?.success !== false;
   return { ok: providerOk, status: res.status, body: res.body, provider: creds.provider };
