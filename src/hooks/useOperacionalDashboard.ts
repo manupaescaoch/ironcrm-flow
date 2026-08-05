@@ -74,6 +74,15 @@ export interface QualidadeKPI {
   mediaAnterior: number | null;
   avaliacoes: number;
   abaixoDe4: number;
+  registros: {
+    nota: number;
+    unidade: string;
+    turno: string | null;
+    nome: string | null;
+    created_at: string;
+    tabela: string;
+    id: string;
+  }[];
 }
 
 export function useOperacionalDashboard(filtros: OperacionalFiltros) {
