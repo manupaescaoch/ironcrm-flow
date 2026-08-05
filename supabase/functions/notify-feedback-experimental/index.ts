@@ -116,12 +116,18 @@ Deno.serve(async (req) => {
 
     console.log(`[feedback-pos-aula] Brasília: ${brasilia.toISOString()} | hoje=${todayStr} | nowMin=${nowMin}`);
 
+    // Janela: confirmações de presença feitas nas últimas 48h (evita reprocessar histórico antigo)
+    const cutoffAntigo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    const cutoffMaduro = new Date(Date.now() - HOURS_AFTER_CLASS * 60 * 60 * 1000).toISOString();
+
     const { data: interacoes, error: intErr } = await supabase
       .from('interacoes')
-      .select('id, lead_id, hora_experimental, data_experimental, compareceu, feedback_pos_aula_enviado_em')
-      .eq('data_experimental', todayStr)
+      .select('id, lead_id, hora_experimental, data_experimental, compareceu, compareceu_em, feedback_pos_aula_enviado_em')
       .eq('compareceu', true)
-      .is('feedback_pos_aula_enviado_em', null);
+      .is('feedback_pos_aula_enviado_em', null)
+      .not('compareceu_em', 'is', null)
+      .gte('compareceu_em', cutoffAntigo)
+      .lte('compareceu_em', cutoffMaduro);
 
     if (intErr) {
       console.error('Erro buscando interações:', intErr);
@@ -138,13 +144,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    const elegiveis = interacoes.filter((i: any) => {
-      if (!i.hora_experimental) return false;
-      const [h, m] = i.hora_experimental.split(':').map((n: string) => parseInt(n, 10));
-      const aulaMin = h * 60 + (m || 0);
-      const targetMin = aulaMin + HOURS_AFTER_CLASS * 60;
-      return nowMin >= targetMin;
-    });
+    // Já filtrado por compareceu_em >= 3h na query
+    const elegiveis = interacoes;
+
 
     console.log(`[feedback-pos-aula] elegíveis: ${elegiveis.length}/${interacoes.length}`);
 
