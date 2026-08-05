@@ -243,12 +243,9 @@ export default function NpsPublico() {
       );
       return;
     }
-    if (insertedId) {
-      supabase.functions
-        .invoke('notify-nps-resposta', { body: { id: insertedId } })
-        .catch((err) => console.error('[nps notify]', err));
-    }
+    // A notificação ao grupo da unidade é disparada pelo servidor após a gravação.
     setDone(true);
+
   }
 
   if (done) {
