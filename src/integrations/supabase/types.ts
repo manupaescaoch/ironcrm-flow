@@ -936,6 +936,7 @@ export type Database = {
       }
       encerramento_horario_respostas: {
         Row: {
+          atendimentos_json: Json | null
           atendimentos_por_treinador: string | null
           created_at: string
           data: string
@@ -960,6 +961,7 @@ export type Database = {
           unidade: string
         }
         Insert: {
+          atendimentos_json?: Json | null
           atendimentos_por_treinador?: string | null
           created_at?: string
           data: string
@@ -984,6 +986,7 @@ export type Database = {
           unidade: string
         }
         Update: {
+          atendimentos_json?: Json | null
           atendimentos_por_treinador?: string | null
           created_at?: string
           data?: string
@@ -2317,6 +2320,63 @@ export type Database = {
           },
         ]
       }
+      operacional_pendencias: {
+        Row: {
+          categoria: string
+          created_at: string
+          data: string
+          descricao: string | null
+          gravidade: string | null
+          id: string
+          prazo: string | null
+          registrado_por: string | null
+          responsavel_solucao: string | null
+          solucao: string | null
+          source_id: string
+          source_tabela: string
+          status: string
+          turno: string | null
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          data: string
+          descricao?: string | null
+          gravidade?: string | null
+          id?: string
+          prazo?: string | null
+          registrado_por?: string | null
+          responsavel_solucao?: string | null
+          solucao?: string | null
+          source_id: string
+          source_tabela: string
+          status?: string
+          turno?: string | null
+          unidade: string
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          gravidade?: string | null
+          id?: string
+          prazo?: string | null
+          registrado_por?: string | null
+          responsavel_solucao?: string | null
+          solucao?: string | null
+          source_id?: string
+          source_tabela?: string
+          status?: string
+          turno?: string | null
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pagamentos_mensais: {
         Row: {
           confirmado_por: string | null
@@ -3646,7 +3706,20 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_operacional_atendimentos: {
+        Row: {
+          data: string | null
+          formulario_id: string | null
+          origem: string | null
+          pendente_revisao: boolean | null
+          quantidade: number | null
+          responsavel: string | null
+          treinador: string | null
+          turno: string | null
+          unidade: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_bulk_update_cronograma: {
@@ -3749,6 +3822,13 @@ export type Database = {
       inativar_aluno: { Args: { p_lead_id: string }; Returns: undefined }
       normalize_cronograma_tipo: { Args: { p_titulo: string }; Returns: string }
       normalize_phone: { Args: { phone: string }; Returns: string }
+      parse_atendimentos: {
+        Args: { p_text: string }
+        Returns: {
+          quantidade: number
+          treinador: string
+        }[]
+      }
       reservar_envio_conta: {
         Args: { p_conta_id: string; p_tipo: string }
         Returns: {

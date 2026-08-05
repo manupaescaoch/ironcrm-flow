@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { CronogramaDashboard } from '@/components/cronograma/CronogramaDashboard';
+import { OperacionalDashboard } from '@/components/operacional/OperacionalDashboard';
 import { CronogramaTab } from '@/components/cronograma/CronogramaTab';
 import { FuncionariosTab } from '@/components/cronograma/FuncionariosTab';
 import { FormulariosList } from '@/components/cronograma/FormulariosList';
@@ -73,7 +74,7 @@ export default function Operacional() {
 
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="mt-4">
-            <CronogramaDashboard />
+            <OperacionalDashboard />
           </TabsContent>
 
           {/* Equipe Tab */}
