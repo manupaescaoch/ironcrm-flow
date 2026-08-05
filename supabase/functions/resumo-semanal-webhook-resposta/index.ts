@@ -146,6 +146,20 @@ function blocoUnidade(nome: string, sigla: string, u: any) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
+  // Autenticação do webhook: exige x-webhook-secret válido (fail closed)
+  const expectedSecret = Deno.env.get('ZAPI_WEBHOOK_SECRET') || ''
+  const providedSecret = req.headers.get('x-webhook-secret') || ''
+  if (
+    expectedSecret.length < 16 ||
+    !providedSecret ||
+    !constantTimeEqual(providedSecret, expectedSecret)
+  ) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -153,7 +167,14 @@ Deno.serve(async (req) => {
     )
 
     const body = (await req.json()) as ZapiWebhook
-    console.log('Webhook recebido', JSON.stringify(body))
+    console.log('[resumo-semanal-webhook] recebido', JSON.stringify({
+      phone: maskPhone(body.phone),
+      type: body.type ?? null,
+      fromMe: !!body.fromMe,
+      hasText: !!body.text?.message,
+    }))
+
+
 
     if (body.fromMe || body.isStatusReply) {
       return new Response(JSON.stringify({ ok: true, ignored: true }), {
