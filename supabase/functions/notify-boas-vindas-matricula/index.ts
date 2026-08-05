@@ -80,6 +80,10 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch { /* sem body */ }
     const dryRun = body?.dry_run === true;
 
+    let sent = 0;
+    const errors: string[] = [];
+    const results: any[] = [];
+
     const cutoff = new Date(Date.now() - HOURS_AFTER_MATRICULA * 60 * 60 * 1000).toISOString();
 
     const { data: interacoes, error: intErr } = await supabase
