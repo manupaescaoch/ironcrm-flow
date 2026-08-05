@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, MessageCircle, FileText } from 'lucide-react';
 import { DIAS_LABEL_SHORT, TIPO_DISPLAY_LABEL, type TipoDisplay } from '@/lib/cronogramaTipos';
+import { NOME_TOKEN, inserirToken } from '@/lib/mensagemPlaceholder';
 
 // Título e tipo_atividade padrão por grupo de exibição
 const DEFAULTS: Record<TipoDisplay, { titulo: string; tipo: string }> = {
@@ -41,6 +42,7 @@ export function NewAtividadeDialog({ tipo, open, onOpenChange }: Props) {
   const [modo, setModo] = useState<'mensagem' | 'formulario'>('mensagem');
   const [mensagem, setMensagem] = useState('');
   const [formularioId, setFormularioId] = useState('');
+  const mensagemRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     if (open && tipo) {
@@ -229,8 +231,32 @@ export function NewAtividadeDialog({ tipo, open, onOpenChange }: Props) {
                 </SelectContent>
               </Select>
             ) : (
-              <Textarea value={mensagem} onChange={(e) => setMensagem(e.target.value)} placeholder="MENSAGEM ENVIADA VIA WHATSAPP..." rows={4} />
+              <div className="space-y-2">
+                <Textarea
+                  ref={mensagemRef}
+                  value={mensagem}
+                  onChange={(e) => setMensagem(e.target.value)}
+                  placeholder="Mensagem enviada via WhatsApp..."
+                  rows={4}
+                  className="normal-case"
+                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => inserirToken(mensagemRef.current, mensagem, NOME_TOKEN, setMensagem)}
+                  >
+                    Inserir [nome]
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    [nome] é trocado pelo primeiro nome do responsável no envio.
+                  </span>
+                </div>
+              </div>
             )}
+
           </div>
         </div>
 

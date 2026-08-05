@@ -340,8 +340,10 @@ Deno.serve(async (req) => {
           coordenador: coordMatch ? coordMatch[1].trim() : null,
         });
       } else if (atividade.mensagem) {
-        // Mensagem customizada
-        message = atividade.mensagem;
+        // Mensagem customizada — substitui [nome]/{nome} pelo primeiro nome do responsável
+        const primeiroNome = (resp.nome || '').trim().split(/\s+/)[0] || '';
+        message = atividade.mensagem.replace(/[\[{]\s*nome\s*[\]}]/gi, primeiroNome);
+
       } else if (atividade.formulario_id) {
         const formTitulo = formularioMap.get(atividade.formulario_id) || 'Formulário';
         const formLink = `${SUPABASE_URL.replace('.supabase.co', '.lovable.app')}/formulario/${atividade.formulario_id}`;

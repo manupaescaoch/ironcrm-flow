@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,6 +21,8 @@ import { BulkEditDialog, type BulkField } from '@/components/cronograma-admin/Bu
 import { HistoricoDialog } from '@/components/cronograma-admin/HistoricoDialog';
 import { NewAtividadeDialog } from '@/components/cronograma-admin/NewAtividadeDialog';
 import { DIAS_LABEL_SHORT, type TipoDisplay } from '@/lib/cronogramaTipos';
+import { NOME_TOKEN, aplicarPlaceholders, inserirToken } from '@/lib/mensagemPlaceholder';
+
 
 function atvToGrupo(a: CronogramaAtividadeAdmin): GrupoConjunto {
   return {
@@ -100,17 +102,23 @@ function EditGrupoDialog({
   const [mensagem, setMensagem] = useState('');
   const [formularioId, setFormularioId] = useState<string>('');
 
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const grupoKey = grupo?.key ?? null;
+
   useEffect(() => {
-    if (open && grupo && first) {
-      setHorario(grupo.horario?.slice(0, 5) || '');
-      setDias(Array.from(new Set(grupo.diasAtivos)).sort((a, b) => a - b));
-      setRespId(grupo.responsavel_id || '');
-      const hasForm = !!first.formulario_id;
-      setModo(hasForm ? 'formulario' : 'mensagem');
-      setMensagem(first.mensagem || '');
-      setFormularioId(first.formulario_id || '');
-    }
-  }, [open, grupo, first]);
+    if (!open || !grupo || !first) return;
+    setHorario(grupo.horario?.slice(0, 5) || '');
+    setDias(Array.from(new Set(grupo.diasAtivos)).sort((a, b) => a - b));
+    setRespId(grupo.responsavel_id || '');
+    const hasForm = !!first.formulario_id;
+    setModo(hasForm ? 'formulario' : 'mensagem');
+    setMensagem(first.mensagem || '');
+    setFormularioId(first.formulario_id || '');
+    // Reinicializa apenas ao abrir ou ao trocar a atividade editada (evita o cursor
+    // voltar para o fim do texto quando o componente pai re-renderiza).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, grupoKey]);
+
 
   const { data: funcionarios = [] } = useQuery({
     queryKey: ['cronograma-funcionarios-full', grupo?.unidade_id],
@@ -250,13 +258,38 @@ function EditGrupoDialog({
                 </SelectContent>
               </Select>
             ) : (
-              <Textarea
-                value={mensagem}
-                onChange={(e) => setMensagem(e.target.value)}
-                placeholder="MENSAGEM ENVIADA VIA WHATSAPP..."
-                rows={4}
-              />
+              <div className="space-y-2">
+                <Textarea
+                  ref={textareaRef}
+                  value={mensagem}
+                  onChange={(e) => setMensagem(e.target.value)}
+                  placeholder="Mensagem enviada via WhatsApp..."
+                  rows={4}
+                  className="normal-case"
+                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => inserirToken(textareaRef.current, mensagem, NOME_TOKEN, setMensagem)}
+                  >
+                    Inserir [nome]
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    [nome] é trocado pelo primeiro nome do responsável no envio.
+                  </span>
+                </div>
+                {mensagem.match(/[[{]\s*nome\s*[\]}]/i) && (
+                  <div className="text-xs bg-muted/40 rounded-md px-3 py-2 whitespace-pre-wrap">
+                    <span className="font-semibold">Preview: </span>
+                    {aplicarPlaceholders(mensagem, respSelecionado?.nome)}
+                  </div>
+                )}
+              </div>
             )}
+
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DIAS_SEMANA } from '@/lib/cronUtils';
+import { NOME_TOKEN, inserirToken } from '@/lib/mensagemPlaceholder';
 import type { CronogramaAtividadeAdmin } from '@/hooks/useCronogramaAdmin';
 
 export type BulkField =
@@ -54,6 +55,7 @@ export function BulkEditDialog({ open, onOpenChange, field, selected, unidadesOp
   const [turno, setTurno] = useState('');
   const [mensagem, setMensagem] = useState('');
   const [dias, setDias] = useState<number[]>([]);
+  const mensagemRef = useRef<HTMLTextAreaElement | null>(null);
   const [diasMode, setDiasMode] = useState<'replace' | 'add'>('replace');
   const [confirmed, setConfirmed] = useState(false);
 
@@ -138,11 +140,32 @@ export function BulkEditDialog({ open, onOpenChange, field, selected, unidadesOp
             </div>
           )}
           {field === 'mensagem' && (
-            <div>
+            <div className="space-y-2">
               <Label>Nova mensagem</Label>
-              <Textarea rows={5} value={mensagem} onChange={e => setMensagem(e.target.value)} />
+              <Textarea
+                ref={mensagemRef}
+                rows={5}
+                value={mensagem}
+                onChange={e => setMensagem(e.target.value)}
+                className="normal-case"
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => inserirToken(mensagemRef.current, mensagem, NOME_TOKEN, setMensagem)}
+                >
+                  Inserir [nome]
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  [nome] é trocado pelo primeiro nome do responsável no envio.
+                </span>
+              </div>
             </div>
           )}
+
           {field === 'dias' && (
             <div className="space-y-3">
               <RadioGroup value={diasMode} onValueChange={(v: any) => setDiasMode(v)} className="flex gap-4">
