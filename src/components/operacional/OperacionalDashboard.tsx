@@ -193,9 +193,10 @@ export function OperacionalDashboard() {
               onClick={() =>
                 setDrill({
                   titulo: 'Turnos que não mantiveram o Padrão EVO',
-                  itens: data.padraoEvo.fora.map(
-                    (f) => `${format(parseISODate(f.data), 'dd/MM')} · ${f.unidade} · ${f.responsavel} — ${f.justificativa || 'sem justificativa registrada'}`,
-                  ),
+                  itens: data.padraoEvo.fora.map((f) => ({
+                    texto: `${format(parseISODate(f.data), 'dd/MM')} · ${f.unidade} · ${f.responsavel} — ${f.justificativa || 'sem justificativa registrada'}`,
+                    origem: { tabela: f.tabela, id: f.id },
+                  })),
                 })
               }
             />
