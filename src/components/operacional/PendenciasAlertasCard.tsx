@@ -27,6 +27,7 @@ export function PendenciasAlertasCard({ pendencias }: { pendencias: PendenciaIte
   const [statusFiltro, setStatusFiltro] = useState('abertas');
   const [categoria, setCategoria] = useState('all');
   const [sel, setSel] = useState<PendenciaItem | null>(null);
+  const [origem, setOrigem] = useState<FormularioOrigem | null>(null);
   const [form, setForm] = useState({ responsavel: '', prazo: '', status: 'pendente', solucao: '' });
   const { toast } = useToast();
   const qc = useQueryClient();
