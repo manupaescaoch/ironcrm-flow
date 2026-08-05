@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, MessageCircle, FileText } from 'lucide-react';
 import { DIAS_LABEL_SHORT, TIPO_DISPLAY_LABEL, type TipoDisplay } from '@/lib/cronogramaTipos';
+import { NOME_TOKEN, inserirToken } from '@/lib/mensagemPlaceholder';
 
 // Título e tipo_atividade padrão por grupo de exibição
 const DEFAULTS: Record<TipoDisplay, { titulo: string; tipo: string }> = {
