@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.0'
-import { getZapiCreds, sendText, logEnvio } from '../_shared/zapi.ts'
+import { buildIdempotencyKey, getZapiCreds, sendTextIdempotent, logEnvio } from '../_shared/zapi.ts'
 
 const corsHeaders = {
 
@@ -221,7 +221,8 @@ ${blocoUnidade('Zona Sul', 'ZS', zs)}
       console.error('[resumo-webhook] WhatsApp operacional não configurado')
     } else {
       try {
-        const sendResult = await sendText(creds, RESUMO_PHONE, msg)
+        const chave = buildIdempotencyKey(['resumo-semanal-webhook-resposta', pendente.id, inicio, fim, RESUMO_PHONE])
+        const sendResult = await sendTextIdempotent(supabase, creds, RESUMO_PHONE, msg, { chave, funcao: 'resumo-semanal-webhook-resposta' })
         zapiBody = sendResult.body
         statusCode = sendResult.status
         success = sendResult.ok && !!(zapiBody?.messageId || zapiBody?.id)
