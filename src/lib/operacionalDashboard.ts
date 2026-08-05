@@ -1,7 +1,7 @@
 // Cálculos e regras do Dashboard Operacional EVO
 // Todas as funções são puras para permitir teste e reuso.
 
-export type PeriodoPreset = 'hoje' | '7d' | '15d' | '30d' | 'custom';
+export type PeriodoPreset = 'hoje' | '7d' | '30d' | '60d' | 'custom';
 
 export const TURNOS = ['MANHÃ', 'TARDE', 'NOITE'] as const;
 
