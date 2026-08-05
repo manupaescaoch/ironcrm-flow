@@ -75,6 +75,8 @@ export default function ContasPagar() {
     isLoading,
     kpis,
     canManage,
+    canCreate,
+
     unidadeId,
     unidadeNome,
     statusDe,
