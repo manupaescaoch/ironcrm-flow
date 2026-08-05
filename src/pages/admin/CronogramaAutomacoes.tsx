@@ -21,7 +21,7 @@ import { BulkEditDialog, type BulkField } from '@/components/cronograma-admin/Bu
 import { HistoricoDialog } from '@/components/cronograma-admin/HistoricoDialog';
 import { NewAtividadeDialog } from '@/components/cronograma-admin/NewAtividadeDialog';
 import { DIAS_LABEL_SHORT, type TipoDisplay } from '@/lib/cronogramaTipos';
-import { NOME_TOKEN, aplicarPlaceholders, inserirToken } from '@/lib/mensagemPlaceholder';
+import { NOME_TOKEN, aplicarPlaceholders, contemNomeToken, inserirToken } from '@/lib/mensagemPlaceholder';
 
 
 function atvToGrupo(a: CronogramaAtividadeAdmin): GrupoConjunto {
