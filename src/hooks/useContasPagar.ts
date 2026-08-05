@@ -342,6 +342,8 @@ export function useContasPagar(from: string, to: string) {
     kpis,
     hoje,
     canManage,
+    canCreate,
+
     unidadeId,
     unidadeNome: unidadeAtual?.nome ?? '',
     statusDe,
