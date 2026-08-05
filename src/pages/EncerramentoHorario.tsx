@@ -385,7 +385,11 @@ export default function EncerramentoHorario() {
             ocorrencia_descricao: r.ocorrenciaDescricao || null,
             treinador_faltou: r.treinadorFaltou,
             treinador_faltou_quem: r.treinadorFaltouQuem || null,
-            atendimentos_por_treinador: r.atendimentosPorTreinador || null,
+            atendimentos_por_treinador: atendimentosTexto || null,
+            atendimentos_json: atendimentosValidos.map((a) => ({
+              treinador: a.treinador.trim().toUpperCase(),
+              quantidade: Number(a.quantidade),
+            })),
             experimentais_realizadas: Number(r.experimentais) || 0,
             teve_feedback_aluno: r.feedbackAluno,
             feedback_aluno_descricao: r.feedbackAlunoDescricao || null,
