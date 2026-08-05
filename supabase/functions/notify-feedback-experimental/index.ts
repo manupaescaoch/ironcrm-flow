@@ -211,25 +211,16 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const recepcao = recepcaoMap.get(lead.unidade_id);
-      if (!recepcao) {
-        errors.push(`Sem telefone de recepção para unidade ${lead.unidade_id} (lead ${lead.nome})`);
+      const phone = normalizePhone(lead.telefone || '');
+      if (!phone || phone.length < 12) {
+        errors.push(`Telefone inválido para lead ${lead.nome}`);
         continue;
       }
 
-      const horaAula = (inter.hora_experimental || '').slice(0, 5);
-      const message = `📞 *Feedback pós-aula experimental*
-
-👤 *Lead:* ${lead.nome}
-📱 *Telefone:* ${formatPhoneBR(lead.telefone || '')}
-🕒 *Aula:* hoje às ${horaAula}
-
-Entrar em contato para coletar feedback da experiência e oferecer o plano.`;
-
-      const phone = normalizePhone(recepcao);
+      const message = buildMensagemLead((lead.nome || '').split(' ')[0] || lead.nome || '');
 
       if (dryRun) {
-        results.push({ lead: lead.nome, destino_recepcao: phone, unidade_id: lead.unidade_id, preview: message });
+        results.push({ lead: lead.nome, destino_lead: phone, unidade_id: lead.unidade_id, preview: message });
         continue;
       }
 
