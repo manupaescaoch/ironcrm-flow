@@ -60,12 +60,11 @@ function montarMensagemCoordenador(
   nota: number,
   comentario: string,
   alunoPhone: string,
-  coordenadorNome?: string,
 ): string {
   const primeiroNomeAluno = (nome || '').trim().split(/\s+/)[0] || nome || 'aluno';
   const unidadeLabel = unidade || '—';
   const linkWhatsapp = `https://wa.me/${alunoPhone}`;
-  const coord = coordenadorNome || '[NOME DO COORDENADOR]';
+  const coord = '[SEU NOME]';
 
   const cabecalho =
     `🟦 *NOVA RESPOSTA NPS — EVO TRAINING CLUB*\n\n` +
@@ -227,58 +226,25 @@ Deno.serve(async (req) => {
       aluno_telefone: alunoPhone,
     };
 
-    // Conteúdo base (reaproveitado no grupo, sem a ação sugerida)
-    const msgBase =
-      `🟦 *Nova resposta NPS — EVO TRAINING CLUB*\n\n` +
-      `*Unidade:* ${resp.unidade_nome || '—'}\n` +
-      `*Aluno:* ${resp.nome}\n` +
-      `*Contato:* ${alunoPhone}\n` +
-      `*Nota NPS:* ${nota} (${classificacao})\n` +
-      `*Comentário:* ${comentario || '—'}`;
+    // Mensagem única (detalhada) enviada apenas ao GRUPO da unidade
+    const msgGrupo = montarMensagemCoordenador(
+      classificacao,
+      resp.nome,
+      resp.unidade_nome || '',
+      nota,
+      comentario,
+      alunoPhone,
+    );
 
-    // 1) Interno ao responsável
-    if (responsavel) {
-      const msgInterna = montarMensagemCoordenador(
-        classificacao,
-        resp.nome,
-        resp.unidade_nome || '',
-        nota,
-        comentario,
-        alunoPhone,
-        responsavel.nome,
-      );
+    // Não há mais envio individual ao coordenador — tudo é consolidado no grupo
+    log.interna_status = 'skip';
+    log.interna_erro = 'consolidado-no-grupo';
 
-      const chaveInterna = buildIdempotencyKey(['notify-nps-resposta', resp.id, 'interno', responsavel.phone]);
-      const r = await sendTextIdempotent(supabase, creds, responsavel.phone, msgInterna, { chave: chaveInterna, funcao: 'notify-nps-resposta' });
-      log.interna_status = r.ok ? 'enviado' : 'erro';
-      log.interna_message_id = (r.body as any)?.messageId ?? (r.body as any)?.zaapId ?? null;
-      log.interna_erro = r.ok ? null : JSON.stringify(r.body).slice(0, 500);
-      await logEnvio(supabase, {
-        funcao: 'notify-nps-resposta',
-        destino: responsavel.phone,
-        tipo_destino: 'interno',
-        sucesso: r.ok,
-        zapi_status_code: r.status,
-        erro_msg: r.ok ? null : JSON.stringify(r.body).slice(0, 500),
-        canal: 'comercial',
-      });
-    } else {
-      log.interna_status = 'skip';
-      log.interna_erro = `unidade-sem-responsavel:${unidadeKey}`;
-      await logEnvio(supabase, {
-        funcao: 'notify-nps-resposta',
-        tipo_destino: 'interno',
-        sucesso: false,
-        motivo_skip: `unidade-sem-responsavel:${unidadeKey}`,
-        canal: 'comercial',
-      });
-    }
-
-    // 2) Grupo da unidade (mesmo endpoint de texto do Z-API, "phone" = ID do grupo)
+    // Grupo da unidade (mesmo endpoint de texto do Z-API, "phone" = ID do grupo)
     const grupoId = findGrupo(resp.unidade_nome || '');
     if (grupoId) {
       const chaveGrupo = buildIdempotencyKey(['notify-nps-resposta', resp.id, 'grupo', grupoId]);
-      const rg = await sendTextIdempotent(supabase, creds, grupoId, msgBase, { chave: chaveGrupo, funcao: 'notify-nps-resposta' });
+      const rg = await sendTextIdempotent(supabase, creds, grupoId, msgGrupo, { chave: chaveGrupo, funcao: 'notify-nps-resposta' });
       log.payload = {
         grupo_id: grupoId,
         grupo_status: rg.skipped ? 'duplicado' : rg.ok ? 'enviado' : 'erro',
