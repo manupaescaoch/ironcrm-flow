@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { ArrowRight, Loader2, RefreshCw, CheckCircle2, CalendarIcon } from 'lucide-react';
+import { ArrowRight, Loader2, RefreshCw, CheckCircle2, CalendarIcon, Plus, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ interface Respostas {
   treinadorFaltou: boolean | null;
   treinadorFaltouQuem: string;
   atendimentosPorTreinador: string;
+  atendimentos: { treinador: string; quantidade: string }[];
   experimentais: string;
   feedbackAluno: boolean | null;
   feedbackAlunoDescricao: string;
@@ -48,6 +49,7 @@ const initial: Respostas = {
   treinadorFaltou: null,
   treinadorFaltouQuem: '',
   atendimentosPorTreinador: '',
+  atendimentos: [{ treinador: '', quantidade: '' }],
   experimentais: '',
   feedbackAluno: null,
   feedbackAlunoDescricao: '',
@@ -92,6 +94,17 @@ export default function EncerramentoHorario() {
 
   const set = <K extends keyof Respostas>(k: K, v: Respostas[K]) =>
     setR((prev) => ({ ...prev, [k]: v }));
+
+  const atendimentosValidos = r.atendimentos.filter(
+    (a) => a.treinador.trim().length >= 2 && a.quantidade !== '' && Number(a.quantidade) >= 0,
+  );
+  const temNomeDuplicado = (() => {
+    const nomes = atendimentosValidos.map((a) => a.treinador.trim().toUpperCase());
+    return new Set(nomes).size !== nomes.length;
+  })();
+  const atendimentosTexto = atendimentosValidos
+    .map((a) => `${a.treinador.trim()} ${a.quantidade}`)
+    .join(' / ');
 
   type Step = {
     key: string;
@@ -169,11 +182,62 @@ export default function EncerramentoHorario() {
     }
     list.push({
       key: 'atendimentos', categoria: 'Operação', pergunta: 'Quantidade de atendimentos por treinador no turno',
-      apoio: 'Liste cada treinador e o nº de atendimentos',
-      canContinue: r.atendimentosPorTreinador.trim().length >= 2,
-      render: () => (<Textarea value={r.atendimentosPorTreinador}
-        onChange={(e) => set('atendimentosPorTreinador', e.target.value.toUpperCase())}
-        placeholder="EX: JOÃO 12 / MARIA 10 / PEDRO 8" className="min-h-28 rounded-2xl text-base" />),
+      apoio: 'Adicione um treinador por linha com o nº de atendimentos',
+      canContinue: atendimentosValidos.length > 0 && !temNomeDuplicado,
+      render: () => (
+        <div className="space-y-2">
+          {r.atendimentos.map((a, i) => (
+            <div key={i} className="flex gap-2">
+              <Input
+                value={a.treinador}
+                onChange={(e) => {
+                  const next = [...r.atendimentos];
+                  next[i] = { ...next[i], treinador: e.target.value.toUpperCase() };
+                  set('atendimentos', next);
+                }}
+                placeholder="TREINADOR"
+                className="h-12 rounded-2xl text-base flex-1"
+              />
+              <Input
+                inputMode="numeric"
+                value={a.quantidade}
+                onChange={(e) => {
+                  const next = [...r.atendimentos];
+                  next[i] = { ...next[i], quantidade: e.target.value.replace(/\D/g, '') };
+                  set('atendimentos', next);
+                }}
+                placeholder="0"
+                className="h-12 w-20 rounded-2xl text-base text-center"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-12 w-12 shrink-0"
+                disabled={r.atendimentos.length === 1}
+                onClick={() => set('atendimentos', r.atendimentos.filter((_, idx) => idx !== i))}
+                aria-label="Remover treinador"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full rounded-2xl"
+            onClick={() => set('atendimentos', [...r.atendimentos, { treinador: '', quantidade: '' }])}
+          >
+            <Plus className="w-4 h-4 mr-2" /> Adicionar treinador
+          </Button>
+          {temNomeDuplicado && (
+            <p className="text-xs text-destructive">Existe treinador repetido na lista.</p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Total do turno: {atendimentosValidos.reduce((s, a) => s + Number(a.quantidade), 0)} atendimento(s)
+          </p>
+        </div>
+      ),
     });
     list.push({
       key: 'experimentais', categoria: 'Operação', pergunta: 'Quantas experimentais foram realizadas no turno?',
@@ -295,7 +359,7 @@ export default function EncerramentoHorario() {
     push('Turno', r.turno);
     push('Ocorrência?', r.teveOcorrencia === true ? `Sim — ${r.ocorrenciaDescricao}` : (r.teveOcorrencia === false ? 'Não' : ''));
     push('Treinador faltou?', r.treinadorFaltou === true ? `Sim — ${r.treinadorFaltouQuem}` : (r.treinadorFaltou === false ? 'Não' : ''));
-    push('Atendimentos por treinador', r.atendimentosPorTreinador);
+    push('Atendimentos por treinador', atendimentosTexto);
     push('Experimentais', r.experimentais);
     push('Feedback de aluno?', r.feedbackAluno === true ? `Sim — ${r.feedbackAlunoDescricao}` : (r.feedbackAluno === false ? 'Não' : ''));
     push('Destaque positivo?', r.destaquePositivo === true ? `Sim — ${r.destaqueDescricao}` : (r.destaquePositivo === false ? 'Não' : ''));
@@ -321,7 +385,11 @@ export default function EncerramentoHorario() {
             ocorrencia_descricao: r.ocorrenciaDescricao || null,
             treinador_faltou: r.treinadorFaltou,
             treinador_faltou_quem: r.treinadorFaltouQuem || null,
-            atendimentos_por_treinador: r.atendimentosPorTreinador || null,
+            atendimentos_por_treinador: atendimentosTexto || null,
+            atendimentos_json: atendimentosValidos.map((a) => ({
+              treinador: a.treinador.trim().toUpperCase(),
+              quantidade: Number(a.quantidade),
+            })),
             experimentais_realizadas: Number(r.experimentais) || 0,
             teve_feedback_aluno: r.feedbackAluno,
             feedback_aluno_descricao: r.feedbackAlunoDescricao || null,
