@@ -265,6 +265,22 @@ export function calcularDistribuicao(rows: AtendimentoRow[]): DistribuicaoResult
   };
 }
 
+/**
+ * Distribuição sempre segmentada por unidade — nunca misturar treinadores
+ * de unidades diferentes num mesmo cálculo/ranking.
+ */
+export function calcularDistribuicaoPorUnidade(
+  rows: AtendimentoRow[],
+): Array<DistribuicaoResultado & { unidade: string }> {
+  const unidades = [...new Set(rows.filter((r) => (r.quantidade ?? 0) > 0 && r.treinador).map((r) => r.unidade))].sort();
+  return unidades
+    .map((u) => {
+      const res = calcularDistribuicao(rows.filter((r) => r.unidade === u));
+      return res ? { ...res, unidade: u } : null;
+    })
+    .filter(Boolean) as Array<DistribuicaoResultado & { unidade: string }>;
+}
+
 export const DISTRIBUICAO_LABEL: Record<DistribuicaoClasse, string> = {
   equilibrada: 'Equilibrada',
   atencao: 'Atenção',
