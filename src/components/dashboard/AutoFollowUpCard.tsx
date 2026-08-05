@@ -44,13 +44,11 @@ interface AutoFollowUpCardProps {
 
 // Mensagens prontas por estágio
 const FOLLOW_UP_MESSAGES: Record<string, string> = {
-  'D+1': `Oi, {{nome}}! Tudo bem?
+  'D+1': `Oi, {{nome}}! Como você está se sentindo hoje depois da sua aula experimental?
 
-Passando pra saber da experiência com a gente ontem! Como foi o treino? Faz toda a diferença ter um acompanhamento de verdade, né?
+Caso esteja sentindo algum desconforto muscular, pode ficar tranquilo: é normal, principalmente se você estava há algum tempo sem treinar. 😊
 
-Espero que tenha curtido a experiência aqui na IRON. Se fizer sentido pra você continuar treinando com a gente, me chama por aqui que te explico os planos.
-
-Qualquer dúvida, estamos à disposição!`,
+Aproveitando, ficou com alguma dúvida sobre os nossos planos ou sobre como funciona o acompanhamento?`,
 
   'D+7': `Oi, {{nome}}! Tudo bem?
 
