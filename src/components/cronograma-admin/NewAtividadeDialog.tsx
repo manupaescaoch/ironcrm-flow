@@ -42,6 +42,7 @@ export function NewAtividadeDialog({ tipo, open, onOpenChange }: Props) {
   const [modo, setModo] = useState<'mensagem' | 'formulario'>('mensagem');
   const [mensagem, setMensagem] = useState('');
   const [formularioId, setFormularioId] = useState('');
+  const mensagemRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     if (open && tipo) {
