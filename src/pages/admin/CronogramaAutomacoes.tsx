@@ -256,13 +256,38 @@ function EditGrupoDialog({
                 </SelectContent>
               </Select>
             ) : (
-              <Textarea
-                value={mensagem}
-                onChange={(e) => setMensagem(e.target.value)}
-                placeholder="MENSAGEM ENVIADA VIA WHATSAPP..."
-                rows={4}
-              />
+              <div className="space-y-2">
+                <Textarea
+                  ref={textareaRef}
+                  value={mensagem}
+                  onChange={(e) => setMensagem(e.target.value)}
+                  placeholder="Mensagem enviada via WhatsApp..."
+                  rows={4}
+                  className="normal-case"
+                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => inserirToken(textareaRef.current, mensagem, NOME_TOKEN, setMensagem)}
+                  >
+                    Inserir [nome]
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    [nome] é trocado pelo primeiro nome do responsável no envio.
+                  </span>
+                </div>
+                {mensagem.match(/[[{]\s*nome\s*[\]}]/i) && (
+                  <div className="text-xs bg-muted/40 rounded-md px-3 py-2 whitespace-pre-wrap">
+                    <span className="font-semibold">Preview: </span>
+                    {aplicarPlaceholders(mensagem, respSelecionado?.nome)}
+                  </div>
+                )}
+              </div>
             )}
+
           </div>
         </div>
 
