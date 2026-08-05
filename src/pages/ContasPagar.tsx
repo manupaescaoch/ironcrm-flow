@@ -158,7 +158,7 @@ export default function ContasPagar() {
             </div>
           </div>
 
-          {canManage && (
+          {canCreate && (
             <div className="flex flex-wrap gap-2">
               <Button
                 onClick={() => {
