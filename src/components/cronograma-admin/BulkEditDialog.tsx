@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DIAS_SEMANA } from '@/lib/cronUtils';
-import { NOME_TOKEN, inserirToken } from '@/lib/mensagemPlaceholder';
+import { NOME_TOKEN, contemNomeToken, inserirToken } from '@/lib/mensagemPlaceholder';
 import type { CronogramaAtividadeAdmin } from '@/hooks/useCronogramaAdmin';
 
 export type BulkField =
