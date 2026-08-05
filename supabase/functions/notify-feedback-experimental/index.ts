@@ -162,15 +162,7 @@ Deno.serve(async (req) => {
       .in('id', leadIds);
     const leadMap = new Map((leads || []).map((l: any) => [l.id, l]));
 
-    // Carrega telefones de recepção por unidade
-    const unidadeIds = Array.from(new Set((leads || []).map((l: any) => l.unidade_id).filter(Boolean)));
-    const { data: cfgs } = await supabase
-      .from('unidade_whatsapp_config')
-      .select('unidade_id, telefone_recepcao')
-      .eq('ativo', true)
-      .not('telefone_recepcao', 'is', null)
-      .in('unidade_id', unidadeIds);
-    const recepcaoMap = new Map((cfgs || []).map((c: any) => [c.unidade_id, c.telefone_recepcao]));
+    // FU pós-experimental vai DIRETO ao lead pelo chip comercial (sem recepção)
 
     
     let sent = 0;
