@@ -369,8 +369,6 @@ export async function resolveGrupo(
 
 // ---------------------- WhatsApp dispatch (routed via shared helper) ----------------------
 
-import { buildIdempotencyKey, getZapiCreds, sendTextIdempotent } from './zapi.ts';
-
 /**
  * Normaliza o ID do grupo conforme o provedor:
  * - D-API: exige `<id>@g.us` (minúsculo; não aceita @G.US)
