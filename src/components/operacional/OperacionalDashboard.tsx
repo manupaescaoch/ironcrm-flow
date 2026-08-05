@@ -285,10 +285,10 @@ export function OperacionalDashboard() {
                     onClick={() =>
                       setDrill({
                         titulo: `${q.label} — registros do período`,
-                        itens:
-                          registrosQualidade?.coordenador.map(
-                            (r) => `${format(new Date(r.created_at), 'dd/MM')} · ${r.unidade} · ${r.turno} · ${r.nome}`,
-                          ) ?? [],
+                        itens: q.registros.map((r) => ({
+                          texto: `${format(new Date(r.created_at), 'dd/MM')} · ${r.unidade}${r.turno ? ` · ${r.turno}` : ''} · ${r.nome ?? '—'} — nota ${r.nota.toString().replace('.', ',')}`,
+                          origem: { tabela: r.tabela, id: r.id },
+                        })),
                       })
                     }
                   >
