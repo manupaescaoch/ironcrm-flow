@@ -4,11 +4,12 @@
 // 3) Loga uma interação para aparecer no histórico/timeline
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import {
+  buildIdempotencyKey,
   checkZapiStatus,
   getZapiCreds,
   logEnvio,
   phoneExists,
-  sendText,
+  sendTextIdempotent,
 } from '../_shared/zapi.ts';
 
 const corsHeaders = {
@@ -80,7 +81,7 @@ Deno.serve(async (req) => {
 
     const { data: lead, error: leadErr } = await supabase
       .from('leads')
-      .select('id, nome, telefone, unidade_id, ativo')
+      .select('id, nome, telefone, unidade_id, ativo, data_aula_experimental')
       .eq('id', leadId)
       .single();
 
@@ -166,8 +167,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 4) Envia
-    const r = await sendText(creds, phone, message);
+    // 4) Envia (com idempotência: 1 mensagem de reagendamento por lead/dia da aula)
+    const chaveReag = buildIdempotencyKey([
+      FUNC, lead.id, String(lead.data_aula_experimental ?? '').slice(0, 10) || 'sem_data',
+    ]);
+    const r = await sendTextIdempotent(supabase, creds, phone, message, { chave: chaveReag, funcao: FUNC });
+    if (r.skipped) {
+      await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, motivo_skip: 'idempotencia_duplicado', unidade_id: lead.unidade_id, canal: 'comercial' });
+      return new Response(JSON.stringify({ ok: true, skipped: 'duplicado', followUpId }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     if (!r.ok) {
       await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, zapi_status_code: r.status, erro_msg: JSON.stringify(r.body).slice(0, 300), unidade_id: lead.unidade_id, canal: 'comercial' });
       await supabase.from('interacoes').insert({

@@ -235,3 +235,83 @@ export async function logEnvio(supabase: any, p: LogPayload): Promise<void> {
     console.error('[zapi.logEnvio] falhou', e);
   }
 }
+
+// ---------------------------------------------------------------------------
+// IDEMPOTÊNCIA DE ENVIO (proteção anti-duplicidade)
+// ---------------------------------------------------------------------------
+// Toda mensagem deve ter uma chave determinística (funcao + destino + contexto).
+// claimEnvio() reserva a chave de forma atômica no banco ANTES do envio.
+// Se retornar false, alguém já enviou (ou está enviando) → NÃO envie.
+// Em caso de falha real no provedor, chame releaseEnvio() para permitir retry.
+
+export function buildIdempotencyKey(parts: (string | number | null | undefined)[]): string {
+  return parts
+    .map((p) => String(p ?? '').trim().toLowerCase().replace(/\s+/g, '_'))
+    .filter(Boolean)
+    .join(':');
+}
+
+export async function claimEnvio(
+  supabase: any,
+  opts: {
+    chave: string;
+    funcao: string;
+    destino?: string | null;
+    canal?: ZapiChannel | null;
+    ttlMinutes?: number;
+  },
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('claim_whatsapp_envio', {
+      p_chave: opts.chave,
+      p_funcao: opts.funcao,
+      p_destino: opts.destino ?? null,
+      p_canal: opts.canal ?? null,
+      p_ttl_minutes: opts.ttlMinutes ?? 43200,
+    });
+    if (error) {
+      // Fail-closed: sem garantia de idempotência, não enviamos (evita duplicidade).
+      console.error('[zapi.claimEnvio] erro — envio abortado', opts.chave, error.message);
+      return false;
+    }
+    return data === true;
+  } catch (e) {
+    console.error('[zapi.claimEnvio] exceção — envio abortado', opts.chave, e);
+    return false;
+  }
+}
+
+export async function releaseEnvio(supabase: any, chave: string): Promise<void> {
+  try {
+    await supabase.rpc('release_whatsapp_envio', { p_chave: chave });
+  } catch (e) {
+    console.error('[zapi.releaseEnvio] falhou', chave, e);
+  }
+}
+
+/**
+ * Envio de texto com idempotência garantida no banco.
+ * Retorna { skipped: true } quando a chave já foi usada (duplicidade evitada).
+ */
+export async function sendTextIdempotent(
+  supabase: any,
+  creds: ZapiCreds,
+  phone: string,
+  message: string,
+  opts: { chave: string; funcao: string; ttlMinutes?: number },
+): Promise<{ ok: boolean; skipped: boolean; status: number; body: any }> {
+  const claimed = await claimEnvio(supabase, {
+    chave: opts.chave,
+    funcao: opts.funcao,
+    destino: phone,
+    canal: creds.channel,
+    ttlMinutes: opts.ttlMinutes,
+  });
+  if (!claimed) {
+    console.log('[zapi.sendTextIdempotent] DUPLICIDADE EVITADA', opts.chave);
+    return { ok: false, skipped: true, status: 0, body: { skipped: 'duplicado' } };
+  }
+  const r = await sendText(creds, phone, message);
+  if (!r.ok) await releaseEnvio(supabase, opts.chave);
+  return { ...r, skipped: false };
+}
