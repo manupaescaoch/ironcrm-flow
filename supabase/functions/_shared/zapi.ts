@@ -267,7 +267,9 @@ export async function claimEnvio(
       p_funcao: opts.funcao,
       p_destino: opts.destino ?? null,
       p_canal: opts.canal ?? null,
-      p_ttl_minutes: opts.ttlMinutes ?? 43200,
+      // Dez anos por padrão: um evento histórico jamais volta a ser elegível só
+      // porque a trava expirou. Fluxos recorrentes devem incluir a data na chave.
+      p_ttl_minutes: opts.ttlMinutes ?? 5256000,
     });
     if (error) {
       // Fail-closed: sem garantia de idempotência, não enviamos (evita duplicidade).
@@ -311,7 +313,9 @@ export async function sendTextIdempotent(
     console.log('[zapi.sendTextIdempotent] DUPLICIDADE EVITADA', opts.chave);
     return { ok: false, skipped: true, status: 0, body: { skipped: 'duplicado' } };
   }
+  // Fail-closed inclusive em timeout/erro ambíguo: depois que o provedor foi
+  // chamado não é seguro liberar a chave, pois ele pode ter aceitado a mensagem
+  // antes da conexão cair. Retry exige uma nova decisão explícita, nunca automática.
   const r = await sendText(creds, phone, message);
-  if (!r.ok) await releaseEnvio(supabase, opts.chave);
   return { ...r, skipped: false };
 }

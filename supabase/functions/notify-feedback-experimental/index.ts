@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
-import { checkZapiStatus, getZapiCreds, logEnvio, sendText } from '../_shared/zapi.ts';
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, logEnvio, sendTextIdempotent } from '../_shared/zapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -101,15 +101,6 @@ Deno.serve(async (req) => {
         });
       }
     }
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
-
-    let body: any = {};
-    try { body = await req.json(); } catch { /* sem body */ }
-    const dryRun = body?.dry_run === true;
-
     const brasilia = getBrasiliaNow();
     const todayStr = getBrasiliaDateOnly();
     const nowMin = brasilia.getHours() * 60 + brasilia.getMinutes();
@@ -234,7 +225,13 @@ Entrar em contato para coletar feedback da experiência e oferecer o plano.`;
       }
 
       try {
-        const r = await sendText(creds!, phone, message);
+        const chave = buildIdempotencyKey([FUNC, inter.id, lead.id, inter.data_experimental, inter.hora_experimental, phone]);
+        const r = await sendTextIdempotent(supabase, creds!, phone, message, { chave, funcao: FUNC });
+        if (r.skipped) {
+          await supabase.from('interacoes').update({ feedback_pos_aula_enviado_em: new Date().toISOString() }).eq('id', inter.id);
+          results.push({ lead: lead.nome, status: 'duplicate' });
+          continue;
+        }
         const ok = r.ok;
 
         if (ok) {
