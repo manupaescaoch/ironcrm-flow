@@ -71,15 +71,15 @@ const FOLLOW_UP_MESSAGES: Record<string, (nome: string) => string> = {
 
 Primeira sessão sempre dá aquela sensação de que o músculo acordou.
 
-Se quiser continuar treinando com estrutura e acompanhamento, me fala. Te explico como funciona aqui na IRON em 2 minutos.`,
-  'D+7': (nome) => `${nome}, faz uma semana desde sua experimental aqui na IRON.
+Se quiser continuar treinando com estrutura e acompanhamento, me fala. Te explico como funciona aqui na EVO em 2 minutos.`,
+  'D+7': (nome) => `${nome}, faz uma semana desde sua experimental aqui na EVO.
 
 Voltou a treinar? Em outro lugar ou parou por enquanto?
 
 Pergunto porque dependendo da sua situação, posso te mostrar uma opção que faz mais sentido pro seu momento agora.`,
   'D+15': (nome) => `${nome}, passando de forma direta:
 
-Você veio, treinou, sentiu na prática como é a estrutura da IRON.
+Você veio, treinou, sentiu na prática como é a estrutura da EVO.
 
 Esse mês ainda tem condição de entrada diferenciada. Se você tiver considerando, agora é o momento certo pra bater o martelo.
 
@@ -90,7 +90,7 @@ Faz 30 dias desde sua experimental. Se ainda não tomou uma decisão, provavelme
 
 Me fala o que tá segurando. Às vezes é simples de resolver.
 
-As portas da IRON estão abertas, mas não vou ficar insistindo infinitamente. Decisão é sua.`,
+As portas da EVO estão abertas, mas não vou ficar insistindo infinitamente. Decisão é sua.`,
 };
 
 export function FollowUpSections({ 

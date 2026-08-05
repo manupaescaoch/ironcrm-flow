@@ -47,7 +47,7 @@ const TREINADORES = [
 
 const FOLLOW_UP_MESSAGE = `Oi, {{nome}}! Tudo bem?
 
-Queria saber como você se sentiu na IRON! Gostou do treino e do espaço?
+Queria saber como você se sentiu na EVO! Gostou do treino e do espaço?
 
 A gente se dedica muito a criar um ambiente acolhedor e exclusivo, com acompanhamento de perto pra você treinar com tranquilidade e ter resultados de verdade.
 

@@ -41,7 +41,7 @@ function buildMessage(
   if (tipo === 'G+7') {
     return `Olá, ${nome}! Tudo bem?
 
-Aqui é ${gerente}, gerente da Iron ${unidade}. Estou passando para saber como foi sua primeira semana com a gente.
+Aqui é ${gerente}, gerente da EVO ${unidade}. Estou passando para saber como foi sua primeira semana com a gente.
 
 Você conseguiu realizar os agendamentos normalmente? Foi bem recebido pela equipe e sentiu que teve o acompanhamento necessário durante os treinos?
 
@@ -52,7 +52,7 @@ Pode falar com sinceridade. Seu feedback é muito importante para garantirmos qu
 
   return `Olá, ${nome}! Tudo bem?
 
-Você está completando seu primeiro mês na Iron e queria acompanhar um pouco mais de perto como está sendo sua experiência.
+Você está completando seu primeiro mês na EVO e queria acompanhar um pouco mais de perto como está sendo sua experiência.
 
 Como você avalia sua evolução até aqui? Já percebeu alguma mudança no condicionamento, na execução dos exercícios, na disposição ou nos resultados?
 
