@@ -60,12 +60,11 @@ function montarMensagemCoordenador(
   nota: number,
   comentario: string,
   alunoPhone: string,
-  coordenadorNome?: string,
 ): string {
   const primeiroNomeAluno = (nome || '').trim().split(/\s+/)[0] || nome || 'aluno';
   const unidadeLabel = unidade || '—';
   const linkWhatsapp = `https://wa.me/${alunoPhone}`;
-  const coord = coordenadorNome || '[NOME DO COORDENADOR]';
+  const coord = '[SEU NOME]';
 
   const cabecalho =
     `🟦 *NOVA RESPOSTA NPS — EVO TRAINING CLUB*\n\n` +
