@@ -165,13 +165,13 @@ Deno.serve(async (req) => {
 
     // Foco do dia: lógica simples baseada nos dados
     const focos = [];
-    if (zs.fuAtrasados > 0 || zs.fuTotal > 50) focos.push('Revisar follow-ups pendentes na Zona Sul');
-    if (zn.fuAtrasados > 0 || zn.fuTotal > 50) focos.push('Revisar follow-ups pendentes na Zona Norte');
-    if (parseFloat(zs.comp) < 60) focos.push('Recuperar comparecimento na Zona Sul');
-    if (parseFloat(zn.comp) < 60) focos.push('Recuperar comparecimento na Zona Norte');
+    if (zs.fuAtrasados > 0 || zs.fuTotal > 50) focos.push('Revisar follow-ups pendentes na EVO Boa Viagem');
+    if (zn.fuAtrasados > 0 || zn.fuTotal > 50) focos.push('Revisar follow-ups pendentes na EVO Madalena');
+    if (parseFloat(zs.comp) < 60) focos.push('Recuperar comparecimento na EVO Boa Viagem');
+    if (parseFloat(zn.comp) < 60) focos.push('Recuperar comparecimento na EVO Madalena');
     if (focos.length === 0) focos.push('Manter o ritmo de matrículas e follow-ups');
 
-    const message = `📊 *GESTÃO OPERACIONAL IRON CLUB*
+    const message = `📊 *GESTÃO OPERACIONAL EVO TRAINING CLUB*
 Atualização: ${dataHora}
 
 🏋️ *CONSOLIDADO*
@@ -186,11 +186,10 @@ Semana anterior: ${consolidated.matsPrev}
 Variação: ${diffPct(consolidated.matsWeek, consolidated.matsPrev)}
 
 Follow-ups atrasados: ${consolidated.fuAtrasados}
-Pendentes no total: ${consolidated.fuTotal}
 
 ━━━━━━━━━━━━━━
 
-📍 *ZONA NORTE*
+📍 *EVO MADALENA*
 
 Alunos ativos: ${zn.ativos}
 Meta: ${zn.ativos} / ${zn.meta}
@@ -215,13 +214,10 @@ Ticket médio: ${fmtBRL(zn.ticket)}
 Receita recorrente projetada: ${fmtBRL(zn.ativos * zn.ticket)}
 
 Follow-ups atrasados: ${zn.fuAtrasados}
-Pendentes no total: ${zn.fuTotal}
-
-Evasão: ${zn.evasao}%
 
 ━━━━━━━━━━━━━━
 
-📍 *ZONA SUL*
+📍 *EVO BOA VIAGEM*
 
 Alunos ativos: ${zs.ativos}
 Meta: ${zs.ativos} / ${zs.meta}
@@ -246,15 +242,13 @@ Ticket médio: ${fmtBRL(zs.ticket)}
 Receita recorrente projetada: ${fmtBRL(zs.ativos * zs.ticket)}
 
 Follow-ups atrasados: ${zs.fuAtrasados}
-Pendentes no total: ${zs.fuTotal}
-
-Evasão: ${zs.evasao}%
 
 ━━━━━━━━━━━━━━
 
 ✅ *FOCO DO DIA*
 
 ${focos.join(', ')}.`;
+
 
     const creds = getZapiCreds('comercial');
     if (!creds) {
