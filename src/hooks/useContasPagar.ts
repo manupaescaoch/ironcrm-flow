@@ -134,30 +134,37 @@ export function useContasPagar(from: string, to: string) {
       if (error) throw error;
       const conta = inserted as unknown as ContaPagar;
 
-      // Envio ao grupo financeiro: falha aqui NUNCA impede o cadastro.
-      try {
-        const { data: envio, error: envioErr } = await supabase.functions.invoke(
-          'send-conta-pagar-whatsapp',
-          { body: { conta_id: conta.id, tipo_envio: 'CADASTRO' } },
-        );
-        if (envioErr || (envio && envio.ok === false && !envio.skipped)) {
+      // Regra: só envia ao grupo financeiro se a conta vence HOJE.
+      // Contas futuras são enviadas pela rotina diária de vencimento.
+      const hojeBRT = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+      const venceHoje = String(conta.data_vencimento).slice(0, 10) === hojeBRT;
+
+      if (venceHoje) {
+        try {
+          const { data: envio, error: envioErr } = await supabase.functions.invoke(
+            'send-conta-pagar-whatsapp',
+            { body: { conta_id: conta.id, tipo_envio: 'VENCIMENTO' } },
+          );
+          if (envioErr || (envio && envio.ok === false && !envio.skipped)) {
+            toast({
+              title: 'Conta cadastrada, mas o WhatsApp falhou',
+              description:
+                (envio?.erro as string | undefined) ||
+                'A mensagem ficou na fila e será reenviada automaticamente.',
+              variant: 'destructive',
+            });
+          } else if (envio?.ok) {
+            toast({ title: 'Mensagem enviada ao grupo financeiro.' });
+          }
+        } catch {
           toast({
             title: 'Conta cadastrada, mas o WhatsApp falhou',
-            description:
-              (envio?.erro as string | undefined) ||
-              'A mensagem ficou na fila e será reenviada automaticamente.',
+            description: 'A mensagem ficou na fila e será reenviada automaticamente.',
             variant: 'destructive',
           });
-        } else if (envio?.ok) {
-          toast({ title: 'Mensagem enviada ao grupo financeiro.' });
         }
-      } catch {
-        toast({
-          title: 'Conta cadastrada, mas o WhatsApp falhou',
-          description: 'A mensagem ficou na fila e será reenviada automaticamente.',
-          variant: 'destructive',
-        });
       }
+
 
       queryClient.invalidateQueries({ queryKey: ['contas-pagar-envios'] });
       return conta;
