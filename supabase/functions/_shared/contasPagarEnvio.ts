@@ -85,6 +85,12 @@ export async function processarEnvio(
   if (conta.status === 'paga') return { ok: false, skipped: 'conta_paga' };
   if (conta.status === 'cancelada') return { ok: false, skipped: 'conta_cancelada' };
 
+  // Regra: só é enviado ao grupo no DIA do vencimento.
+  const hojeBRT = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+  if (String(conta.data_vencimento).slice(0, 10) !== hojeBRT) {
+    return { ok: false, skipped: 'fora_do_dia_de_vencimento' };
+  }
+
   // 2. Reserva atômica do envio (unique constraint + update condicional)
   const { data: reserva, error: reservaErr } = await supabase.rpc('reservar_envio_conta', {
     p_conta_id: contaId,
