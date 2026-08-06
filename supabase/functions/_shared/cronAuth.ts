@@ -2,7 +2,7 @@
 // Accepts EITHER a valid cron secret header OR a valid Supabase JWT (any authenticated user).
 // Fails closed when BACKUP_CRON_SECRET is missing on the server.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 export interface AuthResult {
   ok: boolean;
