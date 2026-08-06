@@ -80,7 +80,7 @@ export function montarMensagemConta(conta: ContaParaMensagem, unidadeNome: strin
     : 'Forma de pagamento: Outro\nDados para pagamento não informados.';
 
   return [
-    `*${unidadeNome}*`,
+    `\u{1F6A8} *${unidadeNome}* \u{1F6A8}`,
     '',
     `Descrição: ${(conta.descricao || '').toUpperCase()}`,
     `Vencimento: ${formatarDataBR(conta.data_vencimento)}`,
