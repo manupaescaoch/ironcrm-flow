@@ -37,10 +37,6 @@ Deno.serve(async (req) => {
 
     if (!/^[0-9a-f-]{36}$/i.test(contaId)) return json({ error: 'conta_id inválido' }, 400);
 
-    // Permissão: só quem gerencia contas a pagar (admin/comercial) e tem acesso à unidade
-    const { data: podeGerenciar } = await supabase.rpc('can_manage_contas_pagar', { _user_id: user.id });
-    if (!podeGerenciar) return json({ error: 'Permissão negada' }, 403);
-
     const { data: conta } = await supabase
       .from('contas_pagar')
       .select('id, unidade_id')
@@ -48,12 +44,20 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!conta) return json({ error: 'Conta não encontrada' }, 404);
 
+    // Qualquer usuário com acesso à unidade pode disparar o envio de CADASTRO.
+    // Reenvio manual continua restrito a quem gerencia contas a pagar.
     const { data: temAcesso } = await supabase.rpc('user_has_unidade_access', {
       _user_id: user.id,
       _unidade_id: conta.unidade_id,
     });
     const { data: isAdmin } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
     if (!temAcesso && !isAdmin) return json({ error: 'Permissão negada' }, 403);
+
+    if (reenviar) {
+      const { data: podeGerenciar } = await supabase.rpc('can_manage_contas_pagar', { _user_id: user.id });
+      if (!podeGerenciar && !isAdmin) return json({ error: 'Permissão negada' }, 403);
+    }
+
 
     // Reenvio manual: libera a fila para nova tentativa imediata
     if (reenviar) {
