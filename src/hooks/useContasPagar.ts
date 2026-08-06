@@ -134,12 +134,15 @@ export function useContasPagar(from: string, to: string) {
       if (error) throw error;
       const conta = inserted as unknown as ContaPagar;
 
-      // Regra: só envia ao grupo financeiro se a conta vence HOJE.
-      // Contas futuras são enviadas pela rotina diária de vencimento.
+      // Regra: o alerta sai SEMPRE às 10h do dia do vencimento (rotina automática).
+      // Exceção: se a conta vence hoje e já passou das 10h, envia agora para não perder o aviso.
+      const agoraBRT = new Date(
+        new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }),
+      );
       const hojeBRT = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
       const venceHoje = String(conta.data_vencimento).slice(0, 10) === hojeBRT;
 
-      if (venceHoje) {
+      if (venceHoje && agoraBRT.getHours() >= 10) {
         try {
           const { data: envio, error: envioErr } = await supabase.functions.invoke(
             'send-conta-pagar-whatsapp',
@@ -163,7 +166,15 @@ export function useContasPagar(from: string, to: string) {
             variant: 'destructive',
           });
         }
+      } else {
+        toast({
+          title: 'Conta cadastrada',
+          description: venceHoje
+            ? 'O alerta será enviado ao grupo às 10h.'
+            : 'O alerta será enviado ao grupo às 10h do dia do vencimento.',
+        });
       }
+
 
 
       queryClient.invalidateQueries({ queryKey: ['contas-pagar-envios'] });
