@@ -426,6 +426,13 @@ export default function LeadDetail() {
       return;
     }
 
+    if (formData.reagendou && !formData.data_reagendamento) {
+      toast({ title: 'Data do Novo Agendamento é obrigatória', variant: 'destructive' });
+      return;
+    }
+
+
+
     // Validate required fields when fechou_matricula = true
     if (formData.fechou_matricula) {
       if (!formData.responsavel_fechamento.trim()) {
@@ -452,6 +459,7 @@ export default function LeadDetail() {
       hora_experimental: formData.hora_experimental || null,
       compareceu: formData.compareceu,
       reagendou: formData.reagendou,
+      data_reagendamento: formData.reagendou ? (formData.data_reagendamento || null) : null,
       fechou_matricula: formData.fechou_matricula,
       plano_escolhido: formData.plano_escolhido || null,
       valor_plano: formData.valor_plano || 0,
