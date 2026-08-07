@@ -109,6 +109,7 @@ interface InteracaoForm {
   hora_experimental: string;
   compareceu: boolean;
   reagendou: boolean;
+  data_reagendamento: string;
   fechou_matricula: boolean;
   plano_escolhido: string;
   valor_plano: number;
@@ -135,6 +136,7 @@ const initialFormState: InteracaoForm = {
   hora_experimental: '',
   compareceu: false,
   reagendou: false,
+  data_reagendamento: '',
   fechou_matricula: false,
   plano_escolhido: '',
   valor_plano: 0,
@@ -393,6 +395,7 @@ export default function LeadDetail() {
       hora_experimental: interacao.hora_experimental || '',
       compareceu: interacao.compareceu || false,
       reagendou: interacao.reagendou || false,
+      data_reagendamento: (interacao as any).data_reagendamento || '',
       fechou_matricula: interacao.fechou_matricula || false,
       plano_escolhido: interacao.plano_escolhido || '',
       valor_plano: interacao.valor_plano || 0,
@@ -423,6 +426,13 @@ export default function LeadDetail() {
       return;
     }
 
+    if (formData.reagendou && !formData.data_reagendamento) {
+      toast({ title: 'Data do Novo Agendamento é obrigatória', variant: 'destructive' });
+      return;
+    }
+
+
+
     // Validate required fields when fechou_matricula = true
     if (formData.fechou_matricula) {
       if (!formData.responsavel_fechamento.trim()) {
@@ -449,6 +459,7 @@ export default function LeadDetail() {
       hora_experimental: formData.hora_experimental || null,
       compareceu: formData.compareceu,
       reagendou: formData.reagendou,
+      data_reagendamento: formData.reagendou ? (formData.data_reagendamento || null) : null,
       fechou_matricula: formData.fechou_matricula,
       plano_escolhido: formData.plano_escolhido || null,
       valor_plano: formData.valor_plano || 0,
@@ -1095,7 +1106,9 @@ export default function LeadDetail() {
                   <Label className="text-sm">Reagendou</Label>
                   <Switch
                     checked={formData.reagendou}
-                    onCheckedChange={(checked) => setFormData({ ...formData, reagendou: checked })}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, reagendou: checked, data_reagendamento: checked ? formData.data_reagendamento : '' })
+                    }
                   />
                 </div>
                 <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
@@ -1106,6 +1119,20 @@ export default function LeadDetail() {
                   />
                 </div>
               </div>
+
+              {/* Data do Novo Agendamento - aparece quando Reagendou está ativo */}
+              {formData.reagendou && (
+                <div className="space-y-2">
+                  <Label>Data do Novo Agendamento *</Label>
+                  <Input
+                    type="date"
+                    value={formData.data_reagendamento}
+                    onChange={(e) => setFormData({ ...formData, data_reagendamento: e.target.value })}
+                  />
+                </div>
+              )}
+
+
 
               {/* Treinador Experimental - aparece quando Compareceu está ativo */}
               {formData.compareceu && (

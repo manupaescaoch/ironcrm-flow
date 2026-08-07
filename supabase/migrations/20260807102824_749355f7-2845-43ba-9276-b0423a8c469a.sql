@@ -1,0 +1,1 @@
+ALTER TABLE public.interacoes ADD COLUMN IF NOT EXISTS data_reagendamento date;

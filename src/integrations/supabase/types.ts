@@ -1830,6 +1830,7 @@ export type Database = {
           data_experimental: string | null
           data_fechamento: string | null
           data_interacao: string
+          data_reagendamento: string | null
           data_vencimento: string | null
           descricao: string | null
           fechou_matricula: boolean | null
@@ -1871,6 +1872,7 @@ export type Database = {
           data_experimental?: string | null
           data_fechamento?: string | null
           data_interacao?: string
+          data_reagendamento?: string | null
           data_vencimento?: string | null
           descricao?: string | null
           fechou_matricula?: boolean | null
@@ -1912,6 +1914,7 @@ export type Database = {
           data_experimental?: string | null
           data_fechamento?: string | null
           data_interacao?: string
+          data_reagendamento?: string | null
           data_vencimento?: string | null
           descricao?: string | null
           fechou_matricula?: boolean | null
