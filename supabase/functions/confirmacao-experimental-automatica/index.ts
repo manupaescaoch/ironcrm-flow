@@ -154,6 +154,8 @@ Deno.serve(async (req) => {
     // Busca leads que já compareceram à experimental (qualquer interação com compareceu=true)
     const leadIds = (leads || []).map((l) => l.id);
     let leadsJaCompareceram = new Set<string>();
+    // Mapa lead_id -> data (YYYY-MM-DD) do reagendamento mais recente
+    const reagendamentoMaisRecente = new Map<string, string | null>();
     if (leadIds.length > 0) {
       const { data: interacoesCompareceu } = await supabase
         .from('interacoes')
@@ -161,6 +163,24 @@ Deno.serve(async (req) => {
         .in('lead_id', leadIds)
         .eq('compareceu', true);
       leadsJaCompareceram = new Set((interacoesCompareceu || []).map((i: any) => i.lead_id));
+
+      // Reagendamentos: a confirmação só é válida para a data mais atual
+      const { data: interacoesReagendou, error: reagErr } = await supabase
+        .from('interacoes')
+        .select('lead_id, reagendou, data_reagendamento, created_at')
+        .in('lead_id', leadIds)
+        .eq('reagendou', true)
+        .order('created_at', { ascending: true });
+
+      if (reagErr) throw reagErr;
+
+      for (const i of interacoesReagendou || []) {
+        // a última interação (created_at maior) sobrescreve as anteriores
+        reagendamentoMaisRecente.set(
+          i.lead_id,
+          i.data_reagendamento ? extractDateOnly(String(i.data_reagendamento)) : null,
+        );
+      }
     }
 
     const resultados: any[] = [];
