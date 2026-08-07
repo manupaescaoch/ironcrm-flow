@@ -109,6 +109,7 @@ interface InteracaoForm {
   hora_experimental: string;
   compareceu: boolean;
   reagendou: boolean;
+  data_reagendamento: string;
   fechou_matricula: boolean;
   plano_escolhido: string;
   valor_plano: number;
@@ -135,6 +136,7 @@ const initialFormState: InteracaoForm = {
   hora_experimental: '',
   compareceu: false,
   reagendou: false,
+  data_reagendamento: '',
   fechou_matricula: false,
   plano_escolhido: '',
   valor_plano: 0,
@@ -393,6 +395,7 @@ export default function LeadDetail() {
       hora_experimental: interacao.hora_experimental || '',
       compareceu: interacao.compareceu || false,
       reagendou: interacao.reagendou || false,
+      data_reagendamento: (interacao as any).data_reagendamento || '',
       fechou_matricula: interacao.fechou_matricula || false,
       plano_escolhido: interacao.plano_escolhido || '',
       valor_plano: interacao.valor_plano || 0,
