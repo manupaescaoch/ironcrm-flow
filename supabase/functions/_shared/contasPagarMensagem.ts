@@ -80,8 +80,8 @@ export function montarMensagemConta(conta: ContaParaMensagem, unidadeNome: strin
     : 'Forma de pagamento: Outro\nDados para pagamento não informados.';
 
   return [
-    '\u{1F6A8}\u{1F6A8}\u{1F6A8} *ATEN\u00c7\u00c3O* \u{1F6A8}\u{1F6A8}\u{1F6A8}',
     `\u{1F534} *${(unidadeNome || '').toUpperCase()}* \u{1F534}`,
+    '',
     '*\u26A0\uFE0F VENCE HOJE \u2014 PAGAMENTO URGENTE \u26A0\uFE0F*',
     '\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501',
     '',
