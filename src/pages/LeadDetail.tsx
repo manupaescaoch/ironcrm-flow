@@ -1106,7 +1106,9 @@ export default function LeadDetail() {
                   <Label className="text-sm">Reagendou</Label>
                   <Switch
                     checked={formData.reagendou}
-                    onCheckedChange={(checked) => setFormData({ ...formData, reagendou: checked })}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, reagendou: checked, data_reagendamento: checked ? formData.data_reagendamento : '' })
+                    }
                   />
                 </div>
                 <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
@@ -1117,6 +1119,20 @@ export default function LeadDetail() {
                   />
                 </div>
               </div>
+
+              {/* Data do Novo Agendamento - aparece quando Reagendou está ativo */}
+              {formData.reagendou && (
+                <div className="space-y-2">
+                  <Label>Data do Novo Agendamento *</Label>
+                  <Input
+                    type="date"
+                    value={formData.data_reagendamento}
+                    onChange={(e) => setFormData({ ...formData, data_reagendamento: e.target.value })}
+                  />
+                </div>
+              )}
+
+
 
               {/* Treinador Experimental - aparece quando Compareceu está ativo */}
               {formData.compareceu && (
