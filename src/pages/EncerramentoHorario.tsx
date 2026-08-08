@@ -92,6 +92,20 @@ export default function EncerramentoHorario() {
   const [r, setR] = useState<Respostas>(initial);
   const [saving, setSaving] = useState(false);
 
+  useFormDraft<Respostas>({
+    key: 'encerramento-horario',
+    data: r,
+    step,
+    stage,
+    enabled: stage !== 'done',
+    onRestore: (draft) => {
+      setR({ ...draft.data, data: draft.data.data ? new Date(draft.data.data as unknown as string) : null });
+      setStep(draft.step);
+      setStage(draft.stage as Stage);
+      toast({ title: 'Rascunho recuperado', description: 'Continuamos de onde você parou.' });
+    },
+  });
+
   const set = <K extends keyof Respostas>(k: K, v: Respostas[K]) =>
     setR((prev) => ({ ...prev, [k]: v }));
 
