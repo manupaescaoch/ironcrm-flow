@@ -9,6 +9,7 @@ import { StepShell } from '@/components/anamnese/StepShell';
 import { OptionCard } from '@/components/anamnese/OptionCard';
 import { cn } from '@/lib/utils';
 import { submitFormularioPublico } from '@/lib/notifyFormularioGrupo';
+import { useFormDraft, submitWithRetry, clearDraft } from '@/lib/formDraft';
 
 type Stage = 'intro' | 'wizard' | 'review' | 'done';
 
