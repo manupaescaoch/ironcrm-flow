@@ -419,7 +419,7 @@ export default function EncerramentoTurno() {
       setSaving(true);
       try {
         const respostaId = crypto.randomUUID();
-        const { error } = await supabase
+        const { error } = await submitWithRetry(() => supabase
           .from('encerramento_turno_respostas')
           .insert({
             id: respostaId,
@@ -441,7 +441,7 @@ export default function EncerramentoTurno() {
             precisou_suporte: !!r.precisouSuporte,
             suporte_descricao: r.suporteDescricao || null,
             observacao_gestao: r.observacaoGestao || null,
-          });
+          }));
 
         if (error) {
           toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
@@ -454,6 +454,7 @@ export default function EncerramentoTurno() {
           unidade: r.unidade,
           resposta_id: respostaId,
         });
+        clearDraft('encerramento-turno');
         setStage('done');
       } catch (error) {
         toast({

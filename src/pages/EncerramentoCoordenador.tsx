@@ -470,7 +470,7 @@ export default function EncerramentoCoordenador() {
       setSaving(true);
       try {
         const respostaId = crypto.randomUUID();
-        const { error } = await supabase
+        const { error } = await submitWithRetry(() => supabase
           .from('encerramento_coordenador_respostas')
           .insert({
             id: respostaId,
@@ -492,7 +492,7 @@ export default function EncerramentoCoordenador() {
             padrao_iron: r.padraoIron, fora_padrao_descricao: r.foraPadraoDescricao || null,
             funcionou_bem: r.funcionouBem || null, nota_geral: r.notaGeral,
             pontos_atencao: r.pontosAtencao || null, pendencias_abertas: r.pendenciasAbertas || null,
-          });
+          }));
 
         if (error) {
           toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
@@ -505,6 +505,7 @@ export default function EncerramentoCoordenador() {
           unidade: r.unidade,
           resposta_id: respostaId,
         });
+        clearDraft('encerramento-coordenador');
         setStage('done');
       } catch (error) {
         toast({

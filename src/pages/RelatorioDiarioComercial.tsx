@@ -353,7 +353,7 @@ export default function RelatorioDiarioComercial() {
       setSaving(true);
       try {
         const respostaId = crypto.randomUUID();
-        const { error } = await supabase
+        const { error } = await submitWithRetry(() => supabase
           .from('relatorio_diario_comercial_respostas')
           .insert({
             id: respostaId,
@@ -380,7 +380,7 @@ export default function RelatorioDiarioComercial() {
             feedback_acao_tomada: r.acaoTomada,
             feedback_acao_descricao: r.acaoTomadaDescricao || null,
             observacoes: r.observacoesLideranca || null,
-          });
+          }));
 
         if (error) {
           toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
@@ -394,6 +394,7 @@ export default function RelatorioDiarioComercial() {
           unidade_id: r.unidade === 'ZONA NORTE' ? 'b4df0ba8-7fa8-4f28-8924-d5ce6a9b50c6' : 'f3d048da-31d7-48df-b1f1-7e2a809c9a9a',
           resposta_id: respostaId,
         });
+        clearDraft('relatorio-diario-comercial');
         setStage('done');
       } catch (error) {
         toast({

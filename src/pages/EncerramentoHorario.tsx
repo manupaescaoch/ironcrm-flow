@@ -388,7 +388,7 @@ export default function EncerramentoHorario() {
       setSaving(true);
       try {
         const respostaId = crypto.randomUUID();
-        const { error } = await supabase
+        const { error } = await submitWithRetry(() => supabase
           .from('encerramento_horario_respostas')
           .insert({
             id: respostaId,
@@ -416,7 +416,7 @@ export default function EncerramentoHorario() {
             pendencia_organizacao: r.pendenciaOrganizacao || null,
             nota_geral: r.notaGeral,
             observacoes: r.observacoes || null,
-          });
+          }));
 
         if (error) {
           toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
@@ -429,6 +429,7 @@ export default function EncerramentoHorario() {
           unidade: r.unidade,
           resposta_id: respostaId,
         });
+        clearDraft('encerramento-horario');
         setStage('done');
       } catch (error) {
         toast({
