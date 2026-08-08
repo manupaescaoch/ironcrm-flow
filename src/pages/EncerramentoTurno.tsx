@@ -63,6 +63,20 @@ export default function EncerramentoTurno() {
   const [r, setR] = useState<Respostas>(initial);
   const [saving, setSaving] = useState(false);
 
+  useFormDraft<Respostas>({
+    key: 'encerramento-turno',
+    data: r,
+    step,
+    stage,
+    enabled: stage !== 'done',
+    onRestore: (draft) => {
+      setR(draft.data);
+      setStep(draft.step);
+      setStage(draft.stage as Stage);
+      toast({ title: 'Rascunho recuperado', description: 'Continuamos de onde você parou.' });
+    },
+  });
+
   const set = <K extends keyof Respostas>(k: K, v: Respostas[K]) =>
     setR((prev) => ({ ...prev, [k]: v }));
 
