@@ -1,0 +1,1 @@
+DELETE FROM public.encerramento_coordenador_respostas WHERE nome = '__TESTE_DIAG__';
