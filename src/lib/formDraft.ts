@@ -106,12 +106,13 @@ function isNetworkError(err: unknown): boolean {
  * Executa uma operação de envio com reenvio automático em caso de falha de rede.
  * Erros de validação/permissão (não-rede) não são repetidos.
  */
-export async function submitWithRetry<T>(
-  fn: () => Promise<{ error: unknown; data?: T }>,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function submitWithRetry<R extends { error: any }>(
+  fn: () => PromiseLike<R>,
   opts: { attempts?: number; onRetry?: (attempt: number) => void } = {},
-): Promise<{ error: unknown; data?: T }> {
+): Promise<R> {
   const attempts = opts.attempts ?? 3;
-  let last: { error: unknown; data?: T } = { error: null };
+  let last = { error: null } as unknown as R;
   for (let i = 1; i <= attempts; i++) {
     try {
       const res = await fn();
@@ -119,7 +120,7 @@ export async function submitWithRetry<T>(
       last = res;
       if (!isNetworkError(res.error) || i === attempts) return res;
     } catch (err) {
-      last = { error: err };
+      last = { error: err } as unknown as R;
       if (!isNetworkError(err) || i === attempts) return last;
     }
     opts.onRetry?.(i);
