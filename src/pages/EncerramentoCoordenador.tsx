@@ -9,6 +9,7 @@ import { StepShell } from '@/components/anamnese/StepShell';
 import { OptionCard } from '@/components/anamnese/OptionCard';
 import { cn } from '@/lib/utils';
 import { submitFormularioPublico } from '@/lib/notifyFormularioGrupo';
+import { useFormDraft, submitWithRetry, clearDraft } from '@/lib/formDraft';
 
 type Stage = 'intro' | 'wizard' | 'review' | 'done';
 
@@ -133,6 +134,20 @@ export default function EncerramentoCoordenador() {
   const [step, setStep] = useState(0);
   const [r, setR] = useState<Respostas>(initial);
   const [saving, setSaving] = useState(false);
+
+  useFormDraft<Respostas>({
+    key: 'encerramento-coordenador',
+    data: r,
+    step,
+    stage,
+    enabled: stage !== 'done',
+    onRestore: (draft) => {
+      setR(draft.data);
+      setStep(draft.step);
+      setStage(draft.stage as Stage);
+      toast({ title: 'Rascunho recuperado', description: 'Continuamos de onde você parou.' });
+    },
+  });
 
   const set = <K extends keyof Respostas>(k: K, v: Respostas[K]) =>
     setR((prev) => ({ ...prev, [k]: v }));
@@ -469,7 +484,7 @@ export default function EncerramentoCoordenador() {
       setSaving(true);
       try {
         const respostaId = crypto.randomUUID();
-        const { error } = await supabase
+        const { error } = await submitWithRetry(() => supabase
           .from('encerramento_coordenador_respostas')
           .insert({
             id: respostaId,
@@ -491,7 +506,7 @@ export default function EncerramentoCoordenador() {
             padrao_iron: r.padraoIron, fora_padrao_descricao: r.foraPadraoDescricao || null,
             funcionou_bem: r.funcionouBem || null, nota_geral: r.notaGeral,
             pontos_atencao: r.pontosAtencao || null, pendencias_abertas: r.pendenciasAbertas || null,
-          });
+          }));
 
         if (error) {
           toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
@@ -504,6 +519,7 @@ export default function EncerramentoCoordenador() {
           unidade: r.unidade,
           resposta_id: respostaId,
         });
+        clearDraft('encerramento-coordenador');
         setStage('done');
       } catch (error) {
         toast({
