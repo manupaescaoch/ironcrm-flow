@@ -27,6 +27,7 @@ import DashboardExecutivoEstoque from "./pages/DashboardExecutivoEstoque";
 import RelatorioGastosEstoque from "./pages/RelatorioGastosEstoque";
 import Escala from "./pages/Escala";
 import Operacional from "./pages/Operacional";
+import Equipe from "./pages/Equipe";
 
 import ContasPagar from "./pages/ContasPagar";
 import AnamneseExperimental from "./pages/AnamneseExperimental";
