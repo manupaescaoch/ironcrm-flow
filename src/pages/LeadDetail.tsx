@@ -176,6 +176,7 @@ export default function LeadDetail() {
   const [showMotivosPerdaModal, setShowMotivosPerdaModal] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<StatusFunil | null>(null);
   const [savingMotivo, setSavingMotivo] = useState(false);
+  const [treinadoresUnidade, setTreinadoresUnidade] = useState<string[]>([]);
   // Conversion score calculation
   const conversionScore = useConversionScore(lead, interacoes);
 
