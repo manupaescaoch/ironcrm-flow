@@ -28,6 +28,7 @@ interface Props {
   canManage: boolean;
   contaEdicao?: ContaPagar | null;
   onCriar: (payload: ContaFormPayload) => Promise<ContaPagar>;
+  onCriarParcelas?: (payload: ContaFormPayload, datas: string[]) => Promise<number>;
   onAtualizar: (id: string, payload: Partial<ContaFormPayload>) => Promise<void>;
   buscarDuplicidade: (p: {
     descricao: string;
