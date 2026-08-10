@@ -55,10 +55,6 @@ export default function Operacional() {
                   <LayoutDashboard className="w-4 h-4" />
                   Dashboard
                 </TabsTrigger>
-                <TabsTrigger value="equipe" className="gap-1.5">
-                  <Users className="w-4 h-4" />
-                  Equipe
-                </TabsTrigger>
                 <TabsTrigger value="formularios" className="gap-1.5">
                   <FileText className="w-4 h-4" />
                   Formulários
@@ -77,10 +73,7 @@ export default function Operacional() {
             <OperacionalDashboard />
           </TabsContent>
 
-          {/* Equipe Tab */}
-          <TabsContent value="equipe" className="mt-4">
-            <FuncionariosTab />
-          </TabsContent>
+
 
           {/* Formulários Tab - admin only */}
           {isAdmin && (
