@@ -13,7 +13,7 @@ import { Plus, Users, Phone, Edit, Trash2, UserPlus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 
-const SETORES = ['geral', 'recepção', 'limpeza', 'segurança', 'treinador', 'estagiário líder', 'manutenção'];
+const SETORES = ['treinador', 'recepção', 'comercial'];
 const TURNOS = ['integral', 'manhã', 'tarde', 'noite'];
 const CARGOS: { value: 'recepcao' | 'coordenador_unidade' | 'treinador' | 'estagiario_lider'; label: string; descricao: string }[] = [
   { value: 'recepcao', label: 'Recepção', descricao: 'Recebe o Relatório Diário Comercial' },
@@ -27,10 +27,10 @@ export function FuncionariosTab() {
   const { unidadeId } = useUnidadeFilter();
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<{ nome: string; telefone: string; setor: string; turno: string; cargo: '' | 'recepcao' | 'coordenador_unidade' | 'treinador' | 'estagiario_lider' }>({ nome: '', telefone: '', setor: 'geral', turno: 'integral', cargo: '' });
+  const [form, setForm] = useState<{ nome: string; telefone: string; setor: string; turno: string; cargo: '' | 'recepcao' | 'coordenador_unidade' | 'treinador' | 'estagiario_lider' }>({ nome: '', telefone: '', setor: 'treinador', turno: 'integral', cargo: '' });
 
   const resetForm = () => {
-    setForm({ nome: '', telefone: '', setor: 'geral', turno: 'integral', cargo: '' });
+    setForm({ nome: '', telefone: '', setor: 'treinador', turno: 'integral', cargo: '' });
     setEditingId(null);
   };
 
