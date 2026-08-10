@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, forwardRef, useState } from 'react';
+import { ReactNode, useMemo, forwardRef, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnidade } from '@/contexts/UnidadeContext';
@@ -105,6 +105,11 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
     (item) => location.pathname === item.href || location.pathname.startsWith(item.href + '/')
   );
   const [gerencialOpen, setGerencialOpen] = useState(isGerencialRoute);
+
+  // Ao entrar em uma subpágina de Gerencial, abrir o grupo automaticamente
+  useEffect(() => {
+    if (isGerencialRoute) setGerencialOpen(true);
+  }, [isGerencialRoute]);
 
   // Onde o grupo Gerencial é inserido: antes do primeiro item "de gestão" visível
   const gerencialAnchor =
