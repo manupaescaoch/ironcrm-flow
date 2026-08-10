@@ -81,6 +81,7 @@ export default function ContasPagar() {
     unidadeNome,
     statusDe,
     criarConta,
+    criarParcelasRecorrentes,
     atualizarConta,
     darBaixa,
     reabrirConta,
