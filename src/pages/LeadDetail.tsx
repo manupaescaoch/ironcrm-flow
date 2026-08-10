@@ -1253,11 +1253,20 @@ export default function LeadDetail() {
                   </div>
                   <div className="space-y-2">
                     <Label>Treinador Responsável</Label>
-                    <Input
-                      value={formData.treinador_responsavel}
-                      onChange={(e) => setFormData({ ...formData, treinador_responsavel: e.target.value })}
-                      placeholder="Nome do treinador"
-                    />
+                    <Select
+                      value={formData.treinador_responsavel || 'none'}
+                      onValueChange={(v) => setFormData({ ...formData, treinador_responsavel: v === 'none' ? '' : v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o treinador" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Não definido</SelectItem>
+                        {treinadoresUnidade.map((nome) => (
+                          <SelectItem key={nome} value={nome}>{nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Quem Indicou</Label>
