@@ -312,7 +312,9 @@ export function NovaContaModal({
                   setForm={setForm}
                   errors={errors}
                   unidadeNome={unidadeNome}
+                  permitirRecorrencia={!isEdicao}
                 />
+
               </div>
               )}
 
