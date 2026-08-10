@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, forwardRef, useState } from 'react';
+import { ReactNode, useMemo, forwardRef, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnidade } from '@/contexts/UnidadeContext';
@@ -28,7 +28,9 @@ import {
   Handshake,
   Star,
   Zap,
-  Wallet
+  Wallet,
+  Briefcase,
+  ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getUnidadeSigla } from '@/lib/unidadeSigla';
@@ -57,17 +59,22 @@ const allNavItems = [
   { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/contas-pagar', label: 'Contas a Pagar', icon: Wallet, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false, isNew: true },
   { href: '/tarefas', label: 'Tarefas', icon: CheckSquare, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
-  { href: '/operacional', label: 'Operacional', icon: ClipboardList, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
-  { href: '/reunioes', label: 'Reuniões', icon: Handshake, roles: ['admin', 'comercial', 'coordenador'], masterOnly: false, isNew: true },
-  { href: '/nps/respostas', label: 'NPS', icon: Star, roles: ['admin', 'coordenador'], masterOnly: false, isNew: true },
-  { href: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
-  { href: '/estoque', label: 'Estoque', icon: Package, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/dashboard-executivo', label: 'Executivo', icon: BarChart3, roles: ['admin'], masterOnly: false },
   { href: '/gestao-operacional', label: 'Gestão Operacional', icon: Building2, roles: ['admin'], masterOnly: false },
   { href: '/backups', label: 'Backups', icon: Database, roles: ['admin'], masterOnly: false },
   { href: '/admin/cronograma-automacoes', label: 'Automações', icon: Zap, roles: ['admin'], masterOnly: false, isNew: true },
   { href: '/admin-users', label: 'Usuários', icon: Settings, roles: ['admin'], masterOnly: true },
 ];
+
+const gerencialItems = [
+  { href: '/operacional', label: 'Operacional', icon: ClipboardList, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
+  { href: '/equipe', label: 'Equipe', icon: Users, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false, isNew: true },
+  { href: '/reunioes', label: 'Reuniões', icon: Handshake, roles: ['admin', 'comercial', 'coordenador'], masterOnly: false },
+  { href: '/nps/respostas', label: 'NPS', icon: Star, roles: ['admin', 'coordenador'], masterOnly: false },
+  { href: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
+  { href: '/estoque', label: 'Estoque', icon: Package, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
+];
+
 
 export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ children }, ref) {
   const { signOut, user, userRole } = useAuth();
@@ -84,21 +91,101 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
   };
 
   // Filter nav items based on user role and master admin status
-  const navItems = useMemo(() => {
+  const canSee = (item: { masterOnly?: boolean; roles: string[] }) => {
     const isMasterAdmin = user?.email === MASTER_ADMIN_EMAIL;
-    
-    return allNavItems.filter(item => {
-      // If item is master only, check if user is master admin
-      if (item.masterOnly && !isMasterAdmin) {
-        return false;
-      }
-      // Check role permission
-      if (!userRole) {
-        return true; // fallback for users without role
-      }
-      return item.roles.includes(userRole);
-    });
-  }, [userRole, user?.email]);
+    if (item.masterOnly && !isMasterAdmin) return false;
+    if (!userRole) return true; // fallback for users without role
+    return item.roles.includes(userRole);
+  };
+
+  const navItems = useMemo(() => allNavItems.filter(canSee), [userRole, user?.email]);
+  const gerencialVisible = useMemo(() => gerencialItems.filter(canSee), [userRole, user?.email]);
+
+  const isGerencialRoute = gerencialItems.some(
+    (item) => location.pathname === item.href || location.pathname.startsWith(item.href + '/')
+  );
+  const [gerencialOpen, setGerencialOpen] = useState(isGerencialRoute);
+
+  // Ao entrar em uma subpágina de Gerencial, abrir o grupo automaticamente
+  useEffect(() => {
+    if (isGerencialRoute) setGerencialOpen(true);
+  }, [isGerencialRoute]);
+
+  // Onde o grupo Gerencial é inserido: antes do primeiro item "de gestão" visível
+  const gerencialAnchor =
+    navItems.find((i) => ['/dashboard-executivo', '/gestao-operacional', '/backups', '/admin/cronograma-automacoes', '/admin-users'].includes(i.href))?.href ?? null;
+
+  const renderNavItem = (item: (typeof allNavItems)[number]) => {
+    const Icon = item.icon;
+    const isActive = location.pathname === item.href;
+    const isAdminOnly = item.roles.length === 1 && item.roles[0] === 'admin';
+    return (
+      <Link
+        key={item.href}
+        to={item.href}
+        onClick={() => isMobile && setSidebarOpen(false)}
+        className={cn(
+          'flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors',
+          isActive
+            ? 'bg-sidebar-accent/80 text-sidebar-accent-foreground font-medium'
+            : 'text-sidebar-foreground/85 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground'
+        )}
+      >
+        <Icon className={cn('w-4 h-4 shrink-0', isActive ? 'text-primary' : 'text-sidebar-foreground/70')} />
+        <span className="flex-1 truncate">{item.label}</span>
+        {(item as any).isNew && (
+          <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/15 text-primary">
+            Novo
+          </span>
+        )}
+        {isAdminOnly && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Shield className="w-3 h-3 text-amber-500/80" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Restrito a administradores</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </Link>
+    );
+  };
+
+  const GerencialGroup = () => (
+    <div className="mb-0.5">
+      <button
+        type="button"
+        onClick={() => setGerencialOpen((v) => !v)}
+        aria-expanded={gerencialOpen}
+        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors text-sidebar-foreground/85 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+      >
+        <Briefcase className="w-4 h-4 shrink-0 text-sidebar-foreground/70" />
+        <span className="flex-1 truncate text-left">Gerencial</span>
+        <ChevronDown
+          className={cn(
+            'w-3.5 h-3.5 shrink-0 text-sidebar-foreground/60 transition-transform duration-200',
+            gerencialOpen && 'rotate-180'
+          )}
+        />
+      </button>
+      <div
+        className={cn(
+          'overflow-hidden transition-all duration-200',
+          gerencialOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+        )}
+      >
+        <div className="pl-4 mt-0.5 space-y-0.5 border-l border-sidebar-border/50 ml-4">
+          {gerencialVisible.map((sub) => renderNavItem(sub))}
+        </div>
+      </div>
+    </div>
+  );
+
+
+
 
   const SidebarContent = () => (
     <>
@@ -178,45 +265,16 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
       )}
 
       <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location.pathname === item.href;
-          const isAdminOnly = item.roles.length === 1 && item.roles[0] === 'admin';
-          return (
-            <Link
-              key={item.href}
-              to={item.href}
-              onClick={() => isMobile && setSidebarOpen(false)}
-              className={cn(
-                'flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors',
-                isActive
-                  ? 'bg-sidebar-accent/80 text-sidebar-accent-foreground font-medium'
-                  : 'text-sidebar-foreground/85 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground'
-              )}
-            >
-              <Icon className={cn('w-4 h-4 shrink-0', isActive ? 'text-primary' : 'text-sidebar-foreground/70')} />
-              <span className="flex-1 truncate">{item.label}</span>
-              {(item as any).isNew && (
-                <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/15 text-primary">
-                  Novo
-                </span>
-              )}
-              {isAdminOnly && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Shield className="w-3 h-3 text-amber-500/80" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Restrito a administradores</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-            </Link>
-          );
-        })}
+        {navItems.map((item) => (
+          <div key={item.href}>
+            {gerencialVisible.length > 0 && gerencialAnchor === item.href && <GerencialGroup />}
+            {renderNavItem(item)}
+          </div>
+        ))}
+        {gerencialVisible.length > 0 && !gerencialAnchor && <GerencialGroup />}
       </nav>
+
+
 
       <div className="px-3 py-3 border-t border-sidebar-border/60">
         <div className="mb-2 px-2">

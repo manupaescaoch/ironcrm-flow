@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2, ClipboardList, CalendarDays, LayoutDashboard, Users, FileText } from 'lucide-react';
+import { Loader2, ClipboardList, CalendarDays, LayoutDashboard, FileText } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnidade } from '@/contexts/UnidadeContext';
@@ -7,7 +7,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CronogramaDashboard } from '@/components/cronograma/CronogramaDashboard';
 import { OperacionalDashboard } from '@/components/operacional/OperacionalDashboard';
 import { CronogramaTab } from '@/components/cronograma/CronogramaTab';
-import { FuncionariosTab } from '@/components/cronograma/FuncionariosTab';
 import { FormulariosList } from '@/components/cronograma/FormulariosList';
 import { FormularioBuilder } from '@/components/cronograma/FormularioBuilder';
 
@@ -55,10 +54,6 @@ export default function Operacional() {
                   <LayoutDashboard className="w-4 h-4" />
                   Dashboard
                 </TabsTrigger>
-                <TabsTrigger value="equipe" className="gap-1.5">
-                  <Users className="w-4 h-4" />
-                  Equipe
-                </TabsTrigger>
                 <TabsTrigger value="formularios" className="gap-1.5">
                   <FileText className="w-4 h-4" />
                   Formulários
@@ -77,10 +72,7 @@ export default function Operacional() {
             <OperacionalDashboard />
           </TabsContent>
 
-          {/* Equipe Tab */}
-          <TabsContent value="equipe" className="mt-4">
-            <FuncionariosTab />
-          </TabsContent>
+
 
           {/* Formulários Tab - admin only */}
           {isAdmin && (
