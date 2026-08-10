@@ -260,39 +260,13 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
       <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => (
           <div key={item.href}>
-            {item.href === '/dashboard-executivo' && gerencialVisible.length > 0 && (
-              <div className="mb-0.5">
-                <button
-                  type="button"
-                  onClick={() => setGerencialOpen((v) => !v)}
-                  aria-expanded={gerencialOpen}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors text-sidebar-foreground/85 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
-                >
-                  <Briefcase className="w-4 h-4 shrink-0 text-sidebar-foreground/70" />
-                  <span className="flex-1 truncate text-left">Gerencial</span>
-                  <ChevronDown
-                    className={cn(
-                      'w-3.5 h-3.5 shrink-0 text-sidebar-foreground/60 transition-transform duration-200',
-                      gerencialOpen && 'rotate-180'
-                    )}
-                  />
-                </button>
-                <div
-                  className={cn(
-                    'overflow-hidden transition-all duration-200',
-                    gerencialOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-                  )}
-                >
-                  <div className="pl-4 mt-0.5 space-y-0.5 border-l border-sidebar-border/50 ml-4">
-                    {gerencialVisible.map((sub) => renderNavItem(sub))}
-                  </div>
-                </div>
-              </div>
-            )}
+            {gerencialVisible.length > 0 && gerencialAnchor === item.href && <GerencialGroup />}
             {renderNavItem(item)}
           </div>
         ))}
+        {gerencialVisible.length > 0 && !gerencialAnchor && <GerencialGroup />}
       </nav>
+
 
 
       <div className="px-3 py-3 border-t border-sidebar-border/60">
