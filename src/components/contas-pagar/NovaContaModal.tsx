@@ -41,6 +41,9 @@ interface Props {
 
 function contaToForm(conta: ContaPagar): ContaFormState {
   return {
+    recorrente: false,
+    recorrencia_freq: 'mensal',
+    recorrencia_qtd: '12',
     descricao: conta.descricao,
     fornecedor: conta.fornecedor,
     categoria: conta.categoria,
