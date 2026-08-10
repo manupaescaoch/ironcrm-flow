@@ -253,6 +253,7 @@ export default function ContasPagar() {
         canManage={canManage}
         contaEdicao={contaEdicao}
         onCriar={(payload) => criarConta.mutateAsync(payload)}
+        onCriarParcelas={criarParcelasRecorrentes}
         onAtualizar={(id, payload) => atualizarConta.mutateAsync({ id, payload })}
         buscarDuplicidade={buscarDuplicidade}
         onVerConta={(c) => setDetalhe(c)}
