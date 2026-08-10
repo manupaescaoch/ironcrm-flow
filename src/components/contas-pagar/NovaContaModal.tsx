@@ -11,6 +11,7 @@ import {
   ContaFormState,
   contaFormToPayload,
   emptyContaForm,
+  gerarDatasRecorrencia,
   validateContaForm,
 } from './ContaFormFields';
 import { DuplicidadeDialog } from './DuplicidadeDialog';
@@ -27,6 +28,7 @@ interface Props {
   canManage: boolean;
   contaEdicao?: ContaPagar | null;
   onCriar: (payload: ContaFormPayload) => Promise<ContaPagar>;
+  onCriarParcelas?: (payload: ContaFormPayload, datas: string[]) => Promise<number>;
   onAtualizar: (id: string, payload: Partial<ContaFormPayload>) => Promise<void>;
   buscarDuplicidade: (p: {
     descricao: string;
@@ -41,6 +43,9 @@ interface Props {
 
 function contaToForm(conta: ContaPagar): ContaFormState {
   return {
+    recorrente: false,
+    recorrencia_freq: 'mensal',
+    recorrencia_qtd: '12',
     descricao: conta.descricao,
     fornecedor: conta.fornecedor,
     categoria: conta.categoria,
@@ -73,6 +78,7 @@ export function NovaContaModal({
   canManage,
   contaEdicao,
   onCriar,
+  onCriarParcelas,
   onAtualizar,
   buscarDuplicidade,
   onVerConta,
@@ -195,7 +201,27 @@ export function NovaContaModal({
       const conta = await onCriar(payload);
       setDuplicados([]);
       setCriada(conta);
-      toast({ title: 'Conta cadastrada com sucesso.' });
+
+      // Recorrência: cadastra as parcelas seguintes (a primeira é a conta já criada).
+      if (formAtual.recorrente && onCriarParcelas) {
+        const datas = gerarDatasRecorrencia(
+          payload.data_vencimento,
+          formAtual.recorrencia_freq,
+          Number(formAtual.recorrencia_qtd),
+        ).slice(1);
+        try {
+          const qtd = await onCriarParcelas(payload, datas);
+          toast({ title: `Conta cadastrada com ${qtd + 1} parcelas.` });
+        } catch {
+          toast({
+            title: 'Conta cadastrada, mas as parcelas futuras falharam',
+            description: 'Cadastre as próximas parcelas manualmente.',
+            variant: 'destructive',
+          });
+        }
+      } else {
+        toast({ title: 'Conta cadastrada com sucesso.' });
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Erro ao salvar a conta';
       toast({ title: 'Erro ao salvar', description: msg, variant: 'destructive' });
@@ -286,7 +312,9 @@ export function NovaContaModal({
                   setForm={setForm}
                   errors={errors}
                   unidadeNome={unidadeNome}
+                  permitirRecorrencia={!isEdicao}
                 />
+
               </div>
               )}
 
