@@ -139,8 +139,8 @@ export function FuncionariosTab() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Telefone</TableHead>
-                  <TableHead>Cargo</TableHead>
                   <TableHead>Setor</TableHead>
+                  <TableHead>Cargo</TableHead>
                   <TableHead>Turno</TableHead>
                   <TableHead>Ativo</TableHead>
                   <TableHead className="w-20">Ações</TableHead>
@@ -157,12 +157,12 @@ export function FuncionariosTab() {
                         </span>
                       ) : '-'}
                     </TableCell>
+                    <TableCell><Badge variant="outline">{f.setor}</Badge></TableCell>
                     <TableCell>
                       {f.cargo
                         ? <Badge>{CARGOS.find(c => c.value === f.cargo)?.label || f.cargo}</Badge>
                         : <Badge variant="destructive">não definido</Badge>}
                     </TableCell>
-                    <TableCell><Badge variant="outline">{f.setor}</Badge></TableCell>
                     <TableCell><Badge variant="secondary">{f.turno}</Badge></TableCell>
                     <TableCell>
                       <Switch
