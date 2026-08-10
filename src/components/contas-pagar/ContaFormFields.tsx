@@ -110,11 +110,51 @@ export function contaFormToPayload(form: ContaFormState, documentoUrl: string | 
   };
 }
 
+export const RECORRENCIA_OPTS: { value: RecorrenciaFreq; label: string }[] = [
+  { value: 'mensal', label: 'Mensal' },
+  { value: 'quinzenal', label: 'Quinzenal (15 dias)' },
+  { value: 'semanal', label: 'Semanal' },
+  { value: 'anual', label: 'Anual' },
+];
+
+/**
+ * Datas das parcelas futuras (a primeira é a própria data informada).
+ * Mensal/anual preservam o dia, ajustando para o último dia do mês quando não existir.
+ */
+export function gerarDatasRecorrencia(
+  dataBase: string,
+  freq: RecorrenciaFreq,
+  quantidade: number,
+): string[] {
+  const [y, m, d] = dataBase.slice(0, 10).split('-').map(Number);
+  if (!y || !m || !d) return [];
+  const total = Math.max(1, Math.min(60, quantidade || 1));
+  const datas: string[] = [];
+  for (let i = 0; i < total; i++) {
+    let date: Date;
+    if (freq === 'mensal' || freq === 'anual') {
+      const meses = freq === 'mensal' ? i : i * 12;
+      const alvoMes = m - 1 + meses;
+      const ultimoDia = new Date(y, alvoMes + 1, 0).getDate();
+      date = new Date(y, alvoMes, Math.min(d, ultimoDia));
+    } else {
+      const dias = freq === 'semanal' ? 7 * i : 15 * i;
+      date = new Date(y, m - 1, d + dias);
+    }
+    const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+      date.getDate(),
+    ).padStart(2, '0')}`;
+    datas.push(iso);
+  }
+  return datas;
+}
+
 interface Props {
   form: ContaFormState;
   setForm: (updater: (prev: ContaFormState) => ContaFormState) => void;
   errors: Record<string, string>;
   unidadeNome: string;
+  permitirRecorrencia?: boolean;
 }
 
 function FieldError({ msg }: { msg?: string }) {
