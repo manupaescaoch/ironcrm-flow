@@ -104,6 +104,81 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
   );
   const [gerencialOpen, setGerencialOpen] = useState(isGerencialRoute);
 
+  // Onde o grupo Gerencial é inserido: antes do primeiro item "de gestão" visível
+  const gerencialAnchor =
+    navItems.find((i) => ['/dashboard-executivo', '/gestao-operacional', '/backups', '/admin/cronograma-automacoes', '/admin-users'].includes(i.href))?.href ?? null;
+
+  const renderNavItem = (item: (typeof allNavItems)[number]) => {
+    const Icon = item.icon;
+    const isActive = location.pathname === item.href;
+    const isAdminOnly = item.roles.length === 1 && item.roles[0] === 'admin';
+    return (
+      <Link
+        key={item.href}
+        to={item.href}
+        onClick={() => isMobile && setSidebarOpen(false)}
+        className={cn(
+          'flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors',
+          isActive
+            ? 'bg-sidebar-accent/80 text-sidebar-accent-foreground font-medium'
+            : 'text-sidebar-foreground/85 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground'
+        )}
+      >
+        <Icon className={cn('w-4 h-4 shrink-0', isActive ? 'text-primary' : 'text-sidebar-foreground/70')} />
+        <span className="flex-1 truncate">{item.label}</span>
+        {(item as any).isNew && (
+          <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/15 text-primary">
+            Novo
+          </span>
+        )}
+        {isAdminOnly && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Shield className="w-3 h-3 text-amber-500/80" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Restrito a administradores</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </Link>
+    );
+  };
+
+  const GerencialGroup = () => (
+    <div className="mb-0.5">
+      <button
+        type="button"
+        onClick={() => setGerencialOpen((v) => !v)}
+        aria-expanded={gerencialOpen}
+        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors text-sidebar-foreground/85 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+      >
+        <Briefcase className="w-4 h-4 shrink-0 text-sidebar-foreground/70" />
+        <span className="flex-1 truncate text-left">Gerencial</span>
+        <ChevronDown
+          className={cn(
+            'w-3.5 h-3.5 shrink-0 text-sidebar-foreground/60 transition-transform duration-200',
+            gerencialOpen && 'rotate-180'
+          )}
+        />
+      </button>
+      <div
+        className={cn(
+          'overflow-hidden transition-all duration-200',
+          gerencialOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+        )}
+      >
+        <div className="pl-4 mt-0.5 space-y-0.5 border-l border-sidebar-border/50 ml-4">
+          {gerencialVisible.map((sub) => renderNavItem(sub))}
+        </div>
+      </div>
+    </div>
+  );
+
+
+
 
   const SidebarContent = () => (
     <>
