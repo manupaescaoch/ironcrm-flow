@@ -90,15 +90,6 @@ export function FuncionariosTab() {
                 </Select>
               </div>
               <div>
-                <Label>Turno</Label>
-                <Select value={form.turno} onValueChange={v => setForm(f => ({ ...f, turno: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {TURNOS.map(t => <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
                 <Label>Cargo (define qual formulário recebe)</Label>
                 <Select value={form.cargo || 'none'} onValueChange={v => setForm(f => ({ ...f, cargo: v === 'none' ? '' : v as any }))}>
                   <SelectTrigger><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
@@ -115,6 +106,15 @@ export function FuncionariosTab() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">Sem cargo definido, o sistema tenta adivinhar pelo nome — pode dar erro.</p>
+              </div>
+              <div>
+                <Label>Turno</Label>
+                <Select value={form.turno} onValueChange={v => setForm(f => ({ ...f, turno: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TURNOS.map(t => <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <Button onClick={handleSave} disabled={!form.nome} className="w-full">
                 {editingId ? 'Salvar Alterações' : 'Cadastrar'}
@@ -139,8 +139,8 @@ export function FuncionariosTab() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Telefone</TableHead>
-                  <TableHead>Cargo</TableHead>
                   <TableHead>Setor</TableHead>
+                  <TableHead>Cargo</TableHead>
                   <TableHead>Turno</TableHead>
                   <TableHead>Ativo</TableHead>
                   <TableHead className="w-20">Ações</TableHead>
@@ -157,12 +157,12 @@ export function FuncionariosTab() {
                         </span>
                       ) : '-'}
                     </TableCell>
+                    <TableCell><Badge variant="outline">{f.setor}</Badge></TableCell>
                     <TableCell>
                       {f.cargo
                         ? <Badge>{CARGOS.find(c => c.value === f.cargo)?.label || f.cargo}</Badge>
                         : <Badge variant="destructive">não definido</Badge>}
                     </TableCell>
-                    <TableCell><Badge variant="outline">{f.setor}</Badge></TableCell>
                     <TableCell><Badge variant="secondary">{f.turno}</Badge></TableCell>
                     <TableCell>
                       <Switch
