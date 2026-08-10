@@ -162,7 +162,7 @@ function FieldError({ msg }: { msg?: string }) {
   return <p className="text-xs text-destructive mt-1">{msg}</p>;
 }
 
-export function ContaFormFields({ form, setForm, errors, unidadeNome }: Props) {
+export function ContaFormFields({ form, setForm, errors, unidadeNome, permitirRecorrencia = false }: Props) {
   const set = (key: keyof ContaFormState) => (value: string) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const errClass = (key: string) => (errors[key] ? 'border-destructive focus-visible:ring-destructive' : '');
@@ -208,6 +208,72 @@ export function ContaFormFields({ form, setForm, errors, unidadeNome }: Props) {
           </div>
         </div>
       </section>
+
+      {permitirRecorrencia && (
+        <section className="space-y-3 rounded-md border p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <Label className="text-sm font-semibold">Conta recorrente</Label>
+              <p className="text-xs text-muted-foreground">
+                Cadastra automaticamente as próximas parcelas com o mesmo valor e dados de pagamento.
+              </p>
+            </div>
+            <Switch
+              checked={form.recorrente}
+              onCheckedChange={(v) => setForm((prev) => ({ ...prev, recorrente: v }))}
+            />
+          </div>
+
+          {form.recorrente && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label>Frequência</Label>
+                <Select
+                  value={form.recorrencia_freq}
+                  onValueChange={(v) => setForm((prev) => ({ ...prev, recorrencia_freq: v as RecorrenciaFreq }))}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RECORRENCIA_OPTS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Quantidade de parcelas *</Label>
+                <Input
+                  type="number"
+                  min={2}
+                  max={60}
+                  value={form.recorrencia_qtd}
+                  onChange={(e) => set('recorrencia_qtd')(e.target.value)}
+                  className={cn('mt-1', errClass('recorrencia_qtd'))}
+                />
+                <FieldError msg={errors.recorrencia_qtd} />
+              </div>
+              {form.data_vencimento && (
+                <p className="sm:col-span-2 text-xs text-muted-foreground">
+                  Vencimentos:{' '}
+                  {gerarDatasRecorrencia(
+                    form.data_vencimento,
+                    form.recorrencia_freq,
+                    Number(form.recorrencia_qtd),
+                  )
+                    .slice(0, 4)
+                    .map((d) => d.split('-').reverse().join('/'))
+                    .join(' • ')}
+                  {Number(form.recorrencia_qtd) > 4 ? ' • ...' : ''}
+                </p>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="space-y-3">
         <div>
