@@ -28,7 +28,9 @@ import {
   Handshake,
   Star,
   Zap,
-  Wallet
+  Wallet,
+  Briefcase,
+  ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getUnidadeSigla } from '@/lib/unidadeSigla';
