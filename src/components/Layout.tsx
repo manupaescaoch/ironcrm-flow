@@ -56,7 +56,6 @@ const allNavItems = [
   { href: '/crm', label: 'CRM', icon: Users, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/indicacoes', label: 'Indicações', icon: Gift, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
 
-  { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/contas-pagar', label: 'Contas a Pagar', icon: Wallet, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false, isNew: true },
   { href: '/tarefas', label: 'Tarefas', icon: CheckSquare, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/dashboard-executivo', label: 'Executivo', icon: BarChart3, roles: ['admin'], masterOnly: false },
@@ -73,6 +72,7 @@ const gerencialItems = [
   { href: '/nps/respostas', label: 'NPS', icon: Star, roles: ['admin', 'coordenador'], masterOnly: false },
   { href: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/estoque', label: 'Estoque', icon: Package, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
+  { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
 ];
 
 
