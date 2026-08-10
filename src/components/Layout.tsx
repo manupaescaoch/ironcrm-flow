@@ -57,17 +57,22 @@ const allNavItems = [
   { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/contas-pagar', label: 'Contas a Pagar', icon: Wallet, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false, isNew: true },
   { href: '/tarefas', label: 'Tarefas', icon: CheckSquare, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
-  { href: '/operacional', label: 'Operacional', icon: ClipboardList, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
-  { href: '/reunioes', label: 'Reuniões', icon: Handshake, roles: ['admin', 'comercial', 'coordenador'], masterOnly: false, isNew: true },
-  { href: '/nps/respostas', label: 'NPS', icon: Star, roles: ['admin', 'coordenador'], masterOnly: false, isNew: true },
-  { href: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
-  { href: '/estoque', label: 'Estoque', icon: Package, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/dashboard-executivo', label: 'Executivo', icon: BarChart3, roles: ['admin'], masterOnly: false },
   { href: '/gestao-operacional', label: 'Gestão Operacional', icon: Building2, roles: ['admin'], masterOnly: false },
   { href: '/backups', label: 'Backups', icon: Database, roles: ['admin'], masterOnly: false },
   { href: '/admin/cronograma-automacoes', label: 'Automações', icon: Zap, roles: ['admin'], masterOnly: false, isNew: true },
   { href: '/admin-users', label: 'Usuários', icon: Settings, roles: ['admin'], masterOnly: true },
 ];
+
+const gerencialItems = [
+  { href: '/operacional', label: 'Operacional', icon: ClipboardList, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
+  { href: '/equipe', label: 'Equipe', icon: Users, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false, isNew: true },
+  { href: '/reunioes', label: 'Reuniões', icon: Handshake, roles: ['admin', 'comercial', 'coordenador'], masterOnly: false },
+  { href: '/nps/respostas', label: 'NPS', icon: Star, roles: ['admin', 'coordenador'], masterOnly: false },
+  { href: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
+  { href: '/estoque', label: 'Estoque', icon: Package, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
+];
+
 
 export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ children }, ref) {
   const { signOut, user, userRole } = useAuth();
