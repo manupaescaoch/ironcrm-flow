@@ -72,6 +72,10 @@ export function validateContaForm(form: ContaFormState): Record<string, string> 
   const valor = parseValor(form.valor);
   if (!form.valor.trim() || Number.isNaN(valor) || valor <= 0) errors.valor = 'Informe um valor válido';
   if (!form.data_vencimento) errors.data_vencimento = 'Informe a data de vencimento';
+  if (form.recorrente) {
+    const qtd = Number(form.recorrencia_qtd);
+    if (!Number.isInteger(qtd) || qtd < 2 || qtd > 60) errors.recorrencia_qtd = 'Informe de 2 a 60 parcelas';
+  }
   return errors;
 }
 
