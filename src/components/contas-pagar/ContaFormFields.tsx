@@ -6,10 +6,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import type { ContaFormPayload } from '@/hooks/useContasPagar';
 
+export type RecorrenciaFreq = 'mensal' | 'quinzenal' | 'semanal' | 'anual';
+
 export interface ContaFormState {
   descricao: string;
   valor: string;
   data_vencimento: string;
+  recorrente: boolean;
+  recorrencia_freq: RecorrenciaFreq;
+  recorrencia_qtd: string;
   codigo_pix: string;
   chave_pix: string;
   linha_digitavel: string;
