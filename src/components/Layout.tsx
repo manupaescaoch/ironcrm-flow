@@ -89,21 +89,21 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
   };
 
   // Filter nav items based on user role and master admin status
-  const navItems = useMemo(() => {
+  const canSee = (item: { masterOnly?: boolean; roles: string[] }) => {
     const isMasterAdmin = user?.email === MASTER_ADMIN_EMAIL;
-    
-    return allNavItems.filter(item => {
-      // If item is master only, check if user is master admin
-      if (item.masterOnly && !isMasterAdmin) {
-        return false;
-      }
-      // Check role permission
-      if (!userRole) {
-        return true; // fallback for users without role
-      }
-      return item.roles.includes(userRole);
-    });
-  }, [userRole, user?.email]);
+    if (item.masterOnly && !isMasterAdmin) return false;
+    if (!userRole) return true; // fallback for users without role
+    return item.roles.includes(userRole);
+  };
+
+  const navItems = useMemo(() => allNavItems.filter(canSee), [userRole, user?.email]);
+  const gerencialVisible = useMemo(() => gerencialItems.filter(canSee), [userRole, user?.email]);
+
+  const isGerencialRoute = gerencialItems.some(
+    (item) => location.pathname === item.href || location.pathname.startsWith(item.href + '/')
+  );
+  const [gerencialOpen, setGerencialOpen] = useState(isGerencialRoute);
+
 
   const SidebarContent = () => (
     <>
