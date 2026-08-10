@@ -213,6 +213,12 @@ export default function LeadDetail() {
     }
   }, [id]);
 
+  useEffect(() => {
+    if (sheetOpen && formData.fechou_matricula) {
+      fetchTreinadoresUnidade();
+    }
+  }, [sheetOpen, formData.fechou_matricula]);
+
   const fetchLead = async () => {
     const { data, error } = await supabase
       .from('leads')
