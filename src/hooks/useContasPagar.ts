@@ -388,6 +388,7 @@ export function useContasPagar(from: string, to: string) {
     unidadeNome: unidadeAtual?.nome ?? '',
     statusDe,
     criarConta,
+    criarParcelasRecorrentes,
     atualizarConta,
     darBaixa,
     reabrirConta,
