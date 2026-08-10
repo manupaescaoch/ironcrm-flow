@@ -78,6 +78,7 @@ export function NovaContaModal({
   canManage,
   contaEdicao,
   onCriar,
+  onCriarParcelas,
   onAtualizar,
   buscarDuplicidade,
   onVerConta,
@@ -200,7 +201,27 @@ export function NovaContaModal({
       const conta = await onCriar(payload);
       setDuplicados([]);
       setCriada(conta);
-      toast({ title: 'Conta cadastrada com sucesso.' });
+
+      // Recorrência: cadastra as parcelas seguintes (a primeira é a conta já criada).
+      if (formAtual.recorrente && onCriarParcelas) {
+        const datas = gerarDatasRecorrencia(
+          payload.data_vencimento,
+          formAtual.recorrencia_freq,
+          Number(formAtual.recorrencia_qtd),
+        ).slice(1);
+        try {
+          const qtd = await onCriarParcelas(payload, datas);
+          toast({ title: `Conta cadastrada com ${qtd + 1} parcelas.` });
+        } catch {
+          toast({
+            title: 'Conta cadastrada, mas as parcelas futuras falharam',
+            description: 'Cadastre as próximas parcelas manualmente.',
+            variant: 'destructive',
+          });
+        }
+      } else {
+        toast({ title: 'Conta cadastrada com sucesso.' });
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Erro ao salvar a conta';
       toast({ title: 'Erro ao salvar', description: msg, variant: 'destructive' });
