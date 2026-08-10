@@ -21,6 +21,7 @@ export function mapToLead(data: any): Lead {
     hora_aula_experimental: data.hora_aula_experimental || null,
     created_by: data.created_by || null,
     user_id: data.user_id || null,
+    unidade_id: data.unidade_id || null,
     ativo: data.ativo ?? true,
     created_at: data.created_at || '',
     updated_at: data.updated_at || '',
