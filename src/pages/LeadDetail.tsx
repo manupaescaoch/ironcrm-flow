@@ -240,6 +240,23 @@ export default function LeadDetail() {
     setInteracoes((data as unknown as Interacao[]) || []);
   };
 
+  const fetchTreinadoresUnidade = async () => {
+    if (!lead?.unidade_id) return;
+    const { data, error } = await supabase
+      .from('cronograma_funcionarios')
+      .select('nome')
+      .eq('unidade_id', lead.unidade_id)
+      .eq('setor', 'treinador')
+      .eq('ativo', true)
+      .order('nome');
+
+    if (error) {
+      console.error('Erro ao buscar treinadores:', error);
+      return;
+    }
+    setTreinadoresUnidade((data || []).map((t: any) => t.nome));
+  };
+
   const determineNewStatus = (form: InteracaoForm): StatusFunil => {
     if (form.fechou_matricula) return 'convertido';
     if (form.compareceu) return 'aula_realizada';
