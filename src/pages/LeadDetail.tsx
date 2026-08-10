@@ -176,6 +176,7 @@ export default function LeadDetail() {
   const [showMotivosPerdaModal, setShowMotivosPerdaModal] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<StatusFunil | null>(null);
   const [savingMotivo, setSavingMotivo] = useState(false);
+  const [treinadoresUnidade, setTreinadoresUnidade] = useState<string[]>([]);
   // Conversion score calculation
   const conversionScore = useConversionScore(lead, interacoes);
 
@@ -212,6 +213,12 @@ export default function LeadDetail() {
     }
   }, [id]);
 
+  useEffect(() => {
+    if (sheetOpen && formData.fechou_matricula) {
+      fetchTreinadoresUnidade();
+    }
+  }, [sheetOpen, formData.fechou_matricula]);
+
   const fetchLead = async () => {
     const { data, error } = await supabase
       .from('leads')
@@ -237,6 +244,23 @@ export default function LeadDetail() {
       .order('data_interacao', { ascending: false });
 
     setInteracoes((data as unknown as Interacao[]) || []);
+  };
+
+  const fetchTreinadoresUnidade = async () => {
+    if (!lead?.unidade_id) return;
+    const { data, error } = await supabase
+      .from('cronograma_funcionarios')
+      .select('nome')
+      .eq('unidade_id', lead.unidade_id)
+      .eq('setor', 'treinador')
+      .eq('ativo', true)
+      .order('nome');
+
+    if (error) {
+      console.error('Erro ao buscar treinadores:', error);
+      return;
+    }
+    setTreinadoresUnidade((data || []).map((t: any) => t.nome));
   };
 
   const determineNewStatus = (form: InteracaoForm): StatusFunil => {
@@ -1235,11 +1259,20 @@ export default function LeadDetail() {
                   </div>
                   <div className="space-y-2">
                     <Label>Treinador Responsável</Label>
-                    <Input
-                      value={formData.treinador_responsavel}
-                      onChange={(e) => setFormData({ ...formData, treinador_responsavel: e.target.value })}
-                      placeholder="Nome do treinador"
-                    />
+                    <Select
+                      value={formData.treinador_responsavel || 'none'}
+                      onValueChange={(v) => setFormData({ ...formData, treinador_responsavel: v === 'none' ? '' : v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o treinador" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Não definido</SelectItem>
+                        {treinadoresUnidade.map((nome) => (
+                          <SelectItem key={nome} value={nome}>{nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Quem Indicou</Label>
