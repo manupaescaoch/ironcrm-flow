@@ -183,6 +183,28 @@ export function useContasPagar(from: string, to: string) {
     onSuccess: invalidate,
   });
 
+  /** Insere as parcelas futuras de uma conta recorrente (sem envio de WhatsApp imediato). */
+  const criarParcelasRecorrentes = useCallback(
+    async (payload: ContaFormPayload, datas: string[]): Promise<number> => {
+      if (!unidadeId) throw new Error('Nenhuma unidade selecionada');
+      if (!user?.id) throw new Error('Usuário não autenticado');
+      if (!datas.length) return 0;
+      const rows = datas.map((data_vencimento) => ({
+        ...payload,
+        data_vencimento,
+        unidade_id: unidadeId,
+        status: 'pendente',
+        created_by: user.id,
+        created_by_nome: userNome,
+      }));
+      const { error } = await supabase.from('contas_pagar').insert(rows as never);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['contas-pagar'] });
+      return rows.length;
+    },
+    [unidadeId, user?.id, userNome, queryClient],
+  );
+
   const reenviarWhatsapp = useMutation({
     mutationFn: async ({ contaId, tipo }: { contaId: string; tipo: 'CADASTRO' | 'VENCIMENTO' }) => {
       const { data, error } = await supabase.functions.invoke('send-conta-pagar-whatsapp', {
