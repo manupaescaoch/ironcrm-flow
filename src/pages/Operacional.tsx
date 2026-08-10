@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2, ClipboardList, CalendarDays, LayoutDashboard, Users, FileText } from 'lucide-react';
+import { Loader2, ClipboardList, CalendarDays, LayoutDashboard, FileText } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnidade } from '@/contexts/UnidadeContext';
@@ -7,7 +7,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CronogramaDashboard } from '@/components/cronograma/CronogramaDashboard';
 import { OperacionalDashboard } from '@/components/operacional/OperacionalDashboard';
 import { CronogramaTab } from '@/components/cronograma/CronogramaTab';
-import { FuncionariosTab } from '@/components/cronograma/FuncionariosTab';
 import { FormulariosList } from '@/components/cronograma/FormulariosList';
 import { FormularioBuilder } from '@/components/cronograma/FormularioBuilder';
 
