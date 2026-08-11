@@ -177,7 +177,7 @@ export function FuncionariosTab() {
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(f)}>
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => deleteFuncionario.mutate(f.id)}>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(f)}>
                           <Trash2 className="w-4 h-4 text-destructive" />
                         </Button>
                       </div>
