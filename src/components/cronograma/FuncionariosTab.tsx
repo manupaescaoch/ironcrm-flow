@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Users, Phone, Edit, Trash2, UserPlus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const SETORES = ['treinador', 'recepção', 'comercial'];
 const TURNOS = ['integral', 'manhã', 'tarde', 'noite'];
@@ -27,6 +28,7 @@ export function FuncionariosTab() {
   const { unidadeId } = useUnidadeFilter();
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CronogramaFuncionario | null>(null);
   const [form, setForm] = useState<{ nome: string; telefone: string; setor: string; turno: string; cargo: '' | 'recepcao' | 'coordenador_unidade' | 'treinador' | 'estagiario_lider' }>({ nome: '', telefone: '', setor: 'treinador', turno: 'integral', cargo: '' });
 
   const resetForm = () => {
