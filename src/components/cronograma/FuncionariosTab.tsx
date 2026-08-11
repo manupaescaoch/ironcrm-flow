@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Users, Phone, Edit, Trash2, UserPlus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const SETORES = ['treinador', 'recepção', 'comercial'];
 const TURNOS = ['integral', 'manhã', 'tarde', 'noite'];
@@ -27,6 +28,7 @@ export function FuncionariosTab() {
   const { unidadeId } = useUnidadeFilter();
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CronogramaFuncionario | null>(null);
   const [form, setForm] = useState<{ nome: string; telefone: string; setor: string; turno: string; cargo: '' | 'recepcao' | 'coordenador_unidade' | 'treinador' | 'estagiario_lider' }>({ nome: '', telefone: '', setor: 'treinador', turno: 'integral', cargo: '' });
 
   const resetForm = () => {
@@ -175,7 +177,7 @@ export function FuncionariosTab() {
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(f)}>
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => deleteFuncionario.mutate(f.id)}>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(f)}>
                           <Trash2 className="w-4 h-4 text-destructive" />
                         </Button>
                       </div>
@@ -187,6 +189,28 @@ export function FuncionariosTab() {
           </CardContent>
         </Card>
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover funcionário?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja seguir com a remoção de <strong>{deleteTarget?.nome}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteTarget) deleteFuncionario.mutate(deleteTarget.id);
+                setDeleteTarget(null);
+              }}
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
