@@ -74,6 +74,18 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
     ? Math.round((periodStats.matriculasPeriodo / stats.total) * 100)
     : 0;
 
+  const leadToExperimentalPct = stats.total > 0
+    ? Math.round((periodStats.experimentaisPeriodo / stats.total) * 100)
+    : 0;
+
+  const comparecimentoPct = periodStats.experimentaisPeriodo > 0
+    ? Math.round((periodStats.comparecimentosPeriodo / periodStats.experimentaisPeriodo) * 100)
+    : 0;
+
+  const experimentalToMatriculaPct = periodStats.experimentaisPeriodo > 0
+    ? Math.round((periodStats.matriculasPeriodo / periodStats.experimentaisPeriodo) * 100)
+    : 0;
+
 
 
   return (
@@ -99,7 +111,7 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
 
         <KPICard
           variant="dashboard"
-          title="Aulas Agendadas"
+          title="Experimentais Agendadas"
           value={periodStats.experimentaisPeriodo}
           icon={CalendarCheck}
           iconColor="text-sky-500"
@@ -109,7 +121,7 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
 
         <KPICard
           variant="dashboard"
-          title={"Compareci\u00ADmentos"}
+          title="Compareceram"
           value={periodStats.comparecimentosPeriodo}
           icon={CheckCircle2}
           iconColor="text-emerald-500"
@@ -119,7 +131,7 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
 
         <KPICard
           variant="dashboard"
-          title="Matrículas no Período"
+          title="Matrículas"
           value={periodStats.matriculasPeriodo}
           icon={Award}
           iconColor="text-amber-500"
@@ -132,13 +144,47 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
 
         <KPICard
           variant="dashboard"
-          title="Taxa de Conversão"
+          title="Conversão Geral"
           value={`${taxaConversao}%`}
           icon={Filter}
           iconColor="text-pink-500"
           valueColor="text-pink-600"
           subtitle="Leads → Matrículas"
         />
+      </div>
+
+      {/* Linha 1.5 — Taxas do Funil */}
+      <div>
+        <h2 className="text-xs font-semibold text-foreground/80 mb-1 px-1">Taxas do Funil</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <KPICard
+            variant="dashboard"
+            title="Lead vira Experimental"
+            value={`${leadToExperimentalPct}%`}
+            icon={TrendingUp}
+            iconColor="text-indigo-500"
+            valueColor="text-indigo-600"
+            subtitle={`${periodStats.experimentaisPeriodo} de ${stats.total} leads`}
+          />
+          <KPICard
+            variant="dashboard"
+            title="Comparecimento"
+            value={`${comparecimentoPct}%`}
+            icon={Percent}
+            iconColor="text-teal-500"
+            valueColor="text-teal-600"
+            subtitle={`${periodStats.comparecimentosPeriodo} de ${periodStats.experimentaisPeriodo} agendadas`}
+          />
+          <KPICard
+            variant="dashboard"
+            title="Experimental vira Matrícula"
+            value={`${experimentalToMatriculaPct}%`}
+            icon={Award}
+            iconColor="text-amber-500"
+            valueColor="text-amber-600"
+            subtitle={`${periodStats.matriculasPeriodo} de ${periodStats.experimentaisPeriodo} experimentais`}
+          />
+        </div>
       </div>
 
       {/* Linha 2 — Funil Comercial + Diagnóstico da Semana */}
