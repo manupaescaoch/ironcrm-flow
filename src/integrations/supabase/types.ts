@@ -1351,19 +1351,14 @@ export type Database = {
       forecast_premissas: {
         Row: {
           ano: number
-          aproveitamento_atendimento: number | null
-          base_inicial: number | null
           capacidade_maxima: number | null
           churn_mensal: number
-          cpl_projetado: number | null
           created_at: string
           created_by: string | null
           custo_por_conversa: number | null
           id: string
           investimento_previsto: number
-          mensalidade_media: number | null
           mes: number
-          meta_alunos: number | null
           observacoes: string | null
           taxa_agendamento_comparecimento: number
           taxa_comparecimento_matricula: number
@@ -1375,19 +1370,14 @@ export type Database = {
         }
         Insert: {
           ano: number
-          aproveitamento_atendimento?: number | null
-          base_inicial?: number | null
           capacidade_maxima?: number | null
           churn_mensal?: number
-          cpl_projetado?: number | null
           created_at?: string
           created_by?: string | null
           custo_por_conversa?: number | null
           id?: string
           investimento_previsto?: number
-          mensalidade_media?: number | null
           mes: number
-          meta_alunos?: number | null
           observacoes?: string | null
           taxa_agendamento_comparecimento?: number
           taxa_comparecimento_matricula?: number
@@ -1399,19 +1389,14 @@ export type Database = {
         }
         Update: {
           ano?: number
-          aproveitamento_atendimento?: number | null
-          base_inicial?: number | null
           capacidade_maxima?: number | null
           churn_mensal?: number
-          cpl_projetado?: number | null
           created_at?: string
           created_by?: string | null
           custo_por_conversa?: number | null
           id?: string
           investimento_previsto?: number
-          mensalidade_media?: number | null
           mes?: number
-          meta_alunos?: number | null
           observacoes?: string | null
           taxa_agendamento_comparecimento?: number
           taxa_comparecimento_matricula?: number
@@ -1433,133 +1418,53 @@ export type Database = {
       }
       forecast_realizado: {
         Row: {
-          alunos_ativos: number | null
           ano: number
           base_final: number | null
           base_inicial: number | null
           cancelamentos: number | null
-          comparecimentos: number | null
           conversas_iniciadas: number | null
           created_at: string
           created_by: string | null
-          experimentais_marcadas: number | null
-          fechado: boolean
-          fechado_em: string | null
-          fechado_por: string | null
           id: string
           investimento_real: number | null
-          leads_crm: number | null
-          matriculas_total: number | null
-          matriculas_trafego: number | null
           mes: number
           observacoes: string | null
-          ticket_medio: number | null
           unidade_id: string
           updated_at: string
         }
         Insert: {
-          alunos_ativos?: number | null
           ano: number
           base_final?: number | null
           base_inicial?: number | null
           cancelamentos?: number | null
-          comparecimentos?: number | null
           conversas_iniciadas?: number | null
           created_at?: string
           created_by?: string | null
-          experimentais_marcadas?: number | null
-          fechado?: boolean
-          fechado_em?: string | null
-          fechado_por?: string | null
           id?: string
           investimento_real?: number | null
-          leads_crm?: number | null
-          matriculas_total?: number | null
-          matriculas_trafego?: number | null
           mes: number
           observacoes?: string | null
-          ticket_medio?: number | null
           unidade_id: string
           updated_at?: string
         }
         Update: {
-          alunos_ativos?: number | null
           ano?: number
           base_final?: number | null
           base_inicial?: number | null
           cancelamentos?: number | null
-          comparecimentos?: number | null
           conversas_iniciadas?: number | null
           created_at?: string
           created_by?: string | null
-          experimentais_marcadas?: number | null
-          fechado?: boolean
-          fechado_em?: string | null
-          fechado_por?: string | null
           id?: string
           investimento_real?: number | null
-          leads_crm?: number | null
-          matriculas_total?: number | null
-          matriculas_trafego?: number | null
           mes?: number
           observacoes?: string | null
-          ticket_medio?: number | null
           unidade_id?: string
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "forecast_realizado_unidade_id_fkey"
-            columns: ["unidade_id"]
-            isOneToOne: false
-            referencedRelation: "unidades"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      forecast_semanal: {
-        Row: {
-          alunos_segunda: number
-          alunos_sexta: number | null
-          cancelamentos: number
-          created_at: string
-          created_by: string | null
-          id: string
-          matriculas: number
-          observacoes: string | null
-          semana_inicio: string
-          unidade_id: string
-          updated_at: string
-        }
-        Insert: {
-          alunos_segunda?: number
-          alunos_sexta?: number | null
-          cancelamentos?: number
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          matriculas?: number
-          observacoes?: string | null
-          semana_inicio: string
-          unidade_id: string
-          updated_at?: string
-        }
-        Update: {
-          alunos_segunda?: number
-          alunos_sexta?: number | null
-          cancelamentos?: number
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          matriculas?: number
-          observacoes?: string | null
-          semana_inicio?: string
-          unidade_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "forecast_semanal_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "unidades"

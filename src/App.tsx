@@ -45,7 +45,6 @@ import CronogramaAutomacoes from "./pages/admin/CronogramaAutomacoes";
 import DashboardOperacional from "./pages/DashboardOperacional";
 
 import GestaoOperacional from "./pages/GestaoOperacional";
-import Forecast from "./pages/Forecast";
 import Reunioes from "./pages/Reunioes";
 import NpsPublico from "./pages/NpsPublico";
 import NpsRespostas from "./pages/NpsRespostas";
@@ -393,14 +392,6 @@ const AppRoutes = () => (
       element={
         <AdminRoute>
           <GestaoOperacional />
-        </AdminRoute>
-      }
-    />
-    <Route
-      path="/forecast"
-      element={
-        <AdminRoute>
-          <Forecast />
         </AdminRoute>
       }
     />
