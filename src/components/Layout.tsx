@@ -30,8 +30,7 @@ import {
   Zap,
   Wallet,
   Briefcase,
-  ChevronDown,
-  TrendingUp
+  ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getUnidadeSigla } from '@/lib/unidadeSigla';
@@ -59,7 +58,7 @@ const allNavItems = [
 
   { href: '/contas-pagar', label: 'Contas a Pagar', icon: Wallet, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false, isNew: true },
   { href: '/tarefas', label: 'Tarefas', icon: CheckSquare, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
-  { href: '/forecast', label: 'Forecast', icon: TrendingUp, roles: ['admin'], masterOnly: false, isNew: true },
+  { href: '/dashboard-executivo', label: 'Executivo', icon: BarChart3, roles: ['admin'], masterOnly: false },
   { href: '/gestao-operacional', label: 'Gestão Operacional', icon: Building2, roles: ['admin'], masterOnly: false },
   { href: '/backups', label: 'Backups', icon: Database, roles: ['admin'], masterOnly: false },
   { href: '/admin/cronograma-automacoes', label: 'Automações', icon: Zap, roles: ['admin'], masterOnly: false, isNew: true },
@@ -114,7 +113,7 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
 
   // Onde o grupo Gerencial é inserido: antes do primeiro item "de gestão" visível
   const gerencialAnchor =
-    navItems.find((i) => ['/forecast', '/dashboard-executivo', '/gestao-operacional', '/backups', '/admin/cronograma-automacoes', '/admin-users'].includes(i.href))?.href ?? null;
+    navItems.find((i) => ['/dashboard-executivo', '/gestao-operacional', '/backups', '/admin/cronograma-automacoes', '/admin-users'].includes(i.href))?.href ?? null;
 
   const renderNavItem = (item: (typeof allNavItems)[number]) => {
     const Icon = item.icon;
