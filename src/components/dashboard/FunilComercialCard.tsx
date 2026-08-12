@@ -86,18 +86,18 @@ export const FunilComercialCard = memo(function FunilComercialCard({
           <Conversion pct={convAgend} />
           <Stage
             icon={CalendarCheck}
-            label="Agendamentos"
+            label="Experimentais"
             value={agendamentos}
-            subtitle="No período"
+            subtitle="Agendadas no período"
             colorClass="text-sky-500"
             bgClass="bg-sky-50 dark:bg-sky-950/30"
           />
           <Conversion pct={convComp} />
           <Stage
             icon={CheckCircle2}
-            label="Comparecimentos"
+            label="Compareceram"
             value={comparecimentos}
-            subtitle="Compareceram"
+            subtitle="À experimental"
             colorClass="text-emerald-500"
             bgClass="bg-emerald-50 dark:bg-emerald-950/30"
           />
@@ -106,7 +106,7 @@ export const FunilComercialCard = memo(function FunilComercialCard({
             icon={Award}
             label="Matrículas"
             value={matriculas}
-            subtitle="No período"
+            subtitle="Fechadas no período"
             colorClass="text-amber-500"
             bgClass="bg-amber-50 dark:bg-amber-950/30"
           />
