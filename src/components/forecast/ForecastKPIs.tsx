@@ -27,8 +27,12 @@ export function ForecastKPIs({
       <KpiCard label="Alunos ativos" value={fmtInt(premissas.baseInicial)} dica={TOOLTIPS.base} />
       <KpiCard
         label="Meta de alunos"
-        value={fmtInt(premissas.metaAlunos)}
-        hint={`Faltam ${fmtInt(Math.max(0, premissas.metaAlunos - premissas.baseInicial))} alunos`}
+        value={premissas.metaAlunos > 0 ? fmtInt(premissas.metaAlunos) : '—'}
+        hint={
+          premissas.metaAlunos > 0
+            ? `Faltam ${fmtInt(Math.max(0, premissas.metaAlunos - premissas.baseInicial))} alunos`
+            : 'Defina nas premissas'
+        }
       />
       <KpiCard label="Capacidade máxima" value={fmtInt(premissas.capacidade)} />
       <KpiCard
