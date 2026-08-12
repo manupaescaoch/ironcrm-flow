@@ -30,6 +30,7 @@ import {
   Zap,
   Wallet,
   Briefcase,
+  TrendingUp,
   ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -73,6 +74,7 @@ const gerencialItems = [
   { href: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/estoque', label: 'Estoque', icon: Package, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/comissoes', label: 'Comissões', icon: DollarSign, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
+  { href: '/forecast', label: 'Forecast de Alunos', icon: TrendingUp, roles: ['admin'], masterOnly: false, isNew: true },
 ];
 
 
