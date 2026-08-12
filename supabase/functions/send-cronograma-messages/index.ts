@@ -218,10 +218,14 @@ Deno.serve(async (req) => {
       }
       const aTotalMin = aHour * 60 + aMinute;
       const nowTotalMin = currentHour * 60 + currentMinute;
-      // Janela de -20 a +2 minutos: cobre o horário-alvo + janela de recuperação
-      // Com cron a cada 3 min, cada horário é tentado ~7 vezes (recuperação se Z-API falhar)
-      // Duplicação é evitada via tabela cronograma_envios
-      return aTotalMin >= nowTotalMin - 20 && aTotalMin <= nowTotalMin + 2;
+      // Janela de -120 a +2 minutos: cobre o horário-alvo + uma janela LONGA de
+      // recuperação. Se o provedor recusar (ex.: JID/LID inválido) ou a instância
+      // estiver fora do ar no minuto exato, a atividade continua elegível pelas
+      // 2 horas seguintes e é reenviada automaticamente no próximo cron.
+      // Duplicação é impossível: `cronograma_envios` + `whatsapp_idempotencia`
+      // (chave por atividade + data) só liberam nova tentativa após recusa definitiva.
+      return aTotalMin >= nowTotalMin - 120 && aTotalMin <= nowTotalMin + 2;
+
     });
 
     console.log(`[send-cronograma] ${atividadesNaJanela.length} atividade(s) na janela de horário`);
