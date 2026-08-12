@@ -10,6 +10,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import DashboardExecutivo from "./pages/DashboardExecutivo";
+import Forecast from "./pages/Forecast";
 import CRM from "./pages/CRM";
 import LeadDetail from "./pages/LeadDetail";
 import Kanban from "./pages/Kanban";
@@ -216,6 +217,14 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <Dashboard />
         </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/forecast"
+      element={
+        <AdminRoute>
+          <Forecast />
+        </AdminRoute>
       }
     />
     <Route
