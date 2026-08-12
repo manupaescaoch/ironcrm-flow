@@ -16,7 +16,9 @@ export function ForecastProximoMesCard({
       title={`Forecast de ${label}`}
       subtitle="Projeção calculada a partir das premissas atuais."
       actions={
-        f.distanciaMeta <= 0 ? (
+        premissas.metaAlunos <= 0 ? (
+          <SinalBadge status="neutro">Defina a meta de alunos nas premissas</SinalBadge>
+        ) : f.distanciaMeta <= 0 ? (
           <SinalBadge status="bom">Meta superada em {fmtInt(Math.abs(f.distanciaMeta))} alunos</SinalBadge>
         ) : (
           <SinalBadge status="atencao">Faltam {fmtInt(f.distanciaMeta)} alunos para a meta</SinalBadge>
