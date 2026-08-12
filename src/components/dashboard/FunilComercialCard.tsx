@@ -9,6 +9,8 @@ interface FunilComercialCardProps {
   comparecimentos: number;
   matriculas: number;
   conversaoMesmoDia?: number;
+  ticketMedioMes?: number;
+  matriculasMes?: number;
 }
 
 function Stage({
@@ -113,6 +115,12 @@ export const FunilComercialCard = memo(function FunilComercialCard({
           <span className="font-semibold">Taxa no dia da experimental: {convMesmoDia}%</span>
           <span className="text-muted-foreground ml-2">
             {conversaoMesmoDia} de {comparecimentos} comparecimentos
+          </span>
+        </div>
+        <div className="rounded-md bg-muted/40 px-3 py-1.5 text-xs">
+          <span className="font-semibold">Ticket médio do mês: {ticketMedioFormatado}</span>
+          <span className="text-muted-foreground ml-2">
+            {matriculasMes} {matriculasMes === 1 ? 'matrícula fechada' : 'matrículas fechadas'} no mês
           </span>
         </div>
       </CardContent>
