@@ -19,7 +19,7 @@ export function useDashboardStats(): UseDashboardStatsReturn {
   const { unidadeAtual } = useUnidade();
   
   const [stats, setStats] = useState<Stats>({ total: 0, novos: 0, aulasAgendadas: 0 });
-  const [periodStats, setPeriodStats] = useState<PeriodStats>({ experimentaisPeriodo: 0, comparecimentosPeriodo: 0, matriculasPeriodo: 0, conversaoMesmoDia: 0 });
+  const [periodStats, setPeriodStats] = useState<PeriodStats>({ experimentaisPeriodo: 0, comparecimentosPeriodo: 0, matriculasPeriodo: 0, conversaoMesmoDia: 0, ticketMedioMes: 0, matriculasMes: 0 });
   const [experimentaisSemanaCount, setExperimentaisSemanaCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
@@ -103,11 +103,37 @@ export function useDashboardStats(): UseDashboardStatsReturn {
       }
     });
 
+    // Ticket médio dos fechamentos do mês corrente
+    const now = new Date();
+    const mesStart = format(new Date(now.getFullYear(), now.getMonth(), 1), 'yyyy-MM-dd');
+    const mesEnd = format(new Date(now.getFullYear(), now.getMonth() + 1, 0), 'yyyy-MM-dd');
+
+    const { data: matriculasMesData } = await supabase
+      .from('interacoes')
+      .select('lead_id, valor_plano')
+      .eq('fechou_matricula', true)
+      .eq('unidade_id', unidadeAtual.id)
+      .gte('data_fechamento', mesStart)
+      .lte('data_fechamento', mesEnd);
+
+    const valoresPorLead = new Map<string, number>();
+    matriculasMesData?.forEach(m => {
+      if (!valoresPorLead.has(m.lead_id)) {
+        valoresPorLead.set(m.lead_id, Number(m.valor_plano) || 0);
+      }
+    });
+    const valores = Array.from(valoresPorLead.values()).filter(v => v > 0);
+    const ticketMedioMes = valores.length > 0
+      ? valores.reduce((a, b) => a + b, 0) / valores.length
+      : 0;
+
     setPeriodStats({
       experimentaisPeriodo: leadsUnicosExperimentais.size,
       comparecimentosPeriodo: leadsUnicosComparecimentos.size,
       matriculasPeriodo: leadsUnicosMatriculados.size,
       conversaoMesmoDia: leadsConversaoMesmoDia.size,
+      ticketMedioMes,
+      matriculasMes: valores.length,
     });
   }, [unidadeAtual]);
 
