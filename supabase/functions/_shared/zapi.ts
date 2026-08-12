@@ -329,5 +329,14 @@ export async function sendTextIdempotent(
   // chamado não é seguro liberar a chave, pois ele pode ter aceitado a mensagem
   // antes da conexão cair. Retry exige uma nova decisão explícita, nunca automática.
   const r = await sendText(creds, phone, message);
+  // EXCEÇÃO: rejeição definitiva do provedor (HTTP 4xx com success=false) significa
+  // que a mensagem com certeza NÃO foi aceita. Nesse caso liberamos a chave para
+  // que o cron possa tentar novamente — sem risco de duplicidade.
+  const definitiveReject =
+    !r.ok && r.status >= 400 && r.status < 500 && r.body && r.body.success === false;
+  if (definitiveReject) {
+    await releaseEnvio(supabase, opts.chave);
+  }
   return { ...r, skipped: false };
+
 }
