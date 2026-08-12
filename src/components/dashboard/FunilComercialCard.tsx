@@ -9,6 +9,8 @@ interface FunilComercialCardProps {
   comparecimentos: number;
   matriculas: number;
   conversaoMesmoDia?: number;
+  ticketMedioMes?: number;
+  matriculasMes?: number;
 }
 
 function Stage({
@@ -53,12 +55,18 @@ export const FunilComercialCard = memo(function FunilComercialCard({
   comparecimentos,
   matriculas,
   conversaoMesmoDia = 0,
+  ticketMedioMes = 0,
+  matriculasMes = 0,
 }: FunilComercialCardProps) {
   const convAgend = leads > 0 ? Math.round((agendamentos / leads) * 100) : 0;
   const convComp = agendamentos > 0 ? Math.round((comparecimentos / agendamentos) * 100) : 0;
   const convMatr = comparecimentos > 0 ? Math.round((matriculas / comparecimentos) * 100) : 0;
   const convGeral = leads > 0 ? Math.round((matriculas / leads) * 100) : 0;
   const convMesmoDia = comparecimentos > 0 ? Math.round((conversaoMesmoDia / comparecimentos) * 100) : 0;
+  const ticketMedioFormatado = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(ticketMedioMes || 0);
 
   return (
     <Card className="rounded-2xl border shadow-sm h-full">
@@ -113,6 +121,12 @@ export const FunilComercialCard = memo(function FunilComercialCard({
           <span className="font-semibold">Taxa no dia da experimental: {convMesmoDia}%</span>
           <span className="text-muted-foreground ml-2">
             {conversaoMesmoDia} de {comparecimentos} comparecimentos
+          </span>
+        </div>
+        <div className="rounded-md bg-muted/40 px-3 py-1.5 text-xs">
+          <span className="font-semibold">Ticket médio do mês: {ticketMedioFormatado}</span>
+          <span className="text-muted-foreground ml-2">
+            {matriculasMes} {matriculasMes === 1 ? 'matrícula fechada' : 'matrículas fechadas'} no mês
           </span>
         </div>
       </CardContent>

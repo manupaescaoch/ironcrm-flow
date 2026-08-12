@@ -12,6 +12,8 @@ export interface PeriodStats {
   comparecimentosPeriodo: number;
   matriculasPeriodo: number;
   conversaoMesmoDia: number;
+  ticketMedioMes: number;
+  matriculasMes: number;
 }
 
 export interface MatriculaItem {
