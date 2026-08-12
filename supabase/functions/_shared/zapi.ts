@@ -157,14 +157,26 @@ export async function lookupWhatsAppPhone(
       // JID vem como "558194249453@s.whatsapp.net" — extrai apenas os dígitos.
       // Isso é essencial no Brasil, pois o nono dígito (9) só existe em registros novos:
       // números antigos são registrados no WhatsApp SEM o 9, e enviar com o 9 causa
-      // erro 463 (JID inválido). Sempre usamos o phone canônico devolvido pelo próprio JID.
-      const jidPhone = typeof item?.jid === 'string'
-        ? item.jid.split('@')[0].split(':')[0].replace(/\D/g, '')
-        : null;
-      const outPhone = jidPhone
-        || (typeof item?.phone === 'string' ? item.phone.replace(/\D/g, '') : null)
-        || (typeof item?.number === 'string' ? item.number.replace(/\D/g, '') : null);
+      // erro 463 (JID inválido).
+      // ATENÇÃO: o provedor às vezes devolve um JID de LID ("1477640716...@lid"),
+      // que NÃO é telefone. Enviar para esse número gera
+      // "no LID found for ...@s.whatsapp.net". Só aceitamos JIDs de s.whatsapp.net
+      // com formato plausível de telefone; caso contrário usamos o número original.
+      const jidRaw = typeof item?.jid === 'string' ? item.jid : '';
+      const jidHost = jidRaw.includes('@') ? jidRaw.split('@')[1].toLowerCase() : '';
+      const jidDigits = jidRaw ? jidRaw.split('@')[0].split(':')[0].replace(/\D/g, '') : '';
+      const jidPhone =
+        jidHost === 's.whatsapp.net' && jidDigits.length >= 10 && jidDigits.length <= 15
+          ? jidDigits
+          : null;
+      const fallbackPhone =
+        (typeof item?.phone === 'string' ? item.phone.replace(/\D/g, '') : null)
+        || (typeof item?.number === 'string' ? item.number.replace(/\D/g, '') : null)
+        || (typeof item?.query === 'string' ? item.query.replace(/\D/g, '') : null);
+      const plausible = (p: string | null) => (p && p.length >= 10 && p.length <= 15 ? p : null);
+      const outPhone = jidPhone || plausible(fallbackPhone) || phone.replace(/\D/g, '');
       return { exists, phone: outPhone, raw };
+
     }
 
     const url = `https://api.z-api.io/instances/${creds.instanceId}/token/${creds.token}/phone-exists/${phone}`;
