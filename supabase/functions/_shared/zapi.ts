@@ -433,3 +433,80 @@ export async function sendListIdempotent(
   return { ...r, skipped: false };
 }
 
+// ---------------------------------------------------------------------------
+// BOTÕES DE RESPOSTA RÁPIDA (NativeFlow — aparecem embaixo da mensagem)
+// ---------------------------------------------------------------------------
+// D-API: POST /api/v1/interactive/send/nativeflow com buttons[type=quick_reply].
+// Só renderiza no WhatsApp mobile. Em Z-API cai para texto puro.
+
+export interface QuickButton {
+  id: string;
+  title: string;
+}
+
+export interface ButtonsOptions {
+  title?: string;
+  body: string;
+  footer?: string;
+  buttons: QuickButton[];
+}
+
+export async function sendButtons(
+  creds: ZapiCreds,
+  phone: string,
+  opts: ButtonsOptions,
+): Promise<{ ok: boolean; status: number; body: any }> {
+  if (creds.provider === 'dapi') {
+    const url = `${DAPI_BASE}/api/v1/interactive/send/nativeflow`;
+    const payload: Record<string, unknown> = {
+      sessionId: creds.sessionId,
+      to: phone,
+      body: opts.body,
+      buttons: opts.buttons.slice(0, 3).map((b) => ({
+        type: 'quick_reply',
+        title: b.title,
+        id: b.id,
+      })),
+    };
+    if (opts.title) payload.title = opts.title;
+    if (opts.footer) payload.footer = opts.footer;
+
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: dapiHeaders(creds),
+      body: JSON.stringify(payload),
+    });
+    const body = await resp.json().catch(() => ({}));
+    return { ok: resp.ok, status: resp.status, body };
+  }
+
+  return await sendText(creds, phone, opts.body);
+}
+
+export async function sendButtonsIdempotent(
+  supabase: any,
+  creds: ZapiCreds,
+  phone: string,
+  opts: ButtonsOptions,
+  idem: { chave: string; funcao: string; ttlMinutes?: number },
+): Promise<{ ok: boolean; skipped: boolean; status: number; body: any }> {
+  const claimed = await claimEnvio(supabase, {
+    chave: idem.chave,
+    funcao: idem.funcao,
+    destino: phone,
+    canal: creds.channel,
+    ttlMinutes: idem.ttlMinutes,
+  });
+  if (!claimed) {
+    console.log('[zapi.sendButtonsIdempotent] DUPLICIDADE EVITADA', idem.chave);
+    return { ok: false, skipped: true, status: 0, body: { skipped: 'duplicado' } };
+  }
+  const r = await sendButtons(creds, phone, opts);
+  const definitiveReject =
+    !r.ok && r.status >= 400 && r.status < 500 && r.body && r.body.success === false;
+  if (definitiveReject) {
+    await releaseEnvio(supabase, idem.chave);
+  }
+  return { ...r, skipped: false };
+}
+
