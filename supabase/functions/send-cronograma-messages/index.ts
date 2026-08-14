@@ -419,13 +419,11 @@ Deno.serve(async (req) => {
         // Usa helper compartilhado — roteia automaticamente para D-API ou Z-API.
         const idemKey = buildIdempotencyKey(['send-cronograma-messages', atividade.id, funcionarioId, todayStr, normalizedPhone]);
 
-        // Atividades de ENCERRAMENTO com formulário recebem opções clicáveis
+        // Atividades de ENCERRAMENTO e RELATÓRIO DIÁRIO recebem opções clicáveis
         // (CONCLUÍDO / PENDENTE). A resposta é processada pelo webhook
         // rotina-whatsapp-response e grava o status em cronograma_envios.
-        const isEncerramento =
-          /encerramento/i.test(atividade.titulo || '') ||
-          /encerramento/i.test((atividade as { tipo_atividade?: string }).tipo_atividade || '');
-        const usaOpcoes = isEncerramento;
+        const alvoBotoes = `${atividade.titulo || ''} ${(atividade as { tipo_atividade?: string }).tipo_atividade || ''}`;
+        const usaOpcoes = /encerramento|relat[oó]rio/i.test(alvoBotoes);
 
         const sendResult = usaOpcoes
           ? await sendListIdempotent(
@@ -436,12 +434,12 @@ Deno.serve(async (req) => {
                 description: message,
                 buttonText: 'Responder',
                 footerText: 'Toque em Responder e escolha uma opção',
-                sectionTitle: 'Status do encerramento',
+                sectionTitle: 'Status',
                 rows: [
                   {
                     rowId: `crono|${atividade.id}|${todayStr}|concluido`,
                     title: 'CONCLUÍDO',
-                    description: 'Já preenchi o formulário de encerramento',
+                    description: 'Já preenchi o formulário',
                   },
                   {
                     rowId: `crono|${atividade.id}|${todayStr}|pendente`,
