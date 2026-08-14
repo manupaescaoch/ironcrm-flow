@@ -517,13 +517,13 @@ Deno.serve(async (req) => {
 
     console.log(`[send-cronograma] Concluído: ${sentCount} enviado(s), ${errors.length} erro(s) (${offlineErrorCount} por Z-API offline)`);
 
-    // Dispara alerta por e-mail se Z-API offline impactou 2+ envios (com throttle de 30min)
-    if (offlineErrorCount >= 2) {
+    // Alerta (com throttle) se o provedor estiver offline / ponte caída
+    if (offlineErrorCount >= 2 || bridgeOffline) {
       await maybeSendZapiOfflineAlert({
         supabase,
         funcao: 'send-cronograma-messages',
-        affectedCount: offlineErrorCount,
-        zapiStatus: zapiStatusData,
+        affectedCount: Math.max(offlineErrorCount, 1),
+        zapiStatus: bridgeOffline ? { motivo: 'bridge_offline', detalhe: errors.slice(0, 3) } : zapiStatusData,
       });
     }
 
@@ -533,9 +533,11 @@ Deno.serve(async (req) => {
         success: true,
         sent: sentCount,
         errors,
+        bridge_offline: bridgeOffline,
         total_na_janela: atividadesNaJanela.length,
         hora_brasilia: `${currentHour}:${String(currentMinute).padStart(2, '0')}`,
       }),
+
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
