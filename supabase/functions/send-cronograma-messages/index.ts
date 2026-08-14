@@ -218,13 +218,14 @@ Deno.serve(async (req) => {
       }
       const aTotalMin = aHour * 60 + aMinute;
       const nowTotalMin = currentHour * 60 + currentMinute;
-      // Janela de -120 a +2 minutos: cobre o horário-alvo + uma janela LONGA de
-      // recuperação. Se o provedor recusar (ex.: JID/LID inválido) ou a instância
-      // estiver fora do ar no minuto exato, a atividade continua elegível pelas
-      // 2 horas seguintes e é reenviada automaticamente no próximo cron.
+      // Janela de -240 a +2 minutos: cobre o horário-alvo + uma janela LONGA de
+      // recuperação (4h). Se o provedor recusar (ex.: JID/LID inválido) ou a ponte
+      // da D-API ficar fora do ar por horas (incidente de 13/08), a atividade continua
+      // elegível e é reenviada automaticamente quando a ponte voltar.
       // Duplicação é impossível: `cronograma_envios` + `whatsapp_idempotencia`
       // (chave por atividade + data) só liberam nova tentativa após recusa definitiva.
-      return aTotalMin >= nowTotalMin - 120 && aTotalMin <= nowTotalMin + 2;
+      return aTotalMin >= nowTotalMin - 240 && aTotalMin <= nowTotalMin + 2;
+
 
     });
 
