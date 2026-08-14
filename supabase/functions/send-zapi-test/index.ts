@@ -1,6 +1,6 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendTextIdempotent, sendListIdempotent, logEnvio } from '../_shared/zapi.ts';
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendTextIdempotent, sendListIdempotent, sendButtonsIdempotent, logEnvio } from '../_shared/zapi.ts';
 
 const MAX_MESSAGE_LEN = 1000;
 
@@ -91,7 +91,22 @@ Deno.serve(async (req) => {
     const requestId = typeof body?.idempotency_key === 'string' && body.idempotency_key.trim() ? body.idempotency_key.trim() : crypto.randomUUID();
     const chave = buildIdempotencyKey(['send-zapi-test', userId, sendPhone, requestId]);
     const wantsList = body?.mode === 'list';
-    const result = wantsList
+    const wantsButtons = body?.mode === 'buttons';
+    const result = wantsButtons
+      ? await sendButtonsIdempotent(supabase, creds, sendPhone, {
+          body: message,
+          buttons: Array.isArray(body?.buttons) && body.buttons.length
+            ? body.buttons.slice(0, 3).map((b: any, i: number) => ({
+                id: String(b?.id ?? `opt-${i}`),
+                title: String(b?.title ?? `Opção ${i + 1}`),
+              }))
+            : [
+                { id: 'teste|concluido', title: 'CONCLUÍDO' },
+                { id: 'teste|pendente', title: 'PENDENTE' },
+              ],
+          ...(typeof body?.footer_text === 'string' ? { footer: body.footer_text } : {}),
+        }, { chave, funcao: 'send-zapi-test' })
+      : wantsList
       ? await sendListIdempotent(supabase, creds, sendPhone, {
           description: message,
           buttonText: typeof body?.button_text === 'string' && body.button_text.trim() ? body.button_text.trim() : 'Responder',

@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
-import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendListIdempotent, sendTextIdempotent } from '../_shared/zapi.ts';
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendButtonsIdempotent, sendTextIdempotent } from '../_shared/zapi.ts';
 import { maybeSendZapiOfflineAlert } from '../_shared/zapi-alert.ts';
 
 
@@ -426,26 +426,15 @@ Deno.serve(async (req) => {
         const usaOpcoes = /encerramento|relat[oó]rio/i.test(alvoBotoes);
 
         const sendResult = usaOpcoes
-          ? await sendListIdempotent(
+          ? await sendButtonsIdempotent(
               supabase,
               creds,
               normalizedPhone,
               {
-                description: message,
-                buttonText: 'Responder',
-                footerText: 'Toque em Responder e escolha uma opção',
-                sectionTitle: 'Status',
-                rows: [
-                  {
-                    rowId: `crono|${atividade.id}|${todayStr}|concluido`,
-                    title: 'CONCLUÍDO',
-                    description: 'Já preenchi o formulário',
-                  },
-                  {
-                    rowId: `crono|${atividade.id}|${todayStr}|pendente`,
-                    title: 'PENDENTE',
-                    description: 'Ainda vou preencher',
-                  },
+                body: message,
+                buttons: [
+                  { id: `crono|${atividade.id}|${todayStr}|concluido`, title: 'CONCLUÍDO' },
+                  { id: `crono|${atividade.id}|${todayStr}|pendente`, title: 'PENDENTE' },
                 ],
               },
               { chave: idemKey, funcao: 'send-cronograma-messages' },
