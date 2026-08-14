@@ -370,7 +370,99 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Respostas interativas de botão estão DESATIVADAS: nenhum botão altera rotina.
+    // ENCERRAMENTO (cronograma): opção clicável enviada por send-cronograma-messages.
+    // rowId = crono|<atividade_id>|<YYYY-MM-DD>|concluido|pendente
+    if (evt.selectedId.startsWith('crono|')) {
+      const [, atividadeId, dataStr, acao] = evt.selectedId.split('|');
+      const acaoValida = acao === 'concluido' || acao === 'pendente';
+      const dataValida = /^\d{4}-\d{2}-\d{2}$/.test(dataStr || '');
+      if (!UUID_RE.test(atividadeId || '') || !acaoValida || !dataValida) {
+        await audit(supabase, {
+          ...baseAudit, autorizado: false,
+          motivoBloqueio: 'crono_opcao_invalida',
+          authMethod, statusAplicado: 'ignorado',
+        });
+        return new Response(JSON.stringify({ ok: true, audited: true, action: 'none' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // O respondente precisa ser o responsável cadastrado na atividade.
+      const { data: funcionarios } = await supabase
+        .from('cronograma_funcionarios')
+        .select('id, telefone')
+        .not('telefone', 'is', null).neq('telefone', '');
+      const matchFunc = (funcionarios || []).filter((f: { id: string; telefone: string }) => {
+        const p = normalizePhone(f.telefone || '');
+        if (!p) return false;
+        return senderPhone === p || senderPhone.endsWith(p) || p.endsWith(senderPhone);
+      });
+      if (matchFunc.length !== 1) {
+        await audit(supabase, {
+          ...baseAudit, autorizado: false,
+          motivoBloqueio: matchFunc.length === 0 ? 'crono_telefone_sem_vinculo' : 'crono_telefone_ambiguo',
+          authMethod, statusAplicado: 'ignorado',
+        });
+        return new Response(JSON.stringify({ ok: true, audited: true, action: 'none' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { data: envio } = await supabase
+        .from('cronograma_envios')
+        .select('id, status')
+        .eq('atividade_id', atividadeId)
+        .eq('funcionario_id', matchFunc[0].id)
+        .gte('created_at', `${dataStr}T00:00:00-03:00`)
+        .lte('created_at', `${dataStr}T23:59:59-03:00`)
+        .order('created_at', { ascending: false })
+        .limit(1).maybeSingle();
+
+      if (!envio) {
+        await audit(supabase, {
+          ...baseAudit, autorizado: false,
+          motivoBloqueio: 'crono_envio_nao_encontrado',
+          authMethod, statusAplicado: 'ignorado',
+        });
+        return new Response(JSON.stringify({ ok: true, audited: true, action: 'none' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const novoStatus = acao === 'concluido' ? 'respondido' : 'pendente';
+      await supabase
+        .from('cronograma_envios')
+        .update({ status: novoStatus, respondido_em: new Date().toISOString() })
+        .eq('id', envio.id);
+
+      await audit(supabase, {
+        ...baseAudit, autorizado: true,
+        motivoBloqueio: null,
+        authMethod, statusAplicado: `crono_${acao}`,
+      });
+
+      // Confirmação de recebimento (idempotente por envio + ação).
+      try {
+        const creds = getZapiCreds('operacional');
+        if (creds) {
+          const texto = acao === 'concluido'
+            ? '✅ Encerramento registrado como CONCLUÍDO. Obrigado!'
+            : '⏳ Registrado como PENDENTE. Assim que preencher o formulário, é só responder novamente.';
+          await sendTextIdempotent(supabase, creds, senderPhone, texto, {
+            chave: buildIdempotencyKey(['crono-resposta-ack', envio.id, acao]),
+            funcao: 'rotina-whatsapp-response',
+          });
+        }
+      } catch (e) {
+        console.error('[rotina-response] ack encerramento falhou', e);
+      }
+
+      return new Response(JSON.stringify({ ok: true, action: 'cronograma', status: novoStatus }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Respostas interativas de botão para ROTINAS seguem DESATIVADAS.
     if (evt.hasButton) {
       await audit(supabase, {
         ...baseAudit, autorizado: true,
@@ -381,6 +473,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
 
     // Extrai texto da resposta apenas de mensagens de texto livre (Z-API text/body OU D-API message).
     const normalized = normalizeText(evt.text);
