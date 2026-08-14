@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
     const { data: atividades, error: atividadesError } = await supabase
       .from('cronograma_atividades')
       .select(`
-        id, titulo, horario, mensagem, formulario_id, unidade_id,
+        id, titulo, horario, mensagem, formulario_id, unidade_id, tipo_atividade,
         responsavel:cronograma_funcionarios!cronograma_atividades_responsavel_id_fkey(id, nome, telefone)
       `)
       .eq('ativo', true)
@@ -422,8 +422,10 @@ Deno.serve(async (req) => {
         // Atividades de ENCERRAMENTO com formulário recebem opções clicáveis
         // (CONCLUÍDO / PENDENTE). A resposta é processada pelo webhook
         // rotina-whatsapp-response e grava o status em cronograma_envios.
-        const isEncerramento = /encerramento/i.test(atividade.titulo || '');
-        const usaOpcoes = isEncerramento && !!atividade.formulario_id;
+        const isEncerramento =
+          /encerramento/i.test(atividade.titulo || '') ||
+          /encerramento/i.test((atividade as { tipo_atividade?: string }).tipo_atividade || '');
+        const usaOpcoes = isEncerramento;
 
         const sendResult = usaOpcoes
           ? await sendListIdempotent(
