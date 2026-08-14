@@ -489,7 +489,15 @@ Deno.serve(async (req) => {
         } else {
           console.error(`[send-cronograma] ❌ Falha (${statusEnvio}) para ${resp.nome}:`, body);
           errors.push(`${statusEnvio}: ${resp.nome} - ${atividade.titulo} - ${erroMsg || 'sem detalhe'}`);
+          // Ponte do provedor fora do ar → aborta o lote e alerta.
+          if (isBridgeOffline(`${erroMsg ?? ''} ${JSON.stringify(body ?? {})}`)) {
+            bridgeOffline = true;
+            offlineErrorCount++;
+            console.error('[send-cronograma] 🛑 Ponte do provedor offline — abortando o lote (retry automático na janela de recuperação)');
+            break;
+          }
         }
+
       } catch (err) {
         console.error(`[send-cronograma] ❌ Erro ao enviar para ${resp.nome}:`, err);
         await supabase.from('whatsapp_envios_log').insert({
