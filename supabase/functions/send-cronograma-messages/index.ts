@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
-import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendTextIdempotent } from '../_shared/zapi.ts';
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendListIdempotent, sendTextIdempotent } from '../_shared/zapi.ts';
 import { maybeSendZapiOfflineAlert } from '../_shared/zapi-alert.ts';
 
 
@@ -418,11 +418,44 @@ Deno.serve(async (req) => {
       try {
         // Usa helper compartilhado — roteia automaticamente para D-API ou Z-API.
         const idemKey = buildIdempotencyKey(['send-cronograma-messages', atividade.id, funcionarioId, todayStr, normalizedPhone]);
-        const sendResult = await sendTextIdempotent(supabase, creds, normalizedPhone, message, { chave: idemKey, funcao: 'send-cronograma-messages' });
+
+        // Atividades de ENCERRAMENTO com formulário recebem opções clicáveis
+        // (CONCLUÍDO / PENDENTE). A resposta é processada pelo webhook
+        // rotina-whatsapp-response e grava o status em cronograma_envios.
+        const isEncerramento = /encerramento/i.test(atividade.titulo || '');
+        const usaOpcoes = isEncerramento && !!atividade.formulario_id;
+
+        const sendResult = usaOpcoes
+          ? await sendListIdempotent(
+              supabase,
+              creds,
+              normalizedPhone,
+              {
+                description: message,
+                buttonText: 'Responder',
+                footerText: 'Toque em Responder e escolha uma opção',
+                sectionTitle: 'Status do encerramento',
+                rows: [
+                  {
+                    rowId: `crono|${atividade.id}|${todayStr}|concluido`,
+                    title: 'CONCLUÍDO',
+                    description: 'Já preenchi o formulário de encerramento',
+                  },
+                  {
+                    rowId: `crono|${atividade.id}|${todayStr}|pendente`,
+                    title: 'PENDENTE',
+                    description: 'Ainda vou preencher',
+                  },
+                ],
+              },
+              { chave: idemKey, funcao: 'send-cronograma-messages' },
+            )
+          : await sendTextIdempotent(supabase, creds, normalizedPhone, message, { chave: idemKey, funcao: 'send-cronograma-messages' });
         if (sendResult.skipped) {
           console.log(`[send-cronograma] Duplicidade bloqueada: ${atividade.titulo} → ${resp.nome}`);
           continue;
         }
+
         const body = sendResult.body ?? {};
 
         // Detecção de sucesso por provedor:
