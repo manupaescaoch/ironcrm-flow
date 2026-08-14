@@ -218,13 +218,14 @@ Deno.serve(async (req) => {
       }
       const aTotalMin = aHour * 60 + aMinute;
       const nowTotalMin = currentHour * 60 + currentMinute;
-      // Janela de -120 a +2 minutos: cobre o horário-alvo + uma janela LONGA de
-      // recuperação. Se o provedor recusar (ex.: JID/LID inválido) ou a instância
-      // estiver fora do ar no minuto exato, a atividade continua elegível pelas
-      // 2 horas seguintes e é reenviada automaticamente no próximo cron.
+      // Janela de -240 a +2 minutos: cobre o horário-alvo + uma janela LONGA de
+      // recuperação (4h). Se o provedor recusar (ex.: JID/LID inválido) ou a ponte
+      // da D-API ficar fora do ar por horas (incidente de 13/08), a atividade continua
+      // elegível e é reenviada automaticamente quando a ponte voltar.
       // Duplicação é impossível: `cronograma_envios` + `whatsapp_idempotencia`
       // (chave por atividade + data) só liberam nova tentativa após recusa definitiva.
-      return aTotalMin >= nowTotalMin - 120 && aTotalMin <= nowTotalMin + 2;
+      return aTotalMin >= nowTotalMin - 240 && aTotalMin <= nowTotalMin + 2;
+
 
     });
 
@@ -276,11 +277,19 @@ Deno.serve(async (req) => {
 
     let sentCount = 0;
     let offlineErrorCount = 0;
+    // Quando a ponte (bridge) do provedor está fora do ar, TODOS os envios falham.
+    // Nesse caso abortamos o lote imediatamente: não faz sentido queimar dezenas de
+    // tentativas e 10s de rate-limit por atividade. As atividades permanecem
+    // elegíveis na janela de recuperação e saem no próximo cron.
+    let bridgeOffline = false;
+    const isBridgeOffline = (raw: string) =>
+      /no responders|bridge offline|nats|session .* not (connected|found)|econnrefused|502|503|504/i.test(raw || '');
     const errors: string[] = [];
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const RATE_LIMIT_MS = 10000; // 10s entre envios para proteger o chip
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
     let isFirstSend = true;
+
 
 
     for (const atividade of atividadesNaJanela) {
@@ -480,7 +489,15 @@ Deno.serve(async (req) => {
         } else {
           console.error(`[send-cronograma] ❌ Falha (${statusEnvio}) para ${resp.nome}:`, body);
           errors.push(`${statusEnvio}: ${resp.nome} - ${atividade.titulo} - ${erroMsg || 'sem detalhe'}`);
+          // Ponte do provedor fora do ar → aborta o lote e alerta.
+          if (isBridgeOffline(`${erroMsg ?? ''} ${JSON.stringify(body ?? {})}`)) {
+            bridgeOffline = true;
+            offlineErrorCount++;
+            console.error('[send-cronograma] 🛑 Ponte do provedor offline — abortando o lote (retry automático na janela de recuperação)');
+            break;
+          }
         }
+
       } catch (err) {
         console.error(`[send-cronograma] ❌ Erro ao enviar para ${resp.nome}:`, err);
         await supabase.from('whatsapp_envios_log').insert({
@@ -500,13 +517,13 @@ Deno.serve(async (req) => {
 
     console.log(`[send-cronograma] Concluído: ${sentCount} enviado(s), ${errors.length} erro(s) (${offlineErrorCount} por Z-API offline)`);
 
-    // Dispara alerta por e-mail se Z-API offline impactou 2+ envios (com throttle de 30min)
-    if (offlineErrorCount >= 2) {
+    // Alerta (com throttle) se o provedor estiver offline / ponte caída
+    if (offlineErrorCount >= 2 || bridgeOffline) {
       await maybeSendZapiOfflineAlert({
         supabase,
         funcao: 'send-cronograma-messages',
-        affectedCount: offlineErrorCount,
-        zapiStatus: zapiStatusData,
+        affectedCount: Math.max(offlineErrorCount, 1),
+        zapiStatus: bridgeOffline ? { motivo: 'bridge_offline', detalhe: errors.slice(0, 3) } : zapiStatusData,
       });
     }
 
@@ -516,9 +533,11 @@ Deno.serve(async (req) => {
         success: true,
         sent: sentCount,
         errors,
+        bridge_offline: bridgeOffline,
         total_na_janela: atividadesNaJanela.length,
         hora_brasilia: `${currentHour}:${String(currentMinute).padStart(2, '0')}`,
       }),
+
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
