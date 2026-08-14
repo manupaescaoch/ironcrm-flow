@@ -1,6 +1,6 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendTextIdempotent, logEnvio } from '../_shared/zapi.ts';
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendTextIdempotent, sendListIdempotent, logEnvio } from '../_shared/zapi.ts';
 
 const MAX_MESSAGE_LEN = 1000;
 
@@ -90,7 +90,25 @@ Deno.serve(async (req) => {
     const sendPhone = lookup.exists && lookup.phone ? lookup.phone : normalizedPhone;
     const requestId = typeof body?.idempotency_key === 'string' && body.idempotency_key.trim() ? body.idempotency_key.trim() : crypto.randomUUID();
     const chave = buildIdempotencyKey(['send-zapi-test', userId, sendPhone, requestId]);
-    const result = await sendTextIdempotent(supabase, creds, sendPhone, message, { chave, funcao: 'send-zapi-test' });
+    const wantsList = body?.mode === 'list';
+    const result = wantsList
+      ? await sendListIdempotent(supabase, creds, sendPhone, {
+          description: message,
+          buttonText: typeof body?.button_text === 'string' && body.button_text.trim() ? body.button_text.trim() : 'Responder',
+          rows: Array.isArray(body?.rows) && body.rows.length
+            ? body.rows.slice(0, 10).map((r: any, i: number) => ({
+                rowId: String(r?.rowId ?? `opt-${i}`),
+                title: String(r?.title ?? `Opção ${i + 1}`),
+                ...(r?.description ? { description: String(r.description) } : {}),
+              }))
+            : [
+                { rowId: 'teste|concluido', title: 'CONCLUÍDO' },
+                { rowId: 'teste|pendente', title: 'PENDENTE' },
+              ],
+          ...(typeof body?.section_title === 'string' ? { sectionTitle: body.section_title } : {}),
+          ...(typeof body?.footer_text === 'string' ? { footerText: body.footer_text } : {}),
+        }, { chave, funcao: 'send-zapi-test' })
+      : await sendTextIdempotent(supabase, creds, sendPhone, message, { chave, funcao: 'send-zapi-test' });
     const messageId = result.body?.messageId || result.body?.id || null;
     const reallyOk = result.ok && !!messageId;
 
