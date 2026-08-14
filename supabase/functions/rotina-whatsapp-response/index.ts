@@ -116,6 +116,8 @@ type NormalizedEvent = {
   msgStatus: string | null;
   text: string;
   hasButton: boolean;
+  // ID cru da opção/botão selecionado (rowId da lista ou id do botão).
+  selectedId: string;
   source: 'dapi' | 'zapi';
 };
 
@@ -147,6 +149,7 @@ function normalizeEvent(payload: z.infer<typeof PayloadSchema>): NormalizedEvent
       msgStatus: null,
       text,
       hasButton,
+      selectedId: String(inner.selected_row_id || inner.selected_id || '').trim(),
       source: 'dapi',
     };
   }
@@ -171,9 +174,11 @@ function normalizeEvent(payload: z.infer<typeof PayloadSchema>): NormalizedEvent
     msgStatus: payload.status ?? null,
     text,
     hasButton: !!btn,
+    selectedId: String(btnText || '').trim(),
     source: 'zapi',
   };
 }
+
 
 type AuditInput = {
   messageId: string | null;
