@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
     const { data: atividades, error: atividadesError } = await supabase
       .from('cronograma_atividades')
       .select(`
-        id, titulo, horario, mensagem, formulario_id, unidade_id,
+        id, titulo, horario, mensagem, formulario_id, unidade_id, tipo_atividade,
         responsavel:cronograma_funcionarios!cronograma_atividades_responsavel_id_fkey(id, nome, telefone)
       `)
       .eq('ativo', true)
