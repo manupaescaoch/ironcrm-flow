@@ -340,3 +340,96 @@ export async function sendTextIdempotent(
   return { ...r, skipped: false };
 
 }
+
+// ---------------------------------------------------------------------------
+// MENSAGEM INTERATIVA (LISTA DE OPÇÕES)
+// ---------------------------------------------------------------------------
+// A D-API não expõe endpoint de "reply buttons"; o equivalente suportado é a
+// mensagem de lista (/api/v1/interactive/send/list), que na tela do WhatsApp
+// aparece como opções clicáveis. Em Z-API (canal comercial) caímos para texto.
+
+export interface ListRow {
+  rowId: string;
+  title: string;
+  description?: string;
+}
+
+export interface ListOptions {
+  title?: string;
+  description: string;
+  buttonText: string;
+  footerText?: string;
+  rows: ListRow[];
+  sectionTitle?: string;
+}
+
+export async function sendList(
+  creds: ZapiCreds,
+  phone: string,
+  opts: ListOptions,
+): Promise<{ ok: boolean; status: number; body: any }> {
+  if (creds.provider === 'dapi') {
+    const url = `${DAPI_BASE}/api/v1/interactive/send/list`;
+    const payload: Record<string, unknown> = {
+      sessionId: creds.sessionId,
+      to: phone,
+      description: opts.description,
+      buttonText: opts.buttonText,
+      sections: [
+        {
+          ...(opts.sectionTitle ? { title: opts.sectionTitle } : {}),
+          rows: opts.rows.map((r) => ({
+            rowId: r.rowId,
+            title: r.title,
+            ...(r.description ? { description: r.description } : {}),
+          })),
+        },
+      ],
+    };
+    if (opts.title) payload.title = opts.title;
+    if (opts.footerText) payload.footerText = opts.footerText;
+
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: dapiHeaders(creds),
+      body: JSON.stringify(payload),
+    });
+    const body = await resp.json().catch(() => ({}));
+    return { ok: resp.ok, status: resp.status, body };
+  }
+
+  // Fallback: provedores sem lista interativa recebem o texto puro.
+  return await sendText(creds, phone, opts.description);
+}
+
+/**
+ * Lista interativa com idempotência garantida no banco (mesma semântica de
+ * sendTextIdempotent).
+ */
+export async function sendListIdempotent(
+  supabase: any,
+  creds: ZapiCreds,
+  phone: string,
+  opts: ListOptions,
+  idem: { chave: string; funcao: string; ttlMinutes?: number },
+): Promise<{ ok: boolean; skipped: boolean; status: number; body: any }> {
+  const claimed = await claimEnvio(supabase, {
+    chave: idem.chave,
+    funcao: idem.funcao,
+    destino: phone,
+    canal: creds.channel,
+    ttlMinutes: idem.ttlMinutes,
+  });
+  if (!claimed) {
+    console.log('[zapi.sendListIdempotent] DUPLICIDADE EVITADA', idem.chave);
+    return { ok: false, skipped: true, status: 0, body: { skipped: 'duplicado' } };
+  }
+  const r = await sendList(creds, phone, opts);
+  const definitiveReject =
+    !r.ok && r.status >= 400 && r.status < 500 && r.body && r.body.success === false;
+  if (definitiveReject) {
+    await releaseEnvio(supabase, idem.chave);
+  }
+  return { ...r, skipped: false };
+}
+
