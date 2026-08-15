@@ -148,10 +148,12 @@ export function NovaContaModal({
 
     setAba('manual');
     toast({
-      title: qtdFaltando ? 'Texto analisado com pendências' : 'Confirme a unidade',
+      title: qtdFaltando
+        ? `Texto analisado: ${qtdFaltando} ${qtdFaltando === 1 ? 'campo não identificado' : 'campos não identificados'}`
+        : 'Confirme a unidade',
       description: qtdFaltando
-        ? 'Revise e preencha os campos destacados antes de cadastrar.'
-        : 'O texto menciona outra unidade. Confirme antes de cadastrar.',
+        ? `Não conseguimos ler no texto — ${descreverPendencias(faltando)}. Preencha os campos em vermelho e clique em Cadastrar.`
+        : `O texto menciona "${mencionada}", diferente da unidade selecionada (${unidadeNome}). Confirme a unidade correta antes de cadastrar.`,
       variant: qtdFaltando ? 'destructive' : undefined,
     });
   };
