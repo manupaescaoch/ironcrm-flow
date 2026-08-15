@@ -303,8 +303,12 @@ export default function ContasPagar() {
             await reenviarWhatsapp.mutateAsync({ contaId: c.id, tipo });
             toast({ title: 'Mensagem enviada ao grupo financeiro.' });
           } catch (error) {
-            const msg = error instanceof Error ? error.message : 'Não foi possível reenviar';
-            toast({ title: 'Falha no envio', description: msg, variant: 'destructive' });
+            const { descricao } = descreverErroConta(error, 'atualizar');
+            toast({
+              title: 'Falha no envio ao grupo financeiro',
+              description: descricao,
+              variant: 'destructive',
+            });
           }
         }}
       />
