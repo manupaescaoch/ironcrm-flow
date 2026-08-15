@@ -17,6 +17,7 @@ import {
 import { DuplicidadeDialog } from './DuplicidadeDialog';
 import { SucessoConta } from './SucessoConta';
 import { ContaPagar } from './constants';
+import { descreverErroConta, descreverPendencias } from './erros';
 import type { ContaFormPayload } from '@/hooks/useContasPagar';
 
 interface Props {
