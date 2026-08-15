@@ -137,8 +137,17 @@ export default function ContasPagar() {
       });
       if (tipo === 'excluir') setDetalhe(null);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Não foi possível concluir a ação';
-      toast({ title: 'Erro', description: msg, variant: 'destructive' });
+      const { descricao } = descreverErroConta(error, 'atualizar');
+      toast({
+        title:
+          tipo === 'reabrir'
+            ? 'Não foi possível reabrir a conta'
+            : tipo === 'cancelar'
+              ? 'Não foi possível cancelar a conta'
+              : 'Não foi possível excluir a conta',
+        description: descricao,
+        variant: 'destructive',
+      });
     } finally {
       setConfirmacao(null);
     }
