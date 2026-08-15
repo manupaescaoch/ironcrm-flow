@@ -164,12 +164,21 @@ export function NovaContaModal({
     const validation = validateContaForm(formAtual);
     setErrors(validation);
     if (Object.keys(validation).length > 0) {
-      toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' });
+      toast({
+        title: 'Corrija antes de salvar',
+        description: `${descreverPendencias(validation)}. Os campos estão destacados em vermelho no formulário.`,
+        variant: 'destructive',
+      });
       return;
     }
 
     if (!unidadeId) {
-      toast({ title: 'Nenhuma unidade selecionada', variant: 'destructive' });
+      toast({
+        title: 'Corrija antes de salvar',
+        description:
+          'Motivo: nenhuma unidade está selecionada. Escolha a unidade no topo do sistema e tente novamente.',
+        variant: 'destructive',
+      });
       return;
     }
 
