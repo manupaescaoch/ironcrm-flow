@@ -17,6 +17,7 @@ import {
 import { DuplicidadeDialog } from './DuplicidadeDialog';
 import { SucessoConta } from './SucessoConta';
 import { ContaPagar } from './constants';
+import { descreverErroConta, descreverPendencias } from './erros';
 import type { ContaFormPayload } from '@/hooks/useContasPagar';
 
 interface Props {
@@ -147,10 +148,12 @@ export function NovaContaModal({
 
     setAba('manual');
     toast({
-      title: qtdFaltando ? 'Texto analisado com pendências' : 'Confirme a unidade',
+      title: qtdFaltando
+        ? `Texto analisado: ${qtdFaltando} ${qtdFaltando === 1 ? 'campo não identificado' : 'campos não identificados'}`
+        : 'Confirme a unidade',
       description: qtdFaltando
-        ? 'Revise e preencha os campos destacados antes de cadastrar.'
-        : 'O texto menciona outra unidade. Confirme antes de cadastrar.',
+        ? `Não conseguimos ler no texto — ${descreverPendencias(faltando)}. Preencha os campos em vermelho e clique em Cadastrar.`
+        : `O texto menciona "${mencionada}", diferente da unidade selecionada (${unidadeNome}). Confirme a unidade correta antes de cadastrar.`,
       variant: qtdFaltando ? 'destructive' : undefined,
     });
   };
@@ -161,12 +164,21 @@ export function NovaContaModal({
     const validation = validateContaForm(formAtual);
     setErrors(validation);
     if (Object.keys(validation).length > 0) {
-      toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' });
+      toast({
+        title: 'Corrija antes de salvar',
+        description: `${descreverPendencias(validation)}. Os campos estão destacados em vermelho no formulário.`,
+        variant: 'destructive',
+      });
       return;
     }
 
     if (!unidadeId) {
-      toast({ title: 'Nenhuma unidade selecionada', variant: 'destructive' });
+      toast({
+        title: 'Corrija antes de salvar',
+        description:
+          'Motivo: nenhuma unidade está selecionada. Escolha a unidade no topo do sistema e tente novamente.',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -212,10 +224,11 @@ export function NovaContaModal({
         try {
           const qtd = await onCriarParcelas(payload, datas);
           toast({ title: `Conta cadastrada com ${qtd + 1} parcelas.` });
-        } catch {
+        } catch (error) {
+          const { descricao } = descreverErroConta(error);
           toast({
             title: 'Conta cadastrada, mas as parcelas futuras falharam',
-            description: 'Cadastre as próximas parcelas manualmente.',
+            description: `${descricao} Cadastre as próximas parcelas manualmente.`,
             variant: 'destructive',
           });
         }
@@ -223,8 +236,8 @@ export function NovaContaModal({
         toast({ title: 'Conta cadastrada com sucesso.' });
       }
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Erro ao salvar a conta';
-      toast({ title: 'Erro ao salvar', description: msg, variant: 'destructive' });
+      const { titulo, descricao } = descreverErroConta(error, isEdicao ? 'atualizar' : 'salvar');
+      toast({ title: titulo, description: descricao, variant: 'destructive' });
     } finally {
       setSaving(false);
     }

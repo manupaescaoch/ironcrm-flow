@@ -27,6 +27,7 @@ import { NovaContaModal } from '@/components/contas-pagar/NovaContaModal';
 import { BaixaModal } from '@/components/contas-pagar/BaixaModal';
 import { ContaDetalhesDrawer } from '@/components/contas-pagar/ContaDetalhesDrawer';
 import { ContaPagar } from '@/components/contas-pagar/constants';
+import { descreverErroConta } from '@/components/contas-pagar/erros';
 
 function iso(date: Date): string {
   const y = date.getFullYear();
@@ -136,8 +137,17 @@ export default function ContasPagar() {
       });
       if (tipo === 'excluir') setDetalhe(null);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Não foi possível concluir a ação';
-      toast({ title: 'Erro', description: msg, variant: 'destructive' });
+      const { descricao } = descreverErroConta(error, 'atualizar');
+      toast({
+        title:
+          tipo === 'reabrir'
+            ? 'Não foi possível reabrir a conta'
+            : tipo === 'cancelar'
+              ? 'Não foi possível cancelar a conta'
+              : 'Não foi possível excluir a conta',
+        description: descricao,
+        variant: 'destructive',
+      });
     } finally {
       setConfirmacao(null);
     }
@@ -234,8 +244,12 @@ export default function ContasPagar() {
             toast({ title: 'Vencimento reagendado.' });
             setReagendarConta(null);
           } catch (error) {
-            const msg = error instanceof Error ? error.message : 'Não foi possível reagendar';
-            toast({ title: 'Erro', description: msg, variant: 'destructive' });
+            const { descricao } = descreverErroConta(error, 'atualizar');
+            toast({
+              title: 'Não foi possível reagendar o vencimento',
+              description: descricao,
+              variant: 'destructive',
+            });
           }
         }}
       />
@@ -289,8 +303,12 @@ export default function ContasPagar() {
             await reenviarWhatsapp.mutateAsync({ contaId: c.id, tipo });
             toast({ title: 'Mensagem enviada ao grupo financeiro.' });
           } catch (error) {
-            const msg = error instanceof Error ? error.message : 'Não foi possível reenviar';
-            toast({ title: 'Falha no envio', description: msg, variant: 'destructive' });
+            const { descricao } = descreverErroConta(error, 'atualizar');
+            toast({
+              title: 'Falha no envio ao grupo financeiro',
+              description: descricao,
+              variant: 'destructive',
+            });
           }
         }}
       />
