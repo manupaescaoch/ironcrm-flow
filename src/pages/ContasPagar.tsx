@@ -27,6 +27,7 @@ import { NovaContaModal } from '@/components/contas-pagar/NovaContaModal';
 import { BaixaModal } from '@/components/contas-pagar/BaixaModal';
 import { ContaDetalhesDrawer } from '@/components/contas-pagar/ContaDetalhesDrawer';
 import { ContaPagar } from '@/components/contas-pagar/constants';
+import { descreverErroConta } from '@/components/contas-pagar/erros';
 
 function iso(date: Date): string {
   const y = date.getFullYear();
