@@ -77,8 +77,8 @@ export function BaixaModal({ open, onOpenChange, conta, onConfirmar }: Props) {
       toast({ title: 'Baixa registrada com sucesso.' });
       onOpenChange(false);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Erro ao dar baixa';
-      toast({ title: 'Erro ao dar baixa', description: msg, variant: 'destructive' });
+      const { descricao } = descreverErroConta(error, 'atualizar');
+      toast({ title: 'Não foi possível dar baixa', description: descricao, variant: 'destructive' });
     } finally {
       setSaving(false);
     }
