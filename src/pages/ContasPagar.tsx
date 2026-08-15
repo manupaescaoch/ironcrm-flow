@@ -244,8 +244,12 @@ export default function ContasPagar() {
             toast({ title: 'Vencimento reagendado.' });
             setReagendarConta(null);
           } catch (error) {
-            const msg = error instanceof Error ? error.message : 'Não foi possível reagendar';
-            toast({ title: 'Erro', description: msg, variant: 'destructive' });
+            const { descricao } = descreverErroConta(error, 'atualizar');
+            toast({
+              title: 'Não foi possível reagendar o vencimento',
+              description: descricao,
+              variant: 'destructive',
+            });
           }
         }}
       />
