@@ -12,6 +12,7 @@ import { getTodayInBrasilia } from '@/lib/brasilia';
 import { ContaPagar, FORMAS_PAGAMENTO, formatCurrency } from './constants';
 import { parseValor } from './ContaFormFields';
 import { uploadContaArquivo } from './uploadHelpers';
+import { descreverErroConta } from './erros';
 import type { BaixaPayload } from '@/hooks/useContasPagar';
 
 interface Props {
