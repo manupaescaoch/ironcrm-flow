@@ -224,10 +224,11 @@ export function NovaContaModal({
         try {
           const qtd = await onCriarParcelas(payload, datas);
           toast({ title: `Conta cadastrada com ${qtd + 1} parcelas.` });
-        } catch {
+        } catch (error) {
+          const { descricao } = descreverErroConta(error);
           toast({
             title: 'Conta cadastrada, mas as parcelas futuras falharam',
-            description: 'Cadastre as próximas parcelas manualmente.',
+            description: `${descricao} Cadastre as próximas parcelas manualmente.`,
             variant: 'destructive',
           });
         }
@@ -235,8 +236,8 @@ export function NovaContaModal({
         toast({ title: 'Conta cadastrada com sucesso.' });
       }
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Erro ao salvar a conta';
-      toast({ title: 'Erro ao salvar', description: msg, variant: 'destructive' });
+      const { titulo, descricao } = descreverErroConta(error, isEdicao ? 'atualizar' : 'salvar');
+      toast({ title: titulo, description: descricao, variant: 'destructive' });
     } finally {
       setSaving(false);
     }
