@@ -61,16 +61,19 @@ export const emptyContaForm: ContaFormState = {
 };
 
 export function parseValor(valor: string): number {
-  const clean = valor.replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+  const clean = String(valor ?? '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
   const num = Number(clean);
   return Number.isFinite(num) ? num : NaN;
 }
 
+/** Trim seguro: campos vindos do banco podem chegar como null/undefined. */
+const safeTrim = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+
 export function validateContaForm(form: ContaFormState): Record<string, string> {
   const errors: Record<string, string> = {};
-  if (!form.descricao.trim()) errors.descricao = 'Informe a descrição';
+  if (!safeTrim(form.descricao)) errors.descricao = 'Informe a descrição';
   const valor = parseValor(form.valor);
-  if (!form.valor.trim() || Number.isNaN(valor) || valor <= 0) errors.valor = 'Informe um valor válido';
+  if (!safeTrim(form.valor) || Number.isNaN(valor) || valor <= 0) errors.valor = 'Informe um valor válido';
   if (!form.data_vencimento) errors.data_vencimento = 'Informe a data de vencimento';
   if (form.recorrente) {
     const qtd = Number(form.recorrencia_qtd);
@@ -81,16 +84,16 @@ export function validateContaForm(form: ContaFormState): Record<string, string> 
 
 /** Define a forma de pagamento automaticamente pelo dado informado. */
 export function derivarFormaPagamento(form: ContaFormState): string | null {
-  if (form.codigo_pix.trim() || form.chave_pix.trim()) return 'pix';
-  if (form.linha_digitavel.trim() || form.codigo_barras.trim()) return 'boleto';
-  if (form.link_pagamento.trim()) return 'outro';
+  if (safeTrim(form.codigo_pix) || safeTrim(form.chave_pix)) return 'pix';
+  if (safeTrim(form.linha_digitavel) || safeTrim(form.codigo_barras)) return 'boleto';
+  if (safeTrim(form.link_pagamento)) return 'outro';
   return null;
 }
 
 export function contaFormToPayload(form: ContaFormState, documentoUrl: string | null): ContaFormPayload {
-  const nn = (v: string) => (v.trim() ? v.trim() : null);
+  const nn = (v: string) => (safeTrim(v) ? safeTrim(v) : null);
   return {
-    descricao: form.descricao.trim().toUpperCase(),
+    descricao: safeTrim(form.descricao).toUpperCase(),
     fornecedor: nn(form.fornecedor)?.toUpperCase() ?? null,
     categoria: nn(form.categoria),
     prioridade: form.prioridade || 'normal',
@@ -106,7 +109,7 @@ export function contaFormToPayload(form: ContaFormState, documentoUrl: string | 
     chave_pix: nn(form.chave_pix),
     link_pagamento: nn(form.link_pagamento),
     // Código Pix é salvo integralmente, sem alterar espaços ou sequência
-    codigo_pix: form.codigo_pix.trim() ? form.codigo_pix : null,
+    codigo_pix: safeTrim(form.codigo_pix) ? form.codigo_pix : null,
     banco: nn(form.banco)?.toUpperCase() ?? null,
     agencia: nn(form.agencia),
     conta_bancaria: nn(form.conta_bancaria),
@@ -308,7 +311,7 @@ function DadosPagamentoSelector({
   form: ContaFormState;
   setForm: (updater: (prev: ContaFormState) => ContaFormState) => void;
 }) {
-  const preenchido = TIPOS_PAGAMENTO.find((t) => (form[t.key] || '').trim())?.key;
+  const preenchido = TIPOS_PAGAMENTO.find((t) => safeTrim(form[t.key]))?.key;
   const [tipo, setTipo] = useState<PagamentoKey>(preenchido ?? 'codigo_pix');
 
   useEffect(() => {
