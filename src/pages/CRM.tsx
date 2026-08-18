@@ -573,7 +573,10 @@ export default function CRM() {
       }
     }
 
-    toast({ title: 'Lead criado com sucesso!' });
+    toast({
+      title: 'Lead criado com sucesso!',
+      description: `${formData.nome.trim()} foi cadastrado na unidade ${unidadeAtual.nome}. Os filtros da lista foram limpos para ele aparecer.`,
+    });
     setDialogOpen(false);
     setFormData({
       nome: '',
@@ -585,6 +588,17 @@ export default function CRM() {
       hora_aula_experimental: '',
       status_taxa_experimental: null,
     });
+
+    // Garante que o lead recém-criado fique visível: filtros salvos na sessão
+    // (busca, status, origem, cadastrador, interesse, período) podem esconder o novo lead.
+    setSearch('');
+    setFilterOrigem([]);
+    setFilterCadastradoPor('all');
+    setFilterStatus([]);
+    setFilterNivel([]);
+    setPeriodType('all');
+    setStartDate(undefined);
+    setEndDate(undefined);
 
     fetchLeads();
   };
