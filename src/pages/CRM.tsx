@@ -224,6 +224,32 @@ const loadSavedFilters = (): SavedFilters => {
   }
 };
 
+/** Remove acentos, espaços extras e caixa para comparação de busca. */
+const normalizeText = (v: string): string =>
+  v
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/**
+ * Busca tolerante: cada palavra digitada precisa aparecer no nome, telefone ou
+ * e-mail (em qualquer ordem). Espaços extras e acentos são ignorados.
+ */
+const matchesLeadSearch = (
+  lead: { nome: string; telefone?: string | null; email?: string | null },
+  search: string,
+): boolean => {
+  const term = normalizeText(search);
+  if (!term) return true;
+  const haystack = normalizeText(`${lead.nome} ${lead.telefone ?? ''} ${lead.email ?? ''}`);
+  const digitsHaystack = (lead.telefone ?? '').replace(/\D/g, '');
+  const searchDigits = search.replace(/\D/g, '');
+  if (searchDigits.length >= 4 && digitsHaystack.includes(searchDigits)) return true;
+  return term.split(' ').every((token) => haystack.includes(token));
+};
+
 export default function CRM() {
   const { user } = useAuth();
   const { unidadeAtual, loading: unidadeLoading } = useUnidade();
