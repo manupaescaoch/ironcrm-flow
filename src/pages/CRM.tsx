@@ -982,14 +982,8 @@ export default function CRM() {
   };
 
   const filteredLeads = useMemo(() => {
-    const searchDigits = search.replace(/\D/g, '');
     return leads.filter((lead) => {
-      const searchLower = search.toLowerCase();
-      const leadPhoneDigits = (lead.telefone || '').replace(/\D/g, '');
-      const matchesSearch = !search ||
-        lead.nome.toLowerCase().includes(searchLower) ||
-        lead.telefone?.toLowerCase().includes(searchLower) ||
-        (searchDigits.length > 0 && leadPhoneDigits.includes(searchDigits));
+      const matchesSearch = matchesLeadSearch(lead, search);
       const matchesOrigem = filterOrigem.length === 0 || filterOrigem.includes(normalizeOrigem(lead.origem));
       const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
       const matchesStatus = filterStatus.length === 0 || filterStatus.includes(lead.status_funil);
