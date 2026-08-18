@@ -482,7 +482,31 @@ Deno.serve(async (req) => {
             status: 'enviado',
             enviado_em: new Date().toISOString(),
           });
+
+          // Encerramentos / relatórios diários recebem os botões numa SEGUNDA
+          // mensagem curta e sem link, formato em que o WhatsApp renderiza os
+          // quick replies. A resposta é tratada pelo webhook rotina-whatsapp-response.
+          if (usaOpcoes) {
+            try {
+              await sendButtonsIdempotent(
+                supabase,
+                creds,
+                normalizedPhone,
+                {
+                  body: '👉 Ao finalizar, marque o status desta tarefa:',
+                  buttons: [
+                    { id: `crono|${atividade.id}|${todayStr}|concluido`, title: 'CONCLUÍDO' },
+                    { id: `crono|${atividade.id}|${todayStr}|pendente`, title: 'PENDENTE' },
+                  ],
+                },
+                { chave: `${idemKey}|botoes`, funcao: 'send-cronograma-messages' },
+              );
+            } catch (e) {
+              console.error('[send-cronograma] falha ao enviar botões (ignorada)', e);
+            }
+          }
         }
+
 
         await supabase.from('whatsapp_envios_log').insert({
           funcao: 'send-cronograma-messages',
