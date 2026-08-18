@@ -425,21 +425,12 @@ Deno.serve(async (req) => {
         const alvoBotoes = `${atividade.titulo || ''} ${(atividade as { tipo_atividade?: string }).tipo_atividade || ''}`;
         const usaOpcoes = /encerramento|relat[oó]rio/i.test(alvoBotoes);
 
-        const sendResult = usaOpcoes
-          ? await sendButtonsIdempotent(
-              supabase,
-              creds,
-              normalizedPhone,
-              {
-                body: message,
-                buttons: [
-                  { id: `crono|${atividade.id}|${todayStr}|concluido`, title: 'CONCLUÍDO' },
-                  { id: `crono|${atividade.id}|${todayStr}|pendente`, title: 'PENDENTE' },
-                ],
-              },
-              { chave: idemKey, funcao: 'send-cronograma-messages' },
-            )
-          : await sendTextIdempotent(supabase, creds, normalizedPhone, message, { chave: idemKey, funcao: 'send-cronograma-messages' });
+        // A mensagem principal vai SEMPRE como texto (ela contém o link do
+        // formulário; quando o link vai dentro de uma mensagem interativa o
+        // WhatsApp gera o preview do link e descarta os botões, que é o motivo
+        // de os encerramentos chegarem sem "CONCLUÍDO"/"PENDENTE").
+        const sendResult = await sendTextIdempotent(supabase, creds, normalizedPhone, message, { chave: idemKey, funcao: 'send-cronograma-messages' });
+
         if (sendResult.skipped) {
           console.log(`[send-cronograma] Duplicidade bloqueada: ${atividade.titulo} → ${resp.nome}`);
           continue;
