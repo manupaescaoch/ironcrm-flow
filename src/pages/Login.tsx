@@ -67,9 +67,9 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto w-20 h-20 rounded-xl overflow-hidden mb-4 shadow-md">
-            <img src={evoLogo.url} alt="EVO Training Club" className="w-full h-full object-cover" />
+            <img src={evoLogo.url} alt="EVO Club CRM" className="w-full h-full object-cover" />
           </div>
-          <CardTitle className="text-2xl font-bold">EVO TRAINING CLUB CRM</CardTitle>
+          <CardTitle className="text-2xl font-bold">EVO CLUB CRM</CardTitle>
           <CardDescription>Sistema de CRM para gestão de leads</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
