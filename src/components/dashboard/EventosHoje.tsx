@@ -375,7 +375,38 @@ Aguardamos você! 💪`;
       </AlertDialogContent>
     </AlertDialog>
 
+    <AlertDialog open={!!cancelarDialogItem} onOpenChange={(open) => !open && setCancelarDialogItem(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Cancelar agendamento?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {cancelarDialogItem?.lead.nome} sairá da agenda. Informe o motivo (opcional).
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <Textarea
+          placeholder="Motivo do cancelamento"
+          value={motivoCancelamento}
+          onChange={(e) => setMotivoCancelamento(e.target.value)}
+        />
+        <AlertDialogFooter>
+          <AlertDialogCancel>Voltar</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => {
+              const item = cancelarDialogItem;
+              const motivo = motivoCancelamento;
+              setCancelarDialogItem(null);
+              if (item) handleCancelarEvento(item, motivo);
+            }}
+          >
+            Confirmar cancelamento
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
     <Card>
+
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="flex items-center gap-2">
           <Calendar className="w-5 h-5 text-primary" />
