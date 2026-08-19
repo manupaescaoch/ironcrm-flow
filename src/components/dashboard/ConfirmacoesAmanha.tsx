@@ -310,5 +310,7 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
         )}
       </CardContent>
     </Card>
+    </>
   );
+
 }
