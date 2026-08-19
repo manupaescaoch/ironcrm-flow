@@ -209,12 +209,23 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
                     </Button>
                   )}
 
-                  <div className="flex items-center justify-end">
+                  <div className="flex items-center justify-end gap-1">
                     <Button size="sm" variant="ghost" onClick={() => onReagendar(item)} className="h-7 text-xs text-muted-foreground hover:text-foreground">
                       <RefreshCw className="w-3.5 h-3.5 mr-1" />
                       Reagendar
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => { setMotivoCancelamento(''); setCancelarDialogItem(item); }}
+                      disabled={loading[`cancel-${item.interacao.id}`]}
+                    >
+                      <XCircle className="w-3.5 h-3.5 mr-1" />
+                      Cancelar
+                    </Button>
                   </div>
+
                 </div>
               );
             })}
