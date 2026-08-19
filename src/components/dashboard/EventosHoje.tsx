@@ -14,7 +14,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Calendar, Clock, Save, RefreshCw, MessageCircle, Activity, User, UserX, CheckCircle2 } from 'lucide-react';
+import { Calendar, Clock, Save, RefreshCw, MessageCircle, Activity, User, UserX, CheckCircle2, XCircle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/utils/errorMessages';
@@ -61,6 +63,40 @@ export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps)
   const [followUpDialogItem, setFollowUpDialogItem] = useState<EventoItem | null>(null);
   const [presencaDialogItem, setPresencaDialogItem] = useState<EventoItem | null>(null);
   const [naoCompareceuDialogItem, setNaoCompareceuDialogItem] = useState<EventoItem | null>(null);
+  const [cancelarDialogItem, setCancelarDialogItem] = useState<EventoItem | null>(null);
+  const [motivoCancelamento, setMotivoCancelamento] = useState('');
+
+  const handleCancelarEvento = async (item: EventoItem, motivo: string) => {
+    setLoading(prev => ({ ...prev, [item.interacao.id]: true }));
+    try {
+      const patch: any = {
+        cancelado: true,
+        cancelado_em: new Date().toISOString(),
+        motivo_cancelamento: motivo.trim() || null,
+      };
+      if (item.tipoEvento === 'avaliacao') patch.status_avaliacao = 'cancelada';
+      const { error } = await supabase.from('interacoes').update(patch).eq('id', item.interacao.id);
+      if (error) throw error;
+
+      // Cancela follow-ups pendentes relacionados ao lead
+      await supabase
+        .from('follow_ups')
+        .update({ status: 'cancelado' } as any)
+        .eq('lead_id', item.lead.id)
+        .eq('status', 'pendente');
+
+      toast({
+        title: item.tipoEvento === 'avaliacao' ? 'Avaliação cancelada' : 'Experimental cancelada',
+        description: 'O agendamento foi removido da agenda.',
+      });
+      onRefresh();
+    } catch (error) {
+      toast({ title: 'Erro ao cancelar', description: getErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setLoading(prev => ({ ...prev, [item.interacao.id]: false }));
+    }
+  };
+
 
   const handleMarcarPresenca = async (item: EventoItem, checked: boolean) => {
     const treinadorSelecionado = treinadores[item.interacao.id] || item.interacao.treinador_experimental;
@@ -339,7 +375,38 @@ Aguardamos você! 💪`;
       </AlertDialogContent>
     </AlertDialog>
 
+    <AlertDialog open={!!cancelarDialogItem} onOpenChange={(open) => !open && setCancelarDialogItem(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Cancelar agendamento?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {cancelarDialogItem?.lead.nome} sairá da agenda. Informe o motivo (opcional).
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <Textarea
+          placeholder="Motivo do cancelamento"
+          value={motivoCancelamento}
+          onChange={(e) => setMotivoCancelamento(e.target.value)}
+        />
+        <AlertDialogFooter>
+          <AlertDialogCancel>Voltar</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => {
+              const item = cancelarDialogItem;
+              const motivo = motivoCancelamento;
+              setCancelarDialogItem(null);
+              if (item) handleCancelarEvento(item, motivo);
+            }}
+          >
+            Confirmar cancelamento
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
     <Card>
+
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="flex items-center gap-2">
           <Calendar className="w-5 h-5 text-primary" />
@@ -483,7 +550,18 @@ Aguardamos você! 💪`;
                       <UserX className="w-4 h-4 mr-1" />
                       Não compareceu
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => { setMotivoCancelamento(''); setCancelarDialogItem(item); }}
+                      disabled={loading[item.interacao.id]}
+                    >
+                      <XCircle className="w-4 h-4 mr-1" />
+                      Cancelar
+                    </Button>
                   </div>
+
                 </div>
               </div>
             ))}

@@ -4,7 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Clock, Save, RefreshCw, AlertTriangle, MessageCircle, Calendar, Activity, CheckCircle2, FileText, BellRing, Phone } from 'lucide-react';
+import { Clock, Save, RefreshCw, AlertTriangle, MessageCircle, Calendar, Activity, CheckCircle2, FileText, BellRing, Phone, XCircle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/utils/errorMessages';
@@ -26,6 +38,39 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [anamneseMap, setAnamneseMap] = useState<Record<string, boolean>>({});
   const [lembreteMap, setLembreteMap] = useState<Record<string, string | null>>({});
+  const [cancelarDialogItem, setCancelarDialogItem] = useState<EventoItem | null>(null);
+  const [motivoCancelamento, setMotivoCancelamento] = useState('');
+
+  const handleCancelarEvento = async (item: EventoItem, motivo: string) => {
+    setLoading(prev => ({ ...prev, [`cancel-${item.interacao.id}`]: true }));
+    try {
+      const patch: any = {
+        cancelado: true,
+        cancelado_em: new Date().toISOString(),
+        motivo_cancelamento: motivo.trim() || null,
+      };
+      if (item.tipoEvento === 'avaliacao') patch.status_avaliacao = 'cancelada';
+      const { error } = await supabase.from('interacoes').update(patch).eq('id', item.interacao.id);
+      if (error) throw error;
+
+      await supabase
+        .from('follow_ups')
+        .update({ status: 'cancelado' } as any)
+        .eq('lead_id', item.lead.id)
+        .eq('status', 'pendente');
+
+      toast({
+        title: item.tipoEvento === 'avaliacao' ? 'Avaliação cancelada' : 'Experimental cancelada',
+        description: 'O agendamento foi removido da agenda.',
+      });
+      onRefresh();
+    } catch (error) {
+      toast({ title: 'Erro ao cancelar', description: getErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setLoading(prev => ({ ...prev, [`cancel-${item.interacao.id}`]: false }));
+    }
+  };
+
 
   const currentHour = getCurrentHourInBrasilia();
   const isLateWarning = currentHour >= 20;
@@ -113,7 +158,39 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
   };
 
   return (
+    <>
+    <AlertDialog open={!!cancelarDialogItem} onOpenChange={(open) => !open && setCancelarDialogItem(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Cancelar agendamento?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {cancelarDialogItem?.lead.nome} sairá da agenda. Informe o motivo (opcional).
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <Textarea
+          placeholder="Motivo do cancelamento"
+          value={motivoCancelamento}
+          onChange={(e) => setMotivoCancelamento(e.target.value)}
+        />
+        <AlertDialogFooter>
+          <AlertDialogCancel>Voltar</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => {
+              const item = cancelarDialogItem;
+              const motivo = motivoCancelamento;
+              setCancelarDialogItem(null);
+              if (item) handleCancelarEvento(item, motivo);
+            }}
+          >
+            Confirmar cancelamento
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
     <Card className={isLateWarning && items.length > 0 ? 'border-orange-500 border-2' : ''}>
+
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="flex items-center gap-2">
           <Clock className="w-5 h-5 text-sky-500" />
@@ -209,12 +286,23 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
                     </Button>
                   )}
 
-                  <div className="flex items-center justify-end">
+                  <div className="flex items-center justify-end gap-1">
                     <Button size="sm" variant="ghost" onClick={() => onReagendar(item)} className="h-7 text-xs text-muted-foreground hover:text-foreground">
                       <RefreshCw className="w-3.5 h-3.5 mr-1" />
                       Reagendar
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => { setMotivoCancelamento(''); setCancelarDialogItem(item); }}
+                      disabled={loading[`cancel-${item.interacao.id}`]}
+                    >
+                      <XCircle className="w-3.5 h-3.5 mr-1" />
+                      Cancelar
+                    </Button>
                   </div>
+
                 </div>
               );
             })}
@@ -222,5 +310,7 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
         )}
       </CardContent>
     </Card>
+    </>
   );
+
 }

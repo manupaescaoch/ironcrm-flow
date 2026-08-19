@@ -48,6 +48,7 @@ export function useDashboardEventos(): UseDashboardEventosReturn {
         .select(`*, leads (id, nome, telefone, email, origem, status_funil, plano_escolhido, cadastrado_por, atendido_por, observacoes, data_aula_experimental, created_by, user_id, ativo, created_at, updated_at)`)
         .eq('agendou_experimental', true)
         .eq('unidade_id', unidadeAtual.id)
+        .eq('cancelado', false)
         .gte('data_experimental', minDate)
         .lte('data_experimental', maxDate);
 
@@ -57,8 +58,10 @@ export function useDashboardEventos(): UseDashboardEventosReturn {
         .select(`*, leads (id, nome, telefone, email, origem, status_funil, plano_escolhido, cadastrado_por, atendido_por, observacoes, data_aula_experimental, created_by, user_id, ativo, created_at, updated_at)`)
         .eq('tipo', 'Avaliação Física')
         .eq('unidade_id', unidadeAtual.id)
+        .eq('cancelado', false)
         .gte('data_avaliacao', minDate)
         .lte('data_avaliacao', maxDate);
+
 
       const todayItems: EventoItem[] = [];
       const tomorrowItems: EventoItem[] = [];
