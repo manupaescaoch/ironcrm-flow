@@ -14,7 +14,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Calendar, Clock, Save, RefreshCw, MessageCircle, Activity, User, UserX, CheckCircle2 } from 'lucide-react';
+import { Calendar, Clock, Save, RefreshCw, MessageCircle, Activity, User, UserX, CheckCircle2, XCircle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/utils/errorMessages';
