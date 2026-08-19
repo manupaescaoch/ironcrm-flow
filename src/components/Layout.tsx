@@ -67,7 +67,7 @@ const allNavItems = [
 
 const gerencialItems = [
   { href: '/operacional', label: 'Operacional', icon: ClipboardList, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
-  { href: '/equipe', label: 'Equipe', icon: Users, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false, isNew: true },
+  { href: '/equipe', label: 'Equipe', icon: Users, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'moderator', 'user'], masterOnly: false, isNew: true },
   { href: '/reunioes', label: 'Reuniões', icon: Handshake, roles: ['admin', 'comercial', 'coordenador'], masterOnly: false },
   { href: '/nps/respostas', label: 'NPS', icon: Star, roles: ['admin', 'coordenador'], masterOnly: false },
   { href: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
