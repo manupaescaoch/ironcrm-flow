@@ -63,6 +63,40 @@ export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps)
   const [followUpDialogItem, setFollowUpDialogItem] = useState<EventoItem | null>(null);
   const [presencaDialogItem, setPresencaDialogItem] = useState<EventoItem | null>(null);
   const [naoCompareceuDialogItem, setNaoCompareceuDialogItem] = useState<EventoItem | null>(null);
+  const [cancelarDialogItem, setCancelarDialogItem] = useState<EventoItem | null>(null);
+  const [motivoCancelamento, setMotivoCancelamento] = useState('');
+
+  const handleCancelarEvento = async (item: EventoItem, motivo: string) => {
+    setLoading(prev => ({ ...prev, [item.interacao.id]: true }));
+    try {
+      const patch: any = {
+        cancelado: true,
+        cancelado_em: new Date().toISOString(),
+        motivo_cancelamento: motivo.trim() || null,
+      };
+      if (item.tipoEvento === 'avaliacao') patch.status_avaliacao = 'cancelada';
+      const { error } = await supabase.from('interacoes').update(patch).eq('id', item.interacao.id);
+      if (error) throw error;
+
+      // Cancela follow-ups pendentes relacionados ao lead
+      await supabase
+        .from('follow_ups')
+        .update({ status: 'cancelado' } as any)
+        .eq('lead_id', item.lead.id)
+        .eq('status', 'pendente');
+
+      toast({
+        title: item.tipoEvento === 'avaliacao' ? 'Avaliação cancelada' : 'Experimental cancelada',
+        description: 'O agendamento foi removido da agenda.',
+      });
+      onRefresh();
+    } catch (error) {
+      toast({ title: 'Erro ao cancelar', description: getErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setLoading(prev => ({ ...prev, [item.interacao.id]: false }));
+    }
+  };
+
 
   const handleMarcarPresenca = async (item: EventoItem, checked: boolean) => {
     const treinadorSelecionado = treinadores[item.interacao.id] || item.interacao.treinador_experimental;
