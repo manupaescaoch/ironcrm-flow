@@ -2122,6 +2122,8 @@ export type Database = {
           atendido_por_tipo: string | null
           boas_vindas_enviada_em: string | null
           cadastrado_por: string | null
+          cancelado: boolean
+          cancelado_em: string | null
           comissao_cadastrador: number | null
           comissao_comercial: number | null
           comissao_recepcao: number | null
@@ -2143,6 +2145,7 @@ export type Database = {
           hora_experimental: string | null
           id: string
           lead_id: string
+          motivo_cancelamento: string | null
           origem_fechamento: string | null
           plano_escolhido: string | null
           quem_agendou: string | null
@@ -2164,6 +2167,8 @@ export type Database = {
           atendido_por_tipo?: string | null
           boas_vindas_enviada_em?: string | null
           cadastrado_por?: string | null
+          cancelado?: boolean
+          cancelado_em?: string | null
           comissao_cadastrador?: number | null
           comissao_comercial?: number | null
           comissao_recepcao?: number | null
@@ -2185,6 +2190,7 @@ export type Database = {
           hora_experimental?: string | null
           id?: string
           lead_id: string
+          motivo_cancelamento?: string | null
           origem_fechamento?: string | null
           plano_escolhido?: string | null
           quem_agendou?: string | null
@@ -2206,6 +2212,8 @@ export type Database = {
           atendido_por_tipo?: string | null
           boas_vindas_enviada_em?: string | null
           cadastrado_por?: string | null
+          cancelado?: boolean
+          cancelado_em?: string | null
           comissao_cadastrador?: number | null
           comissao_comercial?: number | null
           comissao_recepcao?: number | null
@@ -2227,6 +2235,7 @@ export type Database = {
           hora_experimental?: string | null
           id?: string
           lead_id?: string
+          motivo_cancelamento?: string | null
           origem_fechamento?: string | null
           plano_escolhido?: string | null
           quem_agendou?: string | null
