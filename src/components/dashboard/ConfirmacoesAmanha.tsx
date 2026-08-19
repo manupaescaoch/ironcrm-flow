@@ -4,7 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Clock, Save, RefreshCw, AlertTriangle, MessageCircle, Calendar, Activity, CheckCircle2, FileText, BellRing, Phone } from 'lucide-react';
+import { Clock, Save, RefreshCw, AlertTriangle, MessageCircle, Calendar, Activity, CheckCircle2, FileText, BellRing, Phone, XCircle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/utils/errorMessages';
@@ -26,6 +38,39 @@ export function ConfirmacoesAmanha({ items, onRefresh, onReagendar }: Confirmaco
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [anamneseMap, setAnamneseMap] = useState<Record<string, boolean>>({});
   const [lembreteMap, setLembreteMap] = useState<Record<string, string | null>>({});
+  const [cancelarDialogItem, setCancelarDialogItem] = useState<EventoItem | null>(null);
+  const [motivoCancelamento, setMotivoCancelamento] = useState('');
+
+  const handleCancelarEvento = async (item: EventoItem, motivo: string) => {
+    setLoading(prev => ({ ...prev, [`cancel-${item.interacao.id}`]: true }));
+    try {
+      const patch: any = {
+        cancelado: true,
+        cancelado_em: new Date().toISOString(),
+        motivo_cancelamento: motivo.trim() || null,
+      };
+      if (item.tipoEvento === 'avaliacao') patch.status_avaliacao = 'cancelada';
+      const { error } = await supabase.from('interacoes').update(patch).eq('id', item.interacao.id);
+      if (error) throw error;
+
+      await supabase
+        .from('follow_ups')
+        .update({ status: 'cancelado' } as any)
+        .eq('lead_id', item.lead.id)
+        .eq('status', 'pendente');
+
+      toast({
+        title: item.tipoEvento === 'avaliacao' ? 'Avaliação cancelada' : 'Experimental cancelada',
+        description: 'O agendamento foi removido da agenda.',
+      });
+      onRefresh();
+    } catch (error) {
+      toast({ title: 'Erro ao cancelar', description: getErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setLoading(prev => ({ ...prev, [`cancel-${item.interacao.id}`]: false }));
+    }
+  };
+
 
   const currentHour = getCurrentHourInBrasilia();
   const isLateWarning = currentHour >= 20;
