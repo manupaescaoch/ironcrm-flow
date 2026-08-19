@@ -483,7 +483,18 @@ Aguardamos você! 💪`;
                       <UserX className="w-4 h-4 mr-1" />
                       Não compareceu
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => { setMotivoCancelamento(''); setCancelarDialogItem(item); }}
+                      disabled={loading[item.interacao.id]}
+                    >
+                      <XCircle className="w-4 h-4 mr-1" />
+                      Cancelar
+                    </Button>
                   </div>
+
                 </div>
               </div>
             ))}
