@@ -1,0 +1,214 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.2",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://zspcdvtdgssabpqrybib.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "evo-club-crm",
+      "version": "0.1.0",
+      "title": "EVO CLUB CRM"
+    },
+    "tools": [
+      {
+        "name": "list_unidades",
+        "title": "Listar unidades",
+        "description": "Lista as unidades (academias) que o usuário autenticado pode acessar, com id e nome. Use o id retornado para filtrar leads e contas.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_leads",
+        "title": "Listar leads",
+        "description": "Lista leads do CRM da unidade informada (ou de todas as unidades permitidas), com filtros por status do funil, busca por nome/telefone e período de cadastro.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "unidade_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Filtra por unidade. Use list_unidades para obter o id."
+            },
+            "status_funil": {
+              "type": "string",
+              "description": "Status do funil, ex.: novo, em_negociacao, aula_agendada, matriculado, perdido."
+            },
+            "search": {
+              "type": "string",
+              "minLength": 2,
+              "description": "Busca por nome, e-mail ou telefone."
+            },
+            "dias": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 365,
+              "description": "Somente leads cadastrados nos últimos N dias."
+            },
+            "apenas_ativos": {
+              "type": "boolean",
+              "description": "Se true (padrão), ignora leads inativos."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "description": "Máximo de registros (padrão 50)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_lead",
+        "title": "Detalhes do lead",
+        "description": "Retorna os dados completos de um lead (por id ou telefone) junto com o histórico de interações e agendamentos.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "lead_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Id do lead."
+            },
+            "telefone": {
+              "type": "string",
+              "minLength": 8,
+              "description": "Telefone do lead, com ou sem máscara."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_lead",
+        "title": "Cadastrar lead",
+        "description": "Cadastra um novo lead no CRM em uma unidade. Bloqueia telefone duplicado dentro da mesma unidade (o mesmo telefone pode existir em unidades diferentes).",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "nome": {
+              "type": "string",
+              "minLength": 3,
+              "description": "Nome completo do lead."
+            },
+            "telefone": {
+              "type": "string",
+              "minLength": 8,
+              "description": "Telefone com DDD."
+            },
+            "unidade_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Unidade do cadastro. Use list_unidades."
+            },
+            "origem": {
+              "type": "string",
+              "enum": [
+                "WHATSAPP",
+                "INSTAGRAM",
+                "TRÁFEGO PAGO",
+                "INDICAÇÃO",
+                "VISITA PRESENCIAL",
+                "TERCEIROS",
+                "NÃO INFORMADO"
+              ],
+              "description": "Origem do lead (padrão NÃO INFORMADO)."
+            },
+            "email": {
+              "type": "string",
+              "format": "email"
+            },
+            "observacoes": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "nome",
+            "telefone",
+            "unidade_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_contas_pagar",
+        "title": "Listar contas a pagar",
+        "description": "Lista as contas a pagar de uma unidade, com filtro por status (pendente, pago, cancelado) e por intervalo de vencimento.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "unidade_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Filtra por unidade. Use list_unidades."
+            },
+            "status": {
+              "type": "string",
+              "description": "Status da conta, ex.: pendente, pago, cancelado."
+            },
+            "vencimento_de": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Vencimento inicial (YYYY-MM-DD)."
+            },
+            "vencimento_ate": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Vencimento final (YYYY-MM-DD)."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "description": "Máximo de registros (padrão 50)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
