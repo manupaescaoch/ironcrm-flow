@@ -37,15 +37,6 @@ interface EventosHojeProps {
   onReagendar: (item: EventoItem) => void;
 }
 
-const TREINADORES = [
-  'Guilherme',
-  'Diogo', 
-  'Luiz',
-  'Ivan',
-  'Andrey',
-  'Lucas',
-  'Rafael',
-];
 
 const FOLLOW_UP_MESSAGE = `Oi, {{nome}}! Tudo bem?
 
