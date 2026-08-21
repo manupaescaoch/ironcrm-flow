@@ -160,6 +160,12 @@ function AdminOrCoordenadorRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function safeNextPath(raw: string | null): string | null {
+  if (!raw) return null;
+  if (!raw.startsWith('/') || raw.startsWith('//')) return null;
+  return raw;
+}
+
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
@@ -172,11 +178,13 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    const next = safeNextPath(new URLSearchParams(window.location.search).get('next'));
+    return <Navigate to={next ?? '/dashboard'} replace />;
   }
 
   return <>{children}</>;
 }
+
 
 const AppRoutes = () => (
   <Routes>
