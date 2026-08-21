@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { UnidadeProvider } from "@/contexts/UnidadeContext";
 import Login from "./pages/Login";
+import OAuthConsent from "./pages/OAuthConsent";
+
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
@@ -160,6 +162,12 @@ function AdminOrCoordenadorRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function safeNextPath(raw: string | null): string | null {
+  if (!raw) return null;
+  if (!raw.startsWith('/') || raw.startsWith('//')) return null;
+  return raw;
+}
+
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
@@ -172,15 +180,19 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    const next = safeNextPath(new URLSearchParams(window.location.search).get('next'));
+    return <Navigate to={next ?? '/dashboard'} replace />;
   }
 
   return <>{children}</>;
 }
 
+
 const AppRoutes = () => (
   <Routes>
+    <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
     <Route path="/anamnese" element={<AnamnesePublicaUniversal />} />
+
     <Route path="/nps" element={<NpsPublico />} />
     <Route path="/formulario/:id" element={<FormularioPublico />} />
     <Route path="/nps/respostas" element={<AdminOrCoordenadorRoute><NpsRespostas /></AdminOrCoordenadorRoute>} />

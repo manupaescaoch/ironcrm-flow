@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,7 +26,12 @@ export default function Login() {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  const rawNext = searchParams.get('next');
+  const nextPath = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/dashboard';
+
 
   const handleLogin = async () => {
     setErrorMsg(null);
@@ -59,7 +65,7 @@ export default function Login() {
       return;
     }
 
-    navigate('/dashboard');
+    navigate(nextPath);
   };
 
   return (
