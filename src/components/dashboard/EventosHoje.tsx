@@ -457,21 +457,23 @@ Aguardamos você! 💪`;
                 {item.tipoEvento === 'experimental' && (
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Nome do treinador"
+                    <Select
                       value={treinadores[item.interacao.id] ?? item.interacao.treinador_experimental ?? ''}
-                      onChange={(e) => {
-                        setTreinadores(prev => ({ ...prev, [item.interacao.id]: e.target.value.toUpperCase() }));
+                      onValueChange={(v) => {
+                        setTreinadores(prev => ({ ...prev, [item.interacao.id]: v }));
                         setSavedTreinador(prev => ({ ...prev, [item.interacao.id]: false }));
                       }}
-                      className="flex-1 h-8 text-sm"
-                      list={`treinadores-${item.interacao.id}`}
-                    />
-                    <datalist id={`treinadores-${item.interacao.id}`}>
-                      {TREINADORES.map((t) => (
-                        <option key={t} value={t} />
-                      ))}
-                    </datalist>
+                    >
+                      <SelectTrigger className="flex-1 h-8 text-sm">
+                        <SelectValue placeholder={treinadoresEquipe.length ? 'Selecione o treinador' : 'Nenhum treinador na Equipe'} />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {treinadoresEquipe.map((nome) => (
+                          <SelectItem key={nome} value={nome}>{nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
                     <Button
                       size="sm"
                       variant="outline"
