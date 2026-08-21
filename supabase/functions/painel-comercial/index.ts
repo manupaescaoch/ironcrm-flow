@@ -7,13 +7,15 @@ const UNIDADES: Record<string, string> = {
   setubal: '00000000-0000-0000-0000-000000000000',
 }
 
+const PAGE = 1000
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 
-const nz = (n: number | null | undefined) => (n === null || n === undefined || n === 0 ? null : n)
+// pct devolve null apenas quando não há denominador (não dá para calcular)
 const pct = (num: number, den: number): number | null => {
   if (!den) return null
   const v = (num / den) * 100
@@ -43,6 +45,25 @@ const normOrigem = (o: string | null) => {
 }
 const isTrafego = (o: string | null) =>
   /tr[aá]fego\s*pago/i.test((o || '').normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
+
+// Busca TODAS as linhas paginando; nunca confia no limite padrão do PostgREST.
+async function fetchAll<T = any>(build: () => any): Promise<T[]> {
+  const out: T[] = []
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await build().range(from, from + PAGE - 1)
+    if (error) throw error
+    const rows = (data || []) as T[]
+    out.push(...rows)
+    if (rows.length < PAGE) break
+  }
+  return out
+}
+
+const chunk = <T,>(arr: T[], size: number): T[][] => {
+  const out: T[][] = []
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
+  return out
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -78,6 +99,15 @@ Deno.serve(async (req) => {
     const startTs = `${inicio}T00:00:00.000Z`
     const endTs = `${fim}T23:59:59.999Z`
 
+    // contagem exata no servidor (head:true, sem trazer linhas)
+    const countExact = async (apply: (q: any) => any): Promise<number> => {
+      const { count, error } = await apply(
+        supabase.from('interacoes').select('id', { count: 'exact', head: true }),
+      )
+      if (error) throw error
+      return count ?? 0
+    }
+
     if (modo === 'contratos') {
       const telefones: string[] = Array.isArray(body?.telefones) ? body.telefones : []
       if (!telefones.length) return json({ error: 'telefones é obrigatório' }, 400)
@@ -88,30 +118,30 @@ Deno.serve(async (req) => {
         if (n) wanted.set(n, String(t))
       }
 
-      const { data: leads, error: leadsErr } = await supabase
-        .from('leads')
-        .select('id, telefone_normalizado, unidade_id')
-        .in('unidade_id', ids)
-      if (leadsErr) throw leadsErr
+      // paginado: a base de leads da unidade passa de 1.000 linhas
+      const leads = await fetchAll<{ id: string; telefone_normalizado: string | null }>(() =>
+        supabase.from('leads').select('id, telefone_normalizado').in('unidade_id', ids),
+      )
 
       const byNorm = new Map<string, string[]>()
-      for (const l of leads || []) {
+      for (const l of leads) {
         const n = normalizePhone(l.telefone_normalizado || '')
         if (!n || !wanted.has(n)) continue
         byNorm.set(n, [...(byNorm.get(n) || []), l.id])
       }
 
       const leadIds = [...byNorm.values()].flat()
-      let matriculas: any[] = []
-      if (leadIds.length) {
-        const { data, error } = await supabase
-          .from('interacoes')
-          .select('lead_id, valor_plano, data_fechamento')
-          .in('lead_id', leadIds)
-          .eq('fechou_matricula', true)
-          .order('data_fechamento', { ascending: false })
-        if (error) throw error
-        matriculas = data || []
+      const matriculas: any[] = []
+      for (const part of chunk(leadIds, 200)) {
+        const rows = await fetchAll(() =>
+          supabase
+            .from('interacoes')
+            .select('lead_id, valor_plano, data_fechamento')
+            .in('lead_id', part)
+            .eq('fechou_matricula', true)
+            .order('data_fechamento', { ascending: false }),
+        )
+        matriculas.push(...rows)
       }
 
       const contratos: any[] = []
@@ -129,15 +159,16 @@ Deno.serve(async (req) => {
       return json({
         modo: 'contratos',
         unidade: unidadeKey,
-        casaram: nz(casaram),
-        nao_casaram: nz(wanted.size - casaram),
+        casaram,
+        nao_casaram: wanted.size - casaram,
         contratos,
         atualizado_em,
       })
     }
 
     // ---------- modo resumo ----------
-    const [leadsRes, intRes, npsRes, metasRes] = await Promise.all([
+    // Leads do período (paginado)
+    const leads = await fetchAll<any>(() =>
       supabase
         .from('leads')
         .select('id, unidade_id, origem, status_funil, created_at')
@@ -145,62 +176,130 @@ Deno.serve(async (req) => {
         .in('unidade_id', ids)
         .gte('created_at', startTs)
         .lte('created_at', endTs),
-      supabase
-        .from('interacoes')
-        .select(
-          'id, lead_id, unidade_id, agendou_experimental, compareceu, fechou_matricula, data_experimental, data_fechamento, valor_plano',
-        )
-        .in('unidade_id', ids),
+    )
+
+    // Interações do período, já filtradas no servidor por data + flag (paginado)
+    const [rowsAgendadas, rowsCompareceram, rowsMatriculas] = await Promise.all([
+      fetchAll<any>(() =>
+        supabase
+          .from('interacoes')
+          .select('id, lead_id, unidade_id, data_experimental')
+          .in('unidade_id', ids)
+          .eq('agendou_experimental', true)
+          .gte('data_experimental', inicio)
+          .lte('data_experimental', fim),
+      ),
+      fetchAll<any>(() =>
+        supabase
+          .from('interacoes')
+          .select('id, lead_id, unidade_id, data_experimental')
+          .in('unidade_id', ids)
+          .eq('compareceu', true)
+          .gte('data_experimental', inicio)
+          .lte('data_experimental', fim),
+      ),
+      fetchAll<any>(() =>
+        supabase
+          .from('interacoes')
+          .select('id, lead_id, unidade_id, data_fechamento, valor_plano')
+          .in('unidade_id', ids)
+          .eq('fechou_matricula', true)
+          .gte('data_fechamento', inicio)
+          .lte('data_fechamento', fim),
+      ),
+    ])
+
+    // Contagens exatas por unidade (validação server-side, count sem linhas)
+    const countsByUnit = new Map<
+      string,
+      { agendadas: number; comparecimentos: number; matriculas: number }
+    >()
+    for (const id of ids) {
+      const [agendadas, comparecimentos, matriculas] = await Promise.all([
+        countExact((q) =>
+          q
+            .eq('unidade_id', id)
+            .eq('agendou_experimental', true)
+            .gte('data_experimental', inicio)
+            .lte('data_experimental', fim),
+        ),
+        countExact((q) =>
+          q
+            .eq('unidade_id', id)
+            .eq('compareceu', true)
+            .gte('data_experimental', inicio)
+            .lte('data_experimental', fim),
+        ),
+        countExact((q) =>
+          q
+            .eq('unidade_id', id)
+            .eq('fechou_matricula', true)
+            .gte('data_fechamento', inicio)
+            .lte('data_fechamento', fim),
+        ),
+      ])
+      countsByUnit.set(id, { agendadas, comparecimentos, matriculas })
+    }
+
+    const nps = await fetchAll<any>(() =>
       supabase
         .from('nps_respostas')
         .select('unidade_id, nota_nps, categoria, created_at')
         .in('unidade_id', ids)
         .gte('created_at', startTs)
         .lte('created_at', endTs),
+    )
+
+    const metas = await fetchAll<any>(() =>
       supabase
         .from('gestao_metas')
         .select('unidade_id, alunos_ativos_manual, evasao_pct_manual, ticket_medio_real, updated_at, created_at')
         .in('unidade_id', ids)
         .order('updated_at', { ascending: false }),
-    ])
-    for (const r of [leadsRes, intRes, npsRes, metasRes]) if (r.error) throw r.error
+    )
 
-    const leads = leadsRes.data || []
-    const interacoes = intRes.data || []
-    const nps = npsRes.data || []
-    const metas = metasRes.data || []
-
-    // coorte precisa de todas interações dos leads da coorte (já buscamos todas da unidade)
-    const inPeriodExp = (d: string | null) => !!d && d >= inicio && d <= fim
-    const inPeriodFech = (d: string | null) => !!d && d >= inicio && d <= fim
-
+    // ---- coorte: interações apenas dos leads da coorte, em lotes e paginado ----
     const now = Date.now()
     const CUT = 14 * 24 * 60 * 60 * 1000
+    const coorteLeads = leads.filter((l) => now - new Date(l.created_at).getTime() >= CUT)
+    const coorteInteracoes: any[] = []
+    for (const part of chunk(coorteLeads.map((l) => l.id), 200)) {
+      const rows = await fetchAll<any>(() =>
+        supabase
+          .from('interacoes')
+          .select(
+            'lead_id, unidade_id, agendou_experimental, compareceu, fechou_matricula, data_experimental, data_fechamento',
+          )
+          .in('lead_id', part),
+      )
+      coorteInteracoes.push(...rows)
+    }
+    const intByLead = new Map<string, any[]>()
+    for (const i of coorteInteracoes) {
+      if (!i.lead_id) continue
+      intByLead.set(i.lead_id, [...(intByLead.get(i.lead_id) || []), i])
+    }
 
     const buildUnidade = (unitIds: string[]) => {
       const L = leads.filter((l) => unitIds.includes(l.unidade_id))
-      const I = interacoes.filter((i) => unitIds.includes(i.unidade_id))
       const N = nps.filter((n) => unitIds.includes(n.unidade_id))
+      const agendadasRows = rowsAgendadas.filter((i) => unitIds.includes(i.unidade_id))
+      const compareceramRows = rowsCompareceram.filter((i) => unitIds.includes(i.unidade_id))
+      const matriculasRows = rowsMatriculas.filter((i) => unitIds.includes(i.unidade_id))
 
-      const agendadas = I.filter((i) => i.agendou_experimental === true && inPeriodExp(i.data_experimental))
-      const compareceram = I.filter((i) => i.compareceu === true && inPeriodExp(i.data_experimental))
-      const matriculas = I.filter((i) => i.fechou_matricula === true && inPeriodFech(i.data_fechamento))
+      const sum = (pick: (c: { agendadas: number; comparecimentos: number; matriculas: number }) => number) =>
+        unitIds.reduce((acc, id) => acc + pick(countsByUnit.get(id) || { agendadas: 0, comparecimentos: 0, matriculas: 0 }), 0)
 
       const funil_absoluto = {
-        leads: nz(L.length),
-        experimentais_agendadas: nz(agendadas.length),
-        comparecimentos: nz(compareceram.length),
-        matriculas: nz(matriculas.length),
+        leads: L.length,
+        experimentais_agendadas: sum((c) => c.agendadas),
+        comparecimentos: sum((c) => c.comparecimentos),
+        matriculas: sum((c) => c.matriculas),
       }
 
-      // coorte
+      // coorte (leads com pelo menos 14 dias de maturação)
       const coorte = L.filter((l) => now - new Date(l.created_at).getTime() >= CUT)
       const fora_da_coorte = L.length - coorte.length
-      const intByLead = new Map<string, any[]>()
-      for (const i of I) {
-        if (!i.lead_id) continue
-        intByLead.set(i.lead_id, [...(intByLead.get(i.lead_id) || []), i])
-      }
       let ag = 0
       let cp = 0
       let mt = 0
@@ -219,14 +318,14 @@ Deno.serve(async (req) => {
       }
 
       const funil_coorte = {
-        total_coorte: nz(coorte.length),
-        agendaram: nz(ag),
-        compareceram: nz(cp),
-        matricularam: nz(mt),
+        total_coorte: coorte.length,
+        agendaram: ag,
+        compareceram: cp,
+        matricularam: mt,
         pct_agendaram: pct(ag, coorte.length),
         pct_compareceram: pct(cp, ag),
         pct_matricularam: pct(mt, cp),
-        fora_da_coorte: nz(fora_da_coorte),
+        fora_da_coorte,
       }
 
       const origens: Record<string, number> = {}
@@ -244,12 +343,13 @@ Deno.serve(async (req) => {
       const leadsTP = L.filter((l) => isTrafego(l.origem))
       const tpLeadIds = new Set(leadsTP.map((l) => l.id))
       const trafego_pago = {
-        leads: nz(leadsTP.length),
-        experimentais_agendadas: nz(agendadas.filter((i) => tpLeadIds.has(i.lead_id)).length),
-        comparecimentos: nz(compareceram.filter((i) => tpLeadIds.has(i.lead_id)).length),
-        matriculas: nz(matriculas.filter((i) => tpLeadIds.has(i.lead_id)).length),
+        leads: leadsTP.length,
+        experimentais_agendadas: agendadasRows.filter((i) => tpLeadIds.has(i.lead_id)).length,
+        comparecimentos: compareceramRows.filter((i) => tpLeadIds.has(i.lead_id)).length,
+        matriculas: matriculasRows.filter((i) => tpLeadIds.has(i.lead_id)).length,
       }
 
+      // null só quando não há nenhuma resposta (não dá para calcular nota)
       let npsBlock: any = null
       if (N.length) {
         const prom = N.filter((n) => (n.nota_nps ?? -1) >= 9).length
@@ -264,14 +364,15 @@ Deno.serve(async (req) => {
         }
       }
 
-      const valores = matriculas
+      const valores = matriculasRows
         .map((m) => Number(m.valor_plano))
         .filter((v) => Number.isFinite(v) && v > 0)
       const soma = valores.reduce((a, b) => a + b, 0)
       const ticket = {
-        soma_valor_plano: nz(Math.round(soma * 100) / 100),
+        soma_valor_plano: Math.round(soma * 100) / 100,
+        // null só quando não há denominador
         ticket_medio: valores.length ? Math.round((soma / valores.length) * 100) / 100 : null,
-        matriculas_com_valor: nz(valores.length),
+        matriculas_com_valor: valores.length,
       }
 
       const meta = metas.find((m) => unitIds.includes(m.unidade_id)) || null
@@ -286,8 +387,8 @@ Deno.serve(async (req) => {
       return {
         funil_absoluto,
         funil_coorte,
-        origens: Object.keys(origens).length ? origens : null,
-        status_funil: Object.keys(status_funil).length ? status_funil : null,
+        origens,
+        status_funil,
         trafego_pago,
         nps: npsBlock,
         metas: metasBlock,
