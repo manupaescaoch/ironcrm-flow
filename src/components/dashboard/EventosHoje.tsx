@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Calendar, Clock, Save, RefreshCw, MessageCircle, Activity, User, UserX, CheckCircle2, XCircle } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useCronogramaFuncionarios } from '@/hooks/useCronogramaFuncionarios';
 
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
