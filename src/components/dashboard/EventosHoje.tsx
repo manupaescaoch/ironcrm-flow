@@ -58,6 +58,11 @@ export function EventosHoje({ items, onRefresh, onReagendar }: EventosHojeProps)
   const [naoCompareceuDialogItem, setNaoCompareceuDialogItem] = useState<EventoItem | null>(null);
   const [cancelarDialogItem, setCancelarDialogItem] = useState<EventoItem | null>(null);
   const [motivoCancelamento, setMotivoCancelamento] = useState('');
+  const { ativos: funcionariosAtivos } = useCronogramaFuncionarios();
+  const treinadoresEquipe = funcionariosAtivos
+    .filter(f => (f.setor || '').toLowerCase() === 'treinador')
+    .map(f => f.nome)
+    .filter((n, i, arr) => !!n && arr.indexOf(n) === i);
 
   const handleCancelarEvento = async (item: EventoItem, motivo: string) => {
     setLoading(prev => ({ ...prev, [item.interacao.id]: true }));
