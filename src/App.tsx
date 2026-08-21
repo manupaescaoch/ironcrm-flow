@@ -191,6 +191,8 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 const AppRoutes = () => (
   <Routes>
     <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+    <Route path="/anamnese" element={<AnamnesePublicaUniversal />} />
+
     <Route path="/nps" element={<NpsPublico />} />
     <Route path="/formulario/:id" element={<FormularioPublico />} />
     <Route path="/nps/respostas" element={<AdminOrCoordenadorRoute><NpsRespostas /></AdminOrCoordenadorRoute>} />
