@@ -167,6 +167,9 @@ export default function LeadDetail() {
   const { user, isAdmin, canEditLead: canEditLeadAuth } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [pausandoFu, setPausandoFu] = useState(false);
+  const [migrarOpen, setMigrarOpen] = useState(false);
+
   const [savingInteracao, setSavingInteracao] = useState(false);
   const [lead, setLead] = useState<Lead | null>(null);
   const [originalLead, setOriginalLead] = useState<Lead | null>(null);
