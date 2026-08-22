@@ -112,13 +112,15 @@ Deno.serve(async (req) => {
     const leadIds = interacoes.map((i: any) => i.lead_id);
     const { data: leads } = await supabase
       .from('leads')
-      .select('id, nome, telefone, ativo, unidade_id')
+      .select('id, nome, telefone, ativo, unidade_id, pausado_fu')
       .in('id', leadIds);
     const leadMap = new Map((leads || []).map((l: any) => [l.id, l]));
 
     for (const inter of interacoes) {
       const lead: any = leadMap.get(inter.lead_id);
       if (!lead) { errors.push(`Lead não encontrado: ${inter.lead_id}`); continue; }
+      if (lead.pausado_fu === true) { console.log(`[boas-vindas] lead com FU pausado: ${lead.nome}`); continue; }
+
 
       const phone = normalizePhone(lead.telefone || '');
       if (!phone) {

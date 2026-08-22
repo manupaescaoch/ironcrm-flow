@@ -35,8 +35,11 @@ import { StatusTaxaSelect } from '@/components/lead/StatusTaxaExperimental';
 
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/utils/errorMessages';
-import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Pencil, CheckCircle, XCircle, AlertCircle, Trash2, Clock } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Pencil, CheckCircle, XCircle, AlertCircle, Trash2, Clock, PauseCircle, PlayCircle, ArrowRightLeft } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { MigrarUnidadeDialog } from '@/components/lead/MigrarUnidadeDialog';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
+
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { NivelInteresseCard } from '@/components/NivelInteresseCard';
@@ -164,6 +167,9 @@ export default function LeadDetail() {
   const { user, isAdmin, canEditLead: canEditLeadAuth } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [pausandoFu, setPausandoFu] = useState(false);
+  const [migrarOpen, setMigrarOpen] = useState(false);
+
   const [savingInteracao, setSavingInteracao] = useState(false);
   const [lead, setLead] = useState<Lead | null>(null);
   const [originalLead, setOriginalLead] = useState<Lead | null>(null);
@@ -609,6 +615,37 @@ export default function LeadDetail() {
     }
   };
 
+  const handleTogglePausaFu = async () => {
+    if (!lead) return;
+    const novoValor = !lead.pausado_fu;
+    setPausandoFu(true);
+    try {
+      const patch = {
+        pausado_fu: novoValor,
+        pausado_fu_em: novoValor ? new Date().toISOString() : null,
+        pausado_fu_por: novoValor ? user?.id ?? null : null,
+      };
+      const { error } = await supabase.from('leads').update(patch).eq('id', lead.id);
+      if (error) throw error;
+      setLead({ ...lead, ...patch });
+      toast({
+        title: novoValor ? 'Follow-up pausado' : 'Follow-up retomado',
+        description: novoValor
+          ? 'Este lead não receberá mais mensagens automáticas de follow-up.'
+          : 'As mensagens automáticas voltam a seguir a régua normal.',
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao atualizar follow-up',
+        description: getErrorMessage(err),
+        variant: 'destructive',
+      });
+    } finally {
+      setPausandoFu(false);
+    }
+  };
+
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -641,19 +678,49 @@ export default function LeadDetail() {
   return (
     <Layout>
       <div className="p-8">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate('/crm')}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <h1 className="text-3xl font-bold">{lead.nome?.toUpperCase()}</h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-3xl font-bold">{lead.nome?.toUpperCase()}</h1>
+                {lead.pausado_fu && (
+                  <Badge variant="secondary" className="gap-1">
+                    <PauseCircle className="w-3 h-3" />
+                    FU pausado
+                  </Badge>
+                )}
+              </div>
               <p className="text-muted-foreground">
                 Cadastrado em {formatTimestampInBrasilia(lead.created_at)}
               </p>
             </div>
           </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant={lead.pausado_fu ? 'default' : 'outline'}
+              onClick={handleTogglePausaFu}
+              disabled={pausandoFu}
+            >
+              {pausandoFu ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : lead.pausado_fu ? (
+                <PlayCircle className="w-4 h-4 mr-2" />
+              ) : (
+                <PauseCircle className="w-4 h-4 mr-2" />
+              )}
+              {lead.pausado_fu ? 'Retomar FU' : 'Pausar FU'}
+            </Button>
+            <Button variant="outline" onClick={() => setMigrarOpen(true)}>
+              <ArrowRightLeft className="w-4 h-4 mr-2" />
+              Migrar unidade
+            </Button>
+          </div>
         </div>
+
 
         {/* Lead Info Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
@@ -1309,7 +1376,17 @@ export default function LeadDetail() {
           onConfirm={handleConfirmPerda}
           loading={savingMotivo}
         />
+
+        <MigrarUnidadeDialog
+          open={migrarOpen}
+          onOpenChange={setMigrarOpen}
+          leadId={lead.id}
+          leadNome={lead.nome?.toUpperCase() || ''}
+          unidadeAtualId={lead.unidade_id}
+          onMigrated={(novaUnidadeId) => setLead({ ...lead, unidade_id: novaUnidadeId })}
+        />
       </div>
+
     </Layout>
   );
 }

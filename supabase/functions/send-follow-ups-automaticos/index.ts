@@ -208,7 +208,7 @@ Deno.serve(async (req) => {
       .from('follow_ups')
       .select(`
         id, lead_id, tipo, data_prevista, unidade_id,
-        leads (id, nome, telefone, ativo, status_funil, is_matriculado)
+        leads (id, nome, telefone, ativo, status_funil, is_matriculado, pausado_fu)
       `)
       .eq('status', 'pendente')
       .lte('data_prevista', `${todayStr}T23:59:59-03:00`)
@@ -357,7 +357,12 @@ async function processFollowUps(
         .eq('id', fu.id);
       continue;
     }
+    if (lead.pausado_fu === true) {
+      console.log(`[fu] lead com FU pausado, mantendo pendente: ${lead.nome}`);
+      continue;
+    }
     const isPostMatricula = fu.tipo === 'M+7' || fu.tipo === 'M+30';
+
     if (isPostMatricula) {
       if (!lead.ativo || !lead.is_matriculado) {
         await supabase.from('follow_ups')
