@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
     const leadIds = elegiveis.map((e: any) => e.lead_id);
     const { data: leads } = await supabase
       .from('leads')
-      .select('id, nome, telefone, ativo, status_funil, is_matriculado, unidade_id')
+      .select('id, nome, telefone, ativo, status_funil, is_matriculado, unidade_id, pausado_fu')
       .in('id', leadIds);
     const leadMap = new Map((leads || []).map((l: any) => [l.id, l]));
 
