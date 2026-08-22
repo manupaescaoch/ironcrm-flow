@@ -241,6 +241,37 @@ Deno.serve(async (req) => {
       countsByUnit.set(id, { agendadas, comparecimentos, matriculas })
     }
 
+    // Fechamentos no MESMO DIA da experimental (compareceu + fechou_matricula), paginado
+    const rowsMesmoDia = await fetchAll<any>(() =>
+      supabase
+        .from('interacoes')
+        .select('id, lead_id, unidade_id, data_experimental, data_fechamento')
+        .in('unidade_id', ids)
+        .eq('compareceu', true)
+        .eq('fechou_matricula', true)
+        .not('data_fechamento', 'is', null)
+        .gte('data_experimental', inicio)
+        .lte('data_experimental', fim),
+    )
+    const dayKey = (v: string | null) => (v ? String(v).slice(0, 10) : null)
+    const mesmoDiaRows = rowsMesmoDia.filter(
+      (r) => dayKey(r.data_experimental) && dayKey(r.data_experimental) === dayKey(r.data_fechamento),
+    )
+
+    // Follow-ups atrasados: ESTADO ATUAL (ignora o filtro de período)
+    const nowIso = new Date().toISOString()
+    const atrasadosByUnit = new Map<string, number>()
+    for (const id of ids) {
+      const { count, error } = await supabase
+        .from('follow_ups')
+        .select('id', { count: 'exact', head: true })
+        .eq('unidade_id', id)
+        .in('status', ['pendente', 'enviando'])
+        .lt('data_prevista', nowIso)
+      if (error) throw error
+      atrasadosByUnit.set(id, count ?? 0)
+    }
+
     const nps = await fetchAll<any>(() =>
       supabase
         .from('nps_respostas')
