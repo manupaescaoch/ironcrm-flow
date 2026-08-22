@@ -55,6 +55,11 @@ export interface Lead {
   nivel_interesse_atualizado_por?: string | null;
   // Status da taxa da aula experimental
   status_taxa_experimental?: StatusTaxaExperimental | null;
+  // Pausa de follow-up automático
+  pausado_fu?: boolean;
+  pausado_fu_em?: string | null;
+  pausado_fu_por?: string | null;
+
 }
 
 
