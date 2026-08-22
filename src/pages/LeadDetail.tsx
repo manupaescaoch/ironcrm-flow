@@ -615,6 +615,37 @@ export default function LeadDetail() {
     }
   };
 
+  const handleTogglePausaFu = async () => {
+    if (!lead) return;
+    const novoValor = !lead.pausado_fu;
+    setPausandoFu(true);
+    try {
+      const patch = {
+        pausado_fu: novoValor,
+        pausado_fu_em: novoValor ? new Date().toISOString() : null,
+        pausado_fu_por: novoValor ? user?.id ?? null : null,
+      };
+      const { error } = await supabase.from('leads').update(patch).eq('id', lead.id);
+      if (error) throw error;
+      setLead({ ...lead, ...patch });
+      toast({
+        title: novoValor ? 'Follow-up pausado' : 'Follow-up retomado',
+        description: novoValor
+          ? 'Este lead não receberá mais mensagens automáticas de follow-up.'
+          : 'As mensagens automáticas voltam a seguir a régua normal.',
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao atualizar follow-up',
+        description: getErrorMessage(err),
+        variant: 'destructive',
+      });
+    } finally {
+      setPausandoFu(false);
+    }
+  };
+
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
