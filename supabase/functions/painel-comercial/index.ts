@@ -76,11 +76,16 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}))
     const modo: string = body?.modo || 'resumo'
-    const inicio: string = body?.periodo_inicio
-    const fim: string = body?.periodo_fim
+    // aceita YYYY-MM-DD ou ISO completo (usa só a parte da data)
+    const toDay = (v: unknown) => {
+      const s = String(v ?? '')
+      return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : ''
+    }
+    const inicio: string = toDay(body?.periodo_inicio)
+    const fim: string = toDay(body?.periodo_fim)
     const unidadeKey: string = body?.unidade || 'consolidado'
 
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(inicio || '') || !/^\d{4}-\d{2}-\d{2}$/.test(fim || '')) {
+    if (!inicio || !fim) {
       return json({ error: 'periodo_inicio e periodo_fim são obrigatórios (YYYY-MM-DD)' }, 400)
     }
     if (unidadeKey !== 'consolidado' && !UNIDADES[unidadeKey]) {
