@@ -175,6 +175,8 @@ Deno.serve(async (req) => {
       const lead: any = leadMap.get(inter.lead_id);
       if (!lead) { errors.push(`Lead não encontrado: ${inter.lead_id}`); continue; }
       if (!lead.ativo) { console.log(`[feedback] lead inativo: ${lead.nome}`); continue; }
+      if (lead.pausado_fu === true) { console.log(`[feedback] lead com FU pausado: ${lead.nome}`); continue; }
+
       if (lead.is_matriculado || lead.status_funil === 'convertido' || lead.status_funil === 'perdido') {
         console.log(`[feedback] lead já matriculado/perdido: ${lead.nome}`);
         await supabase.from('interacoes').update({ feedback_pos_aula_enviado_em: new Date().toISOString() }).eq('id', inter.id);
