@@ -35,8 +35,11 @@ import { StatusTaxaSelect } from '@/components/lead/StatusTaxaExperimental';
 
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/utils/errorMessages';
-import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Pencil, CheckCircle, XCircle, AlertCircle, Trash2, Clock } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Loader2, MessageSquare, User, Pencil, CheckCircle, XCircle, AlertCircle, Trash2, Clock, PauseCircle, PlayCircle, ArrowRightLeft } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { MigrarUnidadeDialog } from '@/components/lead/MigrarUnidadeDialog';
 import { WhatsAppLink } from '@/components/WhatsAppLink';
+
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { NivelInteresseCard } from '@/components/NivelInteresseCard';
