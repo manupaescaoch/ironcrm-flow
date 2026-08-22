@@ -357,7 +357,12 @@ async function processFollowUps(
         .eq('id', fu.id);
       continue;
     }
+    if (lead.pausado_fu === true) {
+      console.log(`[fu] lead com FU pausado, mantendo pendente: ${lead.nome}`);
+      continue;
+    }
     const isPostMatricula = fu.tipo === 'M+7' || fu.tipo === 'M+30';
+
     if (isPostMatricula) {
       if (!lead.ativo || !lead.is_matriculado) {
         await supabase.from('follow_ups')
