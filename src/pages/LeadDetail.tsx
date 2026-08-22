@@ -1376,7 +1376,17 @@ export default function LeadDetail() {
           onConfirm={handleConfirmPerda}
           loading={savingMotivo}
         />
+
+        <MigrarUnidadeDialog
+          open={migrarOpen}
+          onOpenChange={setMigrarOpen}
+          leadId={lead.id}
+          leadNome={lead.nome?.toUpperCase() || ''}
+          unidadeAtualId={lead.unidade_id}
+          onMigrated={(novaUnidadeId) => setLead({ ...lead, unidade_id: novaUnidadeId })}
+        />
       </div>
+
     </Layout>
   );
 }
