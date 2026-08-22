@@ -208,7 +208,7 @@ Deno.serve(async (req) => {
       .from('follow_ups')
       .select(`
         id, lead_id, tipo, data_prevista, unidade_id,
-        leads (id, nome, telefone, ativo, status_funil, is_matriculado)
+        leads (id, nome, telefone, ativo, status_funil, is_matriculado, pausado_fu)
       `)
       .eq('status', 'pendente')
       .lte('data_prevista', `${todayStr}T23:59:59-03:00`)
