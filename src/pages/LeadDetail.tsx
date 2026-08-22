@@ -641,19 +641,49 @@ export default function LeadDetail() {
   return (
     <Layout>
       <div className="p-8">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate('/crm')}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <h1 className="text-3xl font-bold">{lead.nome?.toUpperCase()}</h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-3xl font-bold">{lead.nome?.toUpperCase()}</h1>
+                {lead.pausado_fu && (
+                  <Badge variant="secondary" className="gap-1">
+                    <PauseCircle className="w-3 h-3" />
+                    FU pausado
+                  </Badge>
+                )}
+              </div>
               <p className="text-muted-foreground">
                 Cadastrado em {formatTimestampInBrasilia(lead.created_at)}
               </p>
             </div>
           </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant={lead.pausado_fu ? 'default' : 'outline'}
+              onClick={handleTogglePausaFu}
+              disabled={pausandoFu}
+            >
+              {pausandoFu ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : lead.pausado_fu ? (
+                <PlayCircle className="w-4 h-4 mr-2" />
+              ) : (
+                <PauseCircle className="w-4 h-4 mr-2" />
+              )}
+              {lead.pausado_fu ? 'Retomar FU' : 'Pausar FU'}
+            </Button>
+            <Button variant="outline" onClick={() => setMigrarOpen(true)}>
+              <ArrowRightLeft className="w-4 h-4 mr-2" />
+              Migrar unidade
+            </Button>
+          </div>
         </div>
+
 
         {/* Lead Info Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
