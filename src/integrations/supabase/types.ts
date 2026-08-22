@@ -2332,6 +2332,9 @@ export type Database = {
           nome: string
           observacoes: string | null
           origem: string | null
+          pausado_fu: boolean
+          pausado_fu_em: string | null
+          pausado_fu_por: string | null
           plano_escolhido: string | null
           status_conversa: string | null
           status_funil: string
@@ -2373,6 +2376,9 @@ export type Database = {
           nome: string
           observacoes?: string | null
           origem?: string | null
+          pausado_fu?: boolean
+          pausado_fu_em?: string | null
+          pausado_fu_por?: string | null
           plano_escolhido?: string | null
           status_conversa?: string | null
           status_funil?: string
@@ -2414,6 +2420,9 @@ export type Database = {
           nome?: string
           observacoes?: string | null
           origem?: string | null
+          pausado_fu?: boolean
+          pausado_fu_em?: string | null
+          pausado_fu_por?: string | null
           plano_escolhido?: string | null
           status_conversa?: string | null
           status_funil?: string
@@ -4206,6 +4215,14 @@ export type Database = {
         Returns: boolean
       }
       inativar_aluno: { Args: { p_lead_id: string }; Returns: undefined }
+      migrar_lead_unidade: {
+        Args: {
+          p_lead_id: string
+          p_motivo?: string
+          p_unidade_destino: string
+        }
+        Returns: Json
+      }
       normalize_cronograma_tipo: { Args: { p_titulo: string }; Returns: string }
       normalize_phone: { Args: { phone: string }; Returns: string }
       parse_atendimentos: {
