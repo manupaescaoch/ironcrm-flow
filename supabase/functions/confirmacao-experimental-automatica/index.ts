@@ -139,9 +139,11 @@ Deno.serve(async (req) => {
 
     const { data: leads, error } = await supabase
       .from('leads')
-      .select('id, nome, telefone, data_aula_experimental, hora_aula_experimental, confirmacao_24h_enviada_em, confirmacao_2h_enviada_em, status_funil, ativo, is_matriculado')
+      .select('id, nome, telefone, data_aula_experimental, hora_aula_experimental, confirmacao_24h_enviada_em, confirmacao_2h_enviada_em, status_funil, ativo, is_matriculado, pausado_fu')
       .eq('ativo', true)
+      .neq('pausado_fu', true)
       .eq('is_matriculado', false)
+
       .not('telefone', 'is', null)
       .not('data_aula_experimental', 'is', null)
       .not('hora_aula_experimental', 'is', null)
