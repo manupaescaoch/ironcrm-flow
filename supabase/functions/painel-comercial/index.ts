@@ -415,6 +415,22 @@ Deno.serve(async (req) => {
           }
         : null
 
+      const comparecimentosPeriodo = sum((c) => c.comparecimentos)
+      const fechamentosMesmoDia = mesmoDiaRows.filter((r) => unitIds.includes(r.unidade_id)).length
+      const conversao_imediata = {
+        fechamentos_mesmo_dia: fechamentosMesmoDia,
+        comparecimentos: comparecimentosPeriodo,
+        // null quando não há comparecimento no período (sem denominador)
+        pct: pct(fechamentosMesmoDia, comparecimentosPeriodo),
+      }
+
+      const followups_atrasados = {
+        total: unitIds.reduce((acc, id) => acc + (atrasadosByUnit.get(id) ?? 0), 0),
+        ignora_periodo: true,
+        referencia: 'estado_atual',
+        medido_em: nowIso,
+      }
+
       return {
         funil_absoluto,
         funil_coorte,
@@ -424,6 +440,8 @@ Deno.serve(async (req) => {
         nps: npsBlock,
         metas: metasBlock,
         ticket,
+        conversao_imediata,
+        followups_atrasados,
       }
     }
 
