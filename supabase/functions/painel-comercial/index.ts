@@ -351,13 +351,13 @@ Deno.serve(async (req) => {
         const dias = diffDays(new Date(dataFechamento), new Date())
 
         const em = etapaMatriculado(dias)
-        if (em && dias > em[1]) {
+        if (em && dias >= em[1]) {
           const key = `${leadId}|${em[0]}`
           if (!concluidos.has(key) && !reagendadoFuturo.has(key)) matriculados++
         }
 
         const eg = etapaGerente(dias)
-        if (eg && dias > eg[1]) {
+        if (eg && dias >= eg[1]) {
           const key = `${leadId}|${eg[0]}`
           if (!concluidos.has(key) && !reagendadoFuturo.has(key)) gerente++
         }
