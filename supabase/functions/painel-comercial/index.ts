@@ -264,8 +264,33 @@ Deno.serve(async (req) => {
     )
 
     // Follow-ups atrasados: ESTADO ATUAL (ignora o filtro de período)
+    // Três filas:
+    //  - pendentes    → linhas reais em follow_ups (fila comercial), status pendente/enviando e data_prevista < agora
+    //  - matriculados → fila derivada da data da matrícula (D+1 / D+7 / D+30), vencida
+    //  - gerente      → fila derivada da data da matrícula (G+7 / G+30), vencida
     const nowIso = new Date().toISOString()
-    const atrasadosByUnit = new Map<string, number>()
+    type AtrasoBreak = { pendentes: number; matriculados: number; gerente: number }
+    const atrasadosByUnit = new Map<string, AtrasoBreak>()
+
+    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
+    const diffDays = (from: Date, to: Date) =>
+      Math.floor((startOfDay(to).getTime() - startOfDay(from).getTime()) / 86400000)
+
+    // etapa das filas derivadas: retorna [tipo, alvoEmDias] ou null
+    const etapaMatriculado = (dias: number): [string, number] | null => {
+      if (dias < 0) return null
+      if (dias <= 1) return ['D+1', 1]
+      if (dias <= 15) return ['D+7', 7]
+      if (dias <= 45) return ['D+30', 30]
+      return null
+    }
+    const etapaGerente = (dias: number): [string, number] | null => {
+      if (dias < 7) return null
+      if (dias <= 29) return ['G+7', 7]
+      if (dias <= 45) return ['G+30', 30]
+      return null
+    }
+
     for (const id of ids) {
       const { count, error } = await supabase
         .from('follow_ups')
@@ -274,8 +299,73 @@ Deno.serve(async (req) => {
         .in('status', ['pendente', 'enviando'])
         .lt('data_prevista', nowIso)
       if (error) throw error
-      atrasadosByUnit.set(id, count ?? 0)
+      const pendentes = count ?? 0
+
+      // matrículas ativas da unidade (paginado)
+      const matriculasUnidade = await fetchAll<any>(() =>
+        supabase
+          .from('interacoes')
+          .select('lead_id, data_fechamento, leads!inner (id, is_matriculado, ativo)')
+          .eq('unidade_id', id)
+          .eq('fechou_matricula', true)
+          .not('data_fechamento', 'is', null)
+          .order('data_fechamento', { ascending: false }),
+      )
+
+      const maisRecentePorLead = new Map<string, string>()
+      for (const row of matriculasUnidade) {
+        const lead = row.leads
+        if (!lead || lead.is_matriculado !== true || lead.ativo === false) continue
+        if (!maisRecentePorLead.has(row.lead_id)) {
+          maisRecentePorLead.set(row.lead_id, row.data_fechamento)
+        }
+      }
+
+      const leadIdsMat = [...maisRecentePorLead.keys()]
+      const fusLeads: any[] = []
+      for (const part of chunk(leadIdsMat, 200)) {
+        const rows = await fetchAll<any>(() =>
+          supabase
+            .from('follow_ups')
+            .select('lead_id, tipo, status, data_prevista')
+            .in('lead_id', part)
+            .in('tipo', ['D+1', 'D+7', 'D+30', 'G+7', 'G+30']),
+        )
+        fusLeads.push(...rows)
+      }
+
+      const hoje0 = startOfDay(new Date())
+      const concluidos = new Set<string>()
+      const reagendadoFuturo = new Set<string>()
+      for (const f of fusLeads) {
+        const key = `${f.lead_id}|${f.tipo}`
+        if (f.status === 'concluido') concluidos.add(key)
+        else if (f.status === 'pendente' && f.data_prevista) {
+          if (new Date(f.data_prevista) > hoje0) reagendadoFuturo.add(key)
+        }
+      }
+
+      let matriculados = 0
+      let gerente = 0
+      for (const [leadId, dataFechamento] of maisRecentePorLead) {
+        const dias = diffDays(new Date(dataFechamento), new Date())
+
+        const em = etapaMatriculado(dias)
+        if (em && dias >= em[1]) {
+          const key = `${leadId}|${em[0]}`
+          if (!concluidos.has(key) && !reagendadoFuturo.has(key)) matriculados++
+        }
+
+        const eg = etapaGerente(dias)
+        if (eg && dias >= eg[1]) {
+          const key = `${leadId}|${eg[0]}`
+          if (!concluidos.has(key) && !reagendadoFuturo.has(key)) gerente++
+        }
+      }
+
+      atrasadosByUnit.set(id, { pendentes, matriculados, gerente })
     }
+
 
     const nps = await fetchAll<any>(() =>
       supabase
@@ -429,12 +519,24 @@ Deno.serve(async (req) => {
         pct: pct(fechamentosMesmoDia, comparecimentosPeriodo),
       }
 
+      const somaFila = (pick: (b: AtrasoBreak) => number) =>
+        unitIds.reduce(
+          (acc, id) => acc + pick(atrasadosByUnit.get(id) ?? { pendentes: 0, matriculados: 0, gerente: 0 }),
+          0,
+        )
+      const atrasoPendentes = somaFila((b) => b.pendentes)
+      const atrasoMatriculados = somaFila((b) => b.matriculados)
+      const atrasoGerente = somaFila((b) => b.gerente)
       const followups_atrasados = {
-        total: unitIds.reduce((acc, id) => acc + (atrasadosByUnit.get(id) ?? 0), 0),
+        total: atrasoPendentes + atrasoMatriculados + atrasoGerente,
+        pendentes: atrasoPendentes,
+        matriculados: atrasoMatriculados,
+        gerente: atrasoGerente,
         ignora_periodo: true,
         referencia: 'estado_atual',
         medido_em: nowIso,
       }
+
 
       return {
         funil_absoluto,
