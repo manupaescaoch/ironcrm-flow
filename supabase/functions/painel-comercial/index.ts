@@ -519,12 +519,24 @@ Deno.serve(async (req) => {
         pct: pct(fechamentosMesmoDia, comparecimentosPeriodo),
       }
 
+      const somaFila = (pick: (b: AtrasoBreak) => number) =>
+        unitIds.reduce(
+          (acc, id) => acc + pick(atrasadosByUnit.get(id) ?? { pendentes: 0, matriculados: 0, gerente: 0 }),
+          0,
+        )
+      const atrasoPendentes = somaFila((b) => b.pendentes)
+      const atrasoMatriculados = somaFila((b) => b.matriculados)
+      const atrasoGerente = somaFila((b) => b.gerente)
       const followups_atrasados = {
-        total: unitIds.reduce((acc, id) => acc + (atrasadosByUnit.get(id) ?? 0), 0),
+        total: atrasoPendentes + atrasoMatriculados + atrasoGerente,
+        pendentes: atrasoPendentes,
+        matriculados: atrasoMatriculados,
+        gerente: atrasoGerente,
         ignora_periodo: true,
         referencia: 'estado_atual',
         medido_em: nowIso,
       }
+
 
       return {
         funil_absoluto,
