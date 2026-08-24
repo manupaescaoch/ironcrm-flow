@@ -41,12 +41,14 @@ Deno.serve(async (req) => {
     const user = userData?.user;
     if (!user) return json({ error: 'Unauthorized' }, 401);
 
-    const body = await req.json().catch(() => ({}));
-    const contaId = typeof body?.conta_id === 'string' ? body.conta_id : '';
-    const tipo = body?.tipo_envio === 'VENCIMENTO' ? 'VENCIMENTO' : 'CADASTRO';
-    const reenviar = body?.reenviar === true;
+    const rawBody = await req.json().catch(() => ({}));
+    const parsed = BodySchema.safeParse(rawBody);
+    if (!parsed.success) return json({ error: 'conta_id inválido' }, 400);
 
-    if (!/^[0-9a-f-]{36}$/i.test(contaId)) return json({ error: 'conta_id inválido' }, 400);
+    const contaId = parsed.data.conta_id;
+    const tipo = parsed.data.tipo_envio === 'VENCIMENTO' ? 'VENCIMENTO' : 'CADASTRO';
+    const reenviar = parsed.data.reenviar === true;
+
 
     const { data: conta } = await supabase
       .from('contas_pagar')
