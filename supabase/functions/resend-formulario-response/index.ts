@@ -1,6 +1,7 @@
 // One-shot admin utility: resend a specific form response to its WhatsApp group.
 // Requires the caller's Supabase JWT to belong to an admin.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'npm:zod@3.23.8';
 import {
   executeNotification,
   validateUnidade,
@@ -18,6 +19,19 @@ const TABLE_BY_TIPO: Record<TipoFormulario, string> = {
   coordenador_horario: 'encerramento_horario_respostas',
   relatorio_comercial: 'relatorio_diario_comercial_respostas',
 };
+
+// Validação por schema da entrada (mesmos códigos de erro do contrato atual).
+const ItemSchema = z.object({
+  tipo_formulario: z.enum([
+    'estagiario_lider',
+    'coordenador_unidade',
+    'coordenador_horario',
+    'relatorio_comercial',
+  ]),
+  resposta_id: z.string().uuid(),
+});
+const BodySchema = z.object({ items: z.array(ItemSchema).min(1).max(50) }).passthrough();
+
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
