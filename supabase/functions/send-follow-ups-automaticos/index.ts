@@ -207,8 +207,8 @@ Deno.serve(async (req) => {
     const { data: followUps, error: fuErr } = await supabase
       .from('follow_ups')
       .select(`
-        id, lead_id, tipo, data_prevista, unidade_id,
-        leads (id, nome, telefone, ativo, status_funil, is_matriculado, pausado_fu)
+        id, lead_id, tipo, data_prevista, data_referencia, unidade_id,
+        leads (id, nome, telefone, ativo, status_funil, is_matriculado, pausado_fu, data_aula_experimental)
       `)
       .eq('status', 'pendente')
       .lte('data_prevista', `${todayStr}T23:59:59-03:00`)
