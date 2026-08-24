@@ -59,18 +59,20 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers: corsHeaders });
   }
 
-  const body = await req.json().catch(() => null);
-  const items: Array<{ tipo_formulario: TipoFormulario; resposta_id: string }> = body?.items || [];
-  if (!Array.isArray(items) || items.length === 0) {
+  const rawBody = await req.json().catch(() => null);
+  const rawItems = (rawBody as any)?.items;
+  if (!Array.isArray(rawItems) || rawItems.length === 0) {
     return new Response(JSON.stringify({ error: 'no_items' }), { status: 400, headers: corsHeaders });
   }
-  if (items.length > 50) {
+  if (rawItems.length > 50) {
     return new Response(JSON.stringify({ error: 'too_many_items' }), { status: 400, headers: corsHeaders });
   }
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (items.some((it) => typeof it?.resposta_id !== 'string' || !UUID_RE.test(it.resposta_id))) {
+  const parsed = BodySchema.safeParse(rawBody);
+  if (!parsed.success) {
     return new Response(JSON.stringify({ error: 'resposta_id inválido' }), { status: 400, headers: corsHeaders });
   }
+  const items: Array<{ tipo_formulario: TipoFormulario; resposta_id: string }> = parsed.data.items;
+
 
 
   const results: unknown[] = [];
