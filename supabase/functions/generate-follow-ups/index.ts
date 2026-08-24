@@ -1,10 +1,20 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { z } from 'npm:zod@3.23.8';
 
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
 };
+
+// Validação por schema do payload (todos os campos opcionais — corpo vazio é válido).
+const BodySchema = z
+  .object({
+    unidade_id: z.string().uuid().nullish(),
+  })
+  .partial()
+  .passthrough();
+
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests (no auth on OPTIONS)
