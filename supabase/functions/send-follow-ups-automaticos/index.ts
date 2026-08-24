@@ -207,8 +207,8 @@ Deno.serve(async (req) => {
     const { data: followUps, error: fuErr } = await supabase
       .from('follow_ups')
       .select(`
-        id, lead_id, tipo, data_prevista, unidade_id,
-        leads (id, nome, telefone, ativo, status_funil, is_matriculado, pausado_fu)
+        id, lead_id, tipo, data_prevista, data_referencia, unidade_id,
+        leads (id, nome, telefone, ativo, status_funil, is_matriculado, pausado_fu, data_aula_experimental)
       `)
       .eq('status', 'pendente')
       .lte('data_prevista', `${todayStr}T23:59:59-03:00`)
@@ -374,6 +374,32 @@ async function processFollowUps(
       if (!lead.ativo || lead.is_matriculado || lead.status_funil === 'convertido' || lead.status_funil === 'perdido') {
         await supabase.from('follow_ups')
           .update({ status: 'cancelado', cancelado_motivo: 'lead_inelegivel', updated_at: new Date().toISOString() })
+          .eq('id', fu.id);
+        continue;
+      }
+    }
+
+    // GUARD REAGENDAMENTO: nunca enviar FU comercial se a experimental foi
+    // reagendada (aula futura/hoje ainda por acontecer, ou aula posterior à
+    // data de referência do FU). Novos FUs são gerados no comparecimento.
+    if (!isPostMatricula && lead.data_aula_experimental) {
+      const hojeBrt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+      const aula = String(lead.data_aula_experimental).slice(0, 10);
+      const ref = fu.data_referencia
+        ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date(fu.data_referencia as string))
+        : null;
+      const aulaFutura = aula >= hojeBrt;
+      const aulaPosteriorAoRef = ref ? aula > ref : false;
+      if (aulaFutura || aulaPosteriorAoRef) {
+        console.log(`[fu] reagendado, cancelando ${fu.tipo} de ${lead.nome} (aula ${aula}, ref ${ref})`);
+        await supabase.from('follow_ups')
+          .update({
+            status: 'cancelado',
+            cancelado_motivo: 'reagendado',
+            concluido_em: new Date().toISOString(),
+            concluido_por: 'SISTEMA (reagendado)',
+            updated_at: new Date().toISOString(),
+          })
           .eq('id', fu.id);
         continue;
       }
