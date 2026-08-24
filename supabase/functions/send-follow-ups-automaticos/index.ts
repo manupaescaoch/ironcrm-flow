@@ -378,6 +378,32 @@ async function processFollowUps(
         continue;
       }
     }
+
+    // GUARD REAGENDAMENTO: nunca enviar FU comercial se a experimental foi
+    // reagendada (aula futura/hoje ainda por acontecer, ou aula posterior à
+    // data de referência do FU). Novos FUs são gerados no comparecimento.
+    if (!isPostMatricula && lead.data_aula_experimental) {
+      const hojeBrt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+      const aula = String(lead.data_aula_experimental).slice(0, 10);
+      const ref = fu.data_referencia
+        ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date(fu.data_referencia as string))
+        : null;
+      const aulaFutura = aula >= hojeBrt;
+      const aulaPosteriorAoRef = ref ? aula > ref : false;
+      if (aulaFutura || aulaPosteriorAoRef) {
+        console.log(`[fu] reagendado, cancelando ${fu.tipo} de ${lead.nome} (aula ${aula}, ref ${ref})`);
+        await supabase.from('follow_ups')
+          .update({
+            status: 'cancelado',
+            cancelado_motivo: 'reagendado',
+            concluido_em: new Date().toISOString(),
+            concluido_por: 'SISTEMA (reagendado)',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', fu.id);
+        continue;
+      }
+    }
     if (!lead.telefone) {
       await logEnvio(supabase, { funcao: FUNC, tipo_destino: 'lead', unidade_id: fu.unidade_id, sucesso: false, motivo_skip: 'sem_telefone', canal: 'comercial' });
       errors.push(`Sem telefone: ${lead.nome}`);
