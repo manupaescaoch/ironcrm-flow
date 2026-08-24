@@ -24,3 +24,7 @@ verify_jwt = false
 [functions.submit-formulario-publico]
 verify_jwt = false
 
+[functions.painel-contas-pagar]
+verify_jwt = false
+
+
