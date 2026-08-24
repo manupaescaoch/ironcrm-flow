@@ -1,6 +1,7 @@
 // Envia (ou reenvia) ao grupo financeiro a mensagem de uma conta a pagar.
 // Chamada pelo frontend após o cadastro e pelo botão de reenvio manual.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'npm:zod@3.23.8';
 import { processarEnvio, TipoEnvio } from '../_shared/contasPagarEnvio.ts';
 
 const corsHeaders = {
@@ -8,11 +9,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Validação por schema da entrada (mantém o mesmo contrato de resposta).
+const BodySchema = z
+  .object({
+    conta_id: z.string().uuid(),
+    tipo_envio: z.enum(['CADASTRO', 'VENCIMENTO']).optional(),
+    reenviar: z.boolean().optional(),
+  })
+  .passthrough();
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
