@@ -311,6 +311,33 @@ export default function NpsRespostas() {
                 })}
               </div>
             )}
+            {totalCount > PAGE_SIZE && (
+              <div className="flex items-center justify-between pt-3">
+                <span className="text-xs text-muted-foreground">
+                  Página {page} de {totalPages} · {totalCount} avaliações
+                </span>
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  >
+                    <ChevronLeft className="w-4 h-4" /> Anterior
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  >
+                    Próxima <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
 
         </Card>
