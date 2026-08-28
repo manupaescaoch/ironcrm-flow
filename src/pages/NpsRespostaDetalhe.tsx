@@ -30,7 +30,22 @@ type Resposta = {
   comentario: string | null;
   categoria: 'detrator' | 'passivo' | 'promotor';
   created_at: string;
+  status: 'novo' | 'em_contato' | 'concluido';
+  acao_corretiva: string | null;
+  prazo: string | null;
 };
+
+const STATUS_OPTIONS = [
+  { value: 'novo', label: 'Novo' },
+  { value: 'em_contato', label: 'Em contato' },
+  { value: 'concluido', label: 'Concluído' },
+] as const;
+
+function statusBadge(s: string) {
+  if (s === 'concluido') return 'bg-success text-success-foreground';
+  if (s === 'em_contato') return 'bg-warning text-warning-foreground';
+  return 'bg-muted text-muted-foreground';
+}
 
 function categoriaBadge(cat: string) {
   if (cat === 'promotor') return 'bg-success text-success-foreground';
