@@ -149,8 +149,8 @@ export default function NpsRespostas() {
   }, [unidades]);
 
   const kpis = useMemo(() => {
-    const total = respostas.length;
-    const calc = (list: Resposta[]) => {
+    const total = kpiRows.length;
+    const calc = (list: typeof kpiRows) => {
       const n = list.length;
       if (!n) return { nps: 0, prom: 0, pas: 0, det: 0, total: 0 };
       const prom = list.filter((r) => r.categoria === 'promotor').length;
