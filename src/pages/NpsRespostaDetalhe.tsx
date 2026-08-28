@@ -76,6 +76,7 @@ export default function NpsRespostaDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  const queryClient = useQueryClient();
   const { data: resposta, isLoading } = useQuery({
     queryKey: ['nps-resposta', id],
     enabled: !!id,
@@ -84,6 +85,34 @@ export default function NpsRespostaDetalhe() {
       if (error) throw error;
       return data as Resposta | null;
     },
+  });
+
+  const [status, setStatus] = useState<string>('novo');
+  const [acaoCorretiva, setAcaoCorretiva] = useState('');
+  const [prazo, setPrazo] = useState('');
+
+  useEffect(() => {
+    if (resposta) {
+      setStatus(resposta.status ?? 'novo');
+      setAcaoCorretiva(resposta.acao_corretiva ?? '');
+      setPrazo(resposta.prazo ?? '');
+    }
+  }, [resposta]);
+
+  const salvar = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('nps_respostas')
+        .update({ status, acao_corretiva: acaoCorretiva || null, prazo: prazo || null })
+        .eq('id', id!);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nps-resposta', id] });
+      queryClient.invalidateQueries({ queryKey: ['nps-respostas'] });
+      toast.success('Acompanhamento salvo.');
+    },
+    onError: (e: any) => toast.error('Erro ao salvar: ' + (e?.message ?? 'tente novamente')),
   });
 
   return (
