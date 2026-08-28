@@ -66,6 +66,20 @@ export default function NpsRespostas() {
   const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
   const [selected, setSelected] = useState<Resposta | null>(null);
 
+  // Paginação e ordenação
+  const PAGE_SIZE = 20;
+  const [page, setPage] = useState(1);
+  type SortField = 'created_at' | 'nota_nps' | 'nome';
+  const [sortField, setSortField] = useState<SortField>('created_at');
+  const [sortAsc, setSortAsc] = useState(false);
+  const toggleSort = (f: SortField) => {
+    if (sortField === f) setSortAsc((v) => !v);
+    else { setSortField(f); setSortAsc(f === 'nome'); }
+    setPage(1);
+  };
+  // Resetar página ao mudar filtros
+  useEffect(() => { setPage(1); }, [unidade, periodo, categoria, customRange.from?.getTime(), customRange.to?.getTime()]);
+
   const { from, to } = useMemo(() => {
     if (periodo === 'custom') return { from: customRange.from, to: customRange.to };
     const days = parseInt(periodo);
