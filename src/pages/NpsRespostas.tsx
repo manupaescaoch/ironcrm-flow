@@ -103,12 +103,11 @@ export default function NpsRespostas() {
   });
 
   // KPIs: busca leve de todas as respostas do período (apenas categoria/unidade)
+  // Sempre dividido por unidade — RLS restringe coordenador à própria unidade
   const { data: kpiRows = [] } = useQuery({
-    queryKey: ['nps-respostas-kpi', unidade, from?.toISOString(), to?.toISOString(), categoria],
-    enabled: !!unidade,
+    queryKey: ['nps-respostas-kpi', from?.toISOString(), to?.toISOString(), categoria],
     queryFn: async () => {
       let q = supabase.from('nps_respostas').select('categoria, unidade_id');
-      q = q.eq('unidade_id', unidade);
       if (categoria !== 'todas') q = q.eq('categoria', categoria);
       if (from) q = q.gte('created_at', from.toISOString());
       if (to) q = q.lte('created_at', to.toISOString());
@@ -164,12 +163,12 @@ export default function NpsRespostas() {
         total: n,
       };
     };
-    const porUnidade = unidades.filter((u) => u.id === unidade).map((u) => ({
+    const porUnidade = unidades.map((u) => ({
       unidade: u,
       stats: calc(kpiRows.filter((r) => r.unidade_id === u.id)),
     }));
     return { geral: calc(kpiRows), porUnidade, total };
-  }, [kpiRows, unidades, unidade]);
+  }, [kpiRows, unidades]);
 
   return (
     <Layout>
