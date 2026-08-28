@@ -2596,6 +2596,7 @@ export type Database = {
       }
       nps_respostas: {
         Row: {
+          acao_corretiva: string | null
           categoria: string | null
           comentario: string | null
           created_at: string
@@ -2609,12 +2610,15 @@ export type Database = {
           nota_nps: number
           pontos_melhoria: string[]
           pontos_positivos: string[]
+          prazo: string | null
+          status: string
           tempo_aluno: string
           unidade_id: string | null
           unidade_nome: string
           whatsapp: string
         }
         Insert: {
+          acao_corretiva?: string | null
           categoria?: string | null
           comentario?: string | null
           created_at?: string
@@ -2628,12 +2632,15 @@ export type Database = {
           nota_nps: number
           pontos_melhoria?: string[]
           pontos_positivos?: string[]
+          prazo?: string | null
+          status?: string
           tempo_aluno: string
           unidade_id?: string | null
           unidade_nome: string
           whatsapp: string
         }
         Update: {
+          acao_corretiva?: string | null
           categoria?: string | null
           comentario?: string | null
           created_at?: string
@@ -2647,6 +2654,8 @@ export type Database = {
           nota_nps?: number
           pontos_melhoria?: string[]
           pontos_positivos?: string[]
+          prazo?: string | null
+          status?: string
           tempo_aluno?: string
           unidade_id?: string | null
           unidade_nome?: string
