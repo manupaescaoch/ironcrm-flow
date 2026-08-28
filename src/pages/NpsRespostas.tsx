@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { Star, CalendarIcon, Loader2 } from 'lucide-react';
+import { Star, CalendarIcon, Loader2, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -52,6 +53,7 @@ function StarsInline({ value }: { value: number }) {
 }
 
 export default function NpsRespostas() {
+  const navigate = useNavigate();
   const { unidadeAtual } = useUnidade();
   const [unidade, setUnidade] = useState<string>(unidadeAtual?.id ?? '');
 
@@ -217,55 +219,39 @@ export default function NpsRespostas() {
             ) : respostas.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground text-sm">Nenhuma avaliação no período.</div>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {respostas.map((r) => (
-                  <button
-                    key={r.id}
-                    onClick={() => setSelected(r)}
-                    className="text-left rounded-lg border bg-card p-4 hover:border-primary/50 hover:shadow-sm transition-all"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
+              <div className="divide-y rounded-lg border">
+                {respostas.map((r) => {
+                  const resumo = r.comentario?.trim()
+                    ? r.comentario.trim()
+                    : r.pontos_melhoria?.length
+                      ? `Melhorar: ${r.pontos_melhoria.join(', ')}`
+                      : r.pontos_positivos?.length
+                        ? `Destaques: ${r.pontos_positivos.slice(0, 3).join(', ')}`
+                        : 'Sem comentários';
+                  return (
+                    <button
+                      key={r.id}
+                      onClick={() => navigate(`/nps/respostas/${r.id}`)}
+                      className="w-full text-left flex items-center gap-3 p-3 hover:bg-muted/50 transition-colors"
+                    >
+                      <Badge className={cn('font-bold shrink-0 w-9 justify-center', categoriaBadge(r.categoria))}>
+                        {r.nota_nps}
+                      </Badge>
+                      <div className="min-w-0 flex-1">
                         <div className="font-semibold truncate">{r.nome}</div>
                         <div className="text-xs text-muted-foreground">
                           {format(new Date(r.created_at), "dd/MM/yy 'às' HH:mm")} · {r.tempo_aluno}
                         </div>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">{resumo}</p>
                       </div>
-                      <Badge className={cn('font-bold shrink-0', categoriaBadge(r.categoria))}>{r.nota_nps}</Badge>
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
-                      <div>
-                        <div className="uppercase tracking-wide">Estrutura</div>
-                        <StarsInline value={r.estrelas_estrutura} />
-                      </div>
-                      <div>
-                        <div className="uppercase tracking-wide">Equipe</div>
-                        <StarsInline value={r.estrelas_equipe} />
-                      </div>
-                      <div>
-                        <div className="uppercase tracking-wide">Treino</div>
-                        <StarsInline value={r.estrelas_treino} />
-                      </div>
-                    </div>
-
-                    {r.comentario && (
-                      <p className="mt-3 text-xs text-muted-foreground line-clamp-2 italic">“{r.comentario}”</p>
-                    )}
-
-                    <div className="mt-3 flex flex-wrap gap-1">
-                      {r.pontos_positivos.slice(0, 3).map((p) => (
-                        <Badge key={p} variant="outline" className="text-[10px] border-success/40 text-success">{p}</Badge>
-                      ))}
-                      {r.pontos_positivos.length > 3 && (
-                        <Badge variant="outline" className="text-[10px]">+{r.pontos_positivos.length - 3}</Badge>
-                      )}
-                    </div>
-                  </button>
-                ))}
+                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                    </button>
+                  );
+                })}
               </div>
             )}
           </CardContent>
+
         </Card>
 
         <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
