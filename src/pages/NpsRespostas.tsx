@@ -166,10 +166,10 @@ export default function NpsRespostas() {
     };
     const porUnidade = unidades.filter((u) => u.id === unidade).map((u) => ({
       unidade: u,
-      stats: calc(respostas.filter((r) => r.unidade_id === u.id)),
+      stats: calc(kpiRows.filter((r) => r.unidade_id === u.id)),
     }));
-    return { geral: calc(respostas), porUnidade, total };
-  }, [respostas, unidades]);
+    return { geral: calc(kpiRows), porUnidade, total };
+  }, [kpiRows, unidades, unidade]);
 
   return (
     <Layout>
