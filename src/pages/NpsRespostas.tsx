@@ -250,7 +250,29 @@ export default function NpsRespostas() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Avaliações ({respostas.length})</CardTitle>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle className="text-base">Avaliações ({totalCount})</CardTitle>
+              <div className="flex gap-1">
+                {([
+                  ['created_at', 'Data'],
+                  ['nota_nps', 'Nota'],
+                  ['nome', 'Nome'],
+                ] as const).map(([f, label]) => (
+                  <Button
+                    key={f}
+                    variant={sortField === f ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="h-8 gap-1 text-xs"
+                    onClick={() => toggleSort(f)}
+                  >
+                    {label}
+                    {sortField === f
+                      ? (sortAsc ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)
+                      : <ArrowUpDown className="w-3 h-3 text-muted-foreground" />}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="p-4">
             {isLoading ? (
