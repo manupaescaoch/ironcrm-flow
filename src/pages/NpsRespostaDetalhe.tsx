@@ -1,13 +1,18 @@
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Star } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { ArrowLeft, Loader2, Star, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 type Resposta = {
   id: string;
@@ -25,7 +30,22 @@ type Resposta = {
   comentario: string | null;
   categoria: 'detrator' | 'passivo' | 'promotor';
   created_at: string;
+  status: 'novo' | 'em_contato' | 'concluido';
+  acao_corretiva: string | null;
+  prazo: string | null;
 };
+
+const STATUS_OPTIONS = [
+  { value: 'novo', label: 'Novo' },
+  { value: 'em_contato', label: 'Em contato' },
+  { value: 'concluido', label: 'Concluído' },
+] as const;
+
+function statusBadge(s: string) {
+  if (s === 'concluido') return 'bg-success text-success-foreground';
+  if (s === 'em_contato') return 'bg-warning text-warning-foreground';
+  return 'bg-muted text-muted-foreground';
+}
 
 function categoriaBadge(cat: string) {
   if (cat === 'promotor') return 'bg-success text-success-foreground';
@@ -56,6 +76,7 @@ export default function NpsRespostaDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  const queryClient = useQueryClient();
   const { data: resposta, isLoading } = useQuery({
     queryKey: ['nps-resposta', id],
     enabled: !!id,
@@ -64,6 +85,34 @@ export default function NpsRespostaDetalhe() {
       if (error) throw error;
       return data as Resposta | null;
     },
+  });
+
+  const [status, setStatus] = useState<string>('novo');
+  const [acaoCorretiva, setAcaoCorretiva] = useState('');
+  const [prazo, setPrazo] = useState('');
+
+  useEffect(() => {
+    if (resposta) {
+      setStatus(resposta.status ?? 'novo');
+      setAcaoCorretiva(resposta.acao_corretiva ?? '');
+      setPrazo(resposta.prazo ?? '');
+    }
+  }, [resposta]);
+
+  const salvar = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('nps_respostas')
+        .update({ status, acao_corretiva: acaoCorretiva || null, prazo: prazo || null })
+        .eq('id', id!);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nps-resposta', id] });
+      queryClient.invalidateQueries({ queryKey: ['nps-respostas'] });
+      toast.success('Acompanhamento salvo.');
+    },
+    onError: (e: any) => toast.error('Erro ao salvar: ' + (e?.message ?? 'tente novamente')),
   });
 
   return (
@@ -85,7 +134,46 @@ export default function NpsRespostaDetalhe() {
                 {resposta.nota_nps}
               </Badge>
               <Badge variant="outline" className="capitalize">{resposta.categoria}</Badge>
+              <Badge className={cn('capitalize', statusBadge(resposta.status))}>
+                {STATUS_OPTIONS.find((o) => o.value === resposta.status)?.label ?? resposta.status}
+              </Badge>
             </div>
+
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Acompanhamento do caso</CardTitle></CardHeader>
+              <CardContent className="p-4 pt-0 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Status</div>
+                    <Select value={status} onValueChange={setStatus}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {STATUS_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Prazo</div>
+                    <Input type="date" value={prazo} onChange={(e) => setPrazo(e.target.value)} />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Ação corretiva</div>
+                  <Textarea
+                    value={acaoCorretiva}
+                    onChange={(e) => setAcaoCorretiva(e.target.value)}
+                    placeholder="Descreva a ação corretiva realizada ou planejada para este caso..."
+                    rows={4}
+                  />
+                </div>
+                <Button onClick={() => salvar.mutate()} disabled={salvar.isPending} className="gap-2">
+                  {salvar.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Salvar acompanhamento
+                </Button>
+              </CardContent>
+            </Card>
 
             <Card>
               <CardContent className="p-4 grid grid-cols-2 gap-3">
