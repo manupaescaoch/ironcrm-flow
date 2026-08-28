@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { Star, CalendarIcon, Loader2, ChevronRight } from 'lucide-react';
+import { Star, CalendarIcon, Loader2, ChevronRight, ChevronLeft, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -66,6 +66,20 @@ export default function NpsRespostas() {
   const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
   const [selected, setSelected] = useState<Resposta | null>(null);
 
+  // Paginação e ordenação
+  const PAGE_SIZE = 20;
+  const [page, setPage] = useState(1);
+  type SortField = 'created_at' | 'nota_nps' | 'nome';
+  const [sortField, setSortField] = useState<SortField>('created_at');
+  const [sortAsc, setSortAsc] = useState(false);
+  const toggleSort = (f: SortField) => {
+    if (sortField === f) setSortAsc((v) => !v);
+    else { setSortField(f); setSortAsc(f === 'nome'); }
+    setPage(1);
+  };
+  // Resetar página ao mudar filtros
+  useEffect(() => { setPage(1); }, [unidade, periodo, categoria, customRange.from?.getTime(), customRange.to?.getTime()]);
+
   const { from, to } = useMemo(() => {
     if (periodo === 'custom') return { from: customRange.from, to: customRange.to };
     const days = parseInt(periodo);
@@ -88,20 +102,45 @@ export default function NpsRespostas() {
     },
   });
 
-  const { data: respostas = [], isLoading } = useQuery({
-    queryKey: ['nps-respostas', unidade, from?.toISOString(), to?.toISOString(), categoria],
+  // KPIs: busca leve de todas as respostas do período (apenas categoria/unidade)
+  const { data: kpiRows = [] } = useQuery({
+    queryKey: ['nps-respostas-kpi', unidade, from?.toISOString(), to?.toISOString(), categoria],
     enabled: !!unidade,
     queryFn: async () => {
-      let q = supabase.from('nps_respostas').select('*').order('created_at', { ascending: false });
+      let q = supabase.from('nps_respostas').select('categoria, unidade_id');
       q = q.eq('unidade_id', unidade);
       if (categoria !== 'todas') q = q.eq('categoria', categoria);
       if (from) q = q.gte('created_at', from.toISOString());
       if (to) q = q.lte('created_at', to.toISOString());
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as Resposta[];
+      return (data ?? []) as { categoria: Resposta['categoria']; unidade_id: string | null }[];
     },
   });
+
+  // Lista paginada e ordenada no servidor
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: ['nps-respostas', unidade, from?.toISOString(), to?.toISOString(), categoria, page, sortField, sortAsc],
+    enabled: !!unidade,
+    queryFn: async () => {
+      let q = supabase
+        .from('nps_respostas')
+        .select('*', { count: 'exact' })
+        .order(sortField, { ascending: sortAsc })
+        .order('created_at', { ascending: false }) // desempate estável
+        .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+      q = q.eq('unidade_id', unidade);
+      if (categoria !== 'todas') q = q.eq('categoria', categoria);
+      if (from) q = q.gte('created_at', from.toISOString());
+      if (to) q = q.lte('created_at', to.toISOString());
+      const { data, error, count } = await q;
+      if (error) throw error;
+      return { rows: (data ?? []) as Resposta[], total: count ?? 0 };
+    },
+  });
+  const respostas = pageData?.rows ?? [];
+  const totalCount = pageData?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const unidadeNomeById = useMemo(() => {
     const m = new Map<string, string>();
@@ -110,8 +149,8 @@ export default function NpsRespostas() {
   }, [unidades]);
 
   const kpis = useMemo(() => {
-    const total = respostas.length;
-    const calc = (list: Resposta[]) => {
+    const total = kpiRows.length;
+    const calc = (list: typeof kpiRows) => {
       const n = list.length;
       if (!n) return { nps: 0, prom: 0, pas: 0, det: 0, total: 0 };
       const prom = list.filter((r) => r.categoria === 'promotor').length;
@@ -127,10 +166,10 @@ export default function NpsRespostas() {
     };
     const porUnidade = unidades.filter((u) => u.id === unidade).map((u) => ({
       unidade: u,
-      stats: calc(respostas.filter((r) => r.unidade_id === u.id)),
+      stats: calc(kpiRows.filter((r) => r.unidade_id === u.id)),
     }));
-    return { geral: calc(respostas), porUnidade, total };
-  }, [respostas, unidades]);
+    return { geral: calc(kpiRows), porUnidade, total };
+  }, [kpiRows, unidades, unidade]);
 
   return (
     <Layout>
@@ -211,7 +250,29 @@ export default function NpsRespostas() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Avaliações ({respostas.length})</CardTitle>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle className="text-base">Avaliações ({totalCount})</CardTitle>
+              <div className="flex gap-1">
+                {([
+                  ['created_at', 'Data'],
+                  ['nota_nps', 'Nota'],
+                  ['nome', 'Nome'],
+                ] as const).map(([f, label]) => (
+                  <Button
+                    key={f}
+                    variant={sortField === f ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="h-8 gap-1 text-xs"
+                    onClick={() => toggleSort(f)}
+                  >
+                    {label}
+                    {sortField === f
+                      ? (sortAsc ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)
+                      : <ArrowUpDown className="w-3 h-3 text-muted-foreground" />}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="p-4">
             {isLoading ? (
@@ -248,6 +309,33 @@ export default function NpsRespostas() {
                     </button>
                   );
                 })}
+              </div>
+            )}
+            {totalCount > PAGE_SIZE && (
+              <div className="flex items-center justify-between pt-3">
+                <span className="text-xs text-muted-foreground">
+                  Página {page} de {totalPages} · {totalCount} avaliações
+                </span>
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  >
+                    <ChevronLeft className="w-4 h-4" /> Anterior
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  >
+                    Próxima <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
