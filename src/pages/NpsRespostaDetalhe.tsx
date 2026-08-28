@@ -134,7 +134,46 @@ export default function NpsRespostaDetalhe() {
                 {resposta.nota_nps}
               </Badge>
               <Badge variant="outline" className="capitalize">{resposta.categoria}</Badge>
+              <Badge className={cn('capitalize', statusBadge(resposta.status))}>
+                {STATUS_OPTIONS.find((o) => o.value === resposta.status)?.label ?? resposta.status}
+              </Badge>
             </div>
+
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Acompanhamento do caso</CardTitle></CardHeader>
+              <CardContent className="p-4 pt-0 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Status</div>
+                    <Select value={status} onValueChange={setStatus}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {STATUS_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Prazo</div>
+                    <Input type="date" value={prazo} onChange={(e) => setPrazo(e.target.value)} />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Ação corretiva</div>
+                  <Textarea
+                    value={acaoCorretiva}
+                    onChange={(e) => setAcaoCorretiva(e.target.value)}
+                    placeholder="Descreva a ação corretiva realizada ou planejada para este caso..."
+                    rows={4}
+                  />
+                </div>
+                <Button onClick={() => salvar.mutate()} disabled={salvar.isPending} className="gap-2">
+                  {salvar.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Salvar acompanhamento
+                </Button>
+              </CardContent>
+            </Card>
 
             <Card>
               <CardContent className="p-4 grid grid-cols-2 gap-3">
