@@ -54,27 +54,53 @@ const RODAPE_REGRAS =
   `• Casos graves ou sem solução imediata devem ser escalados para a gerência;\n` +
   `• O NPS não termina na leitura da nota. Ele termina quando a ação foi realizada e acompanhada.`;
 
-function montarMensagemCoordenador(
-  classificacao: string,
-  nome: string,
-  unidade: string,
-  nota: number,
-  comentario: string,
-  alunoPhone: string,
-): string {
+interface NpsRespostaCompleta {
+  classificacao: string;
+  nome: string;
+  unidade: string;
+  nota: number;
+  comentario: string;
+  alunoPhone: string;
+  estrelas_estrutura?: number | null;
+  estrelas_equipe?: number | null;
+  estrelas_treino?: number | null;
+  pontos_positivos?: string[] | null;
+  pontos_melhoria?: string[] | null;
+  tempo_aluno?: string | null;
+}
+
+function stars(n?: number | null): string {
+  if (n === null || n === undefined) return '—';
+  return `${n}/5`;
+}
+
+function montarMensagemCoordenador(r: NpsRespostaCompleta): string {
+  const { classificacao, nome, unidade, nota, comentario, alunoPhone } = r;
   const primeiroNomeAluno = (nome || '').trim().split(/\s+/)[0] || nome || 'aluno';
   const unidadeLabel = unidade || '—';
   const linkWhatsapp = `https://wa.me/${alunoPhone}`;
   const coord = '[SEU NOME]';
+
+  const positivos = (r.pontos_positivos || []).filter(Boolean);
+  const melhorias = (r.pontos_melhoria || []).filter(Boolean);
 
   const cabecalho =
     `🟦 *NOVA RESPOSTA NPS — EVO TRAINING CLUB*\n\n` +
     `📍 *Unidade:* ${unidadeLabel}\n` +
     `👤 *Aluno:* ${nome}\n` +
     `📞 *Contato:* ${alunoPhone}\n` +
+    `🕐 *Tempo de aluno:* ${r.tempo_aluno || '—'}\n` +
     `⭐ *Nota NPS:* ${nota}\n` +
-    `📊 *Classificação:* ${classificacao}\n` +
-    `💬 *Comentário:* ${comentario || 'Não deixou comentário'}\n`;
+    `📊 *Classificação:* ${classificacao}\n\n` +
+    `*AVALIAÇÕES (0 a 5)*\n` +
+    `🏋️ *Estrutura:* ${stars(r.estrelas_estrutura)}\n` +
+    `🤝 *Equipe:* ${stars(r.estrelas_equipe)}\n` +
+    `💪 *Treino:* ${stars(r.estrelas_treino)}\n\n` +
+    `✅ *Pontos positivos:*\n` +
+    (positivos.length ? positivos.map((p) => `• ${p}`).join('\n') : '• Nenhum marcado') +
+    `\n\n⚠️ *Pontos de melhoria:*\n` +
+    (melhorias.length ? melhorias.map((p) => `• ${p}`).join('\n') : '• Nenhum marcado') +
+    `\n\n💬 *Comentário:* ${comentario || 'Não deixou comentário'}\n`;
 
   let bloco = '';
 
