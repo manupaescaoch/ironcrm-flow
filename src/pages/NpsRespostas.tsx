@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { Star, CalendarIcon, Loader2 } from 'lucide-react';
+import { Star, CalendarIcon, Loader2, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -52,6 +53,7 @@ function StarsInline({ value }: { value: number }) {
 }
 
 export default function NpsRespostas() {
+  const navigate = useNavigate();
   const { unidadeAtual } = useUnidade();
   const [unidade, setUnidade] = useState<string>(unidadeAtual?.id ?? '');
 

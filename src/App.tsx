@@ -50,6 +50,7 @@ import GestaoOperacional from "./pages/GestaoOperacional";
 import Reunioes from "./pages/Reunioes";
 import NpsPublico from "./pages/NpsPublico";
 import NpsRespostas from "./pages/NpsRespostas";
+import NpsRespostaDetalhe from "./pages/NpsRespostaDetalhe";
 import NpsDashboard from "./pages/NpsDashboard";
 import NpsCrm from "./pages/NpsCrm";
 import NotFound from "./pages/NotFound";
@@ -196,6 +197,7 @@ const AppRoutes = () => (
     <Route path="/nps" element={<NpsPublico />} />
     <Route path="/formulario/:id" element={<FormularioPublico />} />
     <Route path="/nps/respostas" element={<AdminOrCoordenadorRoute><NpsRespostas /></AdminOrCoordenadorRoute>} />
+    <Route path="/nps/respostas/:id" element={<AdminOrCoordenadorRoute><NpsRespostaDetalhe /></AdminOrCoordenadorRoute>} />
     <Route path="/nps/dashboard" element={<AdminOrCoordenadorRoute><NpsDashboard /></AdminOrCoordenadorRoute>} />
     <Route path="/nps/crm" element={<AdminOrCoordenadorRoute><NpsCrm /></AdminOrCoordenadorRoute>} />
 
