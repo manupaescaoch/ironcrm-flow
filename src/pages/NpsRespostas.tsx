@@ -102,20 +102,45 @@ export default function NpsRespostas() {
     },
   });
 
-  const { data: respostas = [], isLoading } = useQuery({
-    queryKey: ['nps-respostas', unidade, from?.toISOString(), to?.toISOString(), categoria],
+  // KPIs: busca leve de todas as respostas do período (apenas categoria/unidade)
+  const { data: kpiRows = [] } = useQuery({
+    queryKey: ['nps-respostas-kpi', unidade, from?.toISOString(), to?.toISOString(), categoria],
     enabled: !!unidade,
     queryFn: async () => {
-      let q = supabase.from('nps_respostas').select('*').order('created_at', { ascending: false });
+      let q = supabase.from('nps_respostas').select('categoria, unidade_id');
       q = q.eq('unidade_id', unidade);
       if (categoria !== 'todas') q = q.eq('categoria', categoria);
       if (from) q = q.gte('created_at', from.toISOString());
       if (to) q = q.lte('created_at', to.toISOString());
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as Resposta[];
+      return (data ?? []) as { categoria: Resposta['categoria']; unidade_id: string | null }[];
     },
   });
+
+  // Lista paginada e ordenada no servidor
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: ['nps-respostas', unidade, from?.toISOString(), to?.toISOString(), categoria, page, sortField, sortAsc],
+    enabled: !!unidade,
+    queryFn: async () => {
+      let q = supabase
+        .from('nps_respostas')
+        .select('*', { count: 'exact' })
+        .order(sortField, { ascending: sortAsc })
+        .order('created_at', { ascending: false }) // desempate estável
+        .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+      q = q.eq('unidade_id', unidade);
+      if (categoria !== 'todas') q = q.eq('categoria', categoria);
+      if (from) q = q.gte('created_at', from.toISOString());
+      if (to) q = q.lte('created_at', to.toISOString());
+      const { data, error, count } = await q;
+      if (error) throw error;
+      return { rows: (data ?? []) as Resposta[], total: count ?? 0 };
+    },
+  });
+  const respostas = pageData?.rows ?? [];
+  const totalCount = pageData?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const unidadeNomeById = useMemo(() => {
     const m = new Map<string, string>();
