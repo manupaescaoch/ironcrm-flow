@@ -272,14 +272,20 @@ Deno.serve(async (req) => {
     };
 
     // Mensagem única (detalhada) enviada apenas ao GRUPO da unidade
-    const msgGrupo = montarMensagemCoordenador(
+    const msgGrupo = montarMensagemCoordenador({
       classificacao,
-      resp.nome,
-      resp.unidade_nome || '',
+      nome: resp.nome,
+      unidade: resp.unidade_nome || '',
       nota,
       comentario,
       alunoPhone,
-    );
+      estrelas_estrutura: resp.estrelas_estrutura,
+      estrelas_equipe: resp.estrelas_equipe,
+      estrelas_treino: resp.estrelas_treino,
+      pontos_positivos: resp.pontos_positivos,
+      pontos_melhoria: resp.pontos_melhoria,
+      tempo_aluno: resp.tempo_aluno,
+    });
 
     // Não há mais envio individual ao coordenador — tudo é consolidado no grupo
     log.interna_status = 'skip';
