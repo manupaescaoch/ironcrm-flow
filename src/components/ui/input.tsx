@@ -4,15 +4,19 @@ import { cn } from "@/lib/utils";
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, onChange, ...props }, ref) => {
+    const noUppercase =
+      (props as Record<string, unknown>)["data-no-uppercase"] !== undefined ||
+      props.autoComplete === "current-password" ||
+      props.autoComplete === "new-password";
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       // Convert to uppercase for text inputs (not for email, password, etc.)
-      if (type !== "email" && type !== "password" && type !== "number" && type !== "date" && type !== "time" && type !== "datetime-local") {
+      if (!noUppercase && type !== "email" && type !== "password" && type !== "number" && type !== "date" && type !== "time" && type !== "datetime-local") {
         e.target.value = e.target.value.toUpperCase();
       }
       onChange?.(e);
     };
 
-    const isTextInput = type !== "email" && type !== "password" && type !== "number" && type !== "date" && type !== "time" && type !== "datetime-local";
+    const isTextInput = !noUppercase && type !== "email" && type !== "password" && type !== "number" && type !== "date" && type !== "time" && type !== "datetime-local";
 
     return (
       <input
