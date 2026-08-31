@@ -235,9 +235,9 @@ const AppRoutes = () => (
     <Route
       path="/dashboard-executivo"
       element={
-        <AdminRoute>
+        <AdminOrCoordenadorRoute>
           <DashboardExecutivo />
-        </AdminRoute>
+        </AdminOrCoordenadorRoute>
       }
     />
     <Route
@@ -404,9 +404,9 @@ const AppRoutes = () => (
     <Route
       path="/gestao-operacional"
       element={
-        <AdminRoute>
+        <AdminOrCoordenadorRoute>
           <GestaoOperacional />
-        </AdminRoute>
+        </AdminOrCoordenadorRoute>
       }
     />
     <Route path="*" element={<NotFound />} />

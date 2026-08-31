@@ -58,8 +58,8 @@ const allNavItems = [
 
   { href: '/contas-pagar', label: 'Contas a Pagar', icon: Wallet, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false, isNew: true },
   { href: '/tarefas', label: 'Tarefas', icon: CheckSquare, roles: ['admin', 'recepcao', 'comercial', 'coordenador'], masterOnly: false },
-  { href: '/dashboard-executivo', label: 'Executivo', icon: BarChart3, roles: ['admin'], masterOnly: false },
-  { href: '/gestao-operacional', label: 'Gestão Operacional', icon: Building2, roles: ['admin'], masterOnly: false },
+  { href: '/dashboard-executivo', label: 'Executivo', icon: BarChart3, roles: ['admin', 'coordenador'], masterOnly: false },
+  { href: '/gestao-operacional', label: 'Gestão Operacional', icon: Building2, roles: ['admin', 'coordenador'], masterOnly: false },
   { href: '/backups', label: 'Backups', icon: Database, roles: ['admin'], masterOnly: false },
   { href: '/admin/cronograma-automacoes', label: 'Automações', icon: Zap, roles: ['admin'], masterOnly: false, isNew: true },
   { href: '/admin-users', label: 'Usuários', icon: Settings, roles: ['admin'], masterOnly: true },

@@ -119,9 +119,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Permission helpers
   const isAdmin = userRole === 'admin';
   const isCoordenador = userRole === 'coordenador';
-  const canAccessExecutivo = userRole === 'admin';
+  const canAccessExecutivo = userRole === 'admin' || userRole === 'coordenador';
   const canAccessComissoes = !!userRole;
-  const canAccessRelatorio = userRole === 'admin';
+  const canAccessRelatorio = userRole === 'admin' || userRole === 'coordenador';
   const canAccessAdminUsers = userRole === 'admin';
   const canEditEscala = !!userRole;
 
