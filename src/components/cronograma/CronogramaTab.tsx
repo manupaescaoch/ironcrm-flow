@@ -69,7 +69,7 @@ function rotinaAppliesOnDay(rotina: Rotina, dayKey: string): boolean {
 }
 
 export function CronogramaTab() {
-  const { atividades, isLoading, createAtividade, updateAtividade, bulkUpdateAtividades, bulkDeleteAtividades, deleteAtividade } = useCronogramaAtividades();
+  const { atividades, isLoading, createAtividade, updateAtividade, bulkUpdateAtividades, cancelAtividades } = useCronogramaAtividades();
   const { ativos: funcionarios } = useCronogramaFuncionarios();
   const { data: formularios } = useFormularios();
   const { unidadeId } = useUnidadeFilter();
