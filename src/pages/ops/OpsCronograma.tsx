@@ -37,6 +37,7 @@ export default function OpsCronograma() {
   const dias = useMemo(() => proximosDias(7), []);
   const [diaIdx, setDiaIdx] = useState(0);
   const [escopo, setEscopo] = useState<OpsEscopo>('unidade');
+  const escopoAmploLabel = useOpsEscopoLabel();
   const dia = dias[diaIdx];
   const { tarefas, temVinculo, isLoading, refetch } = useOpsMeuDia(escopo, dia);
   const [selecionada, setSelecionada] = useState<OpsTarefaDoDia | null>(null);

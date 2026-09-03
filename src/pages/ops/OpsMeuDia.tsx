@@ -25,6 +25,7 @@ function ResumoCard({ label, value, tone }: { label: string; value: number; tone
 export default function OpsMeuDia() {
   const { userName } = useAuth();
   const [escopo, setEscopo] = useState<OpsEscopo>('minhas');
+  const escopoAmploLabel = useOpsEscopoLabel();
   const hoje = useMemo(() => new Date(), []);
   const { tarefas, resumo, temVinculo, isLoading, refetch } = useOpsMeuDia(escopo, hoje);
   const [selecionada, setSelecionada] = useState<OpsTarefaDoDia | null>(null);

@@ -42,6 +42,7 @@ function Chip({ ativo, onClick, children }: { ativo: boolean; onClick: () => voi
 export default function OpsTarefas() {
   const hoje = useMemo(() => new Date(), []);
   const [escopo, setEscopo] = useState<OpsEscopo>('minhas');
+  const escopoAmploLabel = useOpsEscopoLabel();
   const { tarefas, temVinculo, isLoading, refetch } = useOpsMeuDia(escopo, hoje);
   const [busca, setBusca] = useState('');
   const [status, setStatus] = useState<OpsStatus | 'todas'>('todas');
