@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     console.log(`User ${user.id} (${user.email}) authenticated successfully`);
 
     // 4. Check if user has an allowed role (admin, comercial, coordenador)
-    const allowedRoles = ['admin', 'user', 'coordenador'] as const;
+    const allowedRoles = ['admin', 'user', 'coordenador', 'gerente'] as const;
     let hasAccess = false;
     
     for (const role of allowedRoles) {
@@ -149,6 +149,7 @@ Deno.serve(async (req) => {
         else if (ur.role === 'moderator') displayRole = 'recepcao';
         else if (ur.role === 'user') displayRole = 'comercial';
         else if (ur.role === 'coordenador') displayRole = 'coordenador';
+        else if (ur.role === 'gerente') displayRole = 'gerente';
         if (displayRole) roleMap.set(ur.user_id, displayRole);
       });
     }
