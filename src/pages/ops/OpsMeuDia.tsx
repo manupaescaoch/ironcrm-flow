@@ -1,3 +1,4 @@
+import { useOpsEscopoLabel } from '@/hooks/useOpsEscopoLabel';
 import { useMemo, useState } from 'react';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import { OpsLayout } from '@/components/ops/OpsLayout';
@@ -24,6 +25,7 @@ function ResumoCard({ label, value, tone }: { label: string; value: number; tone
 export default function OpsMeuDia() {
   const { userName } = useAuth();
   const [escopo, setEscopo] = useState<OpsEscopo>('minhas');
+  const escopoAmploLabel = useOpsEscopoLabel();
   const hoje = useMemo(() => new Date(), []);
   const { tarefas, resumo, temVinculo, isLoading, refetch } = useOpsMeuDia(escopo, hoje);
   const [selecionada, setSelecionada] = useState<OpsTarefaDoDia | null>(null);
@@ -62,7 +64,7 @@ export default function OpsMeuDia() {
                   escopo === op ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground',
                 )}
               >
-                {op === 'minhas' ? 'Minhas tarefas' : 'Toda a unidade'}
+                {op === 'minhas' ? 'Minhas tarefas' : escopoAmploLabel}
               </button>
             ))}
           </div>

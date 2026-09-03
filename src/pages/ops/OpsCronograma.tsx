@@ -1,3 +1,4 @@
+import { useOpsEscopoLabel } from '@/hooks/useOpsEscopoLabel';
 import { useMemo, useState } from 'react';
 import { Loader2, CalendarDays } from 'lucide-react';
 import { OpsLayout } from '@/components/ops/OpsLayout';
@@ -36,6 +37,7 @@ export default function OpsCronograma() {
   const dias = useMemo(() => proximosDias(7), []);
   const [diaIdx, setDiaIdx] = useState(0);
   const [escopo, setEscopo] = useState<OpsEscopo>('unidade');
+  const escopoAmploLabel = useOpsEscopoLabel();
   const dia = dias[diaIdx];
   const { tarefas, temVinculo, isLoading, refetch } = useOpsMeuDia(escopo, dia);
   const [selecionada, setSelecionada] = useState<OpsTarefaDoDia | null>(null);
@@ -89,7 +91,7 @@ export default function OpsCronograma() {
                   escopo === op ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground',
                 )}
               >
-                {op === 'minhas' ? 'Minhas tarefas' : 'Toda a unidade'}
+                {op === 'minhas' ? 'Minhas tarefas' : escopoAmploLabel}
               </button>
             ))}
           </div>

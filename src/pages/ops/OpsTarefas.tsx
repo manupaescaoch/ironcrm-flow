@@ -1,3 +1,4 @@
+import { useOpsEscopoLabel } from '@/hooks/useOpsEscopoLabel';
 import { useMemo, useState } from 'react';
 import { Loader2, Search, ListChecks } from 'lucide-react';
 import { OpsLayout } from '@/components/ops/OpsLayout';
@@ -41,6 +42,7 @@ function Chip({ ativo, onClick, children }: { ativo: boolean; onClick: () => voi
 export default function OpsTarefas() {
   const hoje = useMemo(() => new Date(), []);
   const [escopo, setEscopo] = useState<OpsEscopo>('minhas');
+  const escopoAmploLabel = useOpsEscopoLabel();
   const { tarefas, temVinculo, isLoading, refetch } = useOpsMeuDia(escopo, hoje);
   const [busca, setBusca] = useState('');
   const [status, setStatus] = useState<OpsStatus | 'todas'>('todas');
@@ -100,7 +102,7 @@ export default function OpsTarefas() {
                   escopo === op ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground',
                 )}
               >
-                {op === 'minhas' ? 'Minhas tarefas' : 'Toda a unidade'}
+                {op === 'minhas' ? 'Minhas tarefas' : escopoAmploLabel}
               </button>
             ))}
           </div>
