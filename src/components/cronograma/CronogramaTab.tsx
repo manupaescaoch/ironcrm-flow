@@ -730,25 +730,35 @@ export function CronogramaTab() {
           </DialogContent>
         </Dialog>
 
-        {/* Delete Confirm Dialog */}
-        <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        {/* Cancel Activity Dialog (motivo obrigatório) */}
+        <Dialog open={cancelTargets.length > 0} onOpenChange={(o) => { if (!o) { setCancelTargets([]); setCancelMotivo(''); } }}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Excluir atividade{selectedCount > 1 ? 's' : ''}?</DialogTitle>
+              <DialogTitle>Cancelar atividade{cancelTargets.length > 1 ? 's' : ''}?</DialogTitle>
               <DialogDescription>
-                {selectedCount === 1
-                  ? 'Deseja excluir a atividade selecionada? Esta ação não pode ser desfeita.'
-                  : `Deseja excluir as ${selectedCount} atividades selecionadas? Esta ação não pode ser desfeita.`}
+                {cancelTargets.length === 1
+                  ? 'A atividade não será excluída: ela fica registrada como cancelada no histórico.'
+                  : `As ${cancelTargets.length} atividades não serão excluídas: ficam registradas como canceladas no histórico.`}
               </DialogDescription>
             </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="motivo-cancelamento">Motivo do cancelamento *</Label>
+              <Textarea
+                id="motivo-cancelamento"
+                value={cancelMotivo}
+                onChange={(e) => setCancelMotivo(e.target.value)}
+                placeholder="Descreva o motivo do cancelamento"
+                rows={3}
+              />
+            </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDeleteConfirmOpen(false)}
-                disabled={deleteAtividade.isPending || bulkDeleteAtividades.isPending}>
-                Cancelar
+              <Button type="button" variant="outline" onClick={() => { setCancelTargets([]); setCancelMotivo(''); }}
+                disabled={cancelAtividades.isPending}>
+                Voltar
               </Button>
-              <Button type="button" variant="destructive" onClick={handleBulkDelete}
-                disabled={deleteAtividade.isPending || bulkDeleteAtividades.isPending}>
-                {deleteAtividade.isPending || bulkDeleteAtividades.isPending ? 'Excluindo...' : 'Excluir'}
+              <Button type="button" variant="destructive" onClick={handleConfirmCancel}
+                disabled={cancelAtividades.isPending || !cancelMotivo.trim()}>
+                {cancelAtividades.isPending ? 'Cancelando...' : 'Confirmar cancelamento'}
               </Button>
             </DialogFooter>
           </DialogContent>
