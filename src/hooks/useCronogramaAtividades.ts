@@ -15,9 +15,18 @@ export interface CronogramaAtividade {
   ativo: boolean;
   created_at: string;
   updated_at: string;
+  descricao?: string | null;
+  instrucao?: string | null;
+  setor?: string | null;
+  prioridade?: string | null;
+  status?: string | null;
+  prazo?: string | null;
+  exige_evidencia?: boolean | null;
+  exige_confirmacao?: boolean | null;
   cronograma_funcionarios?: { nome: string } | null;
   formularios?: { titulo: string } | null;
 }
+
 
 export function useCronogramaAtividades() {
   const { unidadeId, hasUnidade } = useUnidadeFilter();

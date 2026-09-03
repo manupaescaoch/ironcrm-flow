@@ -26,6 +26,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { CronogramaAtividade } from '@/hooks/useCronogramaAtividades';
 import { ReplicarCronogramaModal } from './ReplicarCronogramaModal';
+import { Separator } from '@/components/ui/separator';
+import { AtividadeExecucaoPanel } from '@/components/ops/AtividadeExecucaoPanel';
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const DAY_LABELS = ['DOM.', 'SEG.', 'TER.', 'QUA.', 'QUI.', 'SEX.', 'SÁB.'];
@@ -929,7 +931,7 @@ function CronogramaEventPopup({ atividade, date, funcionarios, formularios, onEd
     <>
       <div className="fixed inset-0 z-40" />
       <div ref={popupRef}
-        className="fixed z-50 bg-popover border rounded-xl shadow-xl w-[360px] max-w-[90vw] overflow-hidden animate-in fade-in-0 zoom-in-95"
+        className="fixed z-50 bg-popover border rounded-xl shadow-xl w-[420px] max-w-[92vw] max-h-[85vh] overflow-y-auto animate-in fade-in-0 zoom-in-95"
         style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
         <div className="flex items-center justify-end gap-1 px-3 pt-3">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
@@ -982,6 +984,19 @@ function CronogramaEventPopup({ atividade, date, funcionarios, formularios, onEd
               </span>
             </div>
           )}
+
+          <Separator />
+
+          <AtividadeExecucaoPanel
+            atividadeId={atividade.id}
+            unidadeId={atividade.unidade_id}
+            data={date}
+            horario={atividade.horario}
+            prazo={atividade.prazo ?? null}
+            exigeEvidencia={!!atividade.exige_evidencia}
+            exigeConfirmacao={!!atividade.exige_confirmacao}
+            instrucao={atividade.instrucao ?? null}
+          />
         </div>
       </div>
     </>
