@@ -221,7 +221,7 @@ const AppRoutes = () => (
     <Route path="/ops" element={<ProtectedRoute><OpsMeuDia /></ProtectedRoute>} />
     <Route path="/ops/cronograma" element={<ProtectedRoute><OpsCronograma /></ProtectedRoute>} />
     <Route path="/ops/tarefas" element={<ProtectedRoute><OpsTarefas /></ProtectedRoute>} />
-    <Route path="/ops/alertas" element={<ProtectedRoute><OpsAlertas /></ProtectedRoute>} /></ProtectedRoute>} />
+    <Route path="/ops/alertas" element={<ProtectedRoute><OpsAlertas /></ProtectedRoute>} />
     <Route path="/anamnese-publica/:id" element={<AnamnesePublica />} />
     <Route path="/" element={<Navigate to="/dashboard" replace />} />
     <Route
