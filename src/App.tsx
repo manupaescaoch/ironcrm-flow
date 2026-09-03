@@ -48,7 +48,7 @@ import DashboardOperacional from "./pages/DashboardOperacional";
 import OpsMeuDia from "./pages/ops/OpsMeuDia";
 import OpsCronograma from "./pages/ops/OpsCronograma";
 import OpsTarefas from "./pages/ops/OpsTarefas";
-import OpsEmBreve from "./pages/ops/OpsEmBreve";
+import OpsAlertas from "./pages/ops/OpsAlertas";
 
 import GestaoOperacional from "./pages/GestaoOperacional";
 import Reunioes from "./pages/Reunioes";
@@ -221,7 +221,7 @@ const AppRoutes = () => (
     <Route path="/ops" element={<ProtectedRoute><OpsMeuDia /></ProtectedRoute>} />
     <Route path="/ops/cronograma" element={<ProtectedRoute><OpsCronograma /></ProtectedRoute>} />
     <Route path="/ops/tarefas" element={<ProtectedRoute><OpsTarefas /></ProtectedRoute>} />
-    <Route path="/ops/alertas" element={<ProtectedRoute><OpsEmBreve titulo="Alertas" descricao="A central de notificações será ativada em seguida." /></ProtectedRoute>} />
+    <Route path="/ops/alertas" element={<ProtectedRoute><OpsAlertas /></ProtectedRoute>} /></ProtectedRoute>} />
     <Route path="/anamnese-publica/:id" element={<AnamnesePublica />} />
     <Route path="/" element={<Navigate to="/dashboard" replace />} />
     <Route
