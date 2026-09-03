@@ -1,11 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Loader2, Clock, User, Paperclip, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Loader2, CheckCircle2 } from 'lucide-react';
 import { OpsLayout } from '@/components/ops/OpsLayout';
-import { OpsStatusBadge } from '@/components/ops/OpsStatusBadge';
-import { AtividadeExecucaoPanel } from '@/components/ops/AtividadeExecucaoPanel';
+import { OpsTarefaRow, OpsTarefaSheet } from '@/components/ops/OpsTarefaItem';
 import { useOpsMeuDia, type OpsEscopo, type OpsTarefaDoDia } from '@/hooks/useOpsMeuDia';
 import { useAuth } from '@/contexts/AuthContext';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
 function saudacao(hora: number) {
@@ -14,67 +12,12 @@ function saudacao(hora: number) {
   return 'Boa noite';
 }
 
-const PRIORIDADE_LABEL: Record<string, string> = {
-  baixa: 'Baixa',
-  normal: 'Normal',
-  alta: 'Alta',
-  critica: 'Crítica',
-};
-
-const PRIORIDADE_DOT: Record<string, string> = {
-  baixa: 'bg-emerald-500',
-  normal: 'bg-primary',
-  alta: 'bg-amber-500',
-  critica: 'bg-destructive',
-};
-
 function ResumoCard({ label, value, tone }: { label: string; value: number; tone?: string }) {
   return (
     <div className="rounded-2xl bg-card p-3 shadow-sm">
       <p className={cn('text-2xl font-semibold tabular-nums', tone)}>{value}</p>
       <p className="mt-0.5 text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
     </div>
-  );
-}
-
-function TarefaRow({ tarefa, onClick }: { tarefa: OpsTarefaDoDia; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-2xl bg-card p-4 text-left shadow-sm transition-colors hover:bg-accent/40"
-    >
-      <div className="w-14 shrink-0">
-        <p className="text-sm font-semibold tabular-nums">{tarefa.horario ? tarefa.horario.slice(0, 5) : '--:--'}</p>
-        <span className={cn('mt-1 block h-1.5 w-1.5 rounded-full', PRIORIDADE_DOT[tarefa.prioridade || 'normal'])} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{tarefa.titulo}</p>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-          {tarefa.responsavel_nome && (
-            <span className="inline-flex items-center gap-1">
-              <User className="h-3 w-3" /> {tarefa.responsavel_nome}
-            </span>
-          )}
-          {tarefa.setor && <span>{tarefa.setor}</span>}
-          {tarefa.prazo && (
-            <span className="inline-flex items-center gap-1">
-              <Clock className="h-3 w-3" /> até {tarefa.prazo.slice(0, 5)}
-            </span>
-          )}
-          {tarefa.exige_evidencia && (
-            <span className="inline-flex items-center gap-1">
-              <Paperclip className="h-3 w-3" /> evidência
-            </span>
-          )}
-          {tarefa.prioridade === 'critica' && <span className="font-medium text-destructive">Crítica</span>}
-        </div>
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <OpsStatusBadge status={tarefa.status} />
-        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-      </div>
-    </button>
   );
 }
 
@@ -139,55 +82,20 @@ export default function OpsMeuDia() {
         ) : (
           <div className="space-y-2">
             {tarefas.map((t) => (
-              <TarefaRow key={t.id} tarefa={t} onClick={() => setSelecionada(t)} />
+              <OpsTarefaRow key={t.id} tarefa={t} onClick={() => setSelecionada(t)} />
             ))}
           </div>
         )}
       </div>
 
-      {/* Detalhe da tarefa */}
-      <Sheet
-        open={!!selecionada}
-        onOpenChange={(o) => {
-          if (!o) {
-            setSelecionada(null);
-            refetch();
-          }
+      <OpsTarefaSheet
+        tarefa={selecionada}
+        data={hoje}
+        onClose={() => {
+          setSelecionada(null);
+          refetch();
         }}
-      >
-        <SheetContent side="bottom" className="ops-theme max-h-[92vh] overflow-y-auto rounded-t-3xl">
-          {selecionada && (
-            <>
-              <SheetHeader className="text-left">
-                <SheetTitle className="pr-8 text-base">{selecionada.titulo}</SheetTitle>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                  {selecionada.horario && <span>{selecionada.horario.slice(0, 5)}</span>}
-                  {selecionada.responsavel_nome && <span>{selecionada.responsavel_nome}</span>}
-                  {selecionada.setor && <span>{selecionada.setor}</span>}
-                  <span>Prioridade: {PRIORIDADE_LABEL[selecionada.prioridade || 'normal']}</span>
-                </div>
-              </SheetHeader>
-
-              {selecionada.descricao && (
-                <p className="mt-3 whitespace-pre-line text-sm text-muted-foreground">{selecionada.descricao}</p>
-              )}
-
-              <div className="mt-4">
-                <AtividadeExecucaoPanel
-                  atividadeId={selecionada.id}
-                  unidadeId={selecionada.unidade_id}
-                  data={hoje}
-                  horario={selecionada.horario}
-                  prazo={selecionada.prazo}
-                  exigeEvidencia={selecionada.exige_evidencia}
-                  exigeConfirmacao={selecionada.exige_confirmacao}
-                  instrucao={selecionada.instrucao}
-                />
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+      />
     </OpsLayout>
   );
 }
