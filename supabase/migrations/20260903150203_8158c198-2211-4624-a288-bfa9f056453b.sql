@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.notify_ops_push_http() FROM anon, authenticated;
