@@ -83,7 +83,7 @@ export function CronogramaTab() {
     toggleExecucao, saveAtividades: saveRotinaAtividades,
   } = useRotinasData();
 
-  const canEditRotina = isAdmin || userRole === 'coordenador' || userRole === 'comercial';
+  const canEditRotina = isAdmin || userRole === 'coordenador' || userRole === 'gerente' || userRole === 'comercial';
 
   // Rotina modal state
   const [rotinaModalOpen, setRotinaModalOpen] = useState(false);
