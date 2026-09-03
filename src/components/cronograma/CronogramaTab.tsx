@@ -21,7 +21,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-import { Plus, Clock, Trash2, CalendarDays, Phone, ChevronLeft, ChevronRight, Pencil, X, FileText, User, MessageSquare, CheckSquare, Square, CheckCheck, ClipboardList, List, Copy } from 'lucide-react';
+import { Plus, Clock, Trash2, Ban, CalendarDays, Phone, ChevronLeft, ChevronRight, Pencil, X, FileText, User, MessageSquare, CheckSquare, Square, CheckCheck, ClipboardList, List, Copy } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { CronogramaAtividade } from '@/hooks/useCronogramaAtividades';
@@ -945,7 +945,7 @@ function CronogramaEventPopup({ atividade, date, funcionarios, formularios, onEd
             <Pencil className="w-4 h-4" />
           </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete}>
-            <Trash2 className="w-4 h-4" />
+            <Ban className="w-4 h-4" />
           </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
             <X className="w-4 h-4" />
@@ -1154,7 +1154,7 @@ function AtividadeEditForm({ atividade, funcionarios, unidadeUsers, formularios,
           Salvar Alterações
         </Button>
         <Button variant="destructive" onClick={onDelete} size="icon">
-          <Trash2 className="w-4 h-4" />
+          <Ban className="w-4 h-4" />
         </Button>
       </div>
     </div>
