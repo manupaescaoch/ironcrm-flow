@@ -302,7 +302,7 @@ function EditGrupoDialog({
           </div>
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 shrink-0 border-t pt-3 mt-1">
           <Button
             className="flex-1"
             disabled={loading || dias.length === 0 || !respId}

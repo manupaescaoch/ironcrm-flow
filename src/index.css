@@ -129,6 +129,31 @@ All colors MUST be HSL.
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  /* Barra de rolagem sempre visível (macOS esconde por padrão) */
+  .scrollbar-visible {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.45) transparent;
+  }
+  .scrollbar-visible::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    -webkit-appearance: none;
+  }
+  .scrollbar-visible::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 9999px;
+  }
+  .scrollbar-visible::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.45);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  .scrollbar-visible::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.7);
+    background-clip: content-box;
+  }
+
   .font-display-condensed {
     font-family: 'Barlow Condensed', 'Oswald', system-ui, -apple-system, sans-serif;
     font-stretch: condensed;
