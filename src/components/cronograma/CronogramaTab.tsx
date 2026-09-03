@@ -398,11 +398,11 @@ export function CronogramaTab() {
               }}>
                 <Pencil className="w-4 h-4 mr-1" /> Editar
               </Button>
-              <Button variant="outline" size="sm" disabled={selectedCount === 0} className="text-destructive hover:text-destructive" onClick={() => setDeleteConfirmOpen(true)}>
-                <Trash2 className="w-4 h-4 mr-1" /> Excluir
+              <Button variant="outline" size="sm" disabled={selectedCount === 0} className="text-destructive hover:text-destructive" onClick={() => { setCancelMotivo(''); setCancelTargets(Array.from(selectedIds)); }}>
+                <Ban className="w-4 h-4 mr-1" /> Cancelar atividade
               </Button>
               <Button variant="ghost" size="sm" onClick={clearSelection}>
-                <X className="w-4 h-4 mr-1" /> Cancelar
+                <X className="w-4 h-4 mr-1" /> Sair da seleção
               </Button>
             </>
           )}
