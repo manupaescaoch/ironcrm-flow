@@ -4535,6 +4535,13 @@ export type Database = {
         Args: { _object_name: string }
         Returns: string
       }
+      ops_is_gestao: { Args: { _user_id: string }; Returns: boolean }
+      ops_setores_do_usuario: {
+        Args: { _user_id: string }
+        Returns: {
+          setor: string
+        }[]
+      }
       parse_atendimentos: {
         Args: { p_text: string }
         Returns: {
