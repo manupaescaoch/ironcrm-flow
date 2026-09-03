@@ -335,17 +335,15 @@ export function CronogramaTab() {
     }
   };
 
-  const handleBulkDelete = async () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
+  const handleConfirmCancel = async () => {
+    if (cancelTargets.length === 0 || !cancelMotivo.trim()) return;
     try {
-      if (ids.length === 1) {
-        await deleteAtividade.mutateAsync(ids[0]);
-      } else {
-        await bulkDeleteAtividades.mutateAsync(ids);
-      }
+      await cancelAtividades.mutateAsync({ ids: cancelTargets, motivo: cancelMotivo });
+      setCancelTargets([]);
+      setCancelMotivo('');
+      setSelectedEvent(null);
+      setEditingEvent(false);
       clearSelection();
-      setDeleteConfirmOpen(false);
     } catch {
       // toast handled in hook
     }
