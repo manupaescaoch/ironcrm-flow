@@ -43,15 +43,15 @@ export default function Operacional() {
           </div>
         </div>
 
-        <Tabs defaultValue="gestao-dia">
+        <Tabs defaultValue="cronograma">
           <TabsList className="flex-wrap">
-            <TabsTrigger value="gestao-dia" className="gap-1.5">
-              <ListChecks className="w-4 h-4" />
-              Gestão do dia
-            </TabsTrigger>
             <TabsTrigger value="cronograma" className="gap-1.5">
               <CalendarDays className="w-4 h-4" />
               Cronograma
+            </TabsTrigger>
+            <TabsTrigger value="gestao-dia" className="gap-1.5">
+              <ListChecks className="w-4 h-4" />
+              Gestão do dia
             </TabsTrigger>
             {isAdmin && (
               <>
@@ -67,14 +67,14 @@ export default function Operacional() {
             )}
           </TabsList>
 
-          {/* Gestão do dia — status, responsável, prioridade, atraso e conclusão */}
-          <TabsContent value="gestao-dia" className="mt-4">
-            <GestaoDiaTab />
-          </TabsContent>
-
           {/* Cronograma Tab (includes rotinas) */}
           <TabsContent value="cronograma" className="mt-4">
             <CronogramaTab />
+          </TabsContent>
+
+          {/* Gestão do dia — status, responsável, prioridade, atraso e conclusão */}
+          <TabsContent value="gestao-dia" className="mt-4">
+            <GestaoDiaTab />
           </TabsContent>
 
 
