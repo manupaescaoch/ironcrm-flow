@@ -106,5 +106,29 @@ export function useCronogramaAtividades() {
     },
   });
 
-  return { atividades, isLoading, createAtividade, updateAtividade, bulkUpdateAtividades, bulkDeleteAtividades, deleteAtividade };
+  const cancelAtividades = useMutation({
+    mutationFn: async ({ ids, motivo }: { ids: string[]; motivo: string }) => {
+      const motivoTrim = motivo.trim();
+      if (!motivoTrim) throw new Error('Informe o motivo do cancelamento');
+      const { data: authData } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('cronograma_atividades')
+        .update({
+          status: 'cancelada',
+          motivo_cancelamento: motivoTrim,
+          cancelado_por: authData?.user?.id ?? null,
+          cancelado_em: new Date().toISOString(),
+          ativo: false,
+        } as any)
+        .in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['cronograma-atividades'] });
+      toast({ title: vars.ids.length > 1 ? `${vars.ids.length} atividades canceladas` : 'Atividade cancelada' });
+    },
+    onError: (e: any) => toast({ title: 'Erro ao cancelar', description: e?.message, variant: 'destructive' }),
+  });
+
+  return { atividades, isLoading, createAtividade, updateAtividade, bulkUpdateAtividades, bulkDeleteAtividades, deleteAtividade, cancelAtividades };
 }
