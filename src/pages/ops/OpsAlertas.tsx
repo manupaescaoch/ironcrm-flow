@@ -4,6 +4,7 @@ import { ptBR } from 'date-fns/locale';
 import { AlertTriangle, Bell, BellOff, Check, CheckSquare, Clock, Loader2, RefreshCw } from 'lucide-react';
 import { OpsLayout } from '@/components/ops/OpsLayout';
 import { OpsTarefaRow, OpsTarefaSheet } from '@/components/ops/OpsTarefaItem';
+import { OpsPushCard } from '@/components/ops/OpsPushCard';
 import { useOpsNotificacoes } from '@/hooks/useOpsNotificacoes';
 import { useOpsMeuDia, type OpsTarefaDoDia } from '@/hooks/useOpsMeuDia';
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,10 @@ export default function OpsAlertas() {
             </Button>
           )}
         </div>
+
+        <OpsPushCard />
+
+
 
         {/* Atenção: atrasadas e críticas de hoje */}
         <section className="space-y-2">
