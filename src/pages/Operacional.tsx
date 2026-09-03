@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Loader2, ClipboardList, CalendarDays, LayoutDashboard, FileText } from 'lucide-react';
+import { Loader2, ClipboardList, CalendarDays, LayoutDashboard, FileText, ListChecks } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { CronogramaDashboard } from '@/components/cronograma/CronogramaDashboard';
 import { OperacionalDashboard } from '@/components/operacional/OperacionalDashboard';
+import { GestaoDiaTab } from '@/components/operacional/GestaoDiaTab';
 import { CronogramaTab } from '@/components/cronograma/CronogramaTab';
 import { FormulariosList } from '@/components/cronograma/FormulariosList';
 import { FormularioBuilder } from '@/components/cronograma/FormularioBuilder';
@@ -42,8 +43,12 @@ export default function Operacional() {
           </div>
         </div>
 
-        <Tabs defaultValue="cronograma">
+        <Tabs defaultValue="gestao-dia">
           <TabsList className="flex-wrap">
+            <TabsTrigger value="gestao-dia" className="gap-1.5">
+              <ListChecks className="w-4 h-4" />
+              Gestão do dia
+            </TabsTrigger>
             <TabsTrigger value="cronograma" className="gap-1.5">
               <CalendarDays className="w-4 h-4" />
               Cronograma
@@ -62,10 +67,16 @@ export default function Operacional() {
             )}
           </TabsList>
 
+          {/* Gestão do dia — status, responsável, prioridade, atraso e conclusão */}
+          <TabsContent value="gestao-dia" className="mt-4">
+            <GestaoDiaTab />
+          </TabsContent>
+
           {/* Cronograma Tab (includes rotinas) */}
           <TabsContent value="cronograma" className="mt-4">
             <CronogramaTab />
           </TabsContent>
+
 
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="mt-4">
