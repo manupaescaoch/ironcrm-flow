@@ -667,8 +667,8 @@ export function CronogramaTab() {
             formularios={formularios || []}
             onEdit={() => setEditingEvent(true)}
             onDelete={() => {
-              deleteAtividade.mutate(selectedEvent.atividade.id);
-              setSelectedEvent(null);
+              setCancelMotivo('');
+              setCancelTargets([selectedEvent.atividade.id]);
             }}
             onClose={() => setSelectedEvent(null)}
           />
