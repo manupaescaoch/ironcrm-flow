@@ -45,6 +45,8 @@ import WhatsAppComercial from "./pages/admin/WhatsAppComercial";
 import ZapiConexoes from "./pages/admin/ZapiConexoes";
 import CronogramaAutomacoes from "./pages/admin/CronogramaAutomacoes";
 import DashboardOperacional from "./pages/DashboardOperacional";
+import OpsMeuDia from "./pages/ops/OpsMeuDia";
+import OpsEmBreve from "./pages/ops/OpsEmBreve";
 
 import GestaoOperacional from "./pages/GestaoOperacional";
 import Reunioes from "./pages/Reunioes";
