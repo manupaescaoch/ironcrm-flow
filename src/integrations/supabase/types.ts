@@ -4531,6 +4531,10 @@ export type Database = {
         Args: { _atividade_id: string; _user_id: string }
         Returns: boolean
       }
+      ops_evidencia_atividade_id: {
+        Args: { _object_name: string }
+        Returns: string
+      }
       parse_atendimentos: {
         Args: { p_text: string }
         Returns: {
