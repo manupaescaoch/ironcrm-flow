@@ -103,7 +103,7 @@ export function useTarefasData() {
     }
   }, [unidadeAtual, toast]);
 
-  const sendWhatsAppNotification = useCallback(async (
+  const sendOpsNotification = useCallback(async (
     taskId: string, 
     taskTitle: string, 
     responsavelName: string, 
@@ -118,7 +118,7 @@ export function useTarefasData() {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session?.access_token) return;
 
-      await supabase.functions.invoke('send-task-whatsapp', {
+      await supabase.functions.invoke('ops-notify-task', {
         body: {
           task_id: taskId,
           task_title: taskTitle,
@@ -134,7 +134,7 @@ export function useTarefasData() {
       });
     } catch (err) {
       // Silently fail - notification is best effort
-      console.log('WhatsApp notification skipped:', err);
+      console.log('Notificação EVO OPS ignorada:', err);
     }
   }, []);
 
@@ -156,9 +156,9 @@ export function useTarefasData() {
         description: 'A tarefa foi criada com sucesso.',
       });
 
-      // Enviar WhatsApp automaticamente
+      // Notificar via EVO OPS
       if (data) {
-        sendWhatsAppNotification(data.id, data.titulo, task.responsavel, 'nova_tarefa', creatorName, data.descricao, unidadeAtual?.nome, data.prazo, data.hora_prazo);
+        sendOpsNotification(data.id, data.titulo, task.responsavel, 'nova_tarefa', creatorName, data.descricao, unidadeAtual?.nome, data.prazo, data.hora_prazo);
       }
 
       return data as Task;
@@ -171,7 +171,7 @@ export function useTarefasData() {
       });
       throw err;
     }
-  }, [toast, sendWhatsAppNotification, unidadeAtual]);
+  }, [toast, sendOpsNotification, unidadeAtual]);
 
   const updateTask = useCallback(async (id: string, updates: TaskUpdate, previousResponsavel?: string) => {
     try {
@@ -184,9 +184,9 @@ export function useTarefasData() {
 
       if (error) throw error;
 
-      // Se o responsável mudou, enviar WhatsApp para o novo responsável
+      // Se o responsável mudou, notificar o novo responsável via EVO OPS
       if (updates.responsavel && previousResponsavel && updates.responsavel !== previousResponsavel) {
-        sendWhatsAppNotification(id, data.titulo, updates.responsavel, 'tarefa_atualizada', undefined, data.descricao, unidadeAtual?.nome, data.prazo, data.hora_prazo);
+        sendOpsNotification(id, data.titulo, updates.responsavel, 'tarefa_atualizada', undefined, data.descricao, unidadeAtual?.nome, data.prazo, data.hora_prazo);
       }
 
       return data as Task;
@@ -199,7 +199,7 @@ export function useTarefasData() {
       });
       throw err;
     }
-  }, [toast, sendWhatsAppNotification, unidadeAtual]);
+  }, [toast, sendOpsNotification, unidadeAtual]);
 
   const deleteTask = useCallback(async (id: string) => {
     try {
