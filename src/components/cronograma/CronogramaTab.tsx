@@ -21,7 +21,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-import { Plus, Clock, Trash2, CalendarDays, Phone, ChevronLeft, ChevronRight, Pencil, X, FileText, User, MessageSquare, CheckSquare, Square, CheckCheck, ClipboardList, List, Copy } from 'lucide-react';
+import { Plus, Clock, Trash2, Ban, CalendarDays, Phone, ChevronLeft, ChevronRight, Pencil, X, FileText, User, MessageSquare, CheckSquare, Square, CheckCheck, ClipboardList, List, Copy } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { CronogramaAtividade } from '@/hooks/useCronogramaAtividades';
@@ -69,7 +69,7 @@ function rotinaAppliesOnDay(rotina: Rotina, dayKey: string): boolean {
 }
 
 export function CronogramaTab() {
-  const { atividades, isLoading, createAtividade, updateAtividade, bulkUpdateAtividades, bulkDeleteAtividades, deleteAtividade } = useCronogramaAtividades();
+  const { atividades, isLoading, createAtividade, updateAtividade, bulkUpdateAtividades, cancelAtividades } = useCronogramaAtividades();
   const { ativos: funcionarios } = useCronogramaFuncionarios();
   const { data: formularios } = useFormularios();
   const { unidadeId } = useUnidadeFilter();
@@ -101,7 +101,8 @@ export function CronogramaTab() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [cancelTargets, setCancelTargets] = useState<string[]>([]);
+  const [cancelMotivo, setCancelMotivo] = useState('');
 
   const [form, setForm] = useState({
     titulo: '',
@@ -334,17 +335,15 @@ export function CronogramaTab() {
     }
   };
 
-  const handleBulkDelete = async () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
+  const handleConfirmCancel = async () => {
+    if (cancelTargets.length === 0 || !cancelMotivo.trim()) return;
     try {
-      if (ids.length === 1) {
-        await deleteAtividade.mutateAsync(ids[0]);
-      } else {
-        await bulkDeleteAtividades.mutateAsync(ids);
-      }
+      await cancelAtividades.mutateAsync({ ids: cancelTargets, motivo: cancelMotivo });
+      setCancelTargets([]);
+      setCancelMotivo('');
+      setSelectedEvent(null);
+      setEditingEvent(false);
       clearSelection();
-      setDeleteConfirmOpen(false);
     } catch {
       // toast handled in hook
     }
@@ -399,11 +398,11 @@ export function CronogramaTab() {
               }}>
                 <Pencil className="w-4 h-4 mr-1" /> Editar
               </Button>
-              <Button variant="outline" size="sm" disabled={selectedCount === 0} className="text-destructive hover:text-destructive" onClick={() => setDeleteConfirmOpen(true)}>
-                <Trash2 className="w-4 h-4 mr-1" /> Excluir
+              <Button variant="outline" size="sm" disabled={selectedCount === 0} className="text-destructive hover:text-destructive" onClick={() => { setCancelMotivo(''); setCancelTargets(Array.from(selectedIds)); }}>
+                <Ban className="w-4 h-4 mr-1" /> Cancelar atividade
               </Button>
               <Button variant="ghost" size="sm" onClick={clearSelection}>
-                <X className="w-4 h-4 mr-1" /> Cancelar
+                <X className="w-4 h-4 mr-1" /> Sair da seleção
               </Button>
             </>
           )}
@@ -668,8 +667,8 @@ export function CronogramaTab() {
             formularios={formularios || []}
             onEdit={() => setEditingEvent(true)}
             onDelete={() => {
-              deleteAtividade.mutate(selectedEvent.atividade.id);
-              setSelectedEvent(null);
+              setCancelMotivo('');
+              setCancelTargets([selectedEvent.atividade.id]);
             }}
             onClose={() => setSelectedEvent(null)}
           />
@@ -695,10 +694,8 @@ export function CronogramaTab() {
                   });
                 }}
                 onDelete={() => {
-                  deleteAtividade.mutate(selectedEvent.atividade.id);
-                  setEditingEvent(false);
-                  setSelectedEvent(null);
-                  if (selectionMode) clearSelection();
+                  setCancelMotivo('');
+                  setCancelTargets([selectedEvent.atividade.id]);
                 }}
               />
             )}
@@ -731,25 +728,35 @@ export function CronogramaTab() {
           </DialogContent>
         </Dialog>
 
-        {/* Delete Confirm Dialog */}
-        <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        {/* Cancel Activity Dialog (motivo obrigatório) */}
+        <Dialog open={cancelTargets.length > 0} onOpenChange={(o) => { if (!o) { setCancelTargets([]); setCancelMotivo(''); } }}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Excluir atividade{selectedCount > 1 ? 's' : ''}?</DialogTitle>
+              <DialogTitle>Cancelar atividade{cancelTargets.length > 1 ? 's' : ''}?</DialogTitle>
               <DialogDescription>
-                {selectedCount === 1
-                  ? 'Deseja excluir a atividade selecionada? Esta ação não pode ser desfeita.'
-                  : `Deseja excluir as ${selectedCount} atividades selecionadas? Esta ação não pode ser desfeita.`}
+                {cancelTargets.length === 1
+                  ? 'A atividade não será excluída: ela fica registrada como cancelada no histórico.'
+                  : `As ${cancelTargets.length} atividades não serão excluídas: ficam registradas como canceladas no histórico.`}
               </DialogDescription>
             </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="motivo-cancelamento">Motivo do cancelamento *</Label>
+              <Textarea
+                id="motivo-cancelamento"
+                value={cancelMotivo}
+                onChange={(e) => setCancelMotivo(e.target.value)}
+                placeholder="Descreva o motivo do cancelamento"
+                rows={3}
+              />
+            </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDeleteConfirmOpen(false)}
-                disabled={deleteAtividade.isPending || bulkDeleteAtividades.isPending}>
-                Cancelar
+              <Button type="button" variant="outline" onClick={() => { setCancelTargets([]); setCancelMotivo(''); }}
+                disabled={cancelAtividades.isPending}>
+                Voltar
               </Button>
-              <Button type="button" variant="destructive" onClick={handleBulkDelete}
-                disabled={deleteAtividade.isPending || bulkDeleteAtividades.isPending}>
-                {deleteAtividade.isPending || bulkDeleteAtividades.isPending ? 'Excluindo...' : 'Excluir'}
+              <Button type="button" variant="destructive" onClick={handleConfirmCancel}
+                disabled={cancelAtividades.isPending || !cancelMotivo.trim()}>
+                {cancelAtividades.isPending ? 'Cancelando...' : 'Confirmar cancelamento'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -938,7 +945,7 @@ function CronogramaEventPopup({ atividade, date, funcionarios, formularios, onEd
             <Pencil className="w-4 h-4" />
           </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete}>
-            <Trash2 className="w-4 h-4" />
+            <Ban className="w-4 h-4" />
           </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
             <X className="w-4 h-4" />
@@ -1147,7 +1154,7 @@ function AtividadeEditForm({ atividade, funcionarios, unidadeUsers, formularios,
           Salvar Alterações
         </Button>
         <Button variant="destructive" onClick={onDelete} size="icon">
-          <Trash2 className="w-4 h-4" />
+          <Ban className="w-4 h-4" />
         </Button>
       </div>
     </div>
