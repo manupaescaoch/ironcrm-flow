@@ -52,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.role === 'moderator') return 'recepcao';
       if (data.role === 'user') return 'comercial';
       if (data.role === 'coordenador') return 'coordenador';
+      if (data.role === 'gerente') return 'gerente';
       
       return null;
     } catch (err) {
