@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { UnidadeProvider } from "@/contexts/UnidadeContext";
 import Login from "./pages/Login";
@@ -62,8 +62,16 @@ import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
+function useLoginRedirect() {
+  const location = useLocation();
+  const target = `${location.pathname}${location.search}`;
+  if (target === '/' || target.startsWith('/login')) return '/login';
+  return `/login?next=${encodeURIComponent(target)}`;
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const loginTo = useLoginRedirect();
 
   if (loading) {
     return (
@@ -74,11 +82,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={loginTo} replace />;
   }
 
   return <>{children}</>;
 }
+
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, isAdmin, userRole } = useAuth();
