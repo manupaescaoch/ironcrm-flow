@@ -26,6 +26,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { CronogramaAtividade } from '@/hooks/useCronogramaAtividades';
 import { ReplicarCronogramaModal } from './ReplicarCronogramaModal';
+import { Separator } from '@/components/ui/separator';
+import { AtividadeExecucaoPanel } from '@/components/ops/AtividadeExecucaoPanel';
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const DAY_LABELS = ['DOM.', 'SEG.', 'TER.', 'QUA.', 'QUI.', 'SEX.', 'SÁB.'];
