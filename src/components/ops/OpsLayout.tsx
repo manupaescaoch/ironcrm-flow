@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { Sun, CalendarDays, ListChecks, Bell, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnidade } from '@/contexts/UnidadeContext';
+import { useOpsNotificacoes } from '@/hooks/useOpsNotificacoes';
 import { cn } from '@/lib/utils';
 
 const NAV = [
