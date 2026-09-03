@@ -596,13 +596,25 @@ export type Database = {
       cronograma_atividades: {
         Row: {
           ativo: boolean
+          cancelado_em: string | null
+          cancelado_por: string | null
           created_at: string
+          criado_por: string | null
+          descricao: string | null
           dia_semana: number | null
+          exige_confirmacao: boolean
+          exige_evidencia: boolean
           formulario_id: string | null
           horario: string | null
           id: string
+          instrucao: string | null
           mensagem: string | null
+          motivo_cancelamento: string | null
+          prazo: string | null
+          prioridade: string
           responsavel_id: string | null
+          setor: string | null
+          status: string
           tipo_atividade: string | null
           titulo: string
           turno: string | null
@@ -611,13 +623,25 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          cancelado_em?: string | null
+          cancelado_por?: string | null
           created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
           dia_semana?: number | null
+          exige_confirmacao?: boolean
+          exige_evidencia?: boolean
           formulario_id?: string | null
           horario?: string | null
           id?: string
+          instrucao?: string | null
           mensagem?: string | null
+          motivo_cancelamento?: string | null
+          prazo?: string | null
+          prioridade?: string
           responsavel_id?: string | null
+          setor?: string | null
+          status?: string
           tipo_atividade?: string | null
           titulo: string
           turno?: string | null
@@ -626,13 +650,25 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          cancelado_em?: string | null
+          cancelado_por?: string | null
           created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
           dia_semana?: number | null
+          exige_confirmacao?: boolean
+          exige_evidencia?: boolean
           formulario_id?: string | null
           horario?: string | null
           id?: string
+          instrucao?: string | null
           mensagem?: string | null
+          motivo_cancelamento?: string | null
+          prazo?: string | null
+          prioridade?: string
           responsavel_id?: string | null
+          setor?: string | null
+          status?: string
           tipo_atividade?: string | null
           titulo?: string
           turno?: string | null
@@ -794,6 +830,7 @@ export type Database = {
           turno: string
           unidade_id: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           ativo?: boolean
@@ -806,6 +843,7 @@ export type Database = {
           turno?: string
           unidade_id: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           ativo?: boolean
@@ -818,6 +856,7 @@ export type Database = {
           turno?: string
           unidade_id?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2735,6 +2774,255 @@ export type Database = {
         }
         Relationships: []
       }
+      ops_anexos: {
+        Row: {
+          arquivo_url: string
+          atividade_id: string
+          created_at: string
+          execucao_id: string | null
+          id: string
+          nome_arquivo: string | null
+          tipo: string | null
+          usuario_id: string
+        }
+        Insert: {
+          arquivo_url: string
+          atividade_id: string
+          created_at?: string
+          execucao_id?: string | null
+          id?: string
+          nome_arquivo?: string | null
+          tipo?: string | null
+          usuario_id: string
+        }
+        Update: {
+          arquivo_url?: string
+          atividade_id?: string
+          created_at?: string
+          execucao_id?: string | null
+          id?: string
+          nome_arquivo?: string | null
+          tipo?: string | null
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ops_anexos_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "cronograma_atividades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ops_anexos_execucao_id_fkey"
+            columns: ["execucao_id"]
+            isOneToOne: false
+            referencedRelation: "ops_execucoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ops_comentarios: {
+        Row: {
+          atividade_id: string
+          comentario: string
+          created_at: string
+          execucao_id: string | null
+          id: string
+          usuario_id: string
+          usuario_nome: string | null
+        }
+        Insert: {
+          atividade_id: string
+          comentario: string
+          created_at?: string
+          execucao_id?: string | null
+          id?: string
+          usuario_id: string
+          usuario_nome?: string | null
+        }
+        Update: {
+          atividade_id?: string
+          comentario?: string
+          created_at?: string
+          execucao_id?: string | null
+          id?: string
+          usuario_id?: string
+          usuario_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ops_comentarios_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "cronograma_atividades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ops_comentarios_execucao_id_fkey"
+            columns: ["execucao_id"]
+            isOneToOne: false
+            referencedRelation: "ops_execucoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ops_execucoes: {
+        Row: {
+          atividade_id: string
+          cancelado_em: string | null
+          cancelado_por: string | null
+          concluido_em: string | null
+          concluido_por: string | null
+          created_at: string
+          data_execucao: string
+          id: string
+          iniciado_em: string | null
+          iniciado_por: string | null
+          motivo_cancelamento: string | null
+          observacao: string | null
+          status: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          atividade_id: string
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string
+          data_execucao: string
+          id?: string
+          iniciado_em?: string | null
+          iniciado_por?: string | null
+          motivo_cancelamento?: string | null
+          observacao?: string | null
+          status?: string
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          atividade_id?: string
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string
+          data_execucao?: string
+          id?: string
+          iniciado_em?: string | null
+          iniciado_por?: string | null
+          motivo_cancelamento?: string | null
+          observacao?: string | null
+          status?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ops_execucoes_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "cronograma_atividades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ops_execucoes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ops_notificacoes: {
+        Row: {
+          atividade_id: string | null
+          created_at: string
+          execucao_id: string | null
+          id: string
+          lida: boolean
+          lido_em: string | null
+          mensagem: string | null
+          tipo: string
+          titulo: string
+          usuario_id: string
+        }
+        Insert: {
+          atividade_id?: string | null
+          created_at?: string
+          execucao_id?: string | null
+          id?: string
+          lida?: boolean
+          lido_em?: string | null
+          mensagem?: string | null
+          tipo?: string
+          titulo: string
+          usuario_id: string
+        }
+        Update: {
+          atividade_id?: string | null
+          created_at?: string
+          execucao_id?: string | null
+          id?: string
+          lida?: boolean
+          lido_em?: string | null
+          mensagem?: string | null
+          tipo?: string
+          titulo?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ops_notificacoes_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "cronograma_atividades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ops_notificacoes_execucao_id_fkey"
+            columns: ["execucao_id"]
+            isOneToOne: false
+            referencedRelation: "ops_execucoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ops_push_subscriptions: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          device_info: string | null
+          endpoint: string
+          id: string
+          subscription: Json
+          updated_at: string
+          usuario_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          device_info?: string | null
+          endpoint: string
+          id?: string
+          subscription: Json
+          updated_at?: string
+          usuario_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          device_info?: string | null
+          endpoint?: string
+          id?: string
+          subscription?: Json
+          updated_at?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       pagamentos_mensais: {
         Row: {
           confirmado_por: string | null
@@ -4205,6 +4493,7 @@ export type Database = {
           turno: string
           unidade_id: string
           updated_at: string
+          user_id: string | null
         }[]
         SetofOptions: {
           from: "*"
@@ -4234,6 +4523,14 @@ export type Database = {
       }
       normalize_cronograma_tipo: { Args: { p_titulo: string }; Returns: string }
       normalize_phone: { Args: { phone: string }; Returns: string }
+      ops_can_access_atividade: {
+        Args: { _atividade_id: string; _user_id: string }
+        Returns: boolean
+      }
+      ops_can_execute_atividade: {
+        Args: { _atividade_id: string; _user_id: string }
+        Returns: boolean
+      }
       parse_atendimentos: {
         Args: { p_text: string }
         Returns: {
