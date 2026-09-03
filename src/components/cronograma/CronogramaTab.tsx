@@ -101,7 +101,8 @@ export function CronogramaTab() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [cancelTargets, setCancelTargets] = useState<string[]>([]);
+  const [cancelMotivo, setCancelMotivo] = useState('');
 
   const [form, setForm] = useState({
     titulo: '',
