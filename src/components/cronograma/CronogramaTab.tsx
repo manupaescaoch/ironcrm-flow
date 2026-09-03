@@ -982,6 +982,19 @@ function CronogramaEventPopup({ atividade, date, funcionarios, formularios, onEd
               </span>
             </div>
           )}
+
+          <Separator />
+
+          <AtividadeExecucaoPanel
+            atividadeId={atividade.id}
+            unidadeId={atividade.unidade_id}
+            data={date}
+            horario={atividade.horario}
+            prazo={atividade.prazo ?? null}
+            exigeEvidencia={!!atividade.exige_evidencia}
+            exigeConfirmacao={!!atividade.exige_confirmacao}
+            instrucao={atividade.instrucao ?? null}
+          />
         </div>
       </div>
     </>
