@@ -694,10 +694,8 @@ export function CronogramaTab() {
                   });
                 }}
                 onDelete={() => {
-                  deleteAtividade.mutate(selectedEvent.atividade.id);
-                  setEditingEvent(false);
-                  setSelectedEvent(null);
-                  if (selectionMode) clearSelection();
+                  setCancelMotivo('');
+                  setCancelTargets([selectedEvent.atividade.id]);
                 }}
               />
             )}
