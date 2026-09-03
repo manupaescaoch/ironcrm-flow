@@ -45,6 +45,8 @@ import WhatsAppComercial from "./pages/admin/WhatsAppComercial";
 import ZapiConexoes from "./pages/admin/ZapiConexoes";
 import CronogramaAutomacoes from "./pages/admin/CronogramaAutomacoes";
 import DashboardOperacional from "./pages/DashboardOperacional";
+import OpsMeuDia from "./pages/ops/OpsMeuDia";
+import OpsEmBreve from "./pages/ops/OpsEmBreve";
 
 import GestaoOperacional from "./pages/GestaoOperacional";
 import Reunioes from "./pages/Reunioes";
@@ -212,6 +214,12 @@ const AppRoutes = () => (
 
 
     <Route path="/dashboard-operacional" element={<ProtectedRoute><DashboardOperacional /></ProtectedRoute>} />
+
+    {/* EVO OPS — experiência mobile dos funcionários */}
+    <Route path="/ops" element={<ProtectedRoute><OpsMeuDia /></ProtectedRoute>} />
+    <Route path="/ops/cronograma" element={<ProtectedRoute><OpsEmBreve titulo="Cronograma" descricao="A lista cronológica das atividades chega na próxima etapa." /></ProtectedRoute>} />
+    <Route path="/ops/tarefas" element={<ProtectedRoute><OpsEmBreve titulo="Tarefas" descricao="Filtros, busca e criação de tarefas chegam na próxima etapa." /></ProtectedRoute>} />
+    <Route path="/ops/alertas" element={<ProtectedRoute><OpsEmBreve titulo="Alertas" descricao="A central de notificações será ativada em seguida." /></ProtectedRoute>} />
     <Route path="/anamnese-publica/:id" element={<AnamnesePublica />} />
     <Route path="/" element={<Navigate to="/dashboard" replace />} />
     <Route
