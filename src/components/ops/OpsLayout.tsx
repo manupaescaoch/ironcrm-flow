@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { Sun, CalendarDays, ListChecks, Bell, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnidade } from '@/contexts/UnidadeContext';
+import { useOpsNotificacoes } from '@/hooks/useOpsNotificacoes';
 import { cn } from '@/lib/utils';
 
 const NAV = [
@@ -15,6 +16,7 @@ const NAV = [
 export function OpsLayout({ title, children }: { title?: string; children: ReactNode }) {
   const { signOut } = useAuth();
   const { unidadeAtual } = useUnidade();
+  const { naoLidas } = useOpsNotificacoes();
 
   return (
     <div className="ops-theme min-h-screen bg-background text-foreground">
@@ -58,7 +60,14 @@ export function OpsLayout({ title, children }: { title?: string; children: React
                 )
               }
             >
-              <Icon className="h-5 w-5" />
+              <span className="relative">
+                <Icon className="h-5 w-5" />
+                {to === '/ops/alertas' && naoLidas > 0 && (
+                  <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                    {naoLidas > 9 ? '9+' : naoLidas}
+                  </span>
+                )}
+              </span>
               {label}
             </NavLink>
           ))}
