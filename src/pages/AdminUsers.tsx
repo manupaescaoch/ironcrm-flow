@@ -165,9 +165,18 @@ export default function AdminUsers() {
     setFetchError({ type: null, message: '' });
 
     try {
-      // Get fresh session to ensure token is available
-      const { data: sessionData } = await supabase.auth.getSession();
-      
+      // Get session and renew it when the token is close to expiring
+      let { data: sessionData } = await supabase.auth.getSession();
+      const expiresAt = sessionData.session?.expires_at ?? 0;
+      const nearExpiry = expiresAt > 0 && expiresAt * 1000 - Date.now() < 60_000;
+
+      if (!sessionData.session?.access_token || nearExpiry) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed.session) {
+          sessionData = { session: refreshed.session } as typeof sessionData;
+        }
+      }
+
       if (!sessionData.session?.access_token) {
         setFetchError({
           type: 'unauthorized',
@@ -183,6 +192,8 @@ export default function AdminUsers() {
           Authorization: `Bearer ${sessionData.session.access_token}`,
         },
       });
+
+
 
       // Handle invoke errors (network issues, function not found, etc.)
       if (error) {
