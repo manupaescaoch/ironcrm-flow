@@ -1,3 +1,4 @@
+import { useOpsEscopoLabel } from '@/hooks/useOpsEscopoLabel';
 import { useMemo, useState } from 'react';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import { OpsLayout } from '@/components/ops/OpsLayout';
@@ -62,7 +63,7 @@ export default function OpsMeuDia() {
                   escopo === op ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground',
                 )}
               >
-                {op === 'minhas' ? 'Minhas tarefas' : 'Toda a unidade'}
+                {op === 'minhas' ? 'Minhas tarefas' : escopoAmploLabel}
               </button>
             ))}
           </div>
