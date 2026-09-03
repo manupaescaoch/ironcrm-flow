@@ -161,15 +161,16 @@ function EditGrupoDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Editar Atividade</DialogTitle>
           <p className="text-xs text-muted-foreground pt-1">
             {grupo.titulo} · {grupo.unidade_nome}
           </p>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 flex-1 min-h-0 overflow-y-auto scrollbar-visible pr-2">
+
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Responsável</label>
             <Select value={respId} onValueChange={setRespId}>
