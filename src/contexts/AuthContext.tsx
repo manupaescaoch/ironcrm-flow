@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-export type UserRole = 'admin' | 'recepcao' | 'comercial' | 'coordenador';
+export type UserRole = 'admin' | 'recepcao' | 'comercial' | 'coordenador' | 'gerente';
 
 interface AuthContextType {
   user: User | null;
@@ -52,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.role === 'moderator') return 'recepcao';
       if (data.role === 'user') return 'comercial';
       if (data.role === 'coordenador') return 'coordenador';
+      if (data.role === 'gerente') return 'gerente';
       
       return null;
     } catch (err) {
@@ -118,10 +119,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Permission helpers
   const isAdmin = userRole === 'admin';
-  const isCoordenador = userRole === 'coordenador';
-  const canAccessExecutivo = userRole === 'admin' || userRole === 'coordenador';
+  const isCoordenador = userRole === 'coordenador' || userRole === 'gerente';
+  const canAccessExecutivo = userRole === 'admin' || userRole === 'coordenador' || userRole === 'gerente';
   const canAccessComissoes = !!userRole;
-  const canAccessRelatorio = userRole === 'admin' || userRole === 'coordenador';
+  const canAccessRelatorio = userRole === 'admin' || userRole === 'coordenador' || userRole === 'gerente';
   const canAccessAdminUsers = userRole === 'admin';
   const canEditEscala = !!userRole;
 

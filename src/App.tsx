@@ -120,7 +120,7 @@ function AdminOrComercialRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (userRole && userRole !== 'admin' && userRole !== 'comercial') {
+  if (userRole && userRole !== 'admin' && userRole !== 'comercial' && userRole !== 'gerente') {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-md text-center space-y-3">
@@ -149,7 +149,7 @@ function AdminOrCoordenadorRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (userRole && userRole !== 'admin' && userRole !== 'coordenador') {
+  if (userRole && userRole !== 'admin' && userRole !== 'coordenador' && userRole !== 'gerente') {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-md text-center space-y-3">
