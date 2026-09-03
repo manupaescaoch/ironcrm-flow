@@ -1,5 +1,5 @@
 import { adminCorsHeaders } from '../_shared/cors.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 
 Deno.serve(async (req) => {
@@ -43,8 +43,14 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // 3. Validate the user's JWT token using the admin API
-    const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
+    // 3. Validate the user's JWT token with a user-scoped client (mais confiável que getUser(token))
+    const supabaseUser = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!,
+      { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false, autoRefreshToken: false } }
+    );
+
+    const { data: userData, error: userErr } = await supabaseUser.auth.getUser();
 
     if (userErr || !userData?.user) {
       console.log('Token validation failed:', userErr?.message || 'No user data');
