@@ -176,19 +176,17 @@ export function GestaoDiaTab() {
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-2">
-        <Select value={fUnidade} onValueChange={setFUnidade}>
+        <Select value={fTipo} onValueChange={setFTipo}>
           <SelectTrigger className="w-[190px]">
-            <SelectValue placeholder="Unidade" />
+            <SelectValue placeholder="Tipo" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todas">Todas as unidades</SelectItem>
-            {resumoPorUnidade.map((r) => (
-              <SelectItem key={r.unidade_id} value={r.unidade_id}>
-                {r.unidade_nome}
-              </SelectItem>
-            ))}
+            <SelectItem value="todos">Atividades e rotinas</SelectItem>
+            <SelectItem value="atividade">Somente atividades</SelectItem>
+            <SelectItem value="rotina">Somente rotinas</SelectItem>
           </SelectContent>
         </Select>
+
 
         <Select value={fResponsavel} onValueChange={setFResponsavel}>
           <SelectTrigger className="w-[190px]">
