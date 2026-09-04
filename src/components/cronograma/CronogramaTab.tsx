@@ -862,7 +862,7 @@ function BulkEditForm({ funcionarios, unidadeUsers, formularios, onSave, isPendi
   funcionarios: Array<{ id: string; nome: string; telefone: string | null }>;
   unidadeUsers: Array<{ id: string; name: string; email: string }>;
   formularios: Array<{ id: string; titulo: string }>;
-  onSave: (data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; mensagem?: string | null }) => void;
+  onSave: (data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; mensagem?: string | null; prioridade?: string; setor?: string | null }) => void;
   isPending: boolean;
 }) {
   const [editForm, setEditForm] = useState({
@@ -871,6 +871,8 @@ function BulkEditForm({ funcionarios, unidadeUsers, formularios, onSave, isPendi
     responsavel_id: '',
     formulario_id: '',
     mensagem: '',
+    prioridade: MANTER_ATUAL,
+    setor: MANTER_ATUAL,
   });
 
   const handleSave = () => {
@@ -880,6 +882,8 @@ function BulkEditForm({ funcionarios, unidadeUsers, formularios, onSave, isPendi
     if (editForm.responsavel_id) data.responsavel_id = editForm.responsavel_id;
     if (editForm.formulario_id) data.formulario_id = editForm.formulario_id;
     if (editForm.mensagem) data.mensagem = editForm.mensagem;
+    if (editForm.prioridade !== MANTER_ATUAL) data.prioridade = editForm.prioridade;
+    if (editForm.setor !== MANTER_ATUAL) data.setor = editForm.setor === SEM_SETOR ? null : editForm.setor;
     if (Object.keys(data).length === 0) return;
     onSave(data);
   };
@@ -904,6 +908,16 @@ function BulkEditForm({ funcionarios, unidadeUsers, formularios, onSave, isPendi
           placeholder="Manter atual"
         />
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Prioridade</Label>
+          <PrioridadeSelect allowKeep value={editForm.prioridade} onValueChange={(v) => setEditForm(f => ({ ...f, prioridade: v }))} />
+        </div>
+        <div>
+          <Label>Setor</Label>
+          <SetorSelect allowKeep value={editForm.setor} onValueChange={(v) => setEditForm(f => ({ ...f, setor: v }))} />
+        </div>
+      </div>
       <div>
         <Label>Formulário</Label>
         <Select value={editForm.formulario_id} onValueChange={(v) => setEditForm(f => ({ ...f, formulario_id: v }))}>
@@ -917,6 +931,7 @@ function BulkEditForm({ funcionarios, unidadeUsers, formularios, onSave, isPendi
         <Label>Mensagem</Label>
         <Textarea value={editForm.mensagem} onChange={(e) => setEditForm(f => ({ ...f, mensagem: e.target.value }))} placeholder="Deixe vazio para manter" rows={3} className="resize-none" />
       </div>
+
       <Button onClick={handleSave} disabled={isPending} className="w-full">
         {isPending ? 'Salvando...' : 'Salvar Alterações'}
       </Button>
