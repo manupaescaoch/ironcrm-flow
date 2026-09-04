@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, ChevronLeft, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, Loader2, Plus, RefreshCw, Repeat } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { OpsStatusBadge } from '@/components/ops/OpsStatusBadge';
 import { PRIORIDADE_DOT, PRIORIDADE_LABEL } from '@/components/ops/OpsTarefaItem';
 import { AtividadeExecucaoPanel } from '@/components/ops/AtividadeExecucaoPanel';
+import { NovaAtividadeDialog } from '@/components/operacional/NovaAtividadeDialog';
+import { RotinaModal } from '@/components/rotinas/RotinaModal';
+import { useRotinasData } from '@/hooks/useRotinasData';
 import { useOpsGestao, type OpsGestaoTarefa } from '@/hooks/useOpsGestao';
 import { cn } from '@/lib/utils';
 
@@ -43,19 +46,23 @@ function horaConclusao(iso: string | null) {
 
 export function GestaoDiaTab() {
   const [dia, setDia] = useState<Date>(() => new Date());
-  const [fUnidade, setFUnidade] = useState('todas');
+  const [fTipo, setFTipo] = useState('todos');
   const [fResponsavel, setFResponsavel] = useState('todos');
   const [fStatus, setFStatus] = useState('todos');
   const [fPrioridade, setFPrioridade] = useState('todas');
   const [aberta, setAberta] = useState<OpsGestaoTarefa | null>(null);
+  const [novaAtividade, setNovaAtividade] = useState(false);
+  const [novaRotina, setNovaRotina] = useState(false);
+  const [salvandoRotina, setSalvandoRotina] = useState(false);
 
   const { tarefas, resumoPorUnidade, criticasAtrasadas, responsaveis, isLoading, isFetching, refetch } =
     useOpsGestao(dia);
+  const { createRotina, toggleExecucao } = useRotinasData();
 
   const filtradas = useMemo(
     () =>
       tarefas.filter((t) => {
-        if (fUnidade !== 'todas' && t.unidade_id !== fUnidade) return false;
+        if (fTipo !== 'todos' && t.tipo !== fTipo) return false;
         if (fResponsavel !== 'todos') {
           if (fResponsavel === 'sem' ? !!t.responsavel_id : t.responsavel_id !== fResponsavel) return false;
         }
@@ -63,10 +70,11 @@ export function GestaoDiaTab() {
         if (fPrioridade !== 'todas' && t.prioridade !== fPrioridade) return false;
         return true;
       }),
-    [tarefas, fUnidade, fResponsavel, fStatus, fPrioridade],
+    [tarefas, fTipo, fResponsavel, fStatus, fPrioridade],
   );
 
   const hojeKey = new Date().toDateString();
+  const unidadeNome = resumoPorUnidade[0]?.unidade_nome;
 
   return (
     <div className="space-y-5">
@@ -78,7 +86,8 @@ export function GestaoDiaTab() {
         <div className="min-w-[220px]">
           <p className="text-sm font-semibold capitalize">{labelData(dia)}</p>
           <p className="text-xs text-muted-foreground">
-            {dia.toDateString() === hojeKey ? 'Hoje' : 'Outro dia'} · {filtradas.length} atividade(s)
+            {dia.toDateString() === hojeKey ? 'Hoje' : 'Outro dia'} · {filtradas.length} item(ns)
+            {unidadeNome ? ` · ${unidadeNome}` : ''}
           </p>
         </div>
         <Button variant="outline" size="icon" onClick={() => setDia((d) => addDays(d, 1))}>
@@ -89,11 +98,22 @@ export function GestaoDiaTab() {
             Voltar para hoje
           </Button>
         )}
-        <Button variant="ghost" size="sm" className="ml-auto gap-1.5" onClick={() => refetch()}>
-          <RefreshCw className={cn('h-3.5 w-3.5', isFetching && 'animate-spin')} />
-          Atualizar
-        </Button>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Button size="sm" className="gap-1.5" onClick={() => setNovaAtividade(true)}>
+            <Plus className="h-3.5 w-3.5" />
+            Nova atividade
+          </Button>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setNovaRotina(true)}>
+            <Repeat className="h-3.5 w-3.5" />
+            Nova rotina
+          </Button>
+          <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => refetch()}>
+            <RefreshCw className={cn('h-3.5 w-3.5', isFetching && 'animate-spin')} />
+            Atualizar
+          </Button>
+        </div>
       </div>
+
 
       {/* ATENÇÃO — somente críticas atrasadas */}
       {criticasAtrasadas.length > 0 && (
@@ -156,19 +176,17 @@ export function GestaoDiaTab() {
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-2">
-        <Select value={fUnidade} onValueChange={setFUnidade}>
+        <Select value={fTipo} onValueChange={setFTipo}>
           <SelectTrigger className="w-[190px]">
-            <SelectValue placeholder="Unidade" />
+            <SelectValue placeholder="Tipo" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todas">Todas as unidades</SelectItem>
-            {resumoPorUnidade.map((r) => (
-              <SelectItem key={r.unidade_id} value={r.unidade_id}>
-                {r.unidade_nome}
-              </SelectItem>
-            ))}
+            <SelectItem value="todos">Atividades e rotinas</SelectItem>
+            <SelectItem value="atividade">Somente atividades</SelectItem>
+            <SelectItem value="rotina">Somente rotinas</SelectItem>
           </SelectContent>
         </Select>
+
 
         <Select value={fResponsavel} onValueChange={setFResponsavel}>
           <SelectTrigger className="w-[190px]">
@@ -223,7 +241,7 @@ export function GestaoDiaTab() {
             </div>
           ) : filtradas.length === 0 ? (
             <p className="p-8 text-center text-sm text-muted-foreground">
-              Nenhuma atividade para os filtros selecionados.
+              Nenhum item para os filtros selecionados.
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -231,8 +249,8 @@ export function GestaoDiaTab() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[80px]">Hora</TableHead>
-                    <TableHead>Atividade</TableHead>
-                    <TableHead>Unidade</TableHead>
+                    <TableHead>Item</TableHead>
+                    <TableHead className="w-[110px]">Tipo</TableHead>
                     <TableHead>Responsável</TableHead>
                     <TableHead>Setor</TableHead>
                     <TableHead>Prioridade</TableHead>
@@ -243,13 +261,17 @@ export function GestaoDiaTab() {
                 <TableBody>
                   {filtradas.map((t) => (
                     <TableRow
-                      key={t.id}
+                      key={`${t.tipo}-${t.id}`}
                       className="cursor-pointer"
                       onClick={() => setAberta(t)}
                     >
                       <TableCell className="tabular-nums">{(t.horario || '--:--').slice(0, 5)}</TableCell>
                       <TableCell className="max-w-[280px] truncate font-medium">{t.titulo}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{t.unidade_nome}</TableCell>
+                      <TableCell>
+                        <Badge variant={t.tipo === 'rotina' ? 'outline' : 'secondary'} className="text-[11px]">
+                          {t.tipo === 'rotina' ? 'Rotina' : 'Atividade'}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {t.responsavel_nome || '—'}
                       </TableCell>
@@ -284,6 +306,7 @@ export function GestaoDiaTab() {
               <DialogHeader>
                 <DialogTitle className="text-base">{aberta.titulo}</DialogTitle>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                  <span>{aberta.tipo === 'rotina' ? 'Rotina' : 'Atividade'}</span>
                   {aberta.horario && <span>{aberta.horario.slice(0, 5)}</span>}
                   <span>{aberta.unidade_nome}</span>
                   {aberta.responsavel_nome && <span>{aberta.responsavel_nome}</span>}
@@ -291,20 +314,77 @@ export function GestaoDiaTab() {
                   <span>Prioridade: {PRIORIDADE_LABEL[aberta.prioridade] || 'Normal'}</span>
                 </div>
               </DialogHeader>
-              <AtividadeExecucaoPanel
-                atividadeId={aberta.id}
-                unidadeId={aberta.unidade_id}
-                data={dia}
-                horario={aberta.horario}
-                prazo={aberta.prazo}
-                exigeEvidencia={aberta.exige_evidencia}
-                exigeConfirmacao={false}
-                instrucao={null}
-              />
+              {aberta.tipo === 'rotina' ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <OpsStatusBadge status={aberta.status} />
+                    {aberta.concluido_em && (
+                      <span className="text-xs text-muted-foreground">
+                        Concluída às {horaConclusao(aberta.concluido_em)}
+                      </span>
+                    )}
+                  </div>
+                  {dia.toDateString() === hojeKey ? (
+                    <Button
+                      size="sm"
+                      variant={aberta.status === 'concluida' ? 'outline' : 'default'}
+                      onClick={async () => {
+                        await toggleExecucao(aberta.id, null, aberta.status !== 'concluida');
+                        await refetch();
+                        setAberta(null);
+                      }}
+                    >
+                      {aberta.status === 'concluida' ? 'Reabrir rotina' : 'Marcar como concluída'}
+                    </Button>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Rotinas só podem ser concluídas no dia de hoje.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <AtividadeExecucaoPanel
+                  atividadeId={aberta.id}
+                  unidadeId={aberta.unidade_id}
+                  data={dia}
+                  horario={aberta.horario}
+                  prazo={aberta.prazo}
+                  exigeEvidencia={aberta.exige_evidencia}
+                  exigeConfirmacao={false}
+                  instrucao={null}
+                />
+              )}
             </>
           )}
         </DialogContent>
       </Dialog>
+
+      <NovaAtividadeDialog
+        open={novaAtividade}
+        onOpenChange={(v) => {
+          setNovaAtividade(v);
+          if (!v) refetch();
+        }}
+        diaSemana={dia.getDay()}
+      />
+
+      <RotinaModal
+        open={novaRotina}
+        onOpenChange={setNovaRotina}
+        saving={salvandoRotina}
+        onSave={async (data, atividades) => {
+          setSalvandoRotina(true);
+          const created = await createRotina(data, atividades);
+          setSalvandoRotina(false);
+          if (created) {
+            setNovaRotina(false);
+            await refetch();
+            return true;
+          }
+          return false;
+        }}
+      />
     </div>
   );
+
 }
