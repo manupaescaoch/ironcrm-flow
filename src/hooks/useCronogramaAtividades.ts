@@ -56,6 +56,8 @@ export function useCronogramaAtividades() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['cronograma-atividades'] });
+      queryClient.invalidateQueries({ queryKey: ['ops-gestao-dia'] });
+      queryClient.invalidateQueries({ queryKey: ['ops-meu-dia'] });
       toast({ title: variables.length > 1 ? 'Atividades criadas' : 'Atividade criada' });
     },
     onError: () => toast({ title: 'Erro ao criar atividade', variant: 'destructive' }),
