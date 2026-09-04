@@ -12,7 +12,8 @@ import { AtividadeExecucaoPanel } from '@/components/ops/AtividadeExecucaoPanel'
 import { NovaAtividadeDialog } from '@/components/operacional/NovaAtividadeDialog';
 import { RotinaModal } from '@/components/rotinas/RotinaModal';
 import { useRotinasData } from '@/hooks/useRotinasData';
-import { useOpsGestao, type OpsGestaoTarefa } from '@/hooks/useOpsGestao';
+import { useOpsGestao, TODAS_UNIDADES, type OpsGestaoTarefa } from '@/hooks/useOpsGestao';
+import { useUnidade } from '@/contexts/UnidadeContext';
 import { cn } from '@/lib/utils';
 
 const STATUS_OPTIONS = [
@@ -55,8 +56,13 @@ export function GestaoDiaTab() {
   const [novaRotina, setNovaRotina] = useState(false);
   const [salvandoRotina, setSalvandoRotina] = useState(false);
 
+  const { unidadeAtual, unidadesPermitidas } = useUnidade();
+  const multiUnidade = unidadesPermitidas.length > 1;
+  const [unidadeAlvo, setUnidadeAlvo] = useState<string>(() => unidadeAtual?.id ?? '');
+  const unidadeSel = unidadeAlvo || unidadeAtual?.id || '';
+
   const { tarefas, resumoPorUnidade, criticasAtrasadas, responsaveis, isLoading, isFetching, refetch } =
-    useOpsGestao(dia);
+    useOpsGestao(dia, unidadeSel);
   const { createRotina, toggleExecucao } = useRotinasData();
 
   const filtradas = useMemo(
@@ -74,7 +80,10 @@ export function GestaoDiaTab() {
   );
 
   const hojeKey = new Date().toDateString();
-  const unidadeNome = resumoPorUnidade[0]?.unidade_nome;
+  const unidadeNome =
+    unidadeSel === TODAS_UNIDADES
+      ? `${unidadesPermitidas.length} unidades`
+      : unidadesPermitidas.find((u) => u.id === unidadeSel)?.nome || unidadeAtual?.nome;
 
   return (
     <div className="space-y-5">
@@ -99,11 +108,11 @@ export function GestaoDiaTab() {
           </Button>
         )}
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <Button size="sm" className="gap-1.5" onClick={() => setNovaAtividade(true)}>
+          <Button size="sm" className="gap-1.5" disabled={unidadeSel === TODAS_UNIDADES} onClick={() => setNovaAtividade(true)}>
             <Plus className="h-3.5 w-3.5" />
             Nova atividade
           </Button>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setNovaRotina(true)}>
+          <Button size="sm" variant="outline" className="gap-1.5" disabled={unidadeSel === TODAS_UNIDADES} onClick={() => setNovaRotina(true)}>
             <Repeat className="h-3.5 w-3.5" />
             Nova rotina
           </Button>
@@ -176,6 +185,22 @@ export function GestaoDiaTab() {
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-2">
+        {multiUnidade && (
+          <Select value={unidadeSel} onValueChange={setUnidadeAlvo}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Unidade" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={TODAS_UNIDADES}>Todas as unidades</SelectItem>
+              {unidadesPermitidas.map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
         <Select value={fTipo} onValueChange={setFTipo}>
           <SelectTrigger className="w-[190px]">
             <SelectValue placeholder="Tipo" />
@@ -251,6 +276,7 @@ export function GestaoDiaTab() {
                     <TableHead className="w-[80px]">Hora</TableHead>
                     <TableHead>Item</TableHead>
                     <TableHead className="w-[110px]">Tipo</TableHead>
+                    {unidadeSel === TODAS_UNIDADES && <TableHead>Unidade</TableHead>}
                     <TableHead>Responsável</TableHead>
                     <TableHead>Setor</TableHead>
                     <TableHead>Prioridade</TableHead>
@@ -272,6 +298,9 @@ export function GestaoDiaTab() {
                           {t.tipo === 'rotina' ? 'Rotina' : 'Atividade'}
                         </Badge>
                       </TableCell>
+                      {unidadeSel === TODAS_UNIDADES && (
+                        <TableCell className="text-sm text-muted-foreground">{t.unidade_nome}</TableCell>
+                      )}
                       <TableCell className="text-sm text-muted-foreground">
                         {t.responsavel_nome || '—'}
                       </TableCell>
@@ -366,6 +395,7 @@ export function GestaoDiaTab() {
           if (!v) refetch();
         }}
         diaSemana={dia.getDay()}
+        unidadeId={unidadeSel === TODAS_UNIDADES ? undefined : unidadeSel}
       />
 
       <RotinaModal
