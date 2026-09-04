@@ -111,9 +111,12 @@ export function CronogramaTab() {
     formulario_id: '',
     dias_semana: [] as string[],
     mensagem: '',
+    prioridade: 'normal',
+    setor: SEM_SETOR,
     showFormulario: false,
     showMensagem: false,
   });
+
 
   const selectedFuncionario = useMemo(() => {
     if (!form.responsavel_id) return null;
