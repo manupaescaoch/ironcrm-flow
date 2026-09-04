@@ -57,7 +57,7 @@ export function GestaoDiaTab() {
 
   const { tarefas, resumoPorUnidade, criticasAtrasadas, responsaveis, isLoading, isFetching, refetch } =
     useOpsGestao(dia);
-  const { createRotina } = useRotinasData();
+  const { createRotina, toggleExecucao } = useRotinasData();
 
   const filtradas = useMemo(
     () =>
