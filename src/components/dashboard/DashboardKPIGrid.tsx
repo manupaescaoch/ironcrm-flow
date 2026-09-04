@@ -1,74 +1,30 @@
 import React, { memo } from 'react';
-import { Users, CalendarCheck, Calendar, Award, CheckCircle2, Filter, UserX, Percent, TrendingUp } from 'lucide-react';
+import { Users, CalendarCheck, Award, CheckCircle2, Filter, Percent, TrendingUp } from 'lucide-react';
 import { KPICard } from '@/components/ui/kpi-card';
-import { FollowUpKPI } from '@/components/dashboard/FollowUpKPI';
-import { FollowUpMatriculadosKPI } from '@/components/dashboard/FollowUpMatriculadosKPI';
-import { FollowUpGerenteKPI } from '@/components/dashboard/FollowUpGerenteKPI';
-import { TaxaComparecimentoKPI } from '@/components/dashboard/TaxaComparecimentoKPI';
 import { FunilComercialCard } from '@/components/dashboard/FunilComercialCard';
 import { DiagnosticoSemanaCard } from '@/components/dashboard/DiagnosticoSemanaCard';
 import { AlunosAtivosKPI } from '@/components/dashboard/AlunosAtivosKPI';
 import { Stats, PeriodStats } from '@/components/dashboard/constants';
 
-
-
 interface DashboardKPIGridProps {
   stats: Stats;
   periodStats: PeriodStats;
-  experimentaisSemanaCount: number;
   unidadeId: string | undefined;
   alunosAtivosRefreshKey?: number;
   onAlunosAtivosChange?: () => void;
-  followUpPendingCount: number;
-  followUpD1Count: number;
-  followUpMatriculadosCount: number;
-  followUpGerenteCount: number;
-  showExperimentaisSection: boolean;
   showMatriculasSection: boolean;
-  showFollowUpSection: boolean;
-  showFollowUpMatriculadosSection: boolean;
-  showFollowUpGerenteSection: boolean;
-  onExperimentaisClick: () => void;
   onMatriculasClick: () => void;
-  onFollowUpClick: () => void;
-  onFollowUpMatriculadosClick: () => void;
-  onFollowUpGerenteClick: () => void;
-  onNaoCompareceramClick?: () => void;
-  isNaoCompareceramActive?: boolean;
-
 }
-
-
 
 export const DashboardKPIGrid = memo(function DashboardKPIGrid({
   stats,
   periodStats,
-  experimentaisSemanaCount,
   unidadeId,
   alunosAtivosRefreshKey,
   onAlunosAtivosChange,
-  followUpPendingCount,
-  followUpD1Count,
-  followUpMatriculadosCount,
-  followUpGerenteCount,
-  showExperimentaisSection,
   showMatriculasSection,
-  showFollowUpSection,
-  showFollowUpMatriculadosSection,
-  showFollowUpGerenteSection,
-  onExperimentaisClick,
   onMatriculasClick,
-  onFollowUpClick,
-  onFollowUpMatriculadosClick,
-  onFollowUpGerenteClick,
-  onNaoCompareceramClick,
-  isNaoCompareceramActive,
 }: DashboardKPIGridProps) {
-
-  const naoCompareceram = Math.max(
-    0,
-    periodStats.experimentaisPeriodo - periodStats.comparecimentosPeriodo
-  );
 
   const taxaConversao = stats.total > 0
     ? Math.round((periodStats.matriculasPeriodo / stats.total) * 100)
@@ -86,9 +42,8 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
     ? Math.round((periodStats.matriculasPeriodo / periodStats.experimentaisPeriodo) * 100)
     : 0;
 
-
-
   return (
+
     <div className="space-y-2 mb-2">
       {/* Linha 1 — KPIs principais (6) */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
