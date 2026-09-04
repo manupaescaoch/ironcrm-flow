@@ -28,6 +28,11 @@ import { CronogramaAtividade } from '@/hooks/useCronogramaAtividades';
 import { ReplicarCronogramaModal } from './ReplicarCronogramaModal';
 import { Separator } from '@/components/ui/separator';
 import { AtividadeExecucaoPanel } from '@/components/ops/AtividadeExecucaoPanel';
+import {
+  PrioridadeSelect, SetorSelect, PrioridadeDot, prioridadeLabel, setorLabel,
+  SEM_SETOR, MANTER_ATUAL,
+} from './AtividadeCampos';
+
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const DAY_LABELS = ['DOM.', 'SEG.', 'TER.', 'QUA.', 'QUI.', 'SEX.', 'SÁB.'];
@@ -111,9 +116,12 @@ export function CronogramaTab() {
     formulario_id: '',
     dias_semana: [] as string[],
     mensagem: '',
+    prioridade: 'normal',
+    setor: SEM_SETOR,
     showFormulario: false,
     showMensagem: false,
   });
+
 
   const selectedFuncionario = useMemo(() => {
     if (!form.responsavel_id) return null;
@@ -299,33 +307,28 @@ export function CronogramaTab() {
 
   const handleCreate = () => {
     if (!form.titulo || !unidadeId) return;
+    const base = {
+      unidade_id: unidadeId,
+      titulo: form.titulo,
+      horario: form.horario || undefined,
+      responsavel_id: form.responsavel_id || undefined,
+      formulario_id: form.formulario_id || undefined,
+      mensagem: form.mensagem || undefined,
+      prioridade: form.prioridade || 'normal',
+      setor: form.setor === SEM_SETOR ? null : form.setor,
+    };
     const atividadesParaCriar = form.dias_semana.length
-      ? form.dias_semana.map((dia) => ({
-          unidade_id: unidadeId,
-          titulo: form.titulo,
-          horario: form.horario || undefined,
-          responsavel_id: form.responsavel_id || undefined,
-          formulario_id: form.formulario_id || undefined,
-          dia_semana: Number(dia),
-          mensagem: form.mensagem || undefined,
-        }))
-      : [{
-          unidade_id: unidadeId,
-          titulo: form.titulo,
-          horario: form.horario || undefined,
-          responsavel_id: form.responsavel_id || undefined,
-          formulario_id: form.formulario_id || undefined,
-          dia_semana: undefined,
-          mensagem: form.mensagem || undefined,
-        }];
+      ? form.dias_semana.map((dia) => ({ ...base, dia_semana: Number(dia) }))
+      : [{ ...base, dia_semana: undefined }];
 
     createAtividade.mutate(atividadesParaCriar, {
       onSuccess: () => {
         setOpen(false);
-        setForm({ titulo: '', horario: '', responsavel_id: '', formulario_id: '', dias_semana: [], mensagem: '', showFormulario: false, showMensagem: false });
+        setForm({ titulo: '', horario: '', responsavel_id: '', formulario_id: '', dias_semana: [], mensagem: '', prioridade: 'normal', setor: SEM_SETOR, showFormulario: false, showMensagem: false });
       },
     });
   };
+
 
   const handleEventClick = (atv: CronogramaAtividade, dayIdx: number) => {
     if (selectionMode) {
@@ -485,6 +488,23 @@ export function CronogramaTab() {
                     </div>
                   )}
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Prioridade</Label>
+                    <PrioridadeSelect
+                      value={form.prioridade}
+                      onValueChange={(v) => setForm((f) => ({ ...f, prioridade: v }))}
+                    />
+                  </div>
+                  <div>
+                    <Label>Setor</Label>
+                    <SetorSelect
+                      value={form.setor}
+                      onValueChange={(v) => setForm((f) => ({ ...f, setor: v }))}
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <Label>Ação WhatsApp</Label>
                   <div className="mt-1.5 flex gap-2">
@@ -822,11 +842,13 @@ function EventCard({ atv, dayIdx, selectionMode, isSelected, onClick, funcionari
         <span className="truncate block">{atv.titulo}</span>
       ) : (
         <>
-          <span className="font-semibold truncate block">
-            {atv.titulo}{responsavel ? ` (${responsavel.nome.split(' ')[0]})` : ''}
+          <span className="font-semibold truncate flex items-center gap-1">
+            {atv.prioridade && atv.prioridade !== 'normal' && <PrioridadeDot prioridade={atv.prioridade} />}
+            <span className="truncate">{atv.titulo}{responsavel ? ` (${responsavel.nome.split(' ')[0]})` : ''}</span>
           </span>
           {timeLabel && <span className="opacity-80 text-[10px] truncate block">{timeLabel}</span>}
         </>
+
       )}
       {selectionMode && (
         <span className="absolute top-0.5 right-0.5">
@@ -842,7 +864,7 @@ function BulkEditForm({ funcionarios, unidadeUsers, formularios, onSave, isPendi
   funcionarios: Array<{ id: string; nome: string; telefone: string | null }>;
   unidadeUsers: Array<{ id: string; name: string; email: string }>;
   formularios: Array<{ id: string; titulo: string }>;
-  onSave: (data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; mensagem?: string | null }) => void;
+  onSave: (data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; mensagem?: string | null; prioridade?: string; setor?: string | null }) => void;
   isPending: boolean;
 }) {
   const [editForm, setEditForm] = useState({
@@ -851,6 +873,8 @@ function BulkEditForm({ funcionarios, unidadeUsers, formularios, onSave, isPendi
     responsavel_id: '',
     formulario_id: '',
     mensagem: '',
+    prioridade: MANTER_ATUAL,
+    setor: MANTER_ATUAL,
   });
 
   const handleSave = () => {
@@ -860,6 +884,8 @@ function BulkEditForm({ funcionarios, unidadeUsers, formularios, onSave, isPendi
     if (editForm.responsavel_id) data.responsavel_id = editForm.responsavel_id;
     if (editForm.formulario_id) data.formulario_id = editForm.formulario_id;
     if (editForm.mensagem) data.mensagem = editForm.mensagem;
+    if (editForm.prioridade !== MANTER_ATUAL) data.prioridade = editForm.prioridade;
+    if (editForm.setor !== MANTER_ATUAL) data.setor = editForm.setor === SEM_SETOR ? null : editForm.setor;
     if (Object.keys(data).length === 0) return;
     onSave(data);
   };
@@ -884,6 +910,16 @@ function BulkEditForm({ funcionarios, unidadeUsers, formularios, onSave, isPendi
           placeholder="Manter atual"
         />
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Prioridade</Label>
+          <PrioridadeSelect allowKeep value={editForm.prioridade} onValueChange={(v) => setEditForm(f => ({ ...f, prioridade: v }))} />
+        </div>
+        <div>
+          <Label>Setor</Label>
+          <SetorSelect allowKeep value={editForm.setor} onValueChange={(v) => setEditForm(f => ({ ...f, setor: v }))} />
+        </div>
+      </div>
       <div>
         <Label>Formulário</Label>
         <Select value={editForm.formulario_id} onValueChange={(v) => setEditForm(f => ({ ...f, formulario_id: v }))}>
@@ -897,6 +933,7 @@ function BulkEditForm({ funcionarios, unidadeUsers, formularios, onSave, isPendi
         <Label>Mensagem</Label>
         <Textarea value={editForm.mensagem} onChange={(e) => setEditForm(f => ({ ...f, mensagem: e.target.value }))} placeholder="Deixe vazio para manter" rows={3} className="resize-none" />
       </div>
+
       <Button onClick={handleSave} disabled={isPending} className="w-full">
         {isPending ? 'Salvando...' : 'Salvar Alterações'}
       </Button>
@@ -991,6 +1028,17 @@ function CronogramaEventPopup({ atividade, date, funcionarios, formularios, onEd
               </span>
             </div>
           )}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium">
+              <PrioridadeDot prioridade={atividade.prioridade} />
+              Prioridade: {prioridadeLabel(atividade.prioridade)}
+            </span>
+            <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+              {atividade.setor ? `Setor: ${setorLabel(atividade.setor)}` : 'Toda a unidade'}
+            </span>
+          </div>
+
+
 
           <Separator />
 
@@ -1016,7 +1064,7 @@ function AtividadeEditForm({ atividade, funcionarios, unidadeUsers, formularios,
   funcionarios: Array<{ id: string; nome: string; telefone: string | null }>;
   unidadeUsers: Array<{ id: string; name: string; email: string }>;
   formularios: Array<{ id: string; titulo: string }>;
-  onUpdate: (data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; dia_semana?: number | null; mensagem?: string | null }) => void;
+  onUpdate: (data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; dia_semana?: number | null; mensagem?: string | null; prioridade?: string; setor?: string | null }) => void;
   onDelete: () => void;
 }) {
   const [editForm, setEditForm] = useState({
@@ -1026,6 +1074,8 @@ function AtividadeEditForm({ atividade, funcionarios, unidadeUsers, formularios,
     formulario_id: atividade.formulario_id || '',
     dia_semana: atividade.dia_semana,
     mensagem: atividade.mensagem || '',
+    prioridade: atividade.prioridade || 'normal',
+    setor: atividade.setor || SEM_SETOR,
   });
   const [showSection, setShowSection] = useState<'formulario' | 'mensagem' | null>(
     atividade.formulario_id ? 'formulario' : atividade.mensagem ? 'mensagem' : null
@@ -1048,8 +1098,11 @@ function AtividadeEditForm({ atividade, funcionarios, unidadeUsers, formularios,
       formulario_id: editForm.formulario_id || null,
       dia_semana: editForm.dia_semana,
       mensagem: editForm.mensagem || null,
+      prioridade: editForm.prioridade || 'normal',
+      setor: editForm.setor === SEM_SETOR ? null : editForm.setor,
     });
   };
+
 
   return (
     <div className="space-y-3">
@@ -1104,6 +1157,17 @@ function AtividadeEditForm({ atividade, funcionarios, unidadeUsers, formularios,
           </div>
         )}
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Prioridade</Label>
+          <PrioridadeSelect value={editForm.prioridade} onValueChange={(v) => setEditForm(f => ({ ...f, prioridade: v }))} />
+        </div>
+        <div>
+          <Label>Setor</Label>
+          <SetorSelect value={editForm.setor} onValueChange={(v) => setEditForm(f => ({ ...f, setor: v }))} />
+        </div>
+      </div>
+
       <div>
         <Label>Ação WhatsApp</Label>
         <div className="mt-1.5 flex gap-2">
