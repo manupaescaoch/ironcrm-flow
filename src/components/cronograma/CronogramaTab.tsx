@@ -1026,6 +1026,17 @@ function CronogramaEventPopup({ atividade, date, funcionarios, formularios, onEd
               </span>
             </div>
           )}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium">
+              <PrioridadeDot prioridade={atividade.prioridade} />
+              Prioridade: {prioridadeLabel(atividade.prioridade)}
+            </span>
+            <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+              {atividade.setor ? `Setor: ${setorLabel(atividade.setor)}` : 'Toda a unidade'}
+            </span>
+          </div>
+
+
 
           <Separator />
 
