@@ -108,11 +108,11 @@ export function GestaoDiaTab() {
           </Button>
         )}
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <Button size="sm" className="gap-1.5" onClick={() => setNovaAtividade(true)}>
+          <Button size="sm" className="gap-1.5" disabled={unidadeSel === TODAS_UNIDADES} onClick={() => setNovaAtividade(true)}>
             <Plus className="h-3.5 w-3.5" />
             Nova atividade
           </Button>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setNovaRotina(true)}>
+          <Button size="sm" variant="outline" className="gap-1.5" disabled={unidadeSel === TODAS_UNIDADES} onClick={() => setNovaRotina(true)}>
             <Repeat className="h-3.5 w-3.5" />
             Nova rotina
           </Button>
