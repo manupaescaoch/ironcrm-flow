@@ -241,7 +241,7 @@ export function GestaoDiaTab() {
             </div>
           ) : filtradas.length === 0 ? (
             <p className="p-8 text-center text-sm text-muted-foreground">
-              Nenhuma atividade para os filtros selecionados.
+              Nenhum item para os filtros selecionados.
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -249,8 +249,8 @@ export function GestaoDiaTab() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[80px]">Hora</TableHead>
-                    <TableHead>Atividade</TableHead>
-                    <TableHead>Unidade</TableHead>
+                    <TableHead>Item</TableHead>
+                    <TableHead className="w-[110px]">Tipo</TableHead>
                     <TableHead>Responsável</TableHead>
                     <TableHead>Setor</TableHead>
                     <TableHead>Prioridade</TableHead>
@@ -261,13 +261,17 @@ export function GestaoDiaTab() {
                 <TableBody>
                   {filtradas.map((t) => (
                     <TableRow
-                      key={t.id}
+                      key={`${t.tipo}-${t.id}`}
                       className="cursor-pointer"
                       onClick={() => setAberta(t)}
                     >
                       <TableCell className="tabular-nums">{(t.horario || '--:--').slice(0, 5)}</TableCell>
                       <TableCell className="max-w-[280px] truncate font-medium">{t.titulo}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{t.unidade_nome}</TableCell>
+                      <TableCell>
+                        <Badge variant={t.tipo === 'rotina' ? 'outline' : 'secondary'} className="text-[11px]">
+                          {t.tipo === 'rotina' ? 'Rotina' : 'Atividade'}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {t.responsavel_nome || '—'}
                       </TableCell>
@@ -302,6 +306,7 @@ export function GestaoDiaTab() {
               <DialogHeader>
                 <DialogTitle className="text-base">{aberta.titulo}</DialogTitle>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                  <span>{aberta.tipo === 'rotina' ? 'Rotina' : 'Atividade'}</span>
                   {aberta.horario && <span>{aberta.horario.slice(0, 5)}</span>}
                   <span>{aberta.unidade_nome}</span>
                   {aberta.responsavel_nome && <span>{aberta.responsavel_nome}</span>}
@@ -309,20 +314,77 @@ export function GestaoDiaTab() {
                   <span>Prioridade: {PRIORIDADE_LABEL[aberta.prioridade] || 'Normal'}</span>
                 </div>
               </DialogHeader>
-              <AtividadeExecucaoPanel
-                atividadeId={aberta.id}
-                unidadeId={aberta.unidade_id}
-                data={dia}
-                horario={aberta.horario}
-                prazo={aberta.prazo}
-                exigeEvidencia={aberta.exige_evidencia}
-                exigeConfirmacao={false}
-                instrucao={null}
-              />
+              {aberta.tipo === 'rotina' ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <OpsStatusBadge status={aberta.status} />
+                    {aberta.concluido_em && (
+                      <span className="text-xs text-muted-foreground">
+                        Concluída às {horaConclusao(aberta.concluido_em)}
+                      </span>
+                    )}
+                  </div>
+                  {dia.toDateString() === hojeKey ? (
+                    <Button
+                      size="sm"
+                      variant={aberta.status === 'concluida' ? 'outline' : 'default'}
+                      onClick={async () => {
+                        await toggleExecucao(aberta.id, null, aberta.status !== 'concluida');
+                        await refetch();
+                        setAberta(null);
+                      }}
+                    >
+                      {aberta.status === 'concluida' ? 'Reabrir rotina' : 'Marcar como concluída'}
+                    </Button>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Rotinas só podem ser concluídas no dia de hoje.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <AtividadeExecucaoPanel
+                  atividadeId={aberta.id}
+                  unidadeId={aberta.unidade_id}
+                  data={dia}
+                  horario={aberta.horario}
+                  prazo={aberta.prazo}
+                  exigeEvidencia={aberta.exige_evidencia}
+                  exigeConfirmacao={false}
+                  instrucao={null}
+                />
+              )}
             </>
           )}
         </DialogContent>
       </Dialog>
+
+      <NovaAtividadeDialog
+        open={novaAtividade}
+        onOpenChange={(v) => {
+          setNovaAtividade(v);
+          if (!v) refetch();
+        }}
+        diaSemana={dia.getDay()}
+      />
+
+      <RotinaModal
+        open={novaRotina}
+        onOpenChange={setNovaRotina}
+        saving={salvandoRotina}
+        onSave={async (data, atividades) => {
+          setSalvandoRotina(true);
+          const created = await createRotina(data, atividades);
+          setSalvandoRotina(false);
+          if (created) {
+            setNovaRotina(false);
+            await refetch();
+            return true;
+          }
+          return false;
+        }}
+      />
     </div>
   );
+
 }
