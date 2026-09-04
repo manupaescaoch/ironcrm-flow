@@ -11,6 +11,7 @@ import OAuthConsent from "./pages/OAuthConsent";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
+import Operacao from "./pages/Operacao";
 import DashboardExecutivo from "./pages/DashboardExecutivo";
 import CRM from "./pages/CRM";
 import LeadDetail from "./pages/LeadDetail";
@@ -224,6 +225,7 @@ const AppRoutes = () => (
     <Route path="/admin/cronograma-automacoes" element={<AdminRoute><CronogramaAutomacoes /></AdminRoute>} />
 
 
+    <Route path="/operacao" element={<ProtectedRoute><Operacao /></ProtectedRoute>} />
     <Route path="/dashboard-operacional" element={<ProtectedRoute><DashboardOperacional /></ProtectedRoute>} />
 
     {/* EVO OPS — experiência mobile dos funcionários */}

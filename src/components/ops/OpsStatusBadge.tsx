@@ -10,8 +10,8 @@ const LABELS: Record<OpsStatus, string> = {
 };
 
 const STYLES: Record<OpsStatus, string> = {
-  pendente: 'bg-muted text-muted-foreground',
-  em_andamento: 'bg-primary/10 text-primary',
+  pendente: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  em_andamento: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
   concluida: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
   atrasada: 'bg-destructive/10 text-destructive',
   cancelada: 'bg-secondary text-secondary-foreground line-through',

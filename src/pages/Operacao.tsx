@@ -127,7 +127,9 @@ export default function Operacao() {
   }, []);
 
   const atencaoItems: AtencaoItem[] = useMemo(() => {
-    const semConfirmacao = confirmacoesAmanha.filter((e) => !e.interacao?.confirmacao_enviada).length;
+    const semConfirmacao = confirmacoesAmanha.filter(
+      (e) => !(e.lead as unknown as { confirmacao_24h_enviada_em?: string | null })?.confirmacao_24h_enviada_em,
+    ).length;
     const criticasAtrasadas = tarefasUnidade.filter(
       (t) => t.status === 'atrasada' && t.prioridade === 'critica',
     ).length;

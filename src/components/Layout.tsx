@@ -53,6 +53,7 @@ const MASTER_ADMIN_EMAIL = 'emanuel.paes@gmail.com';
 
 const allNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
+  { href: '/operacao', label: 'Operação', icon: ClipboardList, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false, isNew: true },
   { href: '/crm', label: 'CRM', icon: Users, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
   { href: '/indicacoes', label: 'Indicações', icon: Gift, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
 
