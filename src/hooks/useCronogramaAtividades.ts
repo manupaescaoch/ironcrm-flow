@@ -49,8 +49,9 @@ export function useCronogramaAtividades() {
   });
 
   const createAtividade = useMutation({
-    mutationFn: async (atv: Array<{ unidade_id: string; titulo: string; horario?: string; responsavel_id?: string; formulario_id?: string; dia_semana?: number; mensagem?: string }>) => {
+    mutationFn: async (atv: Array<{ unidade_id: string; titulo: string; horario?: string; responsavel_id?: string; formulario_id?: string; dia_semana?: number; mensagem?: string; prioridade?: string; setor?: string | null }>) => {
       const { error } = await supabase.from('cronograma_atividades').insert(atv);
+
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
