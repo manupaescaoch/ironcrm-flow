@@ -359,15 +359,9 @@ export function useContasPagar(from: string, to: string) {
             normChave(c.numero_fatura),
           ].filter((v) => v.length >= 8);
           if (chavesConta.some((k) => chavesPayload.includes(k))) encontrados.set(c.id, c);
-          // Mesma descrição normalizada + mesmo valor também é duplicidade provável.
-          else if (
-            Number(c.valor) === Number(payload.valor) &&
-            normDesc(c.descricao) === normDesc(payload.descricao)
-          ) {
-            encontrados.set(c.id, c);
-          }
         });
       }
+
 
       return Array.from(encontrados.values());
     },
