@@ -52,8 +52,9 @@ export function useOpsMeuDia(escopo: OpsEscopo = 'minhas', date: Date = new Date
           )
           .eq('unidade_id', unidadeId!)
           .eq('ativo', true)
-          .eq('dia_semana', diaSemana)
+          .or(`dia_semana.eq.${diaSemana},dia_semana.is.null`)
           .order('horario', { ascending: true }),
+
       ]);
       if (funcRes.error) throw funcRes.error;
       if (atvRes.error) throw atvRes.error;
