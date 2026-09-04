@@ -1155,6 +1155,17 @@ function AtividadeEditForm({ atividade, funcionarios, unidadeUsers, formularios,
           </div>
         )}
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Prioridade</Label>
+          <PrioridadeSelect value={editForm.prioridade} onValueChange={(v) => setEditForm(f => ({ ...f, prioridade: v }))} />
+        </div>
+        <div>
+          <Label>Setor</Label>
+          <SetorSelect value={editForm.setor} onValueChange={(v) => setEditForm(f => ({ ...f, setor: v }))} />
+        </div>
+      </div>
+
       <div>
         <Label>Ação WhatsApp</Label>
         <div className="mt-1.5 flex gap-2">
