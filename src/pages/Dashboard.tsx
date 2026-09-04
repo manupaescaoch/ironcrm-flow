@@ -1,85 +1,53 @@
 import { useState, useCallback, useRef } from 'react';
 import { Layout } from '@/components/Layout';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { Lead } from '@/types/database';
-import { Loader2, MessageCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { EventosHoje, EventoItem } from '@/components/dashboard/EventosHoje';
-import { ConfirmacoesAmanha } from '@/components/dashboard/ConfirmacoesAmanha';
-import { PendenciasDia } from '@/components/dashboard/PendenciasDia';
+import { EventoItem } from '@/components/dashboard/EventosHoje';
 import { ExperimentaisSemana } from '@/components/dashboard/ExperimentaisSemana';
-import { AtividadesDoDia } from '@/components/dashboard/AtividadesDoDia';
 import { ReagendarModal } from '@/components/dashboard/ReagendarModal';
-import { FollowUpCard } from '@/components/dashboard/FollowUpCard';
-import { CompactRelatorioFollowUps } from '@/components/dashboard/CompactRelatorioFollowUps';
-import { FollowUpSections } from '@/components/dashboard/FollowUpSections';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardKPIGrid } from '@/components/dashboard/DashboardKPIGrid';
 import { MetaVsRealizadoCard } from '@/components/dashboard/MetaVsRealizadoCard';
 import { ExperimentaisDetailSection } from '@/components/dashboard/ExperimentaisDetailSection';
 import { MatriculasDetailSection } from '@/components/dashboard/MatriculasDetailSection';
 import { SyncIndicator } from '@/components/dashboard/SyncIndicator';
-import { FollowUpMatriculadosSection } from '@/components/dashboard/FollowUpMatriculadosSection';
-import { useFollowUpsMatriculados } from '@/hooks/useFollowUpsMatriculados';
-import { FollowUpGerenteSection } from '@/components/dashboard/FollowUpGerenteSection';
-import { useFollowUpsGerente } from '@/hooks/useFollowUpsGerente';
 import { useDashboardData } from '@/hooks/useDashboardData';
-import { addDays, subDays, startOfDay, endOfDay } from 'date-fns';
+import { startOfDay, subDays, endOfDay } from 'date-fns';
+
 export default function Dashboard() {
   const { user, isAdmin } = useAuth();
   const { unidadeAtual, loading: unidadeLoading } = useUnidade();
-  
+
   // Date filter state
   const [periodType, setPeriodType] = useState<'all' | 'last7days' | 'currentMonth' | 'lastMonth' | 'custom'>('all');
   const [startDate, setStartDate] = useState(() => new Date(2020, 0, 1));
   const [endDate, setEndDate] = useState(() => new Date(2030, 11, 31));
-  
+
   // Section visibility state
   const [showExperimentaisSection, setShowExperimentaisSection] = useState(false);
   const [showMatriculasSection, setShowMatriculasSection] = useState(false);
-  const [showFollowUpSection, setShowFollowUpSection] = useState(false);
-  const [showFollowUpMatriculadosSection, setShowFollowUpMatriculadosSection] = useState(false);
-  const [showFollowUpGerenteSection, setShowFollowUpGerenteSection] = useState(false);
-  const [followUpTipoFilter, setFollowUpTipoFilter] = useState<string | null>(null);
-  const [followUpRefreshKey, setFollowUpRefreshKey] = useState(0);
+  const [showPeriodoSection, setShowPeriodoSection] = useState(false);
   const [alunosAtivosRefreshKey, setAlunosAtivosRefreshKey] = useState(0);
-  const [activeTab, setActiveTab] = useState<'diario' | 'semana'>('diario');
-  const [naoCompareceuNonce, setNaoCompareceuNonce] = useState(0);
 
-  
   // Refs for scrolling
   const experimentaisSectionRef = useRef<HTMLDivElement>(null);
   const periodoSectionRef = useRef<HTMLDivElement>(null);
   const matriculasSectionRef = useRef<HTMLDivElement>(null);
-  const followUpSectionRef = useRef<HTMLDivElement>(null);
-  const followUpMatriculadosSectionRef = useRef<HTMLDivElement>(null);
-  const followUpGerenteSectionRef = useRef<HTMLDivElement>(null);
 
-  
   // Modal state
   const [reagendarModalOpen, setReagendarModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<EventoItem | null>(null);
 
-  // Use the main data hook
   const {
     stats,
     periodStats,
-    experimentaisSemanaCount,
-    eventosHoje,
-    confirmacoesAmanha,
-    pendenciasHoje,
-    pendenciasAmanha,
     experimentaisSemana,
     experimentaisDetalhados,
-    followUpItems,
-    autoFollowUpItems,
-    urgentAutoFollowUpItems,
-    upcomingAutoFollowUpItems,
     lastSyncTime,
     matriculasDetalhadas,
     loading,
@@ -96,71 +64,11 @@ export default function Dashboard() {
     refetchEventos(startDate, endDate);
   }, [refetchEventos, startDate, endDate]);
 
-  const handleExperimentaisCardClick = useCallback(() => {
-    setShowExperimentaisSection(true);
-    setShowMatriculasSection(false);
-    setShowFollowUpSection(false);
-    setTimeout(() => {
-      experimentaisSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-  }, []);
-
-  const handleNaoCompareceramClick = useCallback(() => {
-    setActiveTab('semana');
-    setNaoCompareceuNonce((n) => n + 1);
-    setTimeout(() => {
-      periodoSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 150);
-  }, []);
-
-
   const handleMatriculasCardClick = useCallback(() => {
     setShowMatriculasSection(true);
     setShowExperimentaisSection(false);
-    setShowFollowUpSection(false);
     setTimeout(() => {
       matriculasSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-  }, []);
-
-  const handleFollowUpCardClick = useCallback(() => {
-    setShowFollowUpSection(true);
-    setShowExperimentaisSection(false);
-    setShowMatriculasSection(false);
-    setFollowUpTipoFilter(null);
-    setTimeout(() => {
-      followUpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-  }, []);
-
-  const handleFollowUpMatriculadosCardClick = useCallback(() => {
-    setShowFollowUpMatriculadosSection(true);
-    setShowExperimentaisSection(false);
-    setShowMatriculasSection(false);
-    setShowFollowUpSection(false);
-    setTimeout(() => {
-      followUpMatriculadosSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-  }, []);
-
-  const handleFollowUpGerenteCardClick = useCallback(() => {
-    setShowFollowUpGerenteSection(true);
-    setShowExperimentaisSection(false);
-    setShowMatriculasSection(false);
-    setShowFollowUpSection(false);
-    setShowFollowUpMatriculadosSection(false);
-    setTimeout(() => {
-      followUpGerenteSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-  }, []);
-
-  const handleFollowUpTipoClick = useCallback((tipo: string) => {
-    setShowFollowUpSection(true);
-    setShowExperimentaisSection(false);
-    setShowMatriculasSection(false);
-    setFollowUpTipoFilter(tipo);
-    setTimeout(() => {
-      followUpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
   }, []);
 
@@ -177,7 +85,7 @@ export default function Dashboard() {
         .eq('id', interacaoId);
 
       if (error) throw error;
-      
+
       toast.success('Experimental removida com sucesso!');
       refetchAll(startDate, endDate);
     } catch (error) {
@@ -194,7 +102,7 @@ export default function Dashboard() {
         .eq('id', interacaoId);
 
       if (error) throw error;
-      
+
       toast.success('Matrícula removida com sucesso!');
       refetchAll(startDate, endDate);
     } catch (error) {
@@ -203,25 +111,13 @@ export default function Dashboard() {
     }
   }, [refetchAll, startDate, endDate]);
 
-  // KPI shows ONLY urgent items (overdue/today) - never future follow-ups
-  const followUpPendingCount = urgentAutoFollowUpItems.length;
-  const followUpD1Count = urgentAutoFollowUpItems.filter(item => item.tipo === 'D+1').length;
-
-  // Follow-ups de matriculados (M+7, M+30) — vencidos ou hoje
-  const { urgentItems: urgentMatriculadosFU, refetch: refetchMatriculadosFU } = useFollowUpsMatriculados();
-  const followUpMatriculadosCount = urgentMatriculadosFU.length;
-
-  // Follow-ups do gerente (D+7, D+30) — envio manual
-  const { urgentItems: urgentGerenteFU, refetch: refetchGerenteFU } = useFollowUpsGerente();
-  const followUpGerenteCount = urgentGerenteFU.length;
-
   return (
     <Layout>
-      <div className="p-8">
+      <div className="p-6 md:p-8 max-w-[1600px] mx-auto">
         {(loading || unidadeLoading) && (
           <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Carregando experimentais, confirmações e pendências…</span>
+            <span>Carregando indicadores da unidade…</span>
           </div>
         )}
 
@@ -231,7 +127,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-start justify-between gap-4 mb-2">
           <DashboardHeader
             unidadeNome={unidadeAtual?.nome}
             startDate={startDate}
@@ -241,194 +137,126 @@ export default function Dashboard() {
             onEndDateChange={setEndDate}
             onPeriodTypeChange={setPeriodType}
           />
-          <SyncIndicator lastSyncTime={lastSyncTime ?? undefined} className="ml-4" />
+          <SyncIndicator lastSyncTime={lastSyncTime ?? undefined} className="ml-4 shrink-0" />
         </div>
 
-        <MetaVsRealizadoCard
-          unidadeId={unidadeAtual?.id}
-          unidadeNome={unidadeAtual?.nome}
-          refreshKey={alunosAtivosRefreshKey}
-        />
+        <p className="text-sm text-muted-foreground mb-4">
+          Como está a performance da unidade.
+        </p>
 
-        <DashboardKPIGrid
-          stats={stats}
-          periodStats={periodStats}
-          experimentaisSemanaCount={experimentaisSemanaCount}
-          unidadeId={unidadeAtual?.id}
-          alunosAtivosRefreshKey={alunosAtivosRefreshKey}
-          onAlunosAtivosChange={() => setAlunosAtivosRefreshKey(k => k + 1)}
-          followUpPendingCount={followUpPendingCount}
-          followUpD1Count={followUpD1Count}
-          followUpMatriculadosCount={followUpMatriculadosCount}
-          followUpGerenteCount={followUpGerenteCount}
-          showExperimentaisSection={showExperimentaisSection}
-          showMatriculasSection={showMatriculasSection}
-          showFollowUpSection={showFollowUpSection}
-          showFollowUpMatriculadosSection={showFollowUpMatriculadosSection}
-          showFollowUpGerenteSection={showFollowUpGerenteSection}
-          onExperimentaisClick={handleExperimentaisCardClick}
-          onMatriculasClick={handleMatriculasCardClick}
-          onFollowUpClick={handleFollowUpCardClick}
-          onFollowUpMatriculadosClick={handleFollowUpMatriculadosCardClick}
-          onFollowUpGerenteClick={handleFollowUpGerenteCardClick}
-          onNaoCompareceramClick={handleNaoCompareceramClick}
-          isNaoCompareceramActive={activeTab === 'semana' && naoCompareceuNonce > 0}
+        <div className="space-y-2">
+          <MetaVsRealizadoCard
+            unidadeId={unidadeAtual?.id}
+            unidadeNome={unidadeAtual?.nome}
+            refreshKey={alunosAtivosRefreshKey}
+          />
 
-        />
+          <DashboardKPIGrid
+            stats={stats}
+            periodStats={periodStats}
+            unidadeId={unidadeAtual?.id}
+            alunosAtivosRefreshKey={alunosAtivosRefreshKey}
+            onAlunosAtivosChange={() => setAlunosAtivosRefreshKey(k => k + 1)}
+            showMatriculasSection={showMatriculasSection}
+            onMatriculasClick={handleMatriculasCardClick}
+          />
+        </div>
 
-
-        {/* Follow Up de Matriculados Section */}
-        {showFollowUpMatriculadosSection && (
-          <div ref={followUpMatriculadosSectionRef} className="mb-8 space-y-4 mt-4">
-            <FollowUpMatriculadosSection
-              urgentItems={urgentMatriculadosFU}
-              onRefresh={refetchMatriculadosFU}
-            />
-          </div>
-        )}
-
-
-        {/* Follow Up Gerente Section */}
-        {showFollowUpGerenteSection && (
-          <div ref={followUpGerenteSectionRef} className="mb-8 space-y-4 mt-4">
-            <FollowUpGerenteSection
-              urgentItems={urgentGerenteFU}
-              onRefresh={refetchGerenteFU}
-            />
-          </div>
-        )}
-
-        {/* Follow Up Section */}
-        {showFollowUpSection && (
-          <div ref={followUpSectionRef} className="mb-8 space-y-4">
-            {/* Compact report on top */}
-            <CompactRelatorioFollowUps 
-              onTipoClick={handleFollowUpTipoClick} 
-              refreshKey={followUpRefreshKey}
-              activeTipo={followUpTipoFilter}
-            />
-            
-            {/* Follow-up sections: Urgent and Upcoming */}
-            <FollowUpSections 
-              urgentItems={urgentAutoFollowUpItems}
-              upcomingItems={upcomingAutoFollowUpItems}
-              onRefresh={() => {
-                refetchAll(startDate, endDate);
-                setFollowUpRefreshKey(k => k + 1);
-              }} 
-              tipoFilter={followUpTipoFilter}
-              onClearFilter={() => setFollowUpTipoFilter(null)}
-              onTipoClick={handleFollowUpTipoClick}
-            />
-          </div>
-        )}
-
-        {/* Experimental Control Panels with Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'diario' | 'semana')} className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <TabsList>
-              <TabsTrigger value="diario">Controle Diário</TabsTrigger>
-              <TabsTrigger value="semana">Visão do Período</TabsTrigger>
-            </TabsList>
+        {/* Visão do Período */}
+        <div className="mt-6 space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant={showPeriodoSection ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setShowPeriodoSection((v) => !v);
+                if (!showPeriodoSection) {
+                  setTimeout(() => {
+                    periodoSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }, 100);
+                }
+              }}
+            >
+              {showPeriodoSection ? 'Ocultar visão do período' : 'Visão do período'}
+            </Button>
+            <Button
+              variant={showExperimentaisSection ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setShowExperimentaisSection((v) => !v);
+                setTimeout(() => {
+                  experimentaisSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+              }}
+            >
+              Detalhar experimentais
+            </Button>
           </div>
 
-          <TabsContent value="diario" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Coluna principal esquerda: Eventos Hoje + Agendamentos Amanhã lado a lado */}
-              <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <EventosHoje
-                  items={eventosHoje}
-                  onRefresh={() => refetchEventos(startDate, endDate)}
-                  onReagendar={handleReagendar}
-                />
-                <ConfirmacoesAmanha
-                  items={confirmacoesAmanha}
-                  onRefresh={() => refetchEventos(startDate, endDate)}
-                  onReagendar={handleReagendar}
-                />
-              </div>
-
-              {/* Coluna lateral direita: Atividades + Pendências empilhados */}
-              <div className="space-y-6">
-                <AtividadesDoDia onVerRelatorio={handleFollowUpCardClick} />
-                <PendenciasDia
-                  onVerTodas={() => {
-                    setShowFollowUpSection(true);
-                    setTimeout(() => {
-                      followUpSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 100);
+          {showPeriodoSection && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={periodType === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    setPeriodType('all');
+                    setStartDate(new Date(2020, 0, 1));
+                    setEndDate(new Date(2030, 11, 31));
                   }}
-                  onVerFollowUps={handleFollowUpCardClick}
-                  onVerExperimentais={handleExperimentaisCardClick}
+                >
+                  Todo Período
+                </Button>
+                <Button
+                  variant={periodType === 'last7days' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    setPeriodType('last7days');
+                    const today = new Date();
+                    setStartDate(startOfDay(subDays(today, 6)));
+                    setEndDate(endOfDay(today));
+                  }}
+                >
+                  Últimos 7 dias
+                </Button>
+                <Button
+                  variant={periodType === 'currentMonth' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    setPeriodType('currentMonth');
+                    const today = new Date();
+                    setStartDate(new Date(today.getFullYear(), today.getMonth(), 1));
+                    setEndDate(new Date(today.getFullYear(), today.getMonth() + 1, 0));
+                  }}
+                >
+                  Mês Atual
+                </Button>
+                <Button
+                  variant={periodType === 'lastMonth' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    setPeriodType('lastMonth');
+                    const today = new Date();
+                    setStartDate(new Date(today.getFullYear(), today.getMonth() - 1, 1));
+                    setEndDate(new Date(today.getFullYear(), today.getMonth(), 0));
+                  }}
+                >
+                  Mês Anterior
+                </Button>
+              </div>
+
+              <div ref={periodoSectionRef}>
+                <ExperimentaisSemana
+                  items={experimentaisSemana}
+                  onReagendar={handleReagendar}
+                  onRefresh={() => refetchEventos(startDate, endDate)}
+                  startDate={startDate}
+                  endDate={endDate}
                 />
               </div>
             </div>
-          </TabsContent>
-
-          <TabsContent value="semana" className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={periodType === 'all' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setPeriodType('all');
-                  setStartDate(new Date(2020, 0, 1));
-                  setEndDate(new Date(2030, 11, 31));
-                }}
-              >
-                Todo Período
-              </Button>
-              <Button
-                variant={periodType === 'last7days' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setPeriodType('last7days');
-                  const today = new Date();
-                  setStartDate(startOfDay(subDays(today, 6)));
-                  setEndDate(endOfDay(today));
-                }}
-              >
-                Últimos 7 dias
-              </Button>
-              <Button
-                variant={periodType === 'currentMonth' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setPeriodType('currentMonth');
-                  const today = new Date();
-                  setStartDate(new Date(today.getFullYear(), today.getMonth(), 1));
-                  setEndDate(new Date(today.getFullYear(), today.getMonth() + 1, 0));
-                }}
-              >
-                Mês Atual
-              </Button>
-              <Button
-                variant={periodType === 'lastMonth' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setPeriodType('lastMonth');
-                  const today = new Date();
-                  setStartDate(new Date(today.getFullYear(), today.getMonth() - 1, 1));
-                  setEndDate(new Date(today.getFullYear(), today.getMonth(), 0));
-                }}
-              >
-                Mês Anterior
-              </Button>
-            </div>
-            <div ref={periodoSectionRef}>
-              <ExperimentaisSemana
-                key={`exp-semana-${naoCompareceuNonce}`}
-                items={experimentaisSemana}
-                onReagendar={handleReagendar}
-                onRefresh={() => refetchEventos(startDate, endDate)}
-                startDate={startDate}
-                endDate={endDate}
-                initialStatusFilter={naoCompareceuNonce > 0 ? 'nao_compareceu' : 'todos'}
-              />
-            </div>
-
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
 
         {/* Detailed Experimentais Section */}
         {showExperimentaisSection && (
