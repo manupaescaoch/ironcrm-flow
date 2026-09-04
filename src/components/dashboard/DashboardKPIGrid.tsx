@@ -160,64 +160,7 @@ export const DashboardKPIGrid = memo(function DashboardKPIGrid({
           matriculas={periodStats.matriculasPeriodo}
         />
       </div>
-
-      {/* Linha 3 — Operação do Dia */}
-      <div>
-        <h2 className="text-xs font-semibold text-foreground/80 mb-1 px-1">Operação do Dia</h2>
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-6 gap-2">
-
-          <FollowUpKPI
-            pendingCount={followUpPendingCount}
-            d1Count={followUpD1Count}
-            onClick={onFollowUpClick}
-            isActive={showFollowUpSection}
-          />
-
-          <FollowUpMatriculadosKPI
-            pendingCount={followUpMatriculadosCount}
-            onClick={onFollowUpMatriculadosClick}
-            isActive={showFollowUpMatriculadosSection}
-          />
-
-          <FollowUpGerenteKPI
-            pendingCount={followUpGerenteCount}
-            onClick={onFollowUpGerenteClick}
-            isActive={showFollowUpGerenteSection}
-          />
-
-          <KPICard
-            variant="dashboard"
-            title="Não Compareceram"
-            value={naoCompareceram}
-            icon={UserX}
-            iconColor="text-blue-500"
-            valueColor="text-blue-600"
-            subtitle="No período"
-            onClick={onNaoCompareceramClick}
-            isActive={isNaoCompareceramActive}
-            activeColor="blue"
-          />
-
-
-          <KPICard
-            variant="dashboard"
-            title="Experimentais da Semana"
-            value={experimentaisSemanaCount}
-            icon={Calendar}
-            iconColor="text-purple-500"
-            valueColor="text-purple-600"
-            subtitle="Esta semana"
-            onClick={onExperimentaisClick}
-            isActive={showExperimentaisSection}
-            activeColor="purple"
-          />
-
-          <TaxaComparecimentoKPI
-            comparecimentos={periodStats.comparecimentosPeriodo}
-            agendados={periodStats.experimentaisPeriodo}
-          />
-        </div>
-      </div>
     </div>
+
   );
 });
