@@ -319,7 +319,8 @@ export function useContasPagar(from: string, to: string) {
           .replace(/\s+/g, ' ')
           .trim();
 
-      // 1) Mesmo valor + mesmo vencimento na unidade = duplicidade (independente da descrição).
+      // 1) Só é duplicidade quando descrição, valor E vencimento são iguais na unidade.
+      //    Mesmo título em meses diferentes (ou com valor diferente) é permitido.
       const { data: mesmoVenc } = await supabase
         .from('contas_pagar')
         .select('*')
@@ -330,6 +331,7 @@ export function useContasPagar(from: string, to: string) {
 
       ((mesmoVenc || []) as unknown as ContaPagar[]).forEach((c) => {
         if (c.status === 'cancelada') return;
+        if (normDesc(c.descricao) !== normDesc(payload.descricao)) return;
         encontrados.set(c.id, c);
       });
 
