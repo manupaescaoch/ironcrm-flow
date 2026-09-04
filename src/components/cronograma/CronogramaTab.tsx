@@ -307,33 +307,28 @@ export function CronogramaTab() {
 
   const handleCreate = () => {
     if (!form.titulo || !unidadeId) return;
+    const base = {
+      unidade_id: unidadeId,
+      titulo: form.titulo,
+      horario: form.horario || undefined,
+      responsavel_id: form.responsavel_id || undefined,
+      formulario_id: form.formulario_id || undefined,
+      mensagem: form.mensagem || undefined,
+      prioridade: form.prioridade || 'normal',
+      setor: form.setor === SEM_SETOR ? null : form.setor,
+    };
     const atividadesParaCriar = form.dias_semana.length
-      ? form.dias_semana.map((dia) => ({
-          unidade_id: unidadeId,
-          titulo: form.titulo,
-          horario: form.horario || undefined,
-          responsavel_id: form.responsavel_id || undefined,
-          formulario_id: form.formulario_id || undefined,
-          dia_semana: Number(dia),
-          mensagem: form.mensagem || undefined,
-        }))
-      : [{
-          unidade_id: unidadeId,
-          titulo: form.titulo,
-          horario: form.horario || undefined,
-          responsavel_id: form.responsavel_id || undefined,
-          formulario_id: form.formulario_id || undefined,
-          dia_semana: undefined,
-          mensagem: form.mensagem || undefined,
-        }];
+      ? form.dias_semana.map((dia) => ({ ...base, dia_semana: Number(dia) }))
+      : [{ ...base, dia_semana: undefined }];
 
     createAtividade.mutate(atividadesParaCriar, {
       onSuccess: () => {
         setOpen(false);
-        setForm({ titulo: '', horario: '', responsavel_id: '', formulario_id: '', dias_semana: [], mensagem: '', showFormulario: false, showMensagem: false });
+        setForm({ titulo: '', horario: '', responsavel_id: '', formulario_id: '', dias_semana: [], mensagem: '', prioridade: 'normal', setor: SEM_SETOR, showFormulario: false, showMensagem: false });
       },
     });
   };
+
 
   const handleEventClick = (atv: CronogramaAtividade, dayIdx: number) => {
     if (selectionMode) {
