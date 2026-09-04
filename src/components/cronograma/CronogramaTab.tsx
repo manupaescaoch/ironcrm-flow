@@ -1062,7 +1062,7 @@ function AtividadeEditForm({ atividade, funcionarios, unidadeUsers, formularios,
   funcionarios: Array<{ id: string; nome: string; telefone: string | null }>;
   unidadeUsers: Array<{ id: string; name: string; email: string }>;
   formularios: Array<{ id: string; titulo: string }>;
-  onUpdate: (data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; dia_semana?: number | null; mensagem?: string | null }) => void;
+  onUpdate: (data: { titulo?: string; horario?: string | null; responsavel_id?: string | null; formulario_id?: string | null; dia_semana?: number | null; mensagem?: string | null; prioridade?: string; setor?: string | null }) => void;
   onDelete: () => void;
 }) {
   const [editForm, setEditForm] = useState({
@@ -1072,6 +1072,8 @@ function AtividadeEditForm({ atividade, funcionarios, unidadeUsers, formularios,
     formulario_id: atividade.formulario_id || '',
     dia_semana: atividade.dia_semana,
     mensagem: atividade.mensagem || '',
+    prioridade: atividade.prioridade || 'normal',
+    setor: atividade.setor || SEM_SETOR,
   });
   const [showSection, setShowSection] = useState<'formulario' | 'mensagem' | null>(
     atividade.formulario_id ? 'formulario' : atividade.mensagem ? 'mensagem' : null
@@ -1094,8 +1096,11 @@ function AtividadeEditForm({ atividade, funcionarios, unidadeUsers, formularios,
       formulario_id: editForm.formulario_id || null,
       dia_semana: editForm.dia_semana,
       mensagem: editForm.mensagem || null,
+      prioridade: editForm.prioridade || 'normal',
+      setor: editForm.setor === SEM_SETOR ? null : editForm.setor,
     });
   };
+
 
   return (
     <div className="space-y-3">
