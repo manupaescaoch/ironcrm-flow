@@ -842,11 +842,13 @@ function EventCard({ atv, dayIdx, selectionMode, isSelected, onClick, funcionari
         <span className="truncate block">{atv.titulo}</span>
       ) : (
         <>
-          <span className="font-semibold truncate block">
-            {atv.titulo}{responsavel ? ` (${responsavel.nome.split(' ')[0]})` : ''}
+          <span className="font-semibold truncate flex items-center gap-1">
+            {atv.prioridade && atv.prioridade !== 'normal' && <PrioridadeDot prioridade={atv.prioridade} />}
+            <span className="truncate">{atv.titulo}{responsavel ? ` (${responsavel.nome.split(' ')[0]})` : ''}</span>
           </span>
           {timeLabel && <span className="opacity-80 text-[10px] truncate block">{timeLabel}</span>}
         </>
+
       )}
       {selectionMode && (
         <span className="absolute top-0.5 right-0.5">
