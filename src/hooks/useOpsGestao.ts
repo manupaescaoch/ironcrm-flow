@@ -59,17 +59,30 @@ function rotinaAplicaNoDia(frequencia: string | null, dayKey: string): boolean {
  * Visão de gestão do dia — estritamente da unidade atual selecionada.
  * Reúne as atividades do cronograma e as rotinas do dia.
  */
-export function useOpsGestao(date: Date = new Date()) {
-  const { unidadeAtual } = useUnidade();
+export const TODAS_UNIDADES = 'todas';
+
+export function useOpsGestao(date: Date = new Date(), unidadeAlvo?: string) {
+  const { unidadeAtual, unidadesPermitidas } = useUnidade();
   const dataKey = toDateKey(date);
   const diaSemana = date.getDay();
   const dayKey = DAY_KEYS[diaSemana];
-  const unidadeId = unidadeAtual?.id ?? null;
-  const unidadeNome = unidadeAtual?.nome ?? '—';
+
+  const alvo = unidadeAlvo || unidadeAtual?.id || null;
+  const unidadeIds = useMemo(() => {
+    if (alvo === TODAS_UNIDADES) return unidadesPermitidas.map((u) => u.id);
+    return alvo ? [alvo] : [];
+  }, [alvo, unidadesPermitidas]);
+  const nomePorUnidade = useMemo(() => {
+    const m = new Map<string, string>();
+    unidadesPermitidas.forEach((u) => m.set(u.id, u.nome));
+    if (unidadeAtual) m.set(unidadeAtual.id, unidadeAtual.nome);
+    return m;
+  }, [unidadesPermitidas, unidadeAtual]);
+  const nomeDe = (id: string) => nomePorUnidade.get(id) || '—';
 
   const query = useQuery({
-    queryKey: ['ops-gestao-dia', dataKey, unidadeId],
-    enabled: !!unidadeId,
+    queryKey: ['ops-gestao-dia', dataKey, unidadeIds.join(',')],
+    enabled: unidadeIds.length > 0,
     queryFn: async (): Promise<OpsGestaoTarefa[]> => {
       const [atvRes, rotRes] = await Promise.all([
         supabase
@@ -79,14 +92,14 @@ export function useOpsGestao(date: Date = new Date()) {
               'id, titulo, horario, prazo, setor, prioridade, status, dia_semana, unidade_id, responsavel_id, exige_evidencia, cronograma_funcionarios(nome)',
             ),
           )
-          .eq('unidade_id', unidadeId!)
+          .in('unidade_id', unidadeIds)
           .eq('ativo', true)
           .or(`dia_semana.eq.${diaSemana},dia_semana.is.null`)
           .order('horario', { ascending: true }),
         supabase
           .from('rotinas')
           .select('id, nome, setor, prioridade, horario_esperado, frequencia, responsavel_principal, unidade_id')
-          .eq('unidade_id', unidadeId!)
+          .in('unidade_id', unidadeIds)
           .eq('ativo', true)
           .eq('arquivada', false),
       ]);
@@ -140,7 +153,7 @@ export function useOpsGestao(date: Date = new Date()) {
           setor: a.setor ?? null,
           prioridade: a.prioridade ?? 'normal',
           unidade_id: a.unidade_id,
-          unidade_nome: unidadeNome,
+          unidade_nome: nomeDe(a.unidade_id),
           responsavel_id: a.responsavel_id ?? null,
           responsavel_nome: a.cronograma_funcionarios?.nome ?? null,
           status: deriveOpsStatus(base, { data: dataKey, horario: a.horario, prazo: a.prazo }),
@@ -163,7 +176,7 @@ export function useOpsGestao(date: Date = new Date()) {
           setor: r.setor ?? null,
           prioridade: prioridadeRotina(r.prioridade),
           unidade_id: r.unidade_id,
-          unidade_nome: unidadeNome,
+          unidade_nome: nomeDe(r.unidade_id),
           responsavel_id: null,
           responsavel_nome: r.responsavel_principal ?? null,
           status: concluida
