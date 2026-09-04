@@ -19,10 +19,13 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   /** Dia pré-selecionado (0-6) */
   diaSemana?: number;
+  /** Unidade destino (padrão: unidade atual) */
+  unidadeId?: string;
 }
 
-export function NovaAtividadeDialog({ open, onOpenChange, diaSemana }: Props) {
-  const { unidadeId } = useUnidadeFilter();
+export function NovaAtividadeDialog({ open, onOpenChange, diaSemana, unidadeId: unidadeProp }: Props) {
+  const { unidadeId: unidadeContexto } = useUnidadeFilter();
+  const unidadeId = unidadeProp || unidadeContexto;
   const { createAtividade } = useCronogramaAtividades();
   const { ativos: funcionarios } = useCronogramaFuncionarios();
 
