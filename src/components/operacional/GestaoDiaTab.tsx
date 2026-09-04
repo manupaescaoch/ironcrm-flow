@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, ChevronLeft, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, Loader2, Plus, RefreshCw, Repeat } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { OpsStatusBadge } from '@/components/ops/OpsStatusBadge';
 import { PRIORIDADE_DOT, PRIORIDADE_LABEL } from '@/components/ops/OpsTarefaItem';
 import { AtividadeExecucaoPanel } from '@/components/ops/AtividadeExecucaoPanel';
+import { NovaAtividadeDialog } from '@/components/operacional/NovaAtividadeDialog';
+import { RotinaModal } from '@/components/rotinas/RotinaModal';
+import { useRotinasData } from '@/hooks/useRotinasData';
 import { useOpsGestao, type OpsGestaoTarefa } from '@/hooks/useOpsGestao';
 import { cn } from '@/lib/utils';
 
