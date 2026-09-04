@@ -46,19 +46,23 @@ function horaConclusao(iso: string | null) {
 
 export function GestaoDiaTab() {
   const [dia, setDia] = useState<Date>(() => new Date());
-  const [fUnidade, setFUnidade] = useState('todas');
+  const [fTipo, setFTipo] = useState('todos');
   const [fResponsavel, setFResponsavel] = useState('todos');
   const [fStatus, setFStatus] = useState('todos');
   const [fPrioridade, setFPrioridade] = useState('todas');
   const [aberta, setAberta] = useState<OpsGestaoTarefa | null>(null);
+  const [novaAtividade, setNovaAtividade] = useState(false);
+  const [novaRotina, setNovaRotina] = useState(false);
+  const [salvandoRotina, setSalvandoRotina] = useState(false);
 
   const { tarefas, resumoPorUnidade, criticasAtrasadas, responsaveis, isLoading, isFetching, refetch } =
     useOpsGestao(dia);
+  const { createRotina } = useRotinasData();
 
   const filtradas = useMemo(
     () =>
       tarefas.filter((t) => {
-        if (fUnidade !== 'todas' && t.unidade_id !== fUnidade) return false;
+        if (fTipo !== 'todos' && t.tipo !== fTipo) return false;
         if (fResponsavel !== 'todos') {
           if (fResponsavel === 'sem' ? !!t.responsavel_id : t.responsavel_id !== fResponsavel) return false;
         }
@@ -66,10 +70,11 @@ export function GestaoDiaTab() {
         if (fPrioridade !== 'todas' && t.prioridade !== fPrioridade) return false;
         return true;
       }),
-    [tarefas, fUnidade, fResponsavel, fStatus, fPrioridade],
+    [tarefas, fTipo, fResponsavel, fStatus, fPrioridade],
   );
 
   const hojeKey = new Date().toDateString();
+  const unidadeNome = resumoPorUnidade[0]?.unidade_nome;
 
   return (
     <div className="space-y-5">
@@ -81,7 +86,8 @@ export function GestaoDiaTab() {
         <div className="min-w-[220px]">
           <p className="text-sm font-semibold capitalize">{labelData(dia)}</p>
           <p className="text-xs text-muted-foreground">
-            {dia.toDateString() === hojeKey ? 'Hoje' : 'Outro dia'} · {filtradas.length} atividade(s)
+            {dia.toDateString() === hojeKey ? 'Hoje' : 'Outro dia'} · {filtradas.length} item(ns)
+            {unidadeNome ? ` · ${unidadeNome}` : ''}
           </p>
         </div>
         <Button variant="outline" size="icon" onClick={() => setDia((d) => addDays(d, 1))}>
@@ -92,11 +98,22 @@ export function GestaoDiaTab() {
             Voltar para hoje
           </Button>
         )}
-        <Button variant="ghost" size="sm" className="ml-auto gap-1.5" onClick={() => refetch()}>
-          <RefreshCw className={cn('h-3.5 w-3.5', isFetching && 'animate-spin')} />
-          Atualizar
-        </Button>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Button size="sm" className="gap-1.5" onClick={() => setNovaAtividade(true)}>
+            <Plus className="h-3.5 w-3.5" />
+            Nova atividade
+          </Button>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setNovaRotina(true)}>
+            <Repeat className="h-3.5 w-3.5" />
+            Nova rotina
+          </Button>
+          <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => refetch()}>
+            <RefreshCw className={cn('h-3.5 w-3.5', isFetching && 'animate-spin')} />
+            Atualizar
+          </Button>
+        </div>
       </div>
+
 
       {/* ATENÇÃO — somente críticas atrasadas */}
       {criticasAtrasadas.length > 0 && (
