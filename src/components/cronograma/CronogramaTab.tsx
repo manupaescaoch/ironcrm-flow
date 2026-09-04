@@ -488,6 +488,23 @@ export function CronogramaTab() {
                     </div>
                   )}
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Prioridade</Label>
+                    <PrioridadeSelect
+                      value={form.prioridade}
+                      onValueChange={(v) => setForm((f) => ({ ...f, prioridade: v }))}
+                    />
+                  </div>
+                  <div>
+                    <Label>Setor</Label>
+                    <SetorSelect
+                      value={form.setor}
+                      onValueChange={(v) => setForm((f) => ({ ...f, setor: v }))}
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <Label>Ação WhatsApp</Label>
                   <div className="mt-1.5 flex gap-2">
