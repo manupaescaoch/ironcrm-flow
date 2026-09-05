@@ -21,6 +21,27 @@ import {
 
 type Stage = 'identify' | 'wizard' | 'final' | 'done';
 
+type UnidadeOption = { id: string; nome: string };
+
+// Grupos de WhatsApp por unidade (chave = nome sem acento, em maiúsculas).
+const GRUPOS_WHATSAPP: Record<string, string> = {
+  'EVO SETUBAL':
+    'https://chat.whatsapp.com/D7Wy8yykKYp9d3VLH7KBFD?s=cl&p=i&mlu=4&ilr=4',
+};
+
+function normalizarNome(v: string) {
+  return v
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim();
+}
+
+function grupoDaUnidade(nome?: string | null) {
+  if (!nome) return null;
+  return GRUPOS_WHATSAPP[normalizarNome(nome)] ?? null;
+}
+
 function formatPhone(v: string) {
   const d = v.replace(/\D/g, '').slice(0, 11);
   if (d.length <= 2) return d;
