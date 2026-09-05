@@ -1,10 +1,17 @@
-import { useState } from 'react';
-import { Loader2, ArrowRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Loader2, ArrowRight, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { AnamneseFinal } from '@/components/anamnese/AnamneseFinal';
 import {
   AnamneseWizard,
