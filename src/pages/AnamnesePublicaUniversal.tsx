@@ -230,8 +230,21 @@ export default function AnamnesePublicaUniversal() {
       {saving && <Loader2 className="h-6 w-6 animate-spin text-anamnese-royal" />}
       <h1 className="font-display text-3xl uppercase tracking-tight">Tudo certo! 🎉</h1>
       <p className="max-w-sm text-sm text-muted-foreground">
-        Suas respostas foram enviadas para a equipe. Você já pode fechar esta página.
+        Suas respostas foram enviadas para a equipe.
+        {grupoWhatsapp
+          ? ' Agora entre no grupo da unidade para receber os próximos passos.'
+          : ' Você já pode fechar esta página.'}
       </p>
+      {grupoWhatsapp && (
+        <Button
+          size="lg"
+          className="mt-2 bg-anamnese-royal text-anamnese-royal-foreground hover:bg-anamnese-royal-dark"
+          onClick={() => window.open(grupoWhatsapp, '_blank', 'noopener')}
+        >
+          <MessageCircle className="mr-2 h-4 w-4" />
+          Entrar no grupo {unidadeSelecionada?.nome ?? ''}
+        </Button>
+      )}
     </div>
   );
 }
