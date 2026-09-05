@@ -200,6 +200,7 @@ export default function AnamnesePublicaUniversal() {
             action: 'submit',
             nome,
             telefone,
+            unidade_id: unidadeId || undefined,
             respostas: { ...respostas, nome, data_nascimento: dataNascimento },
           },
         });
