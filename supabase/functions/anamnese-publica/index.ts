@@ -212,9 +212,14 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(50);
 
-      const lead = (candidates ?? []).find(
+      const mesmoTelefone = (candidates ?? []).filter(
         (l) => (l.telefone ?? "").replace(/\D/g, "") === telefoneNorm,
       );
+      // Duplicidade é checada por unidade: prioriza o lead da unidade escolhida.
+      const lead = unidadeEscolhida
+        ? mesmoTelefone.find((l) => l.unidade_id === unidadeEscolhida)
+        : mesmoTelefone[0];
+
 
       let foundLeadId: string;
       let foundUnidadeId: string;
