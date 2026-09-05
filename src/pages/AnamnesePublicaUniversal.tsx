@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loader2, ArrowRight, MessageCircle } from 'lucide-react';
+import { Loader2, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -22,25 +22,6 @@ import {
 type Stage = 'identify' | 'wizard' | 'final' | 'done';
 
 type UnidadeOption = { id: string; nome: string };
-
-// Grupos de WhatsApp por unidade (chave = nome sem acento, em maiúsculas).
-const GRUPOS_WHATSAPP: Record<string, string> = {
-  'EVO SETUBAL':
-    'https://chat.whatsapp.com/D7Wy8yykKYp9d3VLH7KBFD?s=cl&p=i&mlu=4&ilr=4',
-};
-
-function normalizarNome(v: string) {
-  return v
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toUpperCase()
-    .trim();
-}
-
-function grupoDaUnidade(nome?: string | null) {
-  if (!nome) return null;
-  return GRUPOS_WHATSAPP[normalizarNome(nome)] ?? null;
-}
 
 function formatPhone(v: string) {
   const d = v.replace(/\D/g, '').slice(0, 11);
@@ -73,10 +54,6 @@ export default function AnamnesePublicaUniversal() {
       ativo = false;
     };
   }, []);
-
-  const unidadeSelecionada = unidades.find((u) => u.id === unidadeId);
-  const grupoWhatsapp = grupoDaUnidade(unidadeSelecionada?.nome);
-
 
   function isValidDate(value: string): boolean {
     if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -212,11 +189,6 @@ export default function AnamnesePublicaUniversal() {
           description: 'Obrigado, suas respostas foram registradas.',
         });
         setStage('done');
-        if (grupoWhatsapp) {
-          setTimeout(() => {
-            window.location.href = grupoWhatsapp;
-          }, 1500);
-        }
       } catch (e: any) {
         console.error(e);
         toast({
@@ -235,21 +207,8 @@ export default function AnamnesePublicaUniversal() {
       {saving && <Loader2 className="h-6 w-6 animate-spin text-anamnese-royal" />}
       <h1 className="font-display text-3xl uppercase tracking-tight">Tudo certo! 🎉</h1>
       <p className="max-w-sm text-sm text-muted-foreground">
-        Suas respostas foram enviadas para a equipe.
-        {grupoWhatsapp
-          ? ' Agora entre no grupo da unidade para receber os próximos passos.'
-          : ' Você já pode fechar esta página.'}
+        Suas respostas foram enviadas para a equipe da unidade. Você já pode fechar esta página.
       </p>
-      {grupoWhatsapp && (
-        <Button
-          size="lg"
-          className="mt-2 bg-anamnese-royal text-anamnese-royal-foreground hover:bg-anamnese-royal-dark"
-          onClick={() => window.open(grupoWhatsapp, '_blank', 'noopener')}
-        >
-          <MessageCircle className="mr-2 h-4 w-4" />
-          Entrar no grupo {unidadeSelecionada?.nome ?? ''}
-        </Button>
-      )}
     </div>
   );
 }
