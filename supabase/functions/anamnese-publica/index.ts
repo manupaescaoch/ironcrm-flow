@@ -239,6 +239,7 @@ Deno.serve(async (req) => {
             origem: "WHATSAPP",
             status_funil: "novo",
             cadastrado_por: "FORMULARIO_PUBLICO",
+            ...(unidadeEscolhida ? { unidade_id: unidadeEscolhida } : {}),
           })
           .select("id, unidade_id")
           .single();
