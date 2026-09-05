@@ -93,7 +93,8 @@ export default function AnamnesePublicaUniversal() {
   const podeContinuar =
     nome.trim().length >= 2 &&
     isValidDate(dataNascimento) &&
-    telefone.replace(/\D/g, '').length >= 10;
+    telefone.replace(/\D/g, '').length >= 10 &&
+    (unidades.length === 0 || !!unidadeId);
 
   if (stage === 'identify') {
     return (
