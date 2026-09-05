@@ -160,6 +160,22 @@ Deno.serve(async (req) => {
     }
 
     // ===================================================================
+    // PUBLIC: list active unidades (id + nome only) for the public form.
+    // ===================================================================
+    if (action === "unidades") {
+      const { data: unidades, error } = await supabase
+        .from("unidades")
+        .select("id, nome")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) {
+        console.error("[anamnese-publica] unidades", error);
+        return json({ error: "Falha ao carregar unidades" }, 500);
+      }
+      return json({ unidades: unidades ?? [] });
+    }
+
+    // ===================================================================
     // PUBLIC: submit by phone (form universal). Phone-filtered DB query.
     // ===================================================================
     if (action === "submit") {
@@ -167,11 +183,24 @@ Deno.serve(async (req) => {
       const telefoneRaw = sanitize((body as Record<string, unknown>).telefone, 30) ?? "";
       const telefoneNorm = telefoneRaw.replace(/\D/g, "");
       const respostas = ((body as Record<string, unknown>).respostas ?? {}) as Record<string, unknown>;
+      const unidadeSel = (body as Record<string, unknown>).unidade_id;
 
       if (!nome || nome.length < 2) return json({ error: "Nome obrigatório" }, 400);
       if (!telefoneNorm || telefoneNorm.length < 10) {
         return json({ error: "Telefone inválido" }, 400);
       }
+
+      let unidadeEscolhida: string | null = null;
+      if (typeof unidadeSel === "string" && UUID_RE.test(unidadeSel)) {
+        const { data: uni } = await supabase
+          .from("unidades")
+          .select("id")
+          .eq("id", unidadeSel)
+          .eq("ativo", true)
+          .maybeSingle();
+        unidadeEscolhida = uni?.id ?? null;
+      }
+
 
       // Search by normalized phone (still need filtered query, not full table scan).
       // Compare by normalized form server-side after a narrowed lookup.
@@ -183,9 +212,14 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(50);
 
-      const lead = (candidates ?? []).find(
+      const mesmoTelefone = (candidates ?? []).filter(
         (l) => (l.telefone ?? "").replace(/\D/g, "") === telefoneNorm,
       );
+      // Duplicidade é checada por unidade: prioriza o lead da unidade escolhida.
+      const lead = unidadeEscolhida
+        ? mesmoTelefone.find((l) => l.unidade_id === unidadeEscolhida)
+        : mesmoTelefone[0];
+
 
       let foundLeadId: string;
       let foundUnidadeId: string;
@@ -205,6 +239,7 @@ Deno.serve(async (req) => {
             origem: "WHATSAPP",
             status_funil: "novo",
             cadastrado_por: "FORMULARIO_PUBLICO",
+            ...(unidadeEscolhida ? { unidade_id: unidadeEscolhida } : {}),
           })
           .select("id, unidade_id")
           .single();
