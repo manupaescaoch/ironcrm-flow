@@ -212,6 +212,11 @@ export default function AnamnesePublicaUniversal() {
           description: 'Obrigado, suas respostas foram registradas.',
         });
         setStage('done');
+        if (grupoWhatsapp) {
+          setTimeout(() => {
+            window.location.href = grupoWhatsapp;
+          }, 1500);
+        }
       } catch (e: any) {
         console.error(e);
         toast({
