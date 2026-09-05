@@ -58,6 +58,25 @@ export default function AnamnesePublicaUniversal() {
   const [telefone, setTelefone] = useState('');
   const [respostas, setRespostas] = useState<AnamneseRespostas>(initialRespostas);
   const [saving, setSaving] = useState(false);
+  const [unidades, setUnidades] = useState<UnidadeOption[]>([]);
+  const [unidadeId, setUnidadeId] = useState('');
+
+  useEffect(() => {
+    let ativo = true;
+    supabase.functions
+      .invoke('anamnese-publica', { body: { action: 'unidades' } })
+      .then(({ data }) => {
+        if (ativo && Array.isArray(data?.unidades)) setUnidades(data.unidades);
+      })
+      .catch((e) => console.warn('[anamnese] unidades', e));
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  const unidadeSelecionada = unidades.find((u) => u.id === unidadeId);
+  const grupoWhatsapp = grupoDaUnidade(unidadeSelecionada?.nome);
+
 
   function isValidDate(value: string): boolean {
     if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
