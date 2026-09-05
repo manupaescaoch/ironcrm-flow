@@ -114,6 +114,21 @@ export default function AnamnesePublicaUniversal() {
 
           <div className="space-y-4 rounded-2xl border bg-card p-6 shadow-sm">
             <div className="space-y-2">
+              <Label htmlFor="unidade">Unidade que deseja treinar</Label>
+              <Select value={unidadeId} onValueChange={setUnidadeId}>
+                <SelectTrigger id="unidade">
+                  <SelectValue placeholder="Escolha a unidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {unidades.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="nome">Seu nome completo</Label>
               <Input
                 id="nome"
