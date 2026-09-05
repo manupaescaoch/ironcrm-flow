@@ -160,6 +160,22 @@ Deno.serve(async (req) => {
     }
 
     // ===================================================================
+    // PUBLIC: list active unidades (id + nome only) for the public form.
+    // ===================================================================
+    if (action === "unidades") {
+      const { data: unidades, error } = await supabase
+        .from("unidades")
+        .select("id, nome")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) {
+        console.error("[anamnese-publica] unidades", error);
+        return json({ error: "Falha ao carregar unidades" }, 500);
+      }
+      return json({ unidades: unidades ?? [] });
+    }
+
+    // ===================================================================
     // PUBLIC: submit by phone (form universal). Phone-filtered DB query.
     // ===================================================================
     if (action === "submit") {
