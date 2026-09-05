@@ -183,11 +183,24 @@ Deno.serve(async (req) => {
       const telefoneRaw = sanitize((body as Record<string, unknown>).telefone, 30) ?? "";
       const telefoneNorm = telefoneRaw.replace(/\D/g, "");
       const respostas = ((body as Record<string, unknown>).respostas ?? {}) as Record<string, unknown>;
+      const unidadeSel = (body as Record<string, unknown>).unidade_id;
 
       if (!nome || nome.length < 2) return json({ error: "Nome obrigatório" }, 400);
       if (!telefoneNorm || telefoneNorm.length < 10) {
         return json({ error: "Telefone inválido" }, 400);
       }
+
+      let unidadeEscolhida: string | null = null;
+      if (typeof unidadeSel === "string" && UUID_RE.test(unidadeSel)) {
+        const { data: uni } = await supabase
+          .from("unidades")
+          .select("id")
+          .eq("id", unidadeSel)
+          .eq("ativo", true)
+          .maybeSingle();
+        unidadeEscolhida = uni?.id ?? null;
+      }
+
 
       // Search by normalized phone (still need filtered query, not full table scan).
       // Compare by normalized form server-side after a narrowed lookup.
