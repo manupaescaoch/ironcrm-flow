@@ -71,10 +71,10 @@ Deno.serve(async (req) => {
 
     // Canal de envio (default operacional). Valida estritamente.
     const channelRaw = typeof body?.channel === 'string' ? body.channel : 'operacional';
-    if (channelRaw !== 'comercial' && channelRaw !== 'operacional') {
-      return json({ error: "channel deve ser 'comercial' ou 'operacional'" }, 400);
+    if (channelRaw !== 'comercial' && channelRaw !== 'operacional' && channelRaw !== 'operacional2') {
+      return json({ error: "channel deve ser 'comercial', 'operacional' ou 'operacional2'" }, 400);
     }
-    const channel = channelRaw as 'comercial' | 'operacional';
+    const channel = channelRaw as 'comercial' | 'operacional' | 'operacional2';
 
     // 4) Z-API — secrets só do ambiente
     const creds = getZapiCreds(channel);
