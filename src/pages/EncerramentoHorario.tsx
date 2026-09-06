@@ -13,13 +13,14 @@ import { OptionCard } from '@/components/anamnese/OptionCard';
 import { cn } from '@/lib/utils';
 import { submitFormularioPublico } from '@/lib/notifyFormularioGrupo';
 import { useFormDraft, submitWithRetry, clearDraft } from '@/lib/formDraft';
+import { UNIDADES_FORMULARIO, type UnidadeFormularioValue, getUnidadeIdByValue } from '@/lib/formularioUnidades';
 
 type Stage = 'intro' | 'wizard' | 'review' | 'done';
 
 interface Respostas {
   nome: string;
   data: Date | null;
-  unidade: '' | 'ZONA NORTE' | 'ZONA SUL';
+  unidade: '' | UnidadeFormularioValue;
   turno: '' | 'MANHÃ' | 'TARDE' | 'NOITE';
   teveOcorrencia: boolean | null;
   ocorrenciaDescricao: string;
@@ -151,8 +152,15 @@ export default function EncerramentoHorario() {
       key: 'unidade', categoria: 'Identificação', pergunta: 'Qual unidade?',
       canContinue: !!r.unidade,
       render: () => (<>
-        <OptionCard emoji="🌳" label="Zona Norte" selected={r.unidade === 'ZONA NORTE'} onClick={() => set('unidade', 'ZONA NORTE')} />
-        <OptionCard emoji="🌊" label="Zona Sul" selected={r.unidade === 'ZONA SUL'} onClick={() => set('unidade', 'ZONA SUL')} />
+        {UNIDADES_FORMULARIO.map((u) => (
+          <OptionCard
+            key={u.value}
+            emoji={u.value === 'MADALENA' ? '🌳' : u.value === 'BOA VIAGEM' ? '🌊' : '🏖️'}
+            label={u.label}
+            selected={r.unidade === u.value}
+            onClick={() => set('unidade', u.value)}
+          />
+        ))}
       </>),
     });
 
@@ -427,6 +435,7 @@ export default function EncerramentoHorario() {
         await submitFormularioPublico({
           tipo_formulario: 'coordenador_horario',
           unidade: r.unidade,
+          unidade_id: getUnidadeIdByValue(r.unidade),
           resposta_id: respostaId,
         });
         clearDraft('encerramento-horario');

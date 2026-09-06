@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { UNIDADES_FORMULARIO, getUnidadeLabelByValue } from '@/lib/formularioUnidades';
 
 type FormularioKey = 'estagiario_lider' | 'coordenador_unidade' | 'coordenador_horario' | 'relatorio_comercial';
 
@@ -19,7 +20,6 @@ const FORMULARIOS: { key: FormularioKey; titulo: string }[] = [
   { key: 'coordenador_horario', titulo: 'Encerramento — Coordenador de Horário' },
   { key: 'relatorio_comercial', titulo: 'Relatório Diário — Comercial' },
 ];
-const UNIDADES = ['ZONA NORTE', 'ZONA SUL'] as const;
 
 interface Linha {
   id?: string;
@@ -49,11 +49,11 @@ export default function GruposWhatsApp() {
       const map = new Map<string, any>();
       (data ?? []).forEach((r: any) => map.set(`${r.formulario_key}|${r.unidade}`, r));
       const linhasInit: Linha[] = [];
-      FORMULARIOS.forEach((f) => UNIDADES.forEach((u) => {
-        const k = `${f.key}|${u}`;
+      FORMULARIOS.forEach((f) => UNIDADES_FORMULARIO.forEach((u) => {
+        const k = `${f.key}|${u.value}`;
         const r = map.get(k);
         linhasInit.push({
-          id: r?.id, formulario_key: f.key, unidade: u,
+          id: r?.id, formulario_key: f.key, unidade: u.value,
           grupo_id: r?.grupo_id ?? '', grupo_nome: r?.grupo_nome ?? '',
           ativo: r?.ativo ?? true,
         });
@@ -186,7 +186,7 @@ export default function GruposWhatsApp() {
                 const key = `${l.formulario_key}|${l.unidade}`;
                 return (
                   <div key={key} className="grid grid-cols-1 md:grid-cols-[120px_1fr_180px_auto_auto_auto] gap-2 items-center border rounded-lg p-3">
-                    <div className="font-semibold text-sm">{l.unidade}</div>
+                    <div className="font-semibold text-sm">{getUnidadeLabelByValue(l.unidade)}</div>
                     <div>
                       <Label className="text-xs text-muted-foreground">ID do grupo</Label>
                       <div className="flex gap-1">

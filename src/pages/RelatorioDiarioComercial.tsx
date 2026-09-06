@@ -10,6 +10,7 @@ import { StepShell } from '@/components/anamnese/StepShell';
 import { OptionCard } from '@/components/anamnese/OptionCard';
 import { submitFormularioPublico } from '@/lib/notifyFormularioGrupo';
 import { useFormDraft, submitWithRetry, clearDraft } from '@/lib/formDraft';
+import { UNIDADES_FORMULARIO, type UnidadeFormularioValue, getUnidadeIdByValue } from '@/lib/formularioUnidades';
 
 type Stage = 'intro' | 'wizard' | 'review' | 'done';
 
@@ -18,7 +19,7 @@ type Motivo = '' | 'PRECO' | 'VAI_PENSAR' | 'NAO_GOSTOU' | 'HORARIO' | 'OUTRO';
 
 interface Respostas {
   nome: string;
-  unidade: '' | 'ZONA NORTE' | 'ZONA SUL';
+  unidade: '' | UnidadeFormularioValue;
   // Indicadores
   totalAtivos: string;
   leads: string;
@@ -150,8 +151,15 @@ export default function RelatorioDiarioComercial() {
       key: 'unidade', categoria: 'Identificação', pergunta: 'Qual a unidade?',
       canContinue: !!r.unidade,
       render: () => (<>
-        <OptionCard emoji="🌳" label="Zona Norte" selected={r.unidade === 'ZONA NORTE'} onClick={() => set('unidade', 'ZONA NORTE')} />
-        <OptionCard emoji="🌊" label="Zona Sul" selected={r.unidade === 'ZONA SUL'} onClick={() => set('unidade', 'ZONA SUL')} />
+        {UNIDADES_FORMULARIO.map((u) => (
+          <OptionCard
+            key={u.value}
+            emoji={u.value === 'MADALENA' ? '🌳' : u.value === 'BOA VIAGEM' ? '🌊' : '🏖️'}
+            label={u.label}
+            selected={r.unidade === u.value}
+            onClick={() => set('unidade', u.value)}
+          />
+        ))}
       </>),
     });
     list.push({
@@ -405,7 +413,7 @@ export default function RelatorioDiarioComercial() {
         await submitFormularioPublico({
           tipo_formulario: 'relatorio_comercial',
           unidade: r.unidade,
-          unidade_id: r.unidade === 'ZONA NORTE' ? 'b4df0ba8-7fa8-4f28-8924-d5ce6a9b50c6' : 'f3d048da-31d7-48df-b1f1-7e2a809c9a9a',
+          unidade_id: getUnidadeIdByValue(r.unidade),
           resposta_id: respostaId,
         });
         clearDraft('relatorio-diario-comercial');
