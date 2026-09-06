@@ -296,7 +296,8 @@ export function getServiceClient(): SupabaseClient {
 export function validateUnidade(u: unknown): string | null {
   if (typeof u !== 'string') return null;
   const up = u.toUpperCase().trim();
-  return UNIDADES_PERMITIDAS.has(up) ? up : null;
+  const canonical = UNIDADE_NORMALIZACAO[up] ?? up;
+  return UNIDADES_PERMITIDAS.has(canonical) ? canonical : null;
 }
 
 export async function sha1Hex(text: string): Promise<string> {
