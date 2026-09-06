@@ -1,4 +1,9 @@
-import { Clock, User, Paperclip, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
+import { Clock, User, Paperclip, ChevronRight, Check, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { toDateKey } from '@/hooks/useOpsExecucao';
 import { OpsStatusBadge } from '@/components/ops/OpsStatusBadge';
 import { AtividadeExecucaoPanel } from '@/components/ops/AtividadeExecucaoPanel';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -64,6 +69,79 @@ export function OpsTarefaRow({ tarefa, onClick }: { tarefa: OpsTarefaDoDia; onCl
   );
 }
 
+function RotinaExecucaoPanel({
+  rotinaId,
+  unidadeId,
+  data,
+  concluida,
+}: {
+  rotinaId: string;
+  unidadeId: string;
+  data: Date;
+  concluida: boolean;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [feito, setFeito] = useState(concluida);
+  const dataKey = toDateKey(data);
+
+  const marcar = async (valor: boolean) => {
+    setSaving(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const nome =
+        (userData.user?.user_metadata as any)?.full_name ||
+        (userData.user?.user_metadata as any)?.name ||
+        userData.user?.email ||
+        'Usuário';
+      const { data: existing } = await supabase
+        .from('rotina_execucoes')
+        .select('id')
+        .eq('rotina_id', rotinaId)
+        .eq('data_execucao', dataKey)
+        .is('atividade_id', null)
+        .maybeSingle();
+
+      const patch = {
+        concluida: valor,
+        concluida_por: valor ? nome : null,
+        concluida_em: valor ? new Date().toISOString() : null,
+      };
+
+      const { error } = existing
+        ? await supabase.from('rotina_execucoes').update(patch as any).eq('id', (existing as any).id)
+        : await supabase.from('rotina_execucoes').insert({
+            rotina_id: rotinaId,
+            data_execucao: dataKey,
+            unidade_id: unidadeId,
+            ...patch,
+          } as any);
+      if (error) throw error;
+      setFeito(valor);
+      toast({ title: valor ? 'Rotina concluída' : 'Conclusão desfeita' });
+    } catch (e: any) {
+      toast({ title: 'Não foi possível salvar', description: e.message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">Rotina da unidade</p>
+      <Button
+        type="button"
+        variant={feito ? 'outline' : 'default'}
+        className="w-full"
+        disabled={saving}
+        onClick={() => marcar(!feito)}
+      >
+        {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+        {feito ? 'Desfazer conclusão' : 'Marcar como concluída'}
+      </Button>
+    </div>
+  );
+}
+
 export function OpsTarefaSheet({
   tarefa,
   data,
@@ -93,6 +171,14 @@ export function OpsTarefaSheet({
             )}
 
             <div className="mt-4">
+              {tarefa.tipo === 'rotina' ? (
+                <RotinaExecucaoPanel
+                  rotinaId={tarefa.id}
+                  unidadeId={tarefa.unidade_id}
+                  data={data}
+                  concluida={tarefa.status === 'concluida'}
+                />
+              ) : (
               <AtividadeExecucaoPanel
                 atividadeId={tarefa.id}
                 unidadeId={tarefa.unidade_id}
@@ -103,6 +189,7 @@ export function OpsTarefaSheet({
                 exigeConfirmacao={tarefa.exige_confirmacao}
                 instrucao={tarefa.instrucao}
               />
+              )}
             </div>
           </>
         )}

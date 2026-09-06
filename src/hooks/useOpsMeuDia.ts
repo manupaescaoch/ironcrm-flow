@@ -7,6 +7,7 @@ import { deriveOpsStatus } from '@/components/ops/OpsStatusBadge';
 
 export interface OpsTarefaDoDia {
   id: string;
+  tipo: 'atividade' | 'rotina';
   titulo: string;
   descricao: string | null;
   instrucao: string | null;
@@ -28,17 +29,36 @@ export type OpsEscopo = 'minhas' | 'unidade';
 
 const sel = (s: string): string => s;
 
+const DAY_KEYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+
+/** Prioridades de rotina (alta/media/baixa) para o padrão do EVO OPS */
+function prioridadeRotina(p: string | null): string {
+  if (p === 'media' || !p) return 'normal';
+  return p;
+}
+
+function rotinaAplicaNoDia(frequencia: string | null, dayKey: string): boolean {
+  const freq = frequencia || 'diaria';
+  if (freq.startsWith('semanal:')) {
+    const dias = freq.split(':')[1]?.split(',') || [];
+    return dias.includes(dayKey);
+  }
+  return true;
+}
+
 export function useOpsMeuDia(escopo: OpsEscopo = 'minhas', date: Date = new Date()) {
   const { unidadeId } = useUnidadeFilter();
   const { user } = useAuth();
   const dataKey = toDateKey(date);
   const diaSemana = date.getDay();
+  const dayKey = DAY_KEYS[diaSemana];
+
 
   const query = useQuery({
     queryKey: ['ops-meu-dia', unidadeId, user?.id, dataKey],
     enabled: !!unidadeId && !!user?.id,
     queryFn: async () => {
-      const [funcRes, atvRes] = await Promise.all([
+      const [funcRes, atvRes, rotRes] = await Promise.all([
         supabase
           .from('cronograma_funcionarios')
           .select(sel('id, nome'))
@@ -54,13 +74,23 @@ export function useOpsMeuDia(escopo: OpsEscopo = 'minhas', date: Date = new Date
           .eq('ativo', true)
           .or(`dia_semana.eq.${diaSemana},dia_semana.is.null`)
           .order('horario', { ascending: true }),
-
+        supabase
+          .from('rotinas')
+          .select('id, nome, descricao, setor, prioridade, horario_esperado, frequencia, responsavel_principal, unidade_id')
+          .eq('unidade_id', unidadeId!)
+          .eq('ativo', true)
+          .eq('arquivada', false),
       ]);
       if (funcRes.error) throw funcRes.error;
       if (atvRes.error) throw atvRes.error;
+      if (rotRes.error) throw rotRes.error;
 
       const meusFuncIds = new Set(((funcRes.data as any[]) || []).map((f) => f.id as string));
+      const meusNomes = new Set(
+        ((funcRes.data as any[]) || []).map((f) => String(f.nome || '').trim().toUpperCase()),
+      );
       const atividades = ((atvRes.data as any[]) || []).filter((a) => a.status !== 'cancelada');
+      const rotinas = ((rotRes.data as any[]) || []).filter((r) => rotinaAplicaNoDia(r.frequencia, dayKey));
 
       let execucoes: OpsExecucao[] = [];
       if (atividades.length > 0) {
@@ -74,11 +104,26 @@ export function useOpsMeuDia(escopo: OpsEscopo = 'minhas', date: Date = new Date
       }
       const execByAtividade = new Map(execucoes.map((e) => [e.atividade_id, e]));
 
-      return atividades.map((a): OpsTarefaDoDia => {
+      let rotExec: any[] = [];
+      if (rotinas.length > 0) {
+        const { data: rotExecData, error: rotExecErr } = await supabase
+          .from('rotina_execucoes')
+          .select('rotina_id, atividade_id, concluida, concluida_em')
+          .eq('data_execucao', dataKey)
+          .in('rotina_id', rotinas.map((r) => r.id as string));
+        if (rotExecErr) throw rotExecErr;
+        rotExec = rotExecData || [];
+      }
+      const rotExecByRotina = new Map(
+        rotExec.filter((e) => !e.atividade_id).map((e) => [e.rotina_id as string, e]),
+      );
+
+      const itensAtividades = atividades.map((a): OpsTarefaDoDia => {
         const execucao = execByAtividade.get(a.id as string) || null;
         const base = (execucao?.status as OpsStatus) || 'pendente';
         return {
           id: a.id,
+          tipo: 'atividade',
           titulo: a.titulo,
           descricao: a.descricao ?? null,
           instrucao: a.instrucao ?? null,
@@ -96,6 +141,38 @@ export function useOpsMeuDia(escopo: OpsEscopo = 'minhas', date: Date = new Date
           execucao,
         };
       });
+
+      const itensRotinas = rotinas.map((r): OpsTarefaDoDia => {
+        const exec = rotExecByRotina.get(r.id as string);
+        const concluida = !!exec?.concluida;
+        const responsavel = r.responsavel_principal ?? null;
+        return {
+          id: r.id,
+          tipo: 'rotina',
+          titulo: r.nome,
+          descricao: r.descricao ?? null,
+          instrucao: null,
+          horario: r.horario_esperado ?? null,
+          prazo: null,
+          setor: r.setor ?? null,
+          prioridade: prioridadeRotina(r.prioridade),
+          unidade_id: r.unidade_id,
+          responsavel_id: null,
+          responsavel_nome: responsavel,
+          exige_evidencia: false,
+          exige_confirmacao: false,
+          minha: !!responsavel && meusNomes.has(String(responsavel).trim().toUpperCase()),
+          status: concluida
+            ? 'concluida'
+            : deriveOpsStatus('pendente', { data: dataKey, horario: r.horario_esperado ?? null, prazo: null }),
+          execucao: null,
+        };
+      });
+
+      return [...itensAtividades, ...itensRotinas].sort((a, b) =>
+        (a.horario || '99:99').localeCompare(b.horario || '99:99'),
+      );
+
     },
   });
 
