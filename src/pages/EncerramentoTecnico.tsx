@@ -16,48 +16,48 @@ const DRAFT_KEY = 'encerramento-tecnico';
 type Stage = 'intro' | 'wizard' | 'review' | 'done';
 type SimNao = boolean | null;
 
-interface Desvio {
+type Desvio = {
   profissional: string;
   desvio: string;
   correcao: string;
   situacao: 'RESOLVIDA' | 'PENDENTE' | '';
   responsavel: string;
   prazo: string;
-}
-interface Feedback {
+};
+type Feedback = {
   profissional: string;
   motivo: string;
   orientacao: string;
-}
-interface Destaque {
+};
+type Destaque = {
   profissional: string;
   comportamento: string;
-}
-interface EscalaOcorrencia {
+};
+type EscalaOcorrencia = {
   profissional: string;
   tipo: 'FALTA' | 'ATRASO' | 'SAÍDA ANTECIPADA' | '';
   cobertura: SimNao;
   cobertura_responsavel: string;
   impacto: string;
-}
-interface AtendimentoTreinador {
+};
+type AtendimentoTreinador = {
   treinador: string;
   quantidade: string;
-}
-interface OcorrenciaAluno {
+};
+type OcorrenciaAluno = {
   tipo: 'RECLAMAÇÃO' | 'DOR' | 'LESÃO' | 'CONFLITO' | 'OUTRO FEEDBACK' | '';
   aluno: string;
   descricao: string;
   profissional: string;
   medida: string;
   gerente_comunicado: SimNao;
-}
-interface Pendencia {
+};
+type Pendencia = {
   pendencia: string;
   responsavel: string;
   prazo: string;
   acompanhamento: string;
-}
+};
 
 interface Respostas {
   unidade: '' | UnidadeFormularioValue;
