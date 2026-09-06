@@ -12,12 +12,13 @@ import { Navigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { UNIDADES_FORMULARIO, getUnidadeLabelByValue } from '@/lib/formularioUnidades';
 
-type FormularioKey = 'estagiario_lider' | 'coordenador_unidade' | 'coordenador_horario' | 'relatorio_comercial';
+type FormularioKey = 'estagiario_lider' | 'coordenador_unidade' | 'coordenador_horario' | 'relatorio_comercial' | 'coordenador_tecnico';
 
 const FORMULARIOS: { key: FormularioKey; titulo: string }[] = [
   { key: 'estagiario_lider', titulo: 'Encerramento — Estagiário Líder' },
   { key: 'coordenador_unidade', titulo: 'Encerramento — Gerente de Unidade' },
   { key: 'coordenador_horario', titulo: 'Encerramento — Coordenador de Horário' },
+  { key: 'coordenador_tecnico', titulo: 'Encerramento Técnico Diário — Coordenador Geral Técnico' },
   { key: 'relatorio_comercial', titulo: 'Relatório Diário — Comercial' },
 ];
 
