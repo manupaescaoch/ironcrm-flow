@@ -15,7 +15,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-type Channel = 'comercial' | 'operacional';
+type Channel = 'comercial' | 'operacional' | 'operacional2';
+
+const CHANNELS: Channel[] = ['comercial', 'operacional', 'operacional2'];
 
 interface ChannelHealth {
   connected: boolean;
@@ -27,17 +29,20 @@ interface ChannelHealth {
 
 const SECRETS: Record<Channel, string[]> = {
   comercial: ['ZAPI_COMERCIAL_INSTANCE_ID', 'ZAPI_COMERCIAL_TOKEN', 'ZAPI_COMERCIAL_CLIENT_TOKEN'],
-  operacional: ['ZAPI_OPERACIONAL_INSTANCE_ID', 'ZAPI_OPERACIONAL_TOKEN', 'ZAPI_OPERACIONAL_CLIENT_TOKEN'],
+  operacional: ['DAPI_API_KEY', 'DAPI_SESSION_ID'],
+  operacional2: ['DAPI_OPERACIONAL_API_KEY', 'DAPI_OPERACIONAL_SESSION_ID'],
 };
 
 const TITLE: Record<Channel, string> = {
   comercial: 'EVO Comercial',
-  operacional: 'EVO Operacional',
+  operacional: 'DAPI MANU',
+  operacional2: 'DAPI OPERACIONAL',
 };
 
 const DESC: Record<Channel, string> = {
   comercial: 'Chip usado para leads e alunos (follow-ups, confirmações, recepção).',
-  operacional: 'Chip usado para equipe interna (rotinas, tarefas, alertas operacionais).',
+  operacional: 'Chip atual da equipe interna (rotinas, tarefas, alertas operacionais).',
+  operacional2: 'Novo chip da operação. Conecte aqui e depois escolhemos, item por item, o que passa por ele.',
 };
 
 function maskPhone(p: string): string {
@@ -49,13 +54,13 @@ function maskPhone(p: string): string {
 export default function ZapiConexoes() {
   const { isAdmin, loading: authLoading } = useAuth();
   const [health, setHealth] = useState<Record<Channel, ChannelHealth | null>>({
-    comercial: null, operacional: null,
+    comercial: null, operacional: null, operacional2: null,
   });
   const [loadingCh, setLoadingCh] = useState<Record<Channel, boolean>>({
-    comercial: false, operacional: false,
+    comercial: false, operacional: false, operacional2: false,
   });
   const [lastTest, setLastTest] = useState<Record<Channel, { ok: boolean; at: string; phone: string } | null>>({
-    comercial: null, operacional: null,
+    comercial: null, operacional: null, operacional2: null,
   });
   const [testOpen, setTestOpen] = useState<Channel | null>(null);
   const [testPhone, setTestPhone] = useState('');
@@ -93,11 +98,9 @@ export default function ZapiConexoes() {
 
   useEffect(() => {
     if (!isAdmin) return;
-    loadChannel('comercial');
-    loadChannel('operacional');
+    CHANNELS.forEach((c) => loadChannel(c));
     const t = setInterval(() => {
-      loadChannel('comercial');
-      loadChannel('operacional');
+      CHANNELS.forEach((c) => loadChannel(c));
     }, 60_000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -176,7 +179,7 @@ export default function ZapiConexoes() {
               <div className="mt-1">{connectedBadge}</div>
             </div>
             <div>
-              <div className="text-muted-foreground text-xs">Instance ID</div>
+              <div className="text-muted-foreground text-xs">{ch === 'comercial' ? 'Instance ID' : 'Sessão'}</div>
               <div className="mt-1 font-mono text-xs">
                 {h?.instanceIdMasked ?? '—'}
               </div>
@@ -236,17 +239,16 @@ export default function ZapiConexoes() {
             <Link to="/dashboard" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
               <ArrowLeft className="w-4 h-4" /> Voltar
             </Link>
-            <h1 className="text-2xl font-bold mt-2">Conexões Z-API</h1>
+            <h1 className="text-2xl font-bold mt-2">Conexões de WhatsApp</h1>
             <p className="text-sm text-muted-foreground">
-              Visualização e validação dos chips Comercial e Operacional. Credenciais permanecem no cofre seguro do Lovable Cloud.
+              Visualização e validação dos chips Comercial, DAPI MANU e DAPI OPERACIONAL. Credenciais permanecem no cofre seguro do Lovable Cloud.
             </p>
           </div>
           <Badge variant="outline" className="gap-1"><ShieldCheck className="w-3 h-3" /> Admin</Badge>
         </div>
 
         <div className="grid md:grid-cols-2 gap-4">
-          {renderCard('comercial')}
-          {renderCard('operacional')}
+          {CHANNELS.map((c) => renderCard(c))}
         </div>
 
         {/* Test dialog */}
