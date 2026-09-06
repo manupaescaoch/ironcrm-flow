@@ -17,7 +17,7 @@ type Stage = 'intro' | 'wizard' | 'review' | 'done';
 interface Respostas {
   // Identificação
   nome: string;
-  unidade: '' | 'ZONA NORTE' | 'ZONA SUL';
+  unidade: '' | UnidadeFormularioValue;
   turno: '' | 'MANHÃ' | 'TARDE' | 'NOITE';
   ultimoTurnoDia: boolean | null;
 
