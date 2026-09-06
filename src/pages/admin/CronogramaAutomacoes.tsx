@@ -562,12 +562,12 @@ export default function AdminCronogramaAutomacoes() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="operacional2" className="mt-4">
+          <TabsContent value="operacional2" className="mt-4 space-y-4">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Jobs automáticos (pg_cron) — {op2Jobs.length}</CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  Novo chip da operação. Nenhum aviso foi movido para cá ainda — me diga item por item o que deve passar por este chip.
+                  Avisos com horário programado que saem por este chip.
                 </p>
               </CardHeader>
               <CardContent>
@@ -578,7 +578,31 @@ export default function AdminCronogramaAutomacoes() {
                 />
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Envios na hora do evento — {EVENTOS_OPERACIONAL2.length}</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Não têm horário: saem no momento em que a resposta é enviada. Por isso não aparecem na lista acima.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {EVENTOS_OPERACIONAL2.map((e) => (
+                  <div key={e.label} className="rounded-lg border p-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-sm">{e.label}</span>
+                      <Badge className="bg-primary text-primary-foreground">Ativo</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{e.desc}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
+                      <Zap className="w-3 h-3" /> {e.gatilho}
+                    </p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
           </TabsContent>
+
 
           <TabsContent value="comercial" className="mt-4">
             <Card>
