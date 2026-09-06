@@ -196,7 +196,10 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
           <div className="flex items-center gap-2.5">
             <img src={logo.url} alt="EVO Training Club" className="w-9 h-9 rounded-lg" />
             <div className="leading-tight">
-              <h1 className="font-bold text-[13px] text-sidebar-foreground tracking-tight whitespace-nowrap">EVO TRAINING CLUB</h1>
+              <h1 className="font-bold text-[13px] tracking-tight whitespace-nowrap">
+                <span className="text-[#2563EB]">EVO</span>{' '}
+                <span className="text-sidebar-foreground">CLUB</span>
+              </h1>
               <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider">CRM</p>
             </div>
           </div>
@@ -337,7 +340,10 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
           </Sheet>
           <div className="flex items-center gap-2">
             <img src={logo.url} alt="EVO Training Club" className="w-8 h-8 rounded-lg" />
-            <span className="font-bold text-sidebar-foreground">EVO TRAINING CLUB</span>
+            <span className="font-bold">
+              <span className="text-[#2563EB]">EVO</span>{' '}
+              <span className="text-sidebar-foreground">CLUB</span>
+            </span>
           </div>
           <div className="ml-auto flex items-center gap-2">
             {unidadeAtual && (
