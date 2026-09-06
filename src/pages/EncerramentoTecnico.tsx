@@ -803,13 +803,13 @@ export default function EncerramentoTecnico() {
   }, [r, expA, expR, expX]);
 
   const payload = () => ({
-    unidade: r.unidade,
+    unidade: r.unidade as string,
     unidade_id: getUnidadeIdByValue(r.unidade) ?? null,
     coordenador_nome: r.coordenador.trim(),
     data: r.data,
-    alinhamento_manha: r.alinhamentoManha,
+    alinhamento_manha: r.alinhamentoManha === true,
     alinhamento_manha_motivo: r.alinhamentoManhaMotivo.trim() || null,
-    alinhamento_noite: r.alinhamentoNoite,
+    alinhamento_noite: r.alinhamentoNoite === true,
     alinhamento_noite_motivo: r.alinhamentoNoiteMotivo.trim() || null,
     pontos_alinhados: r.pontos,
     pontos_alinhados_detalhe: r.pontosDetalhe.trim() || null,
@@ -821,7 +821,7 @@ export default function EncerramentoTecnico() {
     feedbacks: r.feedbacks,
     teve_destaque: r.teveDestaque === true,
     destaques: r.destaques,
-    escala_cumprida: r.escalaCumprida,
+    escala_cumprida: r.escalaCumprida === true,
     escala_ocorrencias: r.escalaOcorrencias,
     distribuicao_alunos: r.distribuicao,
     distribuicao_problema: r.distribuicaoProblema.trim() || null,
