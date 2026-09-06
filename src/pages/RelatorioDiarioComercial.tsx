@@ -19,7 +19,7 @@ type Motivo = '' | 'PRECO' | 'VAI_PENSAR' | 'NAO_GOSTOU' | 'HORARIO' | 'OUTRO';
 
 interface Respostas {
   nome: string;
-  unidade: '' | 'ZONA NORTE' | 'ZONA SUL';
+  unidade: '' | UnidadeFormularioValue;
   // Indicadores
   totalAtivos: string;
   leads: string;
