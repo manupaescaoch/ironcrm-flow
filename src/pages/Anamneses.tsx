@@ -44,7 +44,8 @@ type Anamnese = {
 type Unidade = { id: string; nome: string };
 
 const NA = 'Não informado';
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 50;
+const TODAS = 'todas';
 
 function fmt(v: string | null | undefined) {
   return v && v.trim().length > 0 ? v : NA;
@@ -67,6 +68,8 @@ export default function Anamneses() {
   const { unidadeAtual } = useUnidade();
   const [unidade, setUnidade] = useState<string>(unidadeAtual?.id ?? '');
   const [busca, setBusca] = useState('');
+  const [de, setDe] = useState('');
+  const [ate, setAte] = useState('');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Anamnese | null>(null);
 
@@ -76,7 +79,7 @@ export default function Anamneses() {
 
   useEffect(() => {
     setPage(1);
-  }, [unidade, busca]);
+  }, [unidade, busca, de, ate]);
 
   const { data: unidades = [] } = useQuery({
     queryKey: ['anamneses-unidades'],
@@ -88,16 +91,18 @@ export default function Anamneses() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['anamneses-lista', unidade, busca, page],
+    queryKey: ['anamneses-lista', unidade, busca, de, ate, page],
     enabled: !!unidade,
     queryFn: async () => {
       let q = supabase
         .from('anamneses_experimental')
         .select('*, leads(nome, telefone)', { count: 'exact' })
-        .eq('unidade_id', unidade)
         .order('created_at', { ascending: false })
         .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+      if (unidade !== TODAS) q = q.eq('unidade_id', unidade);
       if (busca.trim()) q = q.ilike('nome', `%${busca.trim()}%`);
+      if (de) q = q.gte('created_at', `${de}T00:00:00`);
+      if (ate) q = q.lte('created_at', `${ate}T23:59:59`);
       const { data: rows, error, count } = await q;
       if (error) throw error;
       return { rows: (rows ?? []) as unknown as Anamnese[], total: count ?? 0 };
@@ -109,9 +114,13 @@ export default function Anamneses() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const unidadeNome = useMemo(
-    () => unidades.find((u) => u.id === unidade)?.nome ?? '',
+    () =>
+      unidade === TODAS
+        ? 'Todas as unidades'
+        : unidades.find((u) => u.id === unidade)?.nome ?? '',
     [unidades, unidade],
   );
+
 
   return (
     <Layout>
@@ -134,6 +143,7 @@ export default function Anamneses() {
                   <SelectValue placeholder="Unidade" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={TODAS}>Todas as unidades</SelectItem>
                   {unidades.map((u) => (
                     <SelectItem key={u.id} value={u.id}>
                       {u.nome}
@@ -151,6 +161,34 @@ export default function Anamneses() {
                 onChange={(e) => setBusca(e.target.value)}
               />
             </div>
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                className="w-[150px]"
+                value={de}
+                onChange={(e) => setDe(e.target.value)}
+              />
+              <span className="text-sm text-muted-foreground">até</span>
+              <Input
+                type="date"
+                className="w-[150px]"
+                value={ate}
+                onChange={(e) => setAte(e.target.value)}
+              />
+              {(de || ate) && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setDe('');
+                    setAte('');
+                  }}
+                >
+                  Limpar
+                </Button>
+              )}
+            </div>
+
           </CardContent>
         </Card>
 
