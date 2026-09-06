@@ -237,7 +237,9 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
                 <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
                   {getUnidadeSigla(unidadeAtual.nome)}
                 </div>
-                <SelectValue placeholder="Selecione a unidade" />
+                <SelectValue>
+                  <span className="text-[13px] font-medium truncate">{unidadeAtual.nome}</span>
+                </SelectValue>
               </div>
             </SelectTrigger>
             <SelectContent className="bg-sidebar border-sidebar-border/60">
