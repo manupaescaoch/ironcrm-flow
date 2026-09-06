@@ -7,6 +7,7 @@ import { deriveOpsStatus } from '@/components/ops/OpsStatusBadge';
 
 export interface OpsTarefaDoDia {
   id: string;
+  tipo: 'atividade' | 'rotina';
   titulo: string;
   descricao: string | null;
   instrucao: string | null;
@@ -28,11 +29,30 @@ export type OpsEscopo = 'minhas' | 'unidade';
 
 const sel = (s: string): string => s;
 
+const DAY_KEYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+
+/** Prioridades de rotina (alta/media/baixa) para o padrão do EVO OPS */
+function prioridadeRotina(p: string | null): string {
+  if (p === 'media' || !p) return 'normal';
+  return p;
+}
+
+function rotinaAplicaNoDia(frequencia: string | null, dayKey: string): boolean {
+  const freq = frequencia || 'diaria';
+  if (freq.startsWith('semanal:')) {
+    const dias = freq.split(':')[1]?.split(',') || [];
+    return dias.includes(dayKey);
+  }
+  return true;
+}
+
 export function useOpsMeuDia(escopo: OpsEscopo = 'minhas', date: Date = new Date()) {
   const { unidadeId } = useUnidadeFilter();
   const { user } = useAuth();
   const dataKey = toDateKey(date);
   const diaSemana = date.getDay();
+  const dayKey = DAY_KEYS[diaSemana];
+
 
   const query = useQuery({
     queryKey: ['ops-meu-dia', unidadeId, user?.id, dataKey],
