@@ -214,13 +214,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    const creds = getZapiCreds('comercial');
+    const creds = getZapiCreds('operacional2');
     if (!creds) {
       await logEnvio(supabase, {
         funcao: 'notify-nps-resposta',
         sucesso: false,
         motivo_skip: 'credenciais-comercial-ausentes',
-        canal: 'comercial',
+        canal: 'operacional2',
       });
       return new Response(JSON.stringify({ ok: false, reason: 'no-creds' }), {
         status: 200,
@@ -234,7 +234,7 @@ Deno.serve(async (req) => {
         funcao: 'notify-nps-resposta',
         sucesso: false,
         motivo_skip: 'chip-desconectado',
-        canal: 'comercial',
+        canal: 'operacional2',
       });
       return new Response(JSON.stringify({ ok: false, reason: 'chip-off' }), {
         status: 200,
@@ -309,7 +309,7 @@ Deno.serve(async (req) => {
         sucesso: rg.ok,
         zapi_status_code: rg.status,
         erro_msg: rg.ok ? null : JSON.stringify(rg.body).slice(0, 500),
-        canal: 'comercial',
+        canal: 'operacional2',
         resposta_completa: rg.body,
       });
     } else {
@@ -319,7 +319,7 @@ Deno.serve(async (req) => {
         tipo_destino: 'grupo',
         sucesso: false,
         motivo_skip: `unidade-sem-grupo:${unidadeKey}`,
-        canal: 'comercial',
+        canal: 'operacional2',
       });
     }
 
