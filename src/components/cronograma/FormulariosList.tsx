@@ -36,6 +36,7 @@ export function FormulariosList({ onCreateNew, onEdit, onViewRespostas }: Formul
   const encerramentoUrl = `${window.location.origin}/encerramento-turno`;
   const coordenadorUrl = `${window.location.origin}/encerramento-coordenador`;
   const horarioUrl = `${window.location.origin}/encerramento-horario`;
+  const tecnicoUrl = `${window.location.origin}/encerramento-tecnico`;
   const comercialUrl = `${window.location.origin}/relatorio-diario-comercial`;
 
   const FixedCard = ({ title, subtitle, url }: { title: string; subtitle: string; url: string }) => (
@@ -85,6 +86,7 @@ export function FormulariosList({ onCreateNew, onEdit, onViewRespostas }: Formul
       <FixedCard title="Formulário de Encerramento — Estagiário Líder" subtitle="Estagiário Líder · ao final do turno · tablet/celular" url={encerramentoUrl} />
       <FixedCard title="Formulário de Encerramento — Gerente de Unidade" subtitle="Gerente de Unidade · ao final do turno · tablet/celular" url={coordenadorUrl} />
       <FixedCard title="Formulário de Encerramento — Coordenador de Horário" subtitle="Coordenador de Horário · ao final do turno · tablet/celular" url={horarioUrl} />
+      <FixedCard title="Encerramento Técnico Diário — Coordenador Geral Técnico" subtitle="Coordenador Geral Técnico · ao final do dia · tablet/celular" url={tecnicoUrl} />
       <FixedCard title="Relatório Diário — Comercial" subtitle="Recepção · ao final do dia · tablet/celular" url={comercialUrl} />
 
       <div className="flex items-center justify-between">

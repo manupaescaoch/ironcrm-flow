@@ -41,6 +41,7 @@ import AnamnesePublicaUniversal from "./pages/AnamnesePublicaUniversal";
 import FormularioPublico from "./pages/FormularioPublico";
 import EncerramentoTurno from "./pages/EncerramentoTurno";
 import EncerramentoCoordenador from "./pages/EncerramentoCoordenador";
+import EncerramentoTecnico from "./pages/EncerramentoTecnico";
 import EncerramentoHorario from "./pages/EncerramentoHorario";
 import RelatorioDiarioComercial from "./pages/RelatorioDiarioComercial";
 import GruposWhatsApp from "./pages/admin/GruposWhatsApp";
@@ -221,6 +222,7 @@ const AppRoutes = () => (
 
     <Route path="/encerramento-turno" element={<EncerramentoTurno />} />
     <Route path="/encerramento-coordenador" element={<EncerramentoCoordenador />} />
+    <Route path="/encerramento-tecnico" element={<EncerramentoTecnico />} />
     <Route path="/encerramento-horario" element={<EncerramentoHorario />} />
     <Route path="/relatorio-diario-comercial" element={<RelatorioDiarioComercial />} />
     <Route path="/admin/grupos-whatsapp" element={<ProtectedRoute><GruposWhatsApp /></ProtectedRoute>} />
