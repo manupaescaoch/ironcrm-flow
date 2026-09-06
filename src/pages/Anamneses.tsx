@@ -44,7 +44,8 @@ type Anamnese = {
 type Unidade = { id: string; nome: string };
 
 const NA = 'Não informado';
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 50;
+const TODAS = 'todas';
 
 function fmt(v: string | null | undefined) {
   return v && v.trim().length > 0 ? v : NA;
