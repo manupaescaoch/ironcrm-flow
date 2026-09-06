@@ -214,7 +214,7 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
             <Building2 className="w-3 h-3" />
             <span className="uppercase tracking-wider font-medium">Unidade</span>
           </div>
-          <div className="space-y-1 max-h-32 overflow-y-auto scrollbar-visible pr-1">
+          <div className="h-20 space-y-1 overflow-y-scroll scrollbar-visible pr-1">
             {unidadesPermitidas.map((unidade) => {
               const isSelected = unidadeAtual.id === unidade.id;
               return (
