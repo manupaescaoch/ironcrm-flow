@@ -435,6 +435,7 @@ export default function EncerramentoHorario() {
         await submitFormularioPublico({
           tipo_formulario: 'coordenador_horario',
           unidade: r.unidade,
+          unidade_id: getUnidadeIdByValue(r.unidade),
           resposta_id: respostaId,
         });
         clearDraft('encerramento-horario');
