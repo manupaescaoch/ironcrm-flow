@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { UNIDADES_FORMULARIO, getUnidadeLabelByValue } from '@/lib/formularioUnidades';
 
 type FormularioKey = 'estagiario_lider' | 'coordenador_unidade' | 'coordenador_horario' | 'relatorio_comercial';
 
@@ -19,7 +20,6 @@ const FORMULARIOS: { key: FormularioKey; titulo: string }[] = [
   { key: 'coordenador_horario', titulo: 'Encerramento — Coordenador de Horário' },
   { key: 'relatorio_comercial', titulo: 'Relatório Diário — Comercial' },
 ];
-const UNIDADES = ['ZONA NORTE', 'ZONA SUL'] as const;
 
 interface Linha {
   id?: string;
