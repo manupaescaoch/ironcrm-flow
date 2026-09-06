@@ -581,8 +581,9 @@ async function sendWhatsapp(
   tipoFormulario: TipoFormulario,
   eventKey: string,
 ): Promise<{ ok: boolean; status: number; body: any; provider: string }> {
-  // Relatório Comercial → chip COMERCIAL (Z-API). Demais formulários → OPERACIONAL (D-API).
-  const channel = tipoFormulario === 'relatorio_comercial' ? 'comercial' : 'operacional';
+  // Todos os formulários de encerramento → chip D-API OPERACIONAL.
+  const channel = 'operacional2';
+
   const creds = getZapiCreds(channel);
   if (!creds) {
     console.error(`[sendWhatsapp] Credenciais ausentes para canal ${channel}`);
