@@ -413,7 +413,7 @@ export default function RelatorioDiarioComercial() {
         await submitFormularioPublico({
           tipo_formulario: 'relatorio_comercial',
           unidade: r.unidade,
-          unidade_id: r.unidade === 'ZONA NORTE' ? 'b4df0ba8-7fa8-4f28-8924-d5ce6a9b50c6' : 'f3d048da-31d7-48df-b1f1-7e2a809c9a9a',
+          unidade_id: getUnidadeIdByValue(r.unidade),
           resposta_id: respostaId,
         });
         clearDraft('relatorio-diario-comercial');
