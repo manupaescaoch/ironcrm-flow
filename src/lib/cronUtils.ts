@@ -26,6 +26,7 @@ const OPERACIONAL_JOBS = new Set([
 ]);
 
 export function getCanal(jobname: string): Canal {
+  if (OPERACIONAL2_JOBS.has(jobname)) return 'operacional2';
   if (COMERCIAL_JOBS.has(jobname)) return 'comercial';
   if (OPERACIONAL_JOBS.has(jobname)) return 'operacional';
   return 'outro';
