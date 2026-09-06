@@ -494,6 +494,9 @@ export default function AdminCronogramaAutomacoes() {
             <TabsTrigger value="operacional" className="gap-1.5">
               <Zap className="w-4 h-4" /> D-API MANU
             </TabsTrigger>
+            <TabsTrigger value="operacional2" className="gap-1.5">
+              <Zap className="w-4 h-4" /> D-API OPERACIONAL
+            </TabsTrigger>
             <TabsTrigger value="comercial" className="gap-1.5">
               <MessageSquare className="w-4 h-4" /> Z-API Comercial
             </TabsTrigger>
