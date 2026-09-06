@@ -433,7 +433,7 @@ export default function EncerramentoCoordenador() {
           <h1 className="font-display text-5xl font-extrabold uppercase leading-[0.95] tracking-tight">
             Formulário<br />de Encerramento
           </h1>
-          <p className="text-sm uppercase tracking-[0.2em] opacity-90">Coordenador de Unidade</p>
+          <p className="text-sm uppercase tracking-[0.2em] opacity-90">Gerente de Unidade</p>
           <p className="mx-auto max-w-xs text-base opacity-90">
             Preencha ao final do seu turno. Leva menos de 5 minutos.
           </p>

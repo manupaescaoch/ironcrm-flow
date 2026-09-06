@@ -78,7 +78,7 @@ function detectTipo(titulo: string, responsavelNome?: string, cargo?: string | n
 
 const TIPO_LABEL: Record<FormTipo, string> = {
   estagiario_lider: 'Encerramento — Estagiário Líder',
-  coordenador_unidade: 'Encerramento — Coordenador de Unidade',
+  coordenador_unidade: 'Encerramento — Gerente de Unidade',
   coordenador_horario: 'Encerramento — Coordenador de Horário',
   relatorio_diario: 'Relatório Diário — Comercial',
 };

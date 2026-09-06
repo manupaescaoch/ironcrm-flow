@@ -16,7 +16,7 @@ type FormularioKey = 'estagiario_lider' | 'coordenador_unidade' | 'coordenador_h
 
 const FORMULARIOS: { key: FormularioKey; titulo: string }[] = [
   { key: 'estagiario_lider', titulo: 'Encerramento — Estagiário Líder' },
-  { key: 'coordenador_unidade', titulo: 'Encerramento — Coordenador de Unidade' },
+  { key: 'coordenador_unidade', titulo: 'Encerramento — Gerente de Unidade' },
   { key: 'coordenador_horario', titulo: 'Encerramento — Coordenador de Horário' },
   { key: 'relatorio_comercial', titulo: 'Relatório Diário — Comercial' },
 ];
