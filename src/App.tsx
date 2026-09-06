@@ -34,6 +34,8 @@ import Equipe from "./pages/Equipe";
 
 import ContasPagar from "./pages/ContasPagar";
 import AnamneseExperimental from "./pages/AnamneseExperimental";
+import Anamneses from "./pages/Anamneses";
+
 import AnamnesePublica from "./pages/AnamnesePublica";
 import AnamnesePublicaUniversal from "./pages/AnamnesePublicaUniversal";
 import FormularioPublico from "./pages/FormularioPublico";
