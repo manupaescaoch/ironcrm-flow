@@ -24,6 +24,20 @@ import { DIAS_LABEL_SHORT, type TipoDisplay } from '@/lib/cronogramaTipos';
 import { NOME_TOKEN, aplicarPlaceholders, contemNomeToken, inserirToken } from '@/lib/mensagemPlaceholder';
 
 
+// Avisos deste chip que não têm horário: disparam no instante do evento.
+const EVENTOS_OPERACIONAL2 = [
+  {
+    label: 'Resposta de NPS para o grupo',
+    desc: 'Envia a resposta completa do NPS ao grupo da unidade, com análise e ação sugerida',
+    gatilho: 'Ao aluno enviar o NPS',
+  },
+  {
+    label: 'Resposta de anamnese para o grupo',
+    desc: 'Envia a ficha preenchida ao grupo da unidade',
+    gatilho: 'Ao preencher a anamnese',
+  },
+];
+
 function atvToGrupo(a: CronogramaAtividadeAdmin): GrupoConjunto {
   return {
     key: a.id,
