@@ -2,7 +2,9 @@
 export type Canal = 'operacional' | 'operacional2' | 'comercial' | 'outro';
 
 // Jobs que já foram migrados para o novo chip DAPI OPERACIONAL
-const OPERACIONAL2_JOBS = new Set<string>([]);
+const OPERACIONAL2_JOBS = new Set<string>([
+  'retry-anamneses-pendentes-5min',
+]);
 
 const COMERCIAL_JOBS = new Set([
   'confirmacao-experimental-cada-15min',
@@ -11,7 +13,6 @@ const COMERCIAL_JOBS = new Set([
   'notify-boas-vindas-matricula-every-30min',
   'notify-feedback-experimental-30min',
   'notify-rotinas-every-15min',
-  'retry-anamneses-pendentes-5min',
 ]);
 
 const OPERACIONAL_JOBS = new Set([
@@ -22,7 +23,6 @@ const OPERACIONAL_JOBS = new Set([
   'resumo-semanal-pergunta-sabado-10h',
   'resumo-semanal-pergunta-segunda-10h',
   'send-cronograma-messages-every-3min',
-  'send-formulario-lembretes-every-15min',
 ]);
 
 export function getCanal(jobname: string): Canal {
@@ -44,7 +44,7 @@ const JOB_LABELS: Record<string, { label: string; desc?: string }> = {
   'resumo-gestao-operacional-diario-0800': { label: 'Resumo diário — Gestão Operacional', desc: 'Panorama enviado toda manhã às 08h' },
   'resumo-semanal-pergunta-sabado-10h': { label: 'Pergunta semanal (sábado)', desc: 'Pergunta de fechamento no grupo' },
   'resumo-semanal-pergunta-segunda-10h': { label: 'Pergunta semanal (segunda)', desc: 'Pergunta de abertura no grupo' },
-  'retry-anamneses-pendentes-5min': { label: 'Reenvio de anamneses pendentes', desc: 'Tenta reenviar anamneses que falharam' },
+  'retry-anamneses-pendentes-5min': { label: 'Reenvio de anamneses pendentes', desc: 'Envia a resposta da anamnese ao grupo da unidade' },
   'send-cronograma-messages-every-3min': { label: 'Envio do cronograma operacional', desc: 'Dispara atividades programadas do dia' },
   'send-formulario-lembretes-every-15min': { label: 'Lembretes de formulários', desc: 'Cobra formulários (encerramento, etc.)' },
   // Comercial (Z-API)
