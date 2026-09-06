@@ -525,6 +525,7 @@ export default function EncerramentoCoordenador() {
         await submitFormularioPublico({
           tipo_formulario: 'coordenador_unidade',
           unidade: r.unidade,
+          unidade_id: getUnidadeIdByValue(r.unidade),
           resposta_id: respostaId,
         });
         clearDraft('encerramento-coordenador');
