@@ -10,6 +10,7 @@ export const TIPOS_FORMULARIO = [
   'coordenador_unidade',
   'coordenador_horario',
   'relatorio_comercial',
+  'coordenador_tecnico',
 ] as const;
 export type TipoFormulario = typeof TIPOS_FORMULARIO[number];
 
@@ -18,6 +19,7 @@ export const TIPO_TITULO: Record<TipoFormulario, string> = {
   coordenador_unidade: 'Encerramento — Gerente de Unidade',
   coordenador_horario: 'Encerramento — Coordenador de Horário',
   relatorio_comercial: 'Relatório Diário — Comercial',
+  coordenador_tecnico: 'Encerramento Técnico Diário | Coordenador Geral',
 };
 
 const TIPO_TABLE: Record<TipoFormulario, string> = {
@@ -25,6 +27,7 @@ const TIPO_TABLE: Record<TipoFormulario, string> = {
   coordenador_unidade: 'encerramento_coordenador_respostas',
   coordenador_horario: 'encerramento_horario_respostas',
   relatorio_comercial: 'relatorio_diario_comercial_respostas',
+  coordenador_tecnico: 'encerramento_tecnico_respostas',
 };
 
 const UNIDADES_PERMITIDAS = new Set(['MADALENA', 'BOA VIAGEM', 'SETUBAL']);
@@ -257,14 +260,198 @@ function renderRelatorioComercial(row: Record<string, unknown>): Item[] {
   return items;
 }
 
+// ---------------------- Encerramento Técnico Diário ----------------------
+// Template completo: NENHUMA linha desaparece, mesmo quando a resposta é
+// "Não", "Nenhuma" ou zero. Listas dinâmicas vêm numeradas.
+
+function txt(v: unknown, fallback = 'Não se aplica'): string {
+  if (v === null || v === undefined || String(v).trim() === '') return fallback;
+  const s = sanitizeText(v);
+  return s === '—' ? fallback : s;
+}
+
+function num(v: unknown): string {
+  const n = Number(v ?? 0);
+  return Number.isFinite(n) ? String(n) : '0';
+}
+
+function simNao(v: unknown): string {
+  return v === true ? 'Sim' : v === false ? 'Não' : 'Não informado';
+}
+
+function asList(v: unknown): Record<string, unknown>[] {
+  if (Array.isArray(v)) return v.filter((x) => x && typeof x === 'object') as Record<string, unknown>[];
+  return [];
+}
+
+function dataBR(v: unknown): string {
+  const s = typeof v === 'string' ? v : '';
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : txt(v);
+}
+
+function renderTecnicoDiario(unidade: string, row: Record<string, unknown>): string {
+  const L: string[] = [];
+  const dataHora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+
+  L.push(`✅ *${TIPO_TITULO.coordenador_tecnico}*`);
+  L.push('');
+  L.push(`📍 *Unidade:* ${sanitizeText(unidade)}`);
+  L.push(`👤 *Coordenador:* ${txt(row.coordenador_nome, 'Não informado')}`);
+  L.push(`📅 *Data:* ${dataBR(row.data)}`);
+  L.push(`🕒 *Enviado em:* ${dataHora}`);
+  L.push('');
+  L.push(`🔄 *Alinhamento com a manhã:* ${simNao(row.alinhamento_manha)}`);
+  L.push(`📝 *Motivo:* ${txt(row.alinhamento_manha_motivo)}`);
+  L.push(`🔄 *Alinhamento com a noite:* ${simNao(row.alinhamento_noite)}`);
+  L.push(`📝 *Motivo:* ${txt(row.alinhamento_noite_motivo)}`);
+  const pontos = Array.isArray(row.pontos_alinhados)
+    ? (row.pontos_alinhados as unknown[]).map((p) => sanitizeText(p)).join(', ')
+    : '';
+  L.push(`📌 *Pontos alinhados:* ${txt(pontos, 'Nenhuma pendência')}`);
+  L.push(`📝 *Detalhamento:* ${txt(row.pontos_alinhados_detalhe)}`);
+  L.push('');
+  L.push(`🔍 *Ronda técnica:* ${txt(row.ronda_tecnica, 'Não informado')}`);
+  L.push(`📝 *Motivo:* ${txt(row.ronda_motivo)}`);
+  L.push('');
+  L.push(`⚠️ *Desvio técnico ou de conduta:* ${simNao(row.teve_desvio)}`);
+  const desvios = asList(row.desvios);
+  if (desvios.length === 0) {
+    L.push(`👤 *Profissional envolvido:* Não se aplica`);
+    L.push(`📝 *Desvio identificado:* Não se aplica`);
+    L.push(`✅ *Correção aplicada:* Não se aplica`);
+    L.push(`📍 *Situação:* Não se aplica`);
+    L.push(`👤 *Responsável pelo acompanhamento:* Não se aplica`);
+    L.push(`📅 *Prazo:* Não se aplica`);
+  } else {
+    desvios.forEach((d, i) => {
+      L.push(`— *Desvio ${i + 1} de ${desvios.length}*`);
+      L.push(`👤 *Profissional envolvido:* ${txt(d.profissional)}`);
+      L.push(`📝 *Desvio identificado:* ${txt(d.desvio)}`);
+      L.push(`✅ *Correção aplicada:* ${txt(d.correcao)}`);
+      L.push(`📍 *Situação:* ${txt(d.situacao)}`);
+      L.push(`👤 *Responsável pelo acompanhamento:* ${txt(d.responsavel)}`);
+      L.push(`📅 *Prazo:* ${txt(d.prazo)}`);
+    });
+  }
+  L.push('');
+  L.push(`💬 *Feedback corretivo aplicado:* ${simNao(row.teve_feedback)}`);
+  const feedbacks = asList(row.feedbacks);
+  if (feedbacks.length === 0) {
+    L.push(`👤 *Profissional:* Não se aplica`);
+    L.push(`📝 *Motivo e orientação:* Não se aplica`);
+  } else {
+    feedbacks.forEach((f, i) => {
+      L.push(`— *Feedback ${i + 1} de ${feedbacks.length}*`);
+      L.push(`👤 *Profissional:* ${txt(f.profissional)}`);
+      L.push(`📝 *Motivo e orientação:* ${txt(f.motivo)}${f.orientacao ? ` — ${txt(f.orientacao)}` : ''}`);
+    });
+  }
+  L.push('');
+  L.push(`🌟 *Destaque positivo:* ${simNao(row.teve_destaque)}`);
+  const destaques = asList(row.destaques);
+  if (destaques.length === 0) {
+    L.push(`👤 *Profissional:* Não se aplica`);
+    L.push(`📝 *Comportamento observado:* Não se aplica`);
+  } else {
+    destaques.forEach((d, i) => {
+      L.push(`— *Destaque ${i + 1} de ${destaques.length}*`);
+      L.push(`👤 *Profissional:* ${txt(d.profissional)}`);
+      L.push(`📝 *Comportamento observado:* ${txt(d.comportamento)}`);
+    });
+  }
+  L.push('');
+  L.push(`👥 *Escala cumprida integralmente:* ${simNao(row.escala_cumprida)}`);
+  const ocs = asList(row.escala_ocorrencias);
+  if (ocs.length === 0) {
+    L.push(`❌ *Ocorrência na escala:* Nenhuma`);
+    L.push(`🔁 *Cobertura:* Não se aplica`);
+    L.push(`📊 *Impacto no atendimento:* Não se aplica`);
+  } else {
+    ocs.forEach((o, i) => {
+      L.push(`— *Ocorrência ${i + 1} de ${ocs.length}*`);
+      L.push(`❌ *Ocorrência na escala:* ${txt(o.profissional)} — ${txt(o.tipo)}`);
+      L.push(`🔁 *Cobertura:* ${o.cobertura === true ? `Sim — ${txt(o.cobertura_responsavel)}` : 'Não'}`);
+      L.push(`📊 *Impacto no atendimento:* ${txt(o.impacto)}`);
+    });
+  }
+  L.push('');
+  L.push(`⚖️ *Distribuição dos alunos:* ${txt(row.distribuicao_alunos, 'Não informado')}`);
+  L.push(`📝 *Problema identificado:* ${txt(row.distribuicao_problema)}`);
+  L.push(`✅ *Ajuste realizado:* ${txt(row.distribuicao_ajuste)}`);
+  L.push(`🏋️ *Alunos atendidos no turno da tarde:* ${num(row.alunos_atendidos_tarde)}`);
+  const trein = asList(row.atendimentos_treinador);
+  const treinTxt = trein.length
+    ? trein.map((t) => `${txt(t.treinador)}: ${num(t.quantidade)}`).join(' | ')
+    : 'Nenhum registro';
+  L.push(`📈 *Atendimentos por treinador:* ${treinTxt}`);
+  L.push(`🧪 *Experimentais agendadas:* ${num(row.experimentais_agendadas)}`);
+  L.push(`✅ *Experimentais realizadas:* ${num(row.experimentais_realizadas)}`);
+  L.push(`❌ *Experimentais ausentes:* ${num(row.experimentais_ausentes)}`);
+  L.push('');
+  L.push(`🙋 *Feedback ou ocorrência com aluno:* ${simNao(row.teve_ocorrencia_aluno)}`);
+  const alunos = asList(row.ocorrencias_aluno);
+  if (alunos.length === 0) {
+    L.push(`📋 *Tipo:* Não se aplica`);
+    L.push(`👤 *Aluno:* Não se aplica`);
+    L.push(`📝 *Descrição:* Não se aplica`);
+    L.push(`🏋️ *Profissional envolvido:* Não se aplica`);
+    L.push(`✅ *Medida adotada:* Não se aplica`);
+    L.push(`📣 *Gerente comunicado:* Não se aplica`);
+  } else {
+    alunos.forEach((a, i) => {
+      L.push(`— *Registro ${i + 1} de ${alunos.length}*`);
+      L.push(`📋 *Tipo:* ${txt(a.tipo)}`);
+      L.push(`👤 *Aluno:* ${txt(a.aluno)}`);
+      L.push(`📝 *Descrição:* ${txt(a.descricao)}`);
+      L.push(`🏋️ *Profissional envolvido:* ${txt(a.profissional)}`);
+      L.push(`✅ *Medida adotada:* ${txt(a.medida)}`);
+      L.push(`📣 *Gerente comunicado:* ${simNao(a.gerente_comunicado)}`);
+    });
+  }
+  L.push('');
+  L.push(`🧼 *Sala organizada e segura:* ${txt(row.sala_organizada, 'Não informado')}`);
+  L.push(`📝 *Problema identificado:* ${txt(row.sala_problema)}`);
+  L.push(`✅ *Providência adotada:* ${txt(row.sala_providencia)}`);
+  L.push(`🛠️ *Problema de estrutura ou equipamento:* ${simNao(row.teve_problema_estrutura)}`);
+  L.push(`📝 *Descrição:* ${txt(row.estrutura_problema)}`);
+  L.push(`📊 *Impacto na operação:* ${txt(row.estrutura_impacto)}`);
+  L.push(`✅ *Providência adotada:* ${txt(row.estrutura_providencia)}`);
+  L.push(`📣 *Gerente comunicado:* ${row.teve_problema_estrutura ? simNao(row.estrutura_gerente_comunicado) : 'Não se aplica'}`);
+  L.push('');
+  L.push(`⏳ *Pendência para o próximo turno ou dia:* ${simNao(row.teve_pendencia)}`);
+  const pend = asList(row.pendencias);
+  if (pend.length === 0) {
+    L.push(`📝 *Pendência:* Nenhuma`);
+    L.push(`👤 *Responsável:* Não se aplica`);
+    L.push(`📅 *Prazo:* Não se aplica`);
+    L.push(`🔎 *Forma de acompanhamento:* Não se aplica`);
+  } else {
+    pend.forEach((p, i) => {
+      L.push(`— *Pendência ${i + 1} de ${pend.length}*`);
+      L.push(`📝 *Pendência:* ${txt(p.pendencia)}`);
+      L.push(`👤 *Responsável:* ${txt(p.responsavel)}`);
+      L.push(`📅 *Prazo:* ${txt(p.prazo)}`);
+      L.push(`🔎 *Forma de acompanhamento:* ${txt(p.acompanhamento)}`);
+    });
+  }
+  L.push('');
+  L.push(`🎯 *Prioridade técnica do próximo dia:* ${txt(row.prioridade_tecnica, 'Nenhuma')}`);
+  L.push(`📝 *Detalhamento:* ${txt(row.prioridade_detalhe)}`);
+
+  return L.join('\n');
+}
+
 const RENDERERS: Record<TipoFormulario, (row: Record<string, unknown>) => Item[]> = {
   estagiario_lider: renderEstagiarioLider,
   coordenador_unidade: renderCoordenadorUnidade,
   coordenador_horario: renderCoordenadorHorario,
   relatorio_comercial: renderRelatorioComercial,
+  coordenador_tecnico: () => [],
 };
 
 export function buildMessage(tipo: TipoFormulario, unidade: string, row: Record<string, unknown>): string {
+  if (tipo === 'coordenador_tecnico') return renderTecnicoDiario(unidade, row);
   const items = RENDERERS[tipo](row);
   const dataHora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
