@@ -4,7 +4,8 @@ export type TipoFormulario =
   | 'estagiario_lider'
   | 'coordenador_unidade'
   | 'coordenador_horario'
-  | 'relatorio_comercial';
+  | 'relatorio_comercial'
+  | 'coordenador_tecnico';
 
 /**
  * Fluxo PÚBLICO — usado pelas páginas /encerramento-* e /relatorio-diario-comercial,
