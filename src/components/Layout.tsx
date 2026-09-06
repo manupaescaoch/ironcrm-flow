@@ -42,6 +42,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { UserPhoneDialog } from '@/components/profile/UserPhoneDialog';
 
@@ -207,53 +214,51 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
         </div>
       </div>
 
-      {/* Unit Selector - Visual cards for multiple units */}
+      {/* Unit Selector - Compact dropdown */}
       {hasMultipleUnidades && unidadeAtual && (
         <div className="px-3 py-3 border-b border-sidebar-border/60">
           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70 mb-2 px-1">
             <Building2 className="w-3 h-3" />
             <span className="uppercase tracking-wider font-medium">Unidade</span>
           </div>
-          <div className="h-20 space-y-1 overflow-y-scroll scrollbar-visible pr-1">
-            {unidadesPermitidas.map((unidade) => {
-              const isSelected = unidadeAtual.id === unidade.id;
-              return (
-                <button
+          <Select
+            value={unidadeAtual.id}
+            onValueChange={(value) => {
+              const unidade = unidadesPermitidas.find((u) => u.id === value);
+              if (unidade) {
+                setUnidadeAtual(unidade);
+                if (isMobile) setSidebarOpen(false);
+                navigate('/dashboard');
+              }
+            }}
+          >
+            <SelectTrigger className="w-full h-9 bg-sidebar border-sidebar-border/60 text-sidebar-foreground hover:bg-sidebar-accent/50 focus:ring-primary/20 [&>svg]:text-sidebar-foreground/70">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
+                  {getUnidadeSigla(unidadeAtual.nome)}
+                </div>
+                <SelectValue>
+                  <span className="text-[13px] font-medium truncate">{unidadeAtual.nome}</span>
+                </SelectValue>
+              </div>
+            </SelectTrigger>
+            <SelectContent className="bg-sidebar border-sidebar-border/60">
+              {unidadesPermitidas.map((unidade) => (
+                <SelectItem
                   key={unidade.id}
-                  onClick={() => {
-                    setUnidadeAtual(unidade);
-                    if (isMobile) setSidebarOpen(false);
-                    navigate('/dashboard');
-                  }}
-                  className={cn(
-                    'w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md transition-colors text-left',
-                    isSelected
-                      ? 'bg-primary/15 text-primary'
-                      : 'hover:bg-sidebar-accent/50 text-sidebar-foreground'
-                  )}
+                  value={unidade.id}
+                  className="text-sidebar-foreground focus:bg-sidebar-accent/50 focus:text-sidebar-foreground cursor-pointer"
                 >
-                  <div className={cn(
-                    'w-7 h-6 rounded flex items-center justify-center text-[10px] font-bold shrink-0',
-                    isSelected
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-sidebar-accent/70 text-muted-foreground'
-                  )}>
-                    {getUnidadeSigla(unidade.nome)}
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-6 h-6 rounded bg-sidebar-accent/70 flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0">
+                      {getUnidadeSigla(unidade.nome)}
+                    </div>
+                    <span className="text-[13px] font-medium">{unidade.nome}</span>
                   </div>
-
-                  <span className={cn(
-                    'flex-1 min-w-0 text-[13px] font-medium truncate',
-                    isSelected ? 'text-primary' : 'text-sidebar-foreground'
-                  )}>
-                    {unidade.nome}
-                  </span>
-                  {isSelected && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
 
