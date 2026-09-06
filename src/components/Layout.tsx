@@ -42,6 +42,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { UserPhoneDialog } from '@/components/profile/UserPhoneDialog';
 
