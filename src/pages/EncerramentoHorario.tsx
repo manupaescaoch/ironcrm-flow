@@ -20,7 +20,7 @@ type Stage = 'intro' | 'wizard' | 'review' | 'done';
 interface Respostas {
   nome: string;
   data: Date | null;
-  unidade: '' | 'ZONA NORTE' | 'ZONA SUL';
+  unidade: '' | UnidadeFormularioValue;
   turno: '' | 'MANHÃ' | 'TARDE' | 'NOITE';
   teveOcorrencia: boolean | null;
   ocorrenciaDescricao: string;
