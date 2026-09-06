@@ -428,6 +428,7 @@ export default function AdminCronogramaAutomacoes() {
   const [historicoOpen, setHistoricoOpen] = useState(false);
 
   const opJobs = jobs.filter((j) => getCanal(j.jobname) === 'operacional');
+  const op2Jobs = jobs.filter((j) => getCanal(j.jobname) === 'operacional2');
   const comJobs = jobs.filter((j) => getCanal(j.jobname) === 'comercial');
   const outros = jobs.filter((j) => getCanal(j.jobname) === 'outro');
 
@@ -493,6 +494,9 @@ export default function AdminCronogramaAutomacoes() {
             <TabsTrigger value="operacional" className="gap-1.5">
               <Zap className="w-4 h-4" /> D-API MANU
             </TabsTrigger>
+            <TabsTrigger value="operacional2" className="gap-1.5">
+              <Zap className="w-4 h-4" /> D-API OPERACIONAL
+            </TabsTrigger>
             <TabsTrigger value="comercial" className="gap-1.5">
               <MessageSquare className="w-4 h-4" /> Z-API Comercial
             </TabsTrigger>
@@ -554,6 +558,24 @@ export default function AdminCronogramaAutomacoes() {
                     onEdit={(a) => setEditingGrupo(atvToGrupo(a))}
                   />
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="operacional2" className="mt-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Jobs automáticos (pg_cron) — {op2Jobs.length}</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Novo chip da operação. Nenhum aviso foi movido para cá ainda — me diga item por item o que deve passar por este chip.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <JobsTable
+                  jobs={op2Jobs}
+                  onToggle={(j, v) => toggleJob.mutate({ jobid: j.jobid, active: v })}
+                  onEdit={setEditingJob}
+                />
               </CardContent>
             </Card>
           </TabsContent>

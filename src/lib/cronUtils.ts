@@ -1,5 +1,8 @@
 // Mapeia jobname -> canal (D-API operacional / Z-API comercial)
-export type Canal = 'operacional' | 'comercial' | 'outro';
+export type Canal = 'operacional' | 'operacional2' | 'comercial' | 'outro';
+
+// Jobs que já foram migrados para o novo chip DAPI OPERACIONAL
+const OPERACIONAL2_JOBS = new Set<string>([]);
 
 const COMERCIAL_JOBS = new Set([
   'confirmacao-experimental-cada-15min',
@@ -23,6 +26,7 @@ const OPERACIONAL_JOBS = new Set([
 ]);
 
 export function getCanal(jobname: string): Canal {
+  if (OPERACIONAL2_JOBS.has(jobname)) return 'operacional2';
   if (COMERCIAL_JOBS.has(jobname)) return 'comercial';
   if (OPERACIONAL_JOBS.has(jobname)) return 'operacional';
   return 'outro';
