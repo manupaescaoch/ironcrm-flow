@@ -1072,6 +1072,188 @@ export type Database = {
         }
         Relationships: []
       }
+      encerramento_tecnico_historico: {
+        Row: {
+          created_at: string
+          id: string
+          motivo: string | null
+          resposta_id: string
+          snapshot: Json
+          unidade_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          motivo?: string | null
+          resposta_id: string
+          snapshot: Json
+          unidade_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          motivo?: string | null
+          resposta_id?: string
+          snapshot?: Json
+          unidade_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encerramento_tecnico_historico_resposta_id_fkey"
+            columns: ["resposta_id"]
+            isOneToOne: false
+            referencedRelation: "encerramento_tecnico_respostas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      encerramento_tecnico_respostas: {
+        Row: {
+          alinhamento_manha: boolean
+          alinhamento_manha_motivo: string | null
+          alinhamento_noite: boolean
+          alinhamento_noite_motivo: string | null
+          alunos_atendidos_tarde: number
+          atendimentos_treinador: Json
+          coordenador_nome: string
+          created_at: string
+          data: string
+          destaques: Json
+          desvios: Json
+          distribuicao_ajuste: string | null
+          distribuicao_alunos: string
+          distribuicao_problema: string | null
+          escala_cumprida: boolean
+          escala_ocorrencias: Json
+          estrutura_gerente_comunicado: boolean | null
+          estrutura_impacto: string | null
+          estrutura_problema: string | null
+          estrutura_providencia: string | null
+          experimentais_agendadas: number
+          experimentais_ausentes: number
+          experimentais_realizadas: number
+          feedbacks: Json
+          id: string
+          ocorrencias_aluno: Json
+          pendencias: Json
+          pontos_alinhados: string[]
+          pontos_alinhados_detalhe: string | null
+          prioridade_detalhe: string | null
+          prioridade_tecnica: string
+          ronda_motivo: string | null
+          ronda_tecnica: string
+          sala_organizada: string
+          sala_problema: string | null
+          sala_providencia: string | null
+          substitui_resposta_id: string | null
+          teve_destaque: boolean
+          teve_desvio: boolean
+          teve_feedback: boolean
+          teve_ocorrencia_aluno: boolean
+          teve_pendencia: boolean
+          teve_problema_estrutura: boolean
+          unidade: string
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          alinhamento_manha: boolean
+          alinhamento_manha_motivo?: string | null
+          alinhamento_noite: boolean
+          alinhamento_noite_motivo?: string | null
+          alunos_atendidos_tarde?: number
+          atendimentos_treinador?: Json
+          coordenador_nome: string
+          created_at?: string
+          data?: string
+          destaques?: Json
+          desvios?: Json
+          distribuicao_ajuste?: string | null
+          distribuicao_alunos: string
+          distribuicao_problema?: string | null
+          escala_cumprida: boolean
+          escala_ocorrencias?: Json
+          estrutura_gerente_comunicado?: boolean | null
+          estrutura_impacto?: string | null
+          estrutura_problema?: string | null
+          estrutura_providencia?: string | null
+          experimentais_agendadas?: number
+          experimentais_ausentes?: number
+          experimentais_realizadas?: number
+          feedbacks?: Json
+          id?: string
+          ocorrencias_aluno?: Json
+          pendencias?: Json
+          pontos_alinhados?: string[]
+          pontos_alinhados_detalhe?: string | null
+          prioridade_detalhe?: string | null
+          prioridade_tecnica: string
+          ronda_motivo?: string | null
+          ronda_tecnica: string
+          sala_organizada: string
+          sala_problema?: string | null
+          sala_providencia?: string | null
+          substitui_resposta_id?: string | null
+          teve_destaque?: boolean
+          teve_desvio?: boolean
+          teve_feedback?: boolean
+          teve_ocorrencia_aluno?: boolean
+          teve_pendencia?: boolean
+          teve_problema_estrutura?: boolean
+          unidade: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alinhamento_manha?: boolean
+          alinhamento_manha_motivo?: string | null
+          alinhamento_noite?: boolean
+          alinhamento_noite_motivo?: string | null
+          alunos_atendidos_tarde?: number
+          atendimentos_treinador?: Json
+          coordenador_nome?: string
+          created_at?: string
+          data?: string
+          destaques?: Json
+          desvios?: Json
+          distribuicao_ajuste?: string | null
+          distribuicao_alunos?: string
+          distribuicao_problema?: string | null
+          escala_cumprida?: boolean
+          escala_ocorrencias?: Json
+          estrutura_gerente_comunicado?: boolean | null
+          estrutura_impacto?: string | null
+          estrutura_problema?: string | null
+          estrutura_providencia?: string | null
+          experimentais_agendadas?: number
+          experimentais_ausentes?: number
+          experimentais_realizadas?: number
+          feedbacks?: Json
+          id?: string
+          ocorrencias_aluno?: Json
+          pendencias?: Json
+          pontos_alinhados?: string[]
+          pontos_alinhados_detalhe?: string | null
+          prioridade_detalhe?: string | null
+          prioridade_tecnica?: string
+          ronda_motivo?: string | null
+          ronda_tecnica?: string
+          sala_organizada?: string
+          sala_problema?: string | null
+          sala_providencia?: string | null
+          substitui_resposta_id?: string | null
+          teve_destaque?: boolean
+          teve_desvio?: boolean
+          teve_feedback?: boolean
+          teve_ocorrencia_aluno?: boolean
+          teve_pendencia?: boolean
+          teve_problema_estrutura?: boolean
+          unidade?: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       encerramento_turno_respostas: {
         Row: {
           clima_equipe: number
