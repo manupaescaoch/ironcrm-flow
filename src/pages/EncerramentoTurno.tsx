@@ -474,6 +474,7 @@ export default function EncerramentoTurno() {
         await submitFormularioPublico({
           tipo_formulario: 'estagiario_lider',
           unidade: r.unidade,
+          unidade_id: getUnidadeIdByValue(r.unidade),
           resposta_id: respostaId,
         });
         clearDraft('encerramento-turno');
