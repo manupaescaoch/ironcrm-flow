@@ -152,8 +152,15 @@ export default function EncerramentoHorario() {
       key: 'unidade', categoria: 'Identificação', pergunta: 'Qual unidade?',
       canContinue: !!r.unidade,
       render: () => (<>
-        <OptionCard emoji="🌳" label="Zona Norte" selected={r.unidade === 'ZONA NORTE'} onClick={() => set('unidade', 'ZONA NORTE')} />
-        <OptionCard emoji="🌊" label="Zona Sul" selected={r.unidade === 'ZONA SUL'} onClick={() => set('unidade', 'ZONA SUL')} />
+        {UNIDADES_FORMULARIO.map((u) => (
+          <OptionCard
+            key={u.value}
+            emoji={u.value === 'MADALENA' ? '🌳' : u.value === 'BOA VIAGEM' ? '🌊' : '🏖️'}
+            label={u.label}
+            selected={r.unidade === u.value}
+            onClick={() => set('unidade', u.value)}
+          />
+        ))}
       </>),
     });
 
