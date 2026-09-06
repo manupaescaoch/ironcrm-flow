@@ -318,7 +318,7 @@ export default function DashboardOperacional() {
             <TabsTrigger value="recepcao">Recepção</TabsTrigger>
             <TabsTrigger value="estagiario">Estagiário Líder</TabsTrigger>
             <TabsTrigger value="horario">Coordenador de Horário</TabsTrigger>
-            <TabsTrigger value="unidade">Coordenador de Unidade</TabsTrigger>
+            <TabsTrigger value="unidade">Gerente de Unidade</TabsTrigger>
           </TabsList>
 
           {/* === VISÃO GERAL === */}

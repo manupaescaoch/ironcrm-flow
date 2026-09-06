@@ -18,7 +18,7 @@ const SETORES = ['treinador', 'recepção', 'comercial'];
 const TURNOS = ['integral', 'manhã', 'tarde', 'noite'];
 const CARGOS: { value: 'recepcao' | 'coordenador_unidade' | 'treinador' | 'estagiario_lider'; label: string; descricao: string }[] = [
   { value: 'recepcao', label: 'Recepção', descricao: 'Recebe o Relatório Diário Comercial' },
-  { value: 'coordenador_unidade', label: 'Coordenador de Unidade', descricao: 'Recebe o Encerramento — Coordenador de Unidade' },
+  { value: 'coordenador_unidade', label: 'Gerente de Unidade', descricao: 'Recebe o Encerramento — Gerente de Unidade' },
   { value: 'treinador', label: 'Treinador', descricao: 'Recebe o Encerramento — Coordenador de Horário' },
   { value: 'estagiario_lider', label: 'Estagiário Líder', descricao: 'Recebe o Encerramento — Estagiário Líder' },
 ];

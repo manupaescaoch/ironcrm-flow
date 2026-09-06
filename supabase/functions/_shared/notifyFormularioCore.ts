@@ -15,7 +15,7 @@ export type TipoFormulario = typeof TIPOS_FORMULARIO[number];
 
 export const TIPO_TITULO: Record<TipoFormulario, string> = {
   estagiario_lider: 'Encerramento de Turno — Estagiário Líder',
-  coordenador_unidade: 'Encerramento — Coordenador de Unidade',
+  coordenador_unidade: 'Encerramento — Gerente de Unidade',
   coordenador_horario: 'Encerramento — Coordenador de Horário',
   relatorio_comercial: 'Relatório Diário — Comercial',
 };
