@@ -4657,6 +4657,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      encerramento_tecnico_arquivar: {
+        Args: { p_resposta_id: string }
+        Returns: undefined
+      }
+      encerramento_tecnico_existente: {
+        Args: { p_coordenador: string; p_data: string; p_unidade_id: string }
+        Returns: string
+      }
       generate_follow_ups_for_lead: {
         Args: { p_lead_id: string }
         Returns: undefined
