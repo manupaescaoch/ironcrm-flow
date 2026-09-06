@@ -51,10 +51,12 @@ Deno.serve(async (req) => {
     // Aceita ?channel=comercial|operacional para inspecionar uma instância específica.
     // Sem parâmetro: retorna status das duas instâncias.
     const url = new URL(req.url);
-    const channelParam = url.searchParams.get('channel') as 'comercial' | 'operacional' | null;
-    const channels: ('comercial' | 'operacional')[] = channelParam
-      ? [channelParam]
-      : ['comercial', 'operacional'];
+    type Ch = 'comercial' | 'operacional' | 'operacional2';
+    const param = url.searchParams.get('channel');
+    const channelParam = (param === 'comercial' || param === 'operacional' || param === 'operacional2')
+      ? (param as Ch)
+      : null;
+    const channels: Ch[] = channelParam ? [channelParam] : ['comercial', 'operacional', 'operacional2'];
     const maskInstance = (id: string) => (!id || id.length < 6 ? '***' : id.slice(0, 4) + '***' + id.slice(-3));
     const zapiByChannel: Record<string, { connected: boolean; raw: any; configured: boolean; instanceIdMasked: string | null; checkedAt: string }> = {};
     for (const ch of channels) {

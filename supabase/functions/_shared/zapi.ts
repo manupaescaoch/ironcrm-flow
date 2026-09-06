@@ -8,7 +8,9 @@
 
 export const RATE_LIMIT_MS = 10000; // 10s entre envios — mais seguro para evitar bloqueios do chip.
 
-export type ZapiChannel = 'comercial' | 'operacional';
+// 'operacional'  → chip D-API MANU (histórico; secrets DAPI_API_KEY / DAPI_SESSION_ID)
+// 'operacional2'  → chip D-API OPERACIONAL (secrets DAPI_OPERACIONAL_API_KEY / DAPI_OPERACIONAL_SESSION_ID)
+export type ZapiChannel = 'comercial' | 'operacional' | 'operacional2';
 export type Provider = 'zapi' | 'dapi';
 
 export interface ZapiCreds {
@@ -31,6 +33,21 @@ const DAPI_BASE = 'https://api.d-api.cloud';
  * - 'operacional' → D-API (DAPI_*) se configurada, senão Z-API (ZAPI_OPERACIONAL_* / ZAPI_*)
  */
 export function getZapiCreds(channel: ZapiChannel = 'operacional'): ZapiCreds | null {
+  if (channel === 'operacional2') {
+    const apiKey = Deno.env.get('DAPI_OPERACIONAL_API_KEY');
+    const sessionId = Deno.env.get('DAPI_OPERACIONAL_SESSION_ID');
+    if (!apiKey || !sessionId) return null;
+    return {
+      provider: 'dapi',
+      channel,
+      apiKey,
+      sessionId,
+      instanceId: sessionId,
+      token: '',
+      clientToken: '',
+    };
+  }
+
   if (channel === 'operacional') {
     const apiKey = Deno.env.get('DAPI_API_KEY');
     const sessionId = Deno.env.get('DAPI_SESSION_ID');
