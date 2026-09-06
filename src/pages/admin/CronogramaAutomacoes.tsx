@@ -562,6 +562,24 @@ export default function AdminCronogramaAutomacoes() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="operacional2" className="mt-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Jobs automáticos (pg_cron) — {op2Jobs.length}</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Novo chip da operação. Nenhum aviso foi movido para cá ainda — me diga item por item o que deve passar por este chip.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <JobsTable
+                  jobs={op2Jobs}
+                  onToggle={(j, v) => toggleJob.mutate({ jobid: j.jobid, active: v })}
+                  onEdit={setEditingJob}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="comercial" className="mt-4">
             <Card>
               <CardHeader className="pb-3">
