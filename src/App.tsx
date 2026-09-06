@@ -34,6 +34,8 @@ import Equipe from "./pages/Equipe";
 
 import ContasPagar from "./pages/ContasPagar";
 import AnamneseExperimental from "./pages/AnamneseExperimental";
+import Anamneses from "./pages/Anamneses";
+
 import AnamnesePublica from "./pages/AnamnesePublica";
 import AnamnesePublicaUniversal from "./pages/AnamnesePublicaUniversal";
 import FormularioPublico from "./pages/FormularioPublico";
@@ -214,6 +216,8 @@ const AppRoutes = () => (
     <Route path="/nps/respostas/:id" element={<AdminOrCoordenadorRoute><NpsRespostaDetalhe /></AdminOrCoordenadorRoute>} />
     <Route path="/nps/dashboard" element={<AdminOrCoordenadorRoute><NpsDashboard /></AdminOrCoordenadorRoute>} />
     <Route path="/nps/crm" element={<AdminOrCoordenadorRoute><NpsCrm /></AdminOrCoordenadorRoute>} />
+    <Route path="/anamneses" element={<AdminOrCoordenadorRoute><Anamneses /></AdminOrCoordenadorRoute>} />
+
 
     <Route path="/encerramento-turno" element={<EncerramentoTurno />} />
     <Route path="/encerramento-coordenador" element={<EncerramentoCoordenador />} />

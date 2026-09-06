@@ -70,6 +70,8 @@ const gerencialItems = [
   { href: '/equipe', label: 'Equipe', icon: Users, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'moderator', 'user', 'gerente'], masterOnly: false, isNew: true },
   { href: '/reunioes', label: 'Reuniões', icon: Handshake, roles: ['admin', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
   { href: '/nps/respostas', label: 'NPS', icon: Star, roles: ['admin', 'coordenador', 'gerente'], masterOnly: false },
+  { href: '/anamneses', label: 'Anamneses', icon: ClipboardList, roles: ['admin', 'coordenador', 'gerente'], masterOnly: false, isNew: true },
+
   { href: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
   { href: '/estoque', label: 'Estoque', icon: Package, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
   { href: '/comissoes', label: 'Comissão', icon: DollarSign, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
