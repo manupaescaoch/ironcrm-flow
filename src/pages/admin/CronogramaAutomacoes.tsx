@@ -428,6 +428,7 @@ export default function AdminCronogramaAutomacoes() {
   const [historicoOpen, setHistoricoOpen] = useState(false);
 
   const opJobs = jobs.filter((j) => getCanal(j.jobname) === 'operacional');
+  const op2Jobs = jobs.filter((j) => getCanal(j.jobname) === 'operacional2');
   const comJobs = jobs.filter((j) => getCanal(j.jobname) === 'comercial');
   const outros = jobs.filter((j) => getCanal(j.jobname) === 'outro');
 
