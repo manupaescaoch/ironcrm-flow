@@ -49,11 +49,11 @@ export default function GruposWhatsApp() {
       const map = new Map<string, any>();
       (data ?? []).forEach((r: any) => map.set(`${r.formulario_key}|${r.unidade}`, r));
       const linhasInit: Linha[] = [];
-      FORMULARIOS.forEach((f) => UNIDADES.forEach((u) => {
-        const k = `${f.key}|${u}`;
+      FORMULARIOS.forEach((f) => UNIDADES_FORMULARIO.forEach((u) => {
+        const k = `${f.key}|${u.value}`;
         const r = map.get(k);
         linhasInit.push({
-          id: r?.id, formulario_key: f.key, unidade: u,
+          id: r?.id, formulario_key: f.key, unidade: u.value,
           grupo_id: r?.grupo_id ?? '', grupo_nome: r?.grupo_nome ?? '',
           ativo: r?.ativo ?? true,
         });
