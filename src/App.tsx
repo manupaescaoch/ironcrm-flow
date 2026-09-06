@@ -214,6 +214,8 @@ const AppRoutes = () => (
     <Route path="/nps/respostas/:id" element={<AdminOrCoordenadorRoute><NpsRespostaDetalhe /></AdminOrCoordenadorRoute>} />
     <Route path="/nps/dashboard" element={<AdminOrCoordenadorRoute><NpsDashboard /></AdminOrCoordenadorRoute>} />
     <Route path="/nps/crm" element={<AdminOrCoordenadorRoute><NpsCrm /></AdminOrCoordenadorRoute>} />
+    <Route path="/anamneses" element={<AdminOrCoordenadorRoute><Anamneses /></AdminOrCoordenadorRoute>} />
+
 
     <Route path="/encerramento-turno" element={<EncerramentoTurno />} />
     <Route path="/encerramento-coordenador" element={<EncerramentoCoordenador />} />
