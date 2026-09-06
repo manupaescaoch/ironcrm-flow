@@ -186,7 +186,7 @@ export default function GruposWhatsApp() {
                 const key = `${l.formulario_key}|${l.unidade}`;
                 return (
                   <div key={key} className="grid grid-cols-1 md:grid-cols-[120px_1fr_180px_auto_auto_auto] gap-2 items-center border rounded-lg p-3">
-                    <div className="font-semibold text-sm">{l.unidade}</div>
+                    <div className="font-semibold text-sm">{getUnidadeLabelByValue(l.unidade)}</div>
                     <div>
                       <Label className="text-xs text-muted-foreground">ID do grupo</Label>
                       <div className="flex gap-1">
