@@ -143,6 +143,7 @@ export default function Anamneses() {
                   <SelectValue placeholder="Unidade" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={TODAS}>Todas as unidades</SelectItem>
                   {unidades.map((u) => (
                     <SelectItem key={u.id} value={u.id}>
                       {u.nome}
@@ -160,6 +161,34 @@ export default function Anamneses() {
                 onChange={(e) => setBusca(e.target.value)}
               />
             </div>
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                className="w-[150px]"
+                value={de}
+                onChange={(e) => setDe(e.target.value)}
+              />
+              <span className="text-sm text-muted-foreground">até</span>
+              <Input
+                type="date"
+                className="w-[150px]"
+                value={ate}
+                onChange={(e) => setAte(e.target.value)}
+              />
+              {(de || ate) && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setDe('');
+                    setAte('');
+                  }}
+                >
+                  Limpar
+                </Button>
+              )}
+            </div>
+
           </CardContent>
         </Card>
 
