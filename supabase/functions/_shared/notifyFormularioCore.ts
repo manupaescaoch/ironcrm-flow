@@ -27,7 +27,11 @@ const TIPO_TABLE: Record<TipoFormulario, string> = {
   relatorio_comercial: 'relatorio_diario_comercial_respostas',
 };
 
-const UNIDADES_PERMITIDAS = new Set(['ZONA NORTE', 'ZONA SUL']);
+const UNIDADES_PERMITIDAS = new Set(['MADALENA', 'BOA VIAGEM', 'SETUBAL']);
+const UNIDADE_NORMALIZACAO: Record<string, string> = {
+  'ZONA NORTE': 'MADALENA',
+  'ZONA SUL': 'BOA VIAGEM',
+};
 
 // Strict-window for public-form requests: row must be fresh.
 const PUBLIC_FORM_FRESH_MS = 10 * 60 * 1000; // 10 min
