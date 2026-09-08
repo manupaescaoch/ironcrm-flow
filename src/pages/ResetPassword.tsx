@@ -64,7 +64,7 @@ export default function ResetPassword() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto w-20 h-20 rounded-xl overflow-hidden mb-4 shadow-md">
-            <img src={evoLogo.url} alt="EVO Training Club" className="w-full h-full object-cover" />
+            <img src={evoLogo.url} alt="EVO CLUB" className="w-full h-full object-cover" />
           </div>
           <CardTitle className="text-2xl font-bold">Redefinir senha</CardTitle>
           <CardDescription>

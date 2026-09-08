@@ -77,7 +77,7 @@ export async function maybeSendZapiOfflineAlert(p: ZapiAlertParams): Promise<voi
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: 'EVO TRAINING CLUB CRM <onboarding@resend.dev>',
+        from: 'EVO CLUB CRM <onboarding@resend.dev>',
         to: [ADMIN_EMAIL],
         subject,
         html,

@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
     if (parseFloat(zn.comp) < 60) focos.push('Recuperar comparecimento na EVO Madalena');
     if (focos.length === 0) focos.push('Manter o ritmo de matrículas e follow-ups');
 
-    const message = `📊 *GESTÃO OPERACIONAL EVO TRAINING CLUB*
+    const message = `📊 *GESTÃO OPERACIONAL EVO CLUB*
 Atualização: ${dataHora}
 
 🏋️ *CONSOLIDADO*

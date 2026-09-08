@@ -201,7 +201,7 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
       <div className="px-4 py-4 border-b border-sidebar-border/60">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src={logo.url} alt="EVO Training Club" className="w-9 h-9 rounded-lg" />
+            <img src={logo.url} alt="EVO CLUB" className="w-9 h-9 rounded-lg" />
             <div className="leading-tight">
               <h1 className="font-bold text-[13px] tracking-tight whitespace-nowrap">
                 <span className="text-[#2563EB]">EVO</span>{' '}
@@ -344,7 +344,7 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
             </SheetContent>
           </Sheet>
           <div className="flex items-center gap-2">
-            <img src={logo.url} alt="EVO Training Club" className="w-8 h-8 rounded-lg" />
+            <img src={logo.url} alt="EVO CLUB" className="w-8 h-8 rounded-lg" />
             <span className="font-bold">
               <span className="text-[#2563EB]">EVO</span>{' '}
               <span className="text-sidebar-foreground">CLUB</span>
