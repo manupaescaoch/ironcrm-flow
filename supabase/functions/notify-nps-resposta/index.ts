@@ -85,7 +85,7 @@ function montarMensagemCoordenador(r: NpsRespostaCompleta): string {
   const melhorias = (r.pontos_melhoria || []).filter(Boolean);
 
   const cabecalho =
-    `🟦 *NOVA RESPOSTA NPS — EVO TRAINING CLUB*\n\n` +
+    `🟦 *NOVA RESPOSTA NPS — EVO CLUB*\n\n` +
     `📍 *Unidade:* ${unidadeLabel}\n` +
     `👤 *Aluno:* ${nome}\n` +
     `📞 *Contato:* ${alunoPhone}\n` +

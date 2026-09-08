@@ -272,7 +272,7 @@ export default function NpsPublico() {
   return (
     <div className="min-h-screen bg-[#f6f7f9]">
       <div className="w-full bg-black flex items-center justify-center py-3 sm:py-4 px-4 relative">
-        <img src={ironLogo.url} alt="EVO TRAINING CLUB" className="h-[60px] sm:h-[72px] md:h-[84px] w-auto object-contain my-[-10px] sm:my-[-12px] relative z-10" />
+        <img src={ironLogo.url} alt="EVO CLUB" className="h-[60px] sm:h-[72px] md:h-[84px] w-auto object-contain my-[-10px] sm:my-[-12px] relative z-10" />
       </div>
       <div className="py-10 sm:py-14 px-4">
       <div className="max-w-[780px] mx-auto">
@@ -285,7 +285,7 @@ export default function NpsPublico() {
               backgroundColor: 'rgba(10,108,255,0.1)',
             }}
           >
-            EVO TRAINING CLUB
+            EVO CLUB
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
             Pesquisa de Experiência EVO

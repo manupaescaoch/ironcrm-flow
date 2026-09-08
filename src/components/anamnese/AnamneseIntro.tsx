@@ -12,7 +12,7 @@ export function AnamneseIntro({ unidadeNome, onStart, onCancel }: AnamneseIntroP
     <div className="flex min-h-[100dvh] flex-col bg-anamnese-royal text-anamnese-royal-foreground">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-6 pt-10 safe-bottom">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] opacity-90">
-          EVO TRAINING CLUB · {unidadeNome}
+          EVO CLUB · {unidadeNome}
         </p>
 
         <h1 className="font-display-condensed mt-10 text-[64px] font-black uppercase leading-[0.92] tracking-tight">

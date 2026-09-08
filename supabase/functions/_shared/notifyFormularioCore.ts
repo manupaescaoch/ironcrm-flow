@@ -456,7 +456,7 @@ export function buildMessage(tipo: TipoFormulario, unidade: string, row: Record<
   const dataHora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
   const cabecalho = tipo === 'relatorio_comercial'
-    ? `📊 *GESTÃO OPERACIONAL EVO TRAINING CLUB*`
+    ? `📊 *GESTÃO OPERACIONAL EVO CLUB*`
     : `✅ *${TIPO_TITULO[tipo]}*`;
 
   const corpo = items

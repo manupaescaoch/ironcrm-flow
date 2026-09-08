@@ -284,7 +284,7 @@ export default function DashboardOperacional() {
               <Link to="/"><ArrowLeft className="w-4 h-4 mr-1" /> Voltar</Link>
             </Button>
             <div>
-              <h1 className="text-xl font-bold tracking-tight" style={{ color: COR_PRIMARIA }}>EVO TRAINING CLUB · Dashboard Operacional</h1>
+              <h1 className="text-xl font-bold tracking-tight" style={{ color: COR_PRIMARIA }}>EVO CLUB · Dashboard Operacional</h1>
               <p className="text-xs text-muted-foreground">Visão consolidada de operação · Recife</p>
             </div>
           </div>
@@ -631,7 +631,7 @@ export default function DashboardOperacional() {
                   <YesNoBadge ok={m.coordUnidade.padraoIron} labelOk="DENTRO DO PADRÃO" labelNo="FORA DO PADRÃO" />
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-slate-600">A unidade encerrou o turno mantendo todos os critérios da operação EVO TRAINING CLUB.</p>
+                  <p className="text-sm text-slate-600">A unidade encerrou o turno mantendo todos os critérios da operação EVO CLUB.</p>
                 </CardContent>
               </Card>
             </div>

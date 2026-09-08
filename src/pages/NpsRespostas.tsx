@@ -175,7 +175,7 @@ export default function NpsRespostas() {
       <div className="p-4 sm:p-6 space-y-6 max-w-[1400px] mx-auto">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Respostas NPS</h1>
-          <p className="text-muted-foreground text-sm">Avaliações dos alunos da EVO TRAINING CLUB</p>
+          <p className="text-muted-foreground text-sm">Avaliações dos alunos da EVO CLUB</p>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
