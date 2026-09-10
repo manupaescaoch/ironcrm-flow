@@ -897,6 +897,10 @@ export default function AdminUsers() {
                             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleEditName(user)} title="Editar nome">
                               <Pencil className="w-3 h-3" />
                             </Button>
+                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleEditPassword(user)} title="Definir nova senha">
+                              <KeyRound className="w-3 h-3" />
+                            </Button>
+
                             {currentUser?.id === user.id && (
                               <Badge variant="outline" className="text-[10px] px-1 py-0">Você</Badge>
                             )}
