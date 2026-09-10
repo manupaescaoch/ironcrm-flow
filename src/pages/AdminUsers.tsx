@@ -1286,6 +1286,44 @@ export default function AdminUsers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Password Dialog */}
+      <Dialog open={editPasswordDialogOpen} onOpenChange={setEditPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Definir Nova Senha</DialogTitle>
+            <DialogDescription>
+              Defina uma nova senha para <strong>{editingPasswordUser?.name || editingPasswordUser?.email}</strong>. A senha antiga deixa de funcionar imediatamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-password">Nova senha</Label>
+              <Input
+                id="edit-password"
+                type="text"
+                autoComplete="off"
+                placeholder="Mínimo 6 caracteres"
+                value={editPassword}
+                onChange={(e) => setEditPassword(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Anote e informe a senha ao usuário. Ele pode trocá-la depois em "Esqueci minha senha".
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditPasswordDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdatePassword} disabled={updatingPassword || editPassword.trim().length < 6}>
+              {updatingPassword && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Salvar senha
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </Layout>
   );
 }
