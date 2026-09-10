@@ -212,6 +212,20 @@ export async function lookupWhatsAppPhone(
   }
 }
 
+/**
+ * Normaliza destino para D-API. Grupos no Z-API usam `<id>-group`;
+ * a D-API exige o JID completo `<id>@g.us`.
+ */
+export function dapiDestino(dest: string): string {
+  const d = (dest || '').trim();
+  if (d.endsWith('@g.us')) return d;
+  if (d.endsWith('-group')) return `${d.replace(/-group$/, '')}@g.us`;
+  if (/^\d{15,}$/.test(d.replace(/\D/g, '')) && d.replace(/\D/g, '').length >= 17) {
+    return `${d.replace(/\D/g, '')}@g.us`;
+  }
+  return d;
+}
+
 export async function sendText(
   creds: ZapiCreds,
   phone: string,
@@ -222,7 +236,7 @@ export async function sendText(
     const resp = await fetch(url, {
       method: 'POST',
       headers: dapiHeaders(creds),
-      body: JSON.stringify({ sessionId: creds.sessionId, to: phone, text: message }),
+      body: JSON.stringify({ sessionId: creds.sessionId, to: dapiDestino(phone), text: message }),
     });
     const body = await resp.json().catch(() => ({}));
     return { ok: resp.ok, status: resp.status, body };
@@ -389,7 +403,7 @@ export async function sendList(
     const url = `${DAPI_BASE}/api/v1/interactive/send/list`;
     const payload: Record<string, unknown> = {
       sessionId: creds.sessionId,
-      to: phone,
+      to: dapiDestino(phone),
       description: opts.description,
       buttonText: opts.buttonText,
       sections: [
@@ -477,7 +491,7 @@ export async function sendButtons(
     const url = `${DAPI_BASE}/api/v1/interactive/send/nativeflow`;
     const payload: Record<string, unknown> = {
       sessionId: creds.sessionId,
-      to: phone,
+      to: dapiDestino(phone),
       body: opts.body,
       buttons: opts.buttons.slice(0, 3).map((b) => ({
         type: 'quick_reply',
