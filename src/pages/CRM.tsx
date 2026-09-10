@@ -984,9 +984,11 @@ export default function CRM() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const debouncedSearch = useDebounce(search, 250);
+
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
-      const matchesSearch = matchesLeadSearch(lead, search);
+      const matchesSearch = matchesLeadSearch(lead, debouncedSearch);
       const matchesOrigem = filterOrigem.length === 0 || filterOrigem.includes(normalizeOrigem(lead.origem));
       const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
       const matchesStatus = filterStatus.length === 0 || filterStatus.includes(lead.status_funil);
