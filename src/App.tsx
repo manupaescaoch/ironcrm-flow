@@ -10,6 +10,7 @@ import OAuthConsent from "./pages/OAuthConsent";
 
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import TrocarSenha from "./pages/TrocarSenha";
 import Dashboard from "./pages/Dashboard";
 import Operacao from "./pages/Operacao";
 import DashboardExecutivo from "./pages/DashboardExecutivo";
@@ -256,6 +257,7 @@ const AppRoutes = () => (
     />
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/reset-password" element={<ResetPassword />} />
+    <Route path="/trocar-senha" element={<ProtectedRoute><TrocarSenha /></ProtectedRoute>} />
     <Route
       path="/dashboard"
       element={
