@@ -57,7 +57,7 @@ export function useContasPagar(from: string, to: string) {
   const unidadeId = unidadeAtual?.id ?? null;
   const hoje = getTodayInBrasilia();
 
-  const canManage = isAdmin || userRole === 'comercial';
+  const canManage = isAdmin || userRole === 'comercial' || userRole === 'gerente';
   // Qualquer usuário autenticado pode cadastrar contas da própria unidade.
   const canCreate = !!user;
 
@@ -308,9 +308,6 @@ export function useContasPagar(from: string, to: string) {
       if (!unidadeId) return [];
       const encontrados = new Map<string, ContaPagar>();
 
-      // Normalizações: chaves comparadas sem espaços/pontuação; descrição sem prefixo de unidade.
-      const normChave = (v?: string | null) =>
-        (v || '').replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
       const normDesc = (v?: string | null) =>
         (v || '')
           .toUpperCase()
@@ -319,49 +316,19 @@ export function useContasPagar(from: string, to: string) {
           .replace(/\s+/g, ' ')
           .trim();
 
-      // 1) Só é duplicidade quando descrição, valor E vencimento são iguais na unidade.
-      //    Mesmo título em meses diferentes (ou com valor diferente) é permitido.
+      // Só é duplicidade quando descrição E vencimento são iguais na mesma unidade.
       const { data: mesmoVenc } = await supabase
         .from('contas_pagar')
         .select('*')
         .eq('unidade_id', unidadeId)
         .is('deleted_at', null)
-        .eq('data_vencimento', payload.data_vencimento)
-        .eq('valor', payload.valor);
+        .eq('data_vencimento', payload.data_vencimento);
 
       ((mesmoVenc || []) as unknown as ContaPagar[]).forEach((c) => {
         if (c.status === 'cancelada') return;
         if (normDesc(c.descricao) !== normDesc(payload.descricao)) return;
         encontrados.set(c.id, c);
       });
-
-      // 2) Mesma chave de pagamento (Pix / linha digitável / fatura), normalizada.
-      const chavesPayload = [
-        normChave(payload.codigo_pix),
-        normChave(payload.linha_digitavel),
-        normChave(payload.numero_fatura),
-      ].filter((v) => v.length >= 8);
-
-      if (chavesPayload.length) {
-        const { data: candidatos } = await supabase
-          .from('contas_pagar')
-          .select('*')
-          .eq('unidade_id', unidadeId)
-          .is('deleted_at', null)
-          .neq('status', 'cancelada')
-          .order('created_at', { ascending: false })
-          .limit(1000);
-
-        ((candidatos || []) as unknown as ContaPagar[]).forEach((c) => {
-          const chavesConta = [
-            normChave(c.codigo_pix),
-            normChave(c.linha_digitavel),
-            normChave(c.numero_fatura),
-          ].filter((v) => v.length >= 8);
-          if (chavesConta.some((k) => chavesPayload.includes(k))) encontrados.set(c.id, c);
-        });
-      }
-
 
       return Array.from(encontrados.values());
     },
