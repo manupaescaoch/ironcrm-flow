@@ -38,10 +38,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data } = await supabase
         .from('user_profiles')
-        .select('must_change_password')
+        .select('*')
         .eq('user_id', userId)
         .maybeSingle();
-      setMustChangePassword(data?.must_change_password === true);
+      const row = data as unknown as { must_change_password?: boolean } | null;
+      setMustChangePassword(row?.must_change_password === true);
     } catch {
       setMustChangePassword(false);
     }
