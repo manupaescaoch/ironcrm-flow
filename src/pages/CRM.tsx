@@ -1492,7 +1492,7 @@ export default function CRM() {
             { value: 'aula_realizada', label: 'Exp. Realizado', activeClass: 'bg-purple-600 text-white border-purple-600', inactiveClass: 'border-purple-600/40 text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950/40' },
           ];
           const baseLeads = leads.filter((lead) => {
-            const matchesSearch = matchesLeadSearch(lead, search);
+            const matchesSearch = matchesLeadSearch(lead, debouncedSearch);
             const matchesOrigem = filterOrigem.length === 0 || filterOrigem.includes(normalizeOrigem(lead.origem));
             const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
             let matchesDate = true;
@@ -1766,7 +1766,7 @@ export default function CRM() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredLeads.map((lead) => (
+                    {visibleLeads.map((lead) => (
                       <TableRow 
                         key={lead.id} 
                         className="cursor-pointer hover:bg-muted/50"
