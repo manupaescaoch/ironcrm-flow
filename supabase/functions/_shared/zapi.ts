@@ -491,7 +491,7 @@ export async function sendButtons(
     const url = `${DAPI_BASE}/api/v1/interactive/send/nativeflow`;
     const payload: Record<string, unknown> = {
       sessionId: creds.sessionId,
-      to: phone,
+      to: dapiDestino(phone),
       body: opts.body,
       buttons: opts.buttons.slice(0, 3).map((b) => ({
         type: 'quick_reply',
