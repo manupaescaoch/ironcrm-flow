@@ -45,7 +45,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Users, Shield, UserCheck, Briefcase, Trash2, AlertTriangle, ShieldX, RefreshCw, UserPlus, Pencil, Building2, ArrowUp, FileText } from 'lucide-react';
+import { Loader2, Users, Shield, UserCheck, Briefcase, Trash2, AlertTriangle, ShieldX, RefreshCw, UserPlus, Pencil, Building2, ArrowUp, FileText, KeyRound } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { UserRole } from '@/contexts/AuthContext';
