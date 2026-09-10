@@ -7,6 +7,7 @@ import { Star, CheckCircle2, Loader2, ChevronLeft, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
+import evoClubLogo from '@/assets/evo-club-logo.png.asset.json';
 import {
   Select,
   SelectContent,
@@ -88,7 +89,7 @@ function StepFrame({
   return (
     <div className="min-h-[100dvh] bg-[#08090c] text-white">
       <header className="sticky top-0 z-20 bg-[#08090c]/90 backdrop-blur">
-        <div className="mx-auto flex max-w-lg items-center justify-between px-5 py-4">
+        <div className="mx-auto flex max-w-lg items-center px-5 py-4">
           {onBack ? (
             <button
               type="button"
@@ -99,14 +100,23 @@ function StepFrame({
               Voltar
             </button>
           ) : (
-            <span className="text-sm font-semibold tracking-[0.22em] text-white/70">
-              EVO CLUB
-            </span>
+            <div className="w-16" aria-hidden="true" />
           )}
-          {progress && (
-            <span className="text-xs font-medium tabular-nums text-white/40">
+
+          <div className="flex flex-1 justify-center">
+            <img
+              src={evoClubLogo.url}
+              alt="EVO CLUB"
+              className="h-7 w-auto object-contain"
+            />
+          </div>
+
+          {progress ? (
+            <span className="w-16 text-right text-xs font-medium tabular-nums text-white/40">
               {progress.current} de {progress.total}
             </span>
+          ) : (
+            <div className="w-16" aria-hidden="true" />
           )}
         </div>
         {progress && (
