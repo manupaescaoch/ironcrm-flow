@@ -1837,6 +1837,16 @@ export default function CRM() {
                     ))}
                   </TableBody>
                 </Table>
+                {visibleLeads.length < filteredLeads.length && (
+                  <div className="flex flex-col items-center gap-2 py-6">
+                    <p className="text-sm text-muted-foreground">
+                      Mostrando {visibleLeads.length} de {filteredLeads.length} leads
+                    </p>
+                    <Button variant="outline" onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}>
+                      Carregar mais
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
