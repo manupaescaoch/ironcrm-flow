@@ -559,6 +559,57 @@ export default function AdminUsers() {
       setUpdatingPhone(false);
     }
   };
+
+  const handleEditPassword = (user: UserData) => {
+    setEditingPasswordUser(user);
+    setEditPassword('');
+    setEditPasswordDialogOpen(true);
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!editingPasswordUser) return;
+    if (editPassword.trim().length < 6) {
+      toast({ title: 'Senha inválida', description: 'A senha deve ter pelo menos 6 caracteres.', variant: 'destructive' });
+      return;
+    }
+
+    setUpdatingPassword(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.access_token) {
+        toast({ title: 'Sessão expirada', description: 'Faça login novamente.', variant: 'destructive' });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('update-user-password', {
+        body: { user_id: editingPasswordUser.id, password: editPassword.trim() },
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: 'Senha atualizada!',
+        description: `Informe a nova senha para ${editingPasswordUser.name || editingPasswordUser.email}.`,
+      });
+
+      setEditPasswordDialogOpen(false);
+      setEditingPasswordUser(null);
+      setEditPassword('');
+    } catch (error: any) {
+      console.error('Error updating password:', error);
+      toast({
+        title: 'Erro ao atualizar senha',
+        description: error.message || 'Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
+
+
   
   const handleEditNotes = (user: UserData) => {
     setEditingNotesUser(user);
