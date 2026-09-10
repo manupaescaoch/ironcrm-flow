@@ -7,6 +7,7 @@ import { Star, CheckCircle2, Loader2, ChevronLeft, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
+import evoClubLogo from '@/assets/evo-club-logo.png.asset.json';
 import {
   Select,
   SelectContent,
