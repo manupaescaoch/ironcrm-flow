@@ -57,8 +57,7 @@ export function useContasPagar(from: string, to: string) {
   const unidadeId = unidadeAtual?.id ?? null;
   const hoje = getTodayInBrasilia();
 
-  const canManage =
-    isAdmin || userRole === 'comercial' || userRole === 'gerente' || userRole === 'user';
+  const canManage = isAdmin || userRole === 'comercial' || userRole === 'gerente';
   // Qualquer usuário autenticado pode cadastrar contas da própria unidade.
   const canCreate = !!user;
 
