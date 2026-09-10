@@ -25,6 +25,7 @@ const RESPONSAVEIS: Record<string, { nome: string; phone: string }> = {
 const GRUPOS: Record<string, string> = {
   MADALENA: '120363425937067624-group',
   'BOA VIAGEM': '120363405337702455-group',
+  SETUBAL: '120363412499649887-group',
 };
 
 function findCoordenador(unidadeNome: string) {
