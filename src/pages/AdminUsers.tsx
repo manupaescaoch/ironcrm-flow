@@ -45,7 +45,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Users, Shield, UserCheck, Briefcase, Trash2, AlertTriangle, ShieldX, RefreshCw, UserPlus, Pencil, Building2, ArrowUp, FileText } from 'lucide-react';
+import { Loader2, Users, Shield, UserCheck, Briefcase, Trash2, AlertTriangle, ShieldX, RefreshCw, UserPlus, Pencil, Building2, ArrowUp, FileText, KeyRound } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { UserRole } from '@/contexts/AuthContext';
@@ -116,6 +116,13 @@ export default function AdminUsers() {
   const [editingPhoneUser, setEditingPhoneUser] = useState<UserData | null>(null);
   const [editPhone, setEditPhone] = useState('');
   const [updatingPhone, setUpdatingPhone] = useState(false);
+
+  // Edit password state
+  const [editPasswordDialogOpen, setEditPasswordDialogOpen] = useState(false);
+  const [editingPasswordUser, setEditingPasswordUser] = useState<UserData | null>(null);
+  const [editPassword, setEditPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+
   
   // Edit notes state
   const [editNotesDialogOpen, setEditNotesDialogOpen] = useState(false);
@@ -552,6 +559,57 @@ export default function AdminUsers() {
       setUpdatingPhone(false);
     }
   };
+
+  const handleEditPassword = (user: UserData) => {
+    setEditingPasswordUser(user);
+    setEditPassword('');
+    setEditPasswordDialogOpen(true);
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!editingPasswordUser) return;
+    if (editPassword.trim().length < 6) {
+      toast({ title: 'Senha inválida', description: 'A senha deve ter pelo menos 6 caracteres.', variant: 'destructive' });
+      return;
+    }
+
+    setUpdatingPassword(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.access_token) {
+        toast({ title: 'Sessão expirada', description: 'Faça login novamente.', variant: 'destructive' });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('update-user-password', {
+        body: { user_id: editingPasswordUser.id, password: editPassword.trim() },
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: 'Senha atualizada!',
+        description: `Informe a nova senha para ${editingPasswordUser.name || editingPasswordUser.email}.`,
+      });
+
+      setEditPasswordDialogOpen(false);
+      setEditingPasswordUser(null);
+      setEditPassword('');
+    } catch (error: any) {
+      console.error('Error updating password:', error);
+      toast({
+        title: 'Erro ao atualizar senha',
+        description: error.message || 'Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
+
+
   
   const handleEditNotes = (user: UserData) => {
     setEditingNotesUser(user);
@@ -839,6 +897,10 @@ export default function AdminUsers() {
                             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleEditName(user)} title="Editar nome">
                               <Pencil className="w-3 h-3" />
                             </Button>
+                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleEditPassword(user)} title="Definir nova senha">
+                              <KeyRound className="w-3 h-3" />
+                            </Button>
+
                             {currentUser?.id === user.id && (
                               <Badge variant="outline" className="text-[10px] px-1 py-0">Você</Badge>
                             )}
@@ -1224,6 +1286,44 @@ export default function AdminUsers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Password Dialog */}
+      <Dialog open={editPasswordDialogOpen} onOpenChange={setEditPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Definir Nova Senha</DialogTitle>
+            <DialogDescription>
+              Defina uma nova senha para <strong>{editingPasswordUser?.name || editingPasswordUser?.email}</strong>. A senha antiga deixa de funcionar imediatamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-password">Nova senha</Label>
+              <Input
+                id="edit-password"
+                type="text"
+                autoComplete="off"
+                placeholder="Mínimo 6 caracteres"
+                value={editPassword}
+                onChange={(e) => setEditPassword(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Anote e informe a senha ao usuário. Ele pode trocá-la depois em "Esqueci minha senha".
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditPasswordDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdatePassword} disabled={updatingPassword || editPassword.trim().length < 6}>
+              {updatingPassword && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Salvar senha
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </Layout>
   );
 }
