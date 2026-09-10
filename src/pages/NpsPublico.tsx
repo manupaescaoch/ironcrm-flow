@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Star, CheckCircle2, Loader2, ChevronDown, ShieldCheck } from 'lucide-react';
+import { Star, CheckCircle2, Loader2, ChevronLeft, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
@@ -15,10 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import ironLogo from '@/assets/iron-logo-banner.png.asset.json';
 
-const IRON_BLUE = '#0a6cff';
-const IRON_BLUE_DARK = '#0857cc';
+const BLUE = '#0a6cff';
 
 const UNIDADES = ['MADALENA', 'BOA VIAGEM', 'SETÚBAL'];
 
@@ -60,47 +57,6 @@ const schema = z.object({
   comentario: z.string().max(1000).optional(),
 });
 
-function Stars({
-  value,
-  onChange,
-  label,
-}: {
-  value: number;
-  onChange: (n: number) => void;
-  label: string;
-}) {
-  const [hover, setHover] = useState(0);
-  return (
-    <div className="space-y-2">
-      <Label className="text-sm font-medium text-slate-700">{label}</Label>
-      <div className="flex gap-1.5 sm:gap-2">
-        {[1, 2, 3, 4, 5].map((s) => {
-          const active = s <= (hover || value);
-          return (
-            <button
-              key={s}
-              type="button"
-              onClick={() => onChange(s)}
-              onMouseEnter={() => setHover(s)}
-              onMouseLeave={() => setHover(0)}
-              className="p-1 rounded-md transition-transform hover:scale-110 active:scale-95"
-              aria-label={`${s} estrela${s > 1 ? 's' : ''}`}
-            >
-              <Star
-                className={cn(
-                  'w-9 h-9 sm:w-10 sm:h-10 transition-colors',
-                  active ? 'fill-current' : 'text-slate-300',
-                )}
-                style={active ? { color: IRON_BLUE } : undefined}
-              />
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function maskPhone(v: string) {
   const d = v.replace(/\D/g, '').slice(0, 11);
   if (d.length <= 10)
@@ -110,80 +66,191 @@ function maskPhone(v: string) {
   return d.replace(/(\d{2})(\d{5})(\d{0,4}).*/, '($1) $2-$3');
 }
 
-function SectionCard({
+/* ---------- primitivos visuais ---------- */
+
+function StepFrame({
+  progress,
+  onBack,
+  eyebrow,
   title,
-  description,
+  hint,
   children,
+  footer,
 }: {
+  progress?: { current: number; total: number };
+  onBack?: () => void;
+  eyebrow?: string;
   title: string;
-  description?: string;
-  children: React.ReactNode;
+  hint?: string;
+  children?: React.ReactNode;
+  footer: React.ReactNode;
 }) {
   return (
-    <section className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.08)] p-6 sm:p-8">
-      <header className="mb-5">
-        <h2 className="text-lg sm:text-xl font-semibold text-slate-900 tracking-tight">
-          {title}
-        </h2>
-        {description && (
-          <p className="text-sm text-slate-500 mt-1">{description}</p>
+    <div className="min-h-[100dvh] bg-[#08090c] text-white">
+      <header className="sticky top-0 z-20 bg-[#08090c]/90 backdrop-blur">
+        <div className="mx-auto flex max-w-lg items-center justify-between px-5 py-4">
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              className="-ml-2 flex items-center gap-1 rounded-full px-2 py-1 text-sm text-white/50 transition-colors hover:text-white"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Voltar
+            </button>
+          ) : (
+            <span className="text-sm font-semibold tracking-[0.22em] text-white/70">
+              EVO CLUB
+            </span>
+          )}
+          {progress && (
+            <span className="text-xs font-medium tabular-nums text-white/40">
+              {progress.current} de {progress.total}
+            </span>
+          )}
+        </div>
+        {progress && (
+          <div className="h-[2px] w-full bg-white/10">
+            <div
+              className="h-full transition-all duration-500 ease-out"
+              style={{
+                width: `${(progress.current / progress.total) * 100}%`,
+                backgroundColor: BLUE,
+              }}
+            />
+          </div>
         )}
       </header>
-      {children}
-    </section>
+
+      <main className="mx-auto w-full max-w-lg px-6 pb-40 pt-10">
+        {eyebrow && (
+          <p
+            className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em]"
+            style={{ color: BLUE }}
+          >
+            {eyebrow}
+          </p>
+        )}
+        <h1 className="text-[27px] font-semibold leading-[1.2] tracking-tight text-white">
+          {title}
+        </h1>
+        {hint && <p className="mt-3 text-[15px] leading-relaxed text-white/45">{hint}</p>}
+        {children && <div className="mt-8">{children}</div>}
+      </main>
+
+      <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-white/[0.07] bg-[#08090c]/95 backdrop-blur">
+        <div className="mx-auto w-full max-w-lg space-y-2 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          {footer}
+        </div>
+      </footer>
+    </div>
   );
 }
 
-function ChipOption({
+function PrimaryButton({
+  children,
+  disabled,
+  onClick,
+  loading,
+}: {
+  children: React.ReactNode;
+  disabled?: boolean;
+  onClick: () => void;
+  loading?: boolean;
+}) {
+  return (
+    <Button
+      type="button"
+      onClick={onClick}
+      disabled={disabled || loading}
+      className="h-14 w-full rounded-2xl border-0 text-base font-semibold text-white shadow-lg transition-opacity disabled:opacity-30"
+      style={{ backgroundColor: BLUE }}
+    >
+      {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+      {children}
+    </Button>
+  );
+}
+
+function Option({
   active,
   onClick,
   children,
+  multi,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  multi?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        'w-full text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all',
-        'hover:border-slate-300 hover:bg-slate-50',
+        'flex w-full items-center gap-3 rounded-2xl border px-5 py-4 text-left text-[15px] font-medium transition-all',
         active
-          ? 'border-[1.5px] text-slate-900 shadow-sm'
-          : 'border-slate-200 text-slate-700 bg-white',
+          ? 'border-transparent bg-white/[0.08] text-white'
+          : 'border-white/10 bg-white/[0.02] text-white/70 hover:border-white/20',
       )}
-      style={
-        active
-          ? { borderColor: IRON_BLUE, backgroundColor: 'rgba(10,108,255,0.07)' }
-          : undefined
-      }
+      style={active ? { borderColor: BLUE } : undefined}
     >
-      <span className="flex items-center gap-2.5">
-        <span
-          className={cn(
-            'inline-flex w-4 h-4 rounded-full border items-center justify-center shrink-0',
-            active ? 'border-transparent' : 'border-slate-300',
-          )}
-          style={active ? { backgroundColor: IRON_BLUE } : undefined}
-        >
-          {active && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
-        </span>
-        {children}
+      <span
+        className={cn(
+          'flex h-5 w-5 shrink-0 items-center justify-center border',
+          multi ? 'rounded-md' : 'rounded-full',
+          active ? 'border-transparent' : 'border-white/25',
+        )}
+        style={active ? { backgroundColor: BLUE } : undefined}
+      >
+        {active && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
       </span>
+      {children}
     </button>
   );
 }
 
+function StarsRow({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  return (
+    <div className="flex justify-between gap-2">
+      {[1, 2, 3, 4, 5].map((s) => {
+        const active = s <= value;
+        return (
+          <button
+            key={s}
+            type="button"
+            onClick={() => onChange(s)}
+            aria-label={`${s} estrela${s > 1 ? 's' : ''}`}
+            className="flex h-16 flex-1 items-center justify-center rounded-2xl border transition-all active:scale-95"
+            style={{
+              borderColor: active ? BLUE : 'rgba(255,255,255,0.10)',
+              backgroundColor: active ? 'rgba(10,108,255,0.10)' : 'rgba(255,255,255,0.02)',
+            }}
+          >
+            <Star
+              className={cn('h-7 w-7', active ? 'fill-current' : 'text-white/25')}
+              style={active ? { color: BLUE } : undefined}
+            />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ---------- página ---------- */
+
+type Phase = 'ident' | 'confirm' | 'quiz' | 'done';
+
 export default function NpsPublico() {
+  const [phase, setPhase] = useState<Phase>('ident');
+  const [step, setStep] = useState(0);
+
   const [nome, setNome] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
-  const [whatsappConfirm, setWhatsappConfirm] = useState('');
   const [unidade, setUnidade] = useState('');
 
   const [nota, setNota] = useState<number | null>(null);
-  const [hoverNota, setHoverNota] = useState<number | null>(null);
   const [eEstrutura, setEEstrutura] = useState(0);
   const [eEquipe, setEEquipe] = useState(0);
   const [eTreino, setETreino] = useState(0);
@@ -192,17 +259,149 @@ export default function NpsPublico() {
   const [tempo, setTempo] = useState('');
   const [comentario, setComentario] = useState('');
   const [saving, setSaving] = useState(false);
-  const [done, setDone] = useState(false);
+
+  const animKey = `${phase}-${step}`;
+  const topRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [animKey]);
 
   const toggle = (arr: string[], setter: (v: string[]) => void, val: string) =>
     setter(arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (whatsapp.replace(/\D/g, '') !== whatsappConfirm.replace(/\D/g, '')) {
-      toast.error('Os números de WhatsApp não coincidem');
-      return;
-    }
+  const identOk =
+    nome.trim().length >= 2 && unidade !== '' && whatsapp.replace(/\D/g, '').length >= 10;
+
+  const steps = useMemo(
+    () => [
+      {
+        title: 'De 0 a 10, o quanto você recomendaria a EVO Club para um amigo ou familiar?',
+        eyebrow: 'Recomendação',
+        valid: nota !== null,
+        render: () => (
+          <div className="space-y-4">
+            <div className="grid grid-cols-4 gap-2.5">
+              {Array.from({ length: 11 }).map((_, i) => {
+                const active = nota === i;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setNota(i)}
+                    className={cn(
+                      'flex h-16 items-center justify-center rounded-2xl border text-lg font-semibold transition-all active:scale-95',
+                      active ? 'text-white' : 'text-white/70',
+                    )}
+                    style={{
+                      borderColor: active ? BLUE : 'rgba(255,255,255,0.10)',
+                      backgroundColor: active ? BLUE : 'rgba(255,255,255,0.02)',
+                    }}
+                  >
+                    {i}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex justify-between text-xs text-white/35">
+              <span>Nada provável</span>
+              <span>Muito provável</span>
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: 'Como você avalia a estrutura da academia?',
+        eyebrow: 'Estrutura',
+        valid: eEstrutura > 0,
+        render: () => <StarsRow value={eEstrutura} onChange={setEEstrutura} />,
+      },
+      {
+        title: 'E a equipe e o atendimento?',
+        eyebrow: 'Equipe',
+        valid: eEquipe > 0,
+        render: () => <StarsRow value={eEquipe} onChange={setEEquipe} />,
+      },
+      {
+        title: 'E a qualidade do treino?',
+        eyebrow: 'Treino',
+        valid: eTreino > 0,
+        render: () => <StarsRow value={eTreino} onChange={setETreino} />,
+      },
+      {
+        title: 'O que mais contribuiu para essa nota?',
+        eyebrow: 'Pontos fortes',
+        hint: 'Selecione quantos quiser.',
+        valid: true,
+        render: () => (
+          <div className="space-y-3">
+            {PONTOS_POSITIVOS.map((p) => (
+              <Option
+                key={p}
+                multi
+                active={positivos.includes(p)}
+                onClick={() => toggle(positivos, setPositivos, p)}
+              >
+                {p}
+              </Option>
+            ))}
+          </div>
+        ),
+      },
+      {
+        title: 'O que poderia melhorar?',
+        eyebrow: 'Melhorias',
+        hint: 'Selecione quantos quiser.',
+        valid: true,
+        render: () => (
+          <div className="space-y-3">
+            {PONTOS_MELHORIA.map((p) => (
+              <Option
+                key={p}
+                multi
+                active={melhorias.includes(p)}
+                onClick={() => toggle(melhorias, setMelhorias, p)}
+              >
+                {p}
+              </Option>
+            ))}
+          </div>
+        ),
+      },
+      {
+        title: 'Há quanto tempo você treina com a gente?',
+        eyebrow: 'Tempo de casa',
+        valid: tempo !== '',
+        render: () => (
+          <div className="space-y-3">
+            {TEMPOS.map((t) => (
+              <Option key={t} active={tempo === t} onClick={() => setTempo(t)}>
+                {t}
+              </Option>
+            ))}
+          </div>
+        ),
+      },
+      {
+        title: 'Quer deixar um comentário?',
+        eyebrow: 'Comentário',
+        hint: 'Opcional. Sua resposta é confidencial.',
+        valid: true,
+        render: () => (
+          <Textarea
+            value={comentario}
+            onChange={(e) => setComentario(e.target.value)}
+            maxLength={1000}
+            rows={8}
+            placeholder="Conte pra gente o que está funcionando bem ou o que podemos melhorar…"
+            className="min-h-[190px] resize-none rounded-2xl border-white/10 bg-white/[0.03] p-5 text-base text-white placeholder:text-white/25 focus-visible:ring-1 focus-visible:ring-offset-0"
+          />
+        ),
+      },
+    ],
+    [nota, eEstrutura, eEquipe, eTreino, positivos, melhorias, tempo, comentario],
+  );
+
+  async function handleSubmit() {
     const parsed = schema.safeParse({
       nome,
       whatsapp,
@@ -220,7 +419,7 @@ export default function NpsPublico() {
     }
 
     setSaving(true);
-    const { data: insertedId, error } = await supabase.rpc('submit_nps_resposta', {
+    const { error } = await supabase.rpc('submit_nps_resposta', {
       p_nome: parsed.data.nome,
       p_whatsapp: parsed.data.whatsapp.replace(/\D/g, ''),
       p_unidade_nome: parsed.data.unidade_nome,
@@ -243,270 +442,150 @@ export default function NpsPublico() {
       );
       return;
     }
-    // A notificação ao grupo da unidade é disparada pelo servidor após a gravação.
-    setDone(true);
-
+    setPhase('done');
   }
 
-  if (done) {
+  /* ----- telas ----- */
+
+  if (phase === 'done') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
-        <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200 shadow-sm p-10 text-center space-y-4">
+      <div className="flex min-h-[100dvh] items-center justify-center bg-[#08090c] px-8 text-center text-white">
+        <div className="max-w-sm space-y-5" key={animKey}>
           <div
-            className="w-16 h-16 mx-auto rounded-full flex items-center justify-center"
-            style={{ backgroundColor: 'rgba(10,108,255,0.1)' }}
+            className="mx-auto flex h-16 w-16 items-center justify-center rounded-full"
+            style={{ backgroundColor: 'rgba(10,108,255,0.14)' }}
           >
-            <CheckCircle2 className="w-9 h-9" style={{ color: IRON_BLUE }} />
+            <CheckCircle2 className="h-8 w-8" style={{ color: BLUE }} />
           </div>
-          <h1 className="text-2xl font-semibold text-slate-900">
-            Avaliação enviada
+          <h1 className="text-[26px] font-semibold tracking-tight">
+            Obrigado pelo seu feedback.
           </h1>
-          <p className="text-slate-600">
-            Obrigado por ajudar a EVO a evoluir.
+          <p className="text-[15px] leading-relaxed text-white/45">
+            Sua opinião ajuda a EVO a melhorar sua experiência todos os dias.
           </p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[#f6f7f9]">
-      <div className="w-full bg-black flex items-center justify-center py-3 sm:py-4 px-4 relative">
-        <img src={ironLogo.url} alt="EVO CLUB" className="h-[60px] sm:h-[72px] md:h-[84px] w-auto object-contain my-[-10px] sm:my-[-12px] relative z-10" />
-      </div>
-      <div className="py-10 sm:py-14 px-4">
-      <div className="max-w-[780px] mx-auto">
-        {/* Header */}
-        <header className="text-center mb-8 sm:mb-10">
-          <div
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold tracking-wide uppercase mb-5"
-            style={{
-              color: IRON_BLUE,
-              backgroundColor: 'rgba(10,108,255,0.1)',
-            }}
-          >
-            EVO CLUB
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
-            Pesquisa de Experiência EVO
-          </h1>
-          <p className="text-slate-600 mt-3 text-base sm:text-lg max-w-xl mx-auto">
-            Sua opinião ajuda a EVO a evoluir todos os dias.
-          </p>
-          <p className="text-sm text-slate-500 mt-2">
-            Leva menos de 1 minuto e faz diferença de verdade.
-          </p>
-        </header>
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Dados */}
-          <SectionCard title="Seus dados">
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="nome" className="text-sm font-medium text-slate-700">
-                  Nome completo
-                </Label>
-                <Input
-                  id="nome"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value.toUpperCase())}
-                  maxLength={120}
-                  required
-                  className="h-12 rounded-xl border-slate-200 focus-visible:ring-2 focus-visible:ring-offset-0"
-                  style={{ ['--tw-ring-color' as any]: IRON_BLUE }}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="wpp" className="text-sm font-medium text-slate-700">
-                  WhatsApp
-                </Label>
-                <Input
-                  id="wpp"
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(maskPhone(e.target.value))}
-                  placeholder="(81) 99999-9999"
-                  required
-                  className="h-12 rounded-xl border-slate-200"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="wpp2" className="text-sm font-medium text-slate-700">
-                  Confirmar WhatsApp
-                </Label>
-                <Input
-                  id="wpp2"
-                  value={whatsappConfirm}
-                  onChange={(e) => setWhatsappConfirm(maskPhone(e.target.value))}
-                  onPaste={(e) => e.preventDefault()}
-                  placeholder="(81) 99999-9999"
-                  required
-                  className="h-12 rounded-xl border-slate-200"
-                />
-                <p className="text-xs text-slate-500">Enviaremos sua resposta neste número.</p>
-                {whatsappConfirm && whatsapp.replace(/\D/g, '') !== whatsappConfirm.replace(/\D/g, '') && (
-                  <p className="text-xs text-red-600">Os números não coincidem.</p>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-slate-700">Unidade</Label>
-                <Select value={unidade} onValueChange={setUnidade}>
-                  <SelectTrigger className="h-12 rounded-xl border-slate-200 [&>svg]:hidden pr-3">
-                    <SelectValue placeholder="Selecione sua unidade" />
-                    <ChevronDown className="w-4 h-4 text-slate-400 ml-2" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {UNIDADES.map((u) => (
-                      <SelectItem key={u} value={u}>
-                        {u}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </SectionCard>
-
-          {/* NPS */}
-          <SectionCard
-            title="O quanto você recomendaria a EVO?"
-            description="De 0 (nada provável) a 10 (muito provável)."
-          >
-            <div className="grid grid-cols-6 sm:grid-cols-11 gap-2">
-              {Array.from({ length: 11 }).map((_, i) => {
-                const active = nota === i;
-                const isHover = hoverNota === i && !active;
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setNota(i)}
-                    onMouseEnter={() => setHoverNota(i)}
-                    onMouseLeave={() => setHoverNota(null)}
-                    className={cn(
-                      'aspect-square rounded-xl font-semibold text-base sm:text-lg transition-all border',
-                      active
-                        ? 'text-white border-transparent shadow-md scale-[1.04]'
-                        : 'border-slate-200 text-slate-700 bg-white hover:border-slate-300',
-                    )}
-                    style={
-                      active
-                        ? { backgroundColor: IRON_BLUE }
-                        : isHover
-                        ? { backgroundColor: 'rgba(10,108,255,0.06)' }
-                        : undefined
-                    }
-                  >
-                    {i}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="flex justify-between text-xs font-medium text-slate-500 mt-3 px-1">
-              <span>Nada provável</span>
-              <span>Muito provável</span>
-            </div>
-          </SectionCard>
-
-          {/* Estrelas */}
-          <SectionCard title="Avalie estes pontos">
-            <div className="space-y-6">
-              <Stars value={eEstrutura} onChange={setEEstrutura} label="Estrutura da Academia" />
-              <Stars value={eEquipe} onChange={setEEquipe} label="Equipe / atendimento" />
-              <Stars value={eTreino} onChange={setETreino} label="Qualidade do treino" />
-            </div>
-          </SectionCard>
-
-          {/* Positivos */}
-          <SectionCard title="O que você mais gosta?" description="Selecione quantos quiser.">
-            <div className="grid sm:grid-cols-2 gap-2.5">
-              {PONTOS_POSITIVOS.map((p) => (
-                <ChipOption
-                  key={p}
-                  active={positivos.includes(p)}
-                  onClick={() => toggle(positivos, setPositivos, p)}
-                >
-                  {p}
-                </ChipOption>
-              ))}
-            </div>
-          </SectionCard>
-
-          {/* Melhorias */}
-          <SectionCard title="O que poderia melhorar?" description="Selecione quantos quiser.">
-            <div className="grid sm:grid-cols-2 gap-2.5">
-              {PONTOS_MELHORIA.map((p) => (
-                <ChipOption
-                  key={p}
-                  active={melhorias.includes(p)}
-                  onClick={() => toggle(melhorias, setMelhorias, p)}
-                >
-                  {p}
-                </ChipOption>
-              ))}
-            </div>
-          </SectionCard>
-
-          {/* Tempo */}
-          <SectionCard title="Há quanto tempo você treina conosco?">
-            <div className="grid sm:grid-cols-2 gap-2.5">
-              {TEMPOS.map((t) => (
-                <ChipOption
-                  key={t}
-                  active={tempo === t}
-                  onClick={() => setTempo(t)}
-                >
-                  {t}
-                </ChipOption>
-              ))}
-            </div>
-          </SectionCard>
-
-          {/* Comentário */}
-          <SectionCard title="Comentário" description="Opcional.">
-            <Textarea
-              value={comentario}
-              onChange={(e) => setComentario(e.target.value)}
-              maxLength={1000}
-              rows={5}
-              placeholder="Conte pra gente o que está funcionando bem ou o que podemos melhorar…"
-              className="rounded-xl border-slate-200 resize-none text-base"
+  if (phase === 'ident') {
+    return (
+      <StepFrame
+        title="Vamos começar"
+        hint="Leva menos de 1 minuto e faz diferença de verdade."
+        footer={
+          <PrimaryButton disabled={!identOk} onClick={() => setPhase('confirm')}>
+            Seguir
+          </PrimaryButton>
+        }
+      >
+        <div key={animKey} className="animate-in fade-in slide-in-from-bottom-2 space-y-6 duration-300">
+          <div className="space-y-2">
+            <label className="text-[13px] font-medium text-white/50">Nome</label>
+            <Input
+              value={nome}
+              onChange={(e) => setNome(e.target.value.toUpperCase())}
+              maxLength={120}
+              placeholder="SEU NOME COMPLETO"
+              className="h-14 rounded-2xl border-white/10 bg-white/[0.03] px-5 text-base text-white placeholder:text-white/20"
             />
-          </SectionCard>
-
-          {/* Submit */}
-          <div className="pt-2 space-y-4">
-            <p className="flex items-center justify-center gap-2 text-xs text-slate-500 text-center">
-              <ShieldCheck className="w-4 h-4 shrink-0" />
-              Sua resposta é confidencial e será usada para melhorar sua experiência dentro da EVO.
-            </p>
-            <Button
-              type="submit"
-              disabled={saving}
-              className="w-full text-white font-semibold rounded-xl text-base shadow-md transition-colors border-0"
-              style={{
-                backgroundColor: IRON_BLUE,
-                minHeight: 52,
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = IRON_BLUE_DARK)
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor = IRON_BLUE)
-              }
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...
-                </>
-              ) : (
-                'Enviar avaliação'
-              )}
-            </Button>
           </div>
-        </form>
+
+          <div className="space-y-2">
+            <label className="text-[13px] font-medium text-white/50">Unidade</label>
+            <Select value={unidade} onValueChange={setUnidade}>
+              <SelectTrigger className="h-14 rounded-2xl border-white/10 bg-white/[0.03] px-5 text-base text-white">
+                <SelectValue placeholder="Selecione sua unidade" />
+              </SelectTrigger>
+              <SelectContent>
+                {UNIDADES.map((u) => (
+                  <SelectItem key={u} value={u}>
+                    {u}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[13px] font-medium text-white/50">WhatsApp</label>
+            <Input
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(maskPhone(e.target.value))}
+              inputMode="tel"
+              placeholder="(81) 99999-9999"
+              className="h-14 rounded-2xl border-white/10 bg-white/[0.03] px-5 text-base text-white placeholder:text-white/20"
+            />
+          </div>
+        </div>
+      </StepFrame>
+    );
+  }
+
+  if (phase === 'confirm') {
+    return (
+      <StepFrame
+        title="Esse é o seu WhatsApp?"
+        onBack={() => setPhase('ident')}
+        footer={
+          <>
+            <PrimaryButton
+              onClick={() => {
+                setPhase('quiz');
+                setStep(0);
+              }}
+            >
+              Sim, continuar
+            </PrimaryButton>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setPhase('ident')}
+              className="h-12 w-full rounded-2xl text-white/50 hover:bg-white/5 hover:text-white"
+            >
+              Corrigir número
+            </Button>
+          </>
+        }
+      >
+        <div
+          key={animKey}
+          className="animate-in fade-in zoom-in-95 rounded-3xl border border-white/10 bg-white/[0.03] px-6 py-10 text-center duration-300"
+        >
+          <p className="text-[32px] font-semibold tracking-tight tabular-nums">{whatsapp}</p>
+          <p className="mt-3 text-sm text-white/40">Enviaremos sua resposta neste número.</p>
+        </div>
+      </StepFrame>
+    );
+  }
+
+  const current = steps[step];
+  const isLast = step === steps.length - 1;
+
+  return (
+    <StepFrame
+      progress={{ current: step + 1, total: steps.length }}
+      onBack={() => (step === 0 ? setPhase('confirm') : setStep(step - 1))}
+      eyebrow={current.eyebrow}
+      title={current.title}
+      hint={(current as { hint?: string }).hint}
+      footer={
+        <PrimaryButton
+          disabled={!current.valid}
+          loading={saving}
+          onClick={() => (isLast ? handleSubmit() : setStep(step + 1))}
+        >
+          {isLast ? 'Enviar avaliação' : 'Seguir'}
+        </PrimaryButton>
+      }
+    >
+      <div
+        key={animKey}
+        ref={topRef}
+        className="animate-in fade-in slide-in-from-bottom-3 duration-300"
+      >
+        {current.render()}
       </div>
-      </div>
-    </div>
+    </StepFrame>
   );
 }
