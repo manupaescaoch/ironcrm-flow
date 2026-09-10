@@ -968,6 +968,19 @@ export default function AdminUsers() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="phone">Telefone (para notificações WhatsApp)</Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="(11) 99999-9999"
+                value={newUserPhone}
+                onChange={(e) => setNewUserPhone(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Este telefone será usado para enviar notificações de tarefas
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="role">Permissão</Label>
               <Select value={newUserRole} onValueChange={setNewUserRole}>
                 <SelectTrigger>
@@ -1016,19 +1029,6 @@ export default function AdminUsers() {
               </div>
               <p className="text-xs text-muted-foreground">
                 Selecione as unidades que o usuário terá acesso
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telefone (para notificações WhatsApp)</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="(11) 99999-9999"
-                value={newUserPhone}
-                onChange={(e) => setNewUserPhone(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Este telefone será usado para enviar notificações de tarefas
               </p>
             </div>
           </div>
