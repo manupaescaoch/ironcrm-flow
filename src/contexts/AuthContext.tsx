@@ -89,9 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setUserRole(role);
               setLoading(false);
             });
+            fetchMustChangePassword(session.user.id);
           }, 0);
         } else {
           setUserRole(null);
+          setMustChangePassword(false);
           setLoading(false);
         }
       }
@@ -106,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserRole(role);
           setLoading(false);
         });
+        fetchMustChangePassword(session.user.id);
       } else {
         setLoading(false);
       }
