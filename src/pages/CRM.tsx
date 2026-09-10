@@ -63,6 +63,9 @@ import { NivelInteresseBadge } from '@/components/NivelInteresseBadge';
 import { calcularConversionScore } from '@/hooks/useConversionScore';
 import { canonicalPhone } from '@/lib/telefone';
 import { LeadDuplicadoDialog, type LeadDuplicado } from '@/components/crm/LeadDuplicadoDialog';
+import { useDebounce } from '@/hooks/use-debounce';
+
+const PAGE_SIZE = 100;
 
 
 
@@ -981,9 +984,11 @@ export default function CRM() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const debouncedSearch = useDebounce(search, 250);
+
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
-      const matchesSearch = matchesLeadSearch(lead, search);
+      const matchesSearch = matchesLeadSearch(lead, debouncedSearch);
       const matchesOrigem = filterOrigem.length === 0 || filterOrigem.includes(normalizeOrigem(lead.origem));
       const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
       const matchesStatus = filterStatus.length === 0 || filterStatus.includes(lead.status_funil);
@@ -1005,7 +1010,14 @@ export default function CRM() {
       
       return matchesSearch && matchesOrigem && matchesCadastradoPor && matchesStatus && matchesNivel && matchesDate;
     });
-  }, [leads, search, filterOrigem, filterCadastradoPor, filterStatus, filterNivel, startDate, endDate]);
+  }, [leads, debouncedSearch, filterOrigem, filterCadastradoPor, filterStatus, filterNivel, startDate, endDate]);
+
+  // Renderiza a lista em blocos para a página abrir rápido mesmo com milhares de leads
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [filteredLeads]);
+  const visibleLeads = useMemo(() => filteredLeads.slice(0, visibleCount), [filteredLeads, visibleCount]);
 
 
   // KPI calculations
@@ -1480,7 +1492,7 @@ export default function CRM() {
             { value: 'aula_realizada', label: 'Exp. Realizado', activeClass: 'bg-purple-600 text-white border-purple-600', inactiveClass: 'border-purple-600/40 text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950/40' },
           ];
           const baseLeads = leads.filter((lead) => {
-            const matchesSearch = matchesLeadSearch(lead, search);
+            const matchesSearch = matchesLeadSearch(lead, debouncedSearch);
             const matchesOrigem = filterOrigem.length === 0 || filterOrigem.includes(normalizeOrigem(lead.origem));
             const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
             let matchesDate = true;
@@ -1754,7 +1766,7 @@ export default function CRM() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredLeads.map((lead) => (
+                    {visibleLeads.map((lead) => (
                       <TableRow 
                         key={lead.id} 
                         className="cursor-pointer hover:bg-muted/50"
@@ -1825,6 +1837,16 @@ export default function CRM() {
                     ))}
                   </TableBody>
                 </Table>
+                {visibleLeads.length < filteredLeads.length && (
+                  <div className="flex flex-col items-center gap-2 py-6">
+                    <p className="text-sm text-muted-foreground">
+                      Mostrando {visibleLeads.length} de {filteredLeads.length} leads
+                    </p>
+                    <Button variant="outline" onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}>
+                      Carregar mais
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
