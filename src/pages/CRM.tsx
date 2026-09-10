@@ -1010,7 +1010,14 @@ export default function CRM() {
       
       return matchesSearch && matchesOrigem && matchesCadastradoPor && matchesStatus && matchesNivel && matchesDate;
     });
-  }, [leads, search, filterOrigem, filterCadastradoPor, filterStatus, filterNivel, startDate, endDate]);
+  }, [leads, debouncedSearch, filterOrigem, filterCadastradoPor, filterStatus, filterNivel, startDate, endDate]);
+
+  // Renderiza a lista em blocos para a página abrir rápido mesmo com milhares de leads
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [filteredLeads]);
+  const visibleLeads = useMemo(() => filteredLeads.slice(0, visibleCount), [filteredLeads, visibleCount]);
 
 
   // KPI calculations
