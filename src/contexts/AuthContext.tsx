@@ -155,6 +155,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Get user display name from email
   const userName = user?.email?.split('@')[0] || null;
 
+  const clearMustChangePassword = () => setMustChangePassword(false);
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -162,6 +164,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading, 
       userRole,
       userName,
+      mustChangePassword,
+      clearMustChangePassword,
       signIn, 
       signUp, 
       signOut,
