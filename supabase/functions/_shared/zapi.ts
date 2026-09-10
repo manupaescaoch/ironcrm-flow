@@ -403,7 +403,7 @@ export async function sendList(
     const url = `${DAPI_BASE}/api/v1/interactive/send/list`;
     const payload: Record<string, unknown> = {
       sessionId: creds.sessionId,
-      to: phone,
+      to: dapiDestino(phone),
       description: opts.description,
       buttonText: opts.buttonText,
       sections: [
