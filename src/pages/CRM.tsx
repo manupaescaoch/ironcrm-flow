@@ -63,6 +63,9 @@ import { NivelInteresseBadge } from '@/components/NivelInteresseBadge';
 import { calcularConversionScore } from '@/hooks/useConversionScore';
 import { canonicalPhone } from '@/lib/telefone';
 import { LeadDuplicadoDialog, type LeadDuplicado } from '@/components/crm/LeadDuplicadoDialog';
+import { useDebounce } from '@/hooks/use-debounce';
+
+const PAGE_SIZE = 100;
 
 
 
