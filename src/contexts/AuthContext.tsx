@@ -10,6 +10,8 @@ interface AuthContextType {
   loading: boolean;
   userRole: UserRole | null;
   userName: string | null;
+  mustChangePassword: boolean;
+  clearMustChangePassword: () => void;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -30,6 +32,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
+
+  const fetchMustChangePassword = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('must_change_password')
+        .eq('user_id', userId)
+        .maybeSingle();
+      setMustChangePassword(data?.must_change_password === true);
+    } catch {
+      setMustChangePassword(false);
+    }
+  };
 
   const fetchUserRole = async (userId: string): Promise<UserRole | null> => {
     try {
