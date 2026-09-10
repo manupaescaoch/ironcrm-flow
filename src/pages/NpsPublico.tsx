@@ -17,6 +17,15 @@ import {
 } from '@/components/ui/select';
 
 const BLUE = '#0a6cff';
+const INPUT_BG = '#F2F2F2';
+const INPUT_TEXT = '#111111';
+const INPUT_BORDER = '#E5E5E5';
+const INPUT_PLACEHOLDER = '#737373';
+
+const inputFieldClass =
+  'min-h-[60px] rounded-2xl border bg-[#F2F2F2] px-5 text-base text-[#111111] placeholder:text-[#737373] border-[#E5E5E5] transition-colors focus-visible:border-[#0a6cff] focus-visible:ring-2 focus-visible:ring-[#0a6cff]/25 focus-visible:ring-offset-0';
+
+const labelClass = 'text-[15px] font-semibold text-white/95';
 
 const UNIDADES = ['MADALENA', 'BOA VIAGEM', 'SETÚBAL'];
 
@@ -89,12 +98,12 @@ function StepFrame({
   return (
     <div className="min-h-[100dvh] bg-[#08090c] text-white">
       <header className="sticky top-0 z-20 bg-[#08090c]/90 backdrop-blur">
-        <div className="mx-auto flex max-w-lg items-center px-5 py-4">
+        <div className="mx-auto flex max-w-[560px] items-center px-5 py-4 sm:px-6">
           {onBack ? (
             <button
               type="button"
               onClick={onBack}
-              className="-ml-2 flex items-center gap-1 rounded-full px-2 py-1 text-sm text-white/50 transition-colors hover:text-white"
+              className="-ml-2 flex items-center gap-1 rounded-full px-2 py-1 text-sm text-white/60 transition-colors hover:text-white"
             >
               <ChevronLeft className="h-4 w-4" />
               Voltar
@@ -107,12 +116,12 @@ function StepFrame({
             <img
               src={evoClubLogo.url}
               alt="EVO CLUB"
-              className="h-7 w-auto object-contain"
+              className="h-11 w-auto object-contain"
             />
           </div>
 
           {progress ? (
-            <span className="w-16 text-right text-xs font-medium tabular-nums text-white/40">
+            <span className="w-16 text-right text-xs font-medium tabular-nums text-white/50">
               {progress.current} de {progress.total}
             </span>
           ) : (
@@ -132,24 +141,24 @@ function StepFrame({
         )}
       </header>
 
-      <main className="mx-auto w-full max-w-lg px-6 pb-40 pt-10">
+      <main className="mx-auto w-full max-w-[560px] px-5 pb-40 pt-5 sm:px-6">
         {eyebrow && (
           <p
-            className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em]"
+            className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em]"
             style={{ color: BLUE }}
           >
             {eyebrow}
           </p>
         )}
-        <h1 className="text-[27px] font-semibold leading-[1.2] tracking-tight text-white">
+        <h1 className="text-[30px] font-bold leading-[1.15] tracking-tight text-white">
           {title}
         </h1>
-        {hint && <p className="mt-3 text-[15px] leading-relaxed text-white/45">{hint}</p>}
-        {children && <div className="mt-8">{children}</div>}
+        {hint && <p className="mt-2 text-[15px] leading-relaxed text-white/70">{hint}</p>}
+        {children && <div className="mt-6">{children}</div>}
       </main>
 
       <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-white/[0.07] bg-[#08090c]/95 backdrop-blur">
-        <div className="mx-auto w-full max-w-lg space-y-2 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="mx-auto w-full max-w-[560px] space-y-2 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
           {footer}
         </div>
       </footer>
@@ -173,8 +182,13 @@ function PrimaryButton({
       type="button"
       onClick={onClick}
       disabled={disabled || loading}
-      className="h-14 w-full rounded-2xl border-0 text-base font-semibold text-white shadow-lg transition-opacity disabled:opacity-30"
-      style={{ backgroundColor: BLUE }}
+      className={cn(
+        'h-[60px] w-full rounded-2xl border-0 text-base font-semibold text-white shadow-none transition-all',
+        disabled || loading
+          ? 'bg-[#6B7280]/80 text-white/80 hover:bg-[#6B7280]/80'
+          : 'hover:brightness-110',
+      )}
+      style={disabled || loading ? undefined : { backgroundColor: BLUE }}
     >
       {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
       {children}
@@ -200,8 +214,8 @@ function Option({
       className={cn(
         'flex w-full items-center gap-3 rounded-2xl border px-5 py-4 text-left text-[15px] font-medium transition-all',
         active
-          ? 'border-transparent bg-white/[0.08] text-white'
-          : 'border-white/10 bg-white/[0.02] text-white/70 hover:border-white/20',
+          ? 'border-transparent bg-white/[0.10] text-white'
+          : 'border-white/15 bg-white/[0.04] text-white/80 hover:border-white/25 hover:bg-white/[0.06]',
       )}
       style={active ? { borderColor: BLUE } : undefined}
     >
@@ -209,7 +223,7 @@ function Option({
         className={cn(
           'flex h-5 w-5 shrink-0 items-center justify-center border',
           multi ? 'rounded-md' : 'rounded-full',
-          active ? 'border-transparent' : 'border-white/25',
+          active ? 'border-transparent' : 'border-white/30',
         )}
         style={active ? { backgroundColor: BLUE } : undefined}
       >
@@ -233,12 +247,12 @@ function StarsRow({ value, onChange }: { value: number; onChange: (n: number) =>
             aria-label={`${s} estrela${s > 1 ? 's' : ''}`}
             className="flex h-16 flex-1 items-center justify-center rounded-2xl border transition-all active:scale-95"
             style={{
-              borderColor: active ? BLUE : 'rgba(255,255,255,0.10)',
-              backgroundColor: active ? 'rgba(10,108,255,0.10)' : 'rgba(255,255,255,0.02)',
+              borderColor: active ? BLUE : 'rgba(255,255,255,0.15)',
+              backgroundColor: active ? 'rgba(10,108,255,0.12)' : 'rgba(255,255,255,0.05)',
             }}
           >
             <Star
-              className={cn('h-7 w-7', active ? 'fill-current' : 'text-white/25')}
+              className={cn('h-7 w-7', active ? 'fill-current' : 'text-white/35')}
               style={active ? { color: BLUE } : undefined}
             />
           </button>
@@ -300,11 +314,11 @@ export default function NpsPublico() {
                     onClick={() => setNota(i)}
                     className={cn(
                       'flex h-16 items-center justify-center rounded-2xl border text-lg font-semibold transition-all active:scale-95',
-                      active ? 'text-white' : 'text-white/70',
+                      active ? 'text-white' : 'text-white/80',
                     )}
                     style={{
-                      borderColor: active ? BLUE : 'rgba(255,255,255,0.10)',
-                      backgroundColor: active ? BLUE : 'rgba(255,255,255,0.02)',
+                      borderColor: active ? BLUE : 'rgba(255,255,255,0.15)',
+                      backgroundColor: active ? BLUE : 'rgba(255,255,255,0.05)',
                     }}
                   >
                     {i}
@@ -312,7 +326,7 @@ export default function NpsPublico() {
                 );
               })}
             </div>
-            <div className="flex justify-between text-xs text-white/35">
+            <div className="flex justify-between text-xs text-white/45">
               <span>Nada provável</span>
               <span>Muito provável</span>
             </div>
@@ -403,7 +417,10 @@ export default function NpsPublico() {
             maxLength={1000}
             rows={8}
             placeholder="Conte pra gente o que está funcionando bem ou o que podemos melhorar…"
-            className="min-h-[190px] resize-none rounded-2xl border-white/10 bg-white/[0.03] p-5 text-base text-white placeholder:text-white/25 focus-visible:ring-1 focus-visible:ring-offset-0"
+            className={cn(
+              inputFieldClass,
+              'min-h-[190px] resize-none p-5 text-base',
+            )}
           />
         ),
       },
@@ -489,27 +506,36 @@ export default function NpsPublico() {
           </PrimaryButton>
         }
       >
-        <div key={animKey} className="animate-in fade-in slide-in-from-bottom-2 space-y-6 duration-300">
+        <div key={animKey} className="animate-in fade-in slide-in-from-bottom-2 space-y-7 duration-300">
           <div className="space-y-2">
-            <label className="text-[13px] font-medium text-white/50">Nome</label>
+            <label className={labelClass}>Nome</label>
             <Input
               value={nome}
               onChange={(e) => setNome(e.target.value.toUpperCase())}
               maxLength={120}
               placeholder="SEU NOME COMPLETO"
-              className="h-14 rounded-2xl border-white/10 bg-white/[0.03] px-5 text-base text-white placeholder:text-white/20"
+              className={inputFieldClass}
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-[13px] font-medium text-white/50">Unidade</label>
+            <label className={labelClass}>Unidade</label>
             <Select value={unidade} onValueChange={setUnidade}>
-              <SelectTrigger className="h-14 rounded-2xl border-white/10 bg-white/[0.03] px-5 text-base text-white">
+              <SelectTrigger
+                className={cn(
+                  inputFieldClass,
+                  'py-0 text-base [&>span]:data-[placeholder]:text-[#737373]',
+                )}
+              >
                 <SelectValue placeholder="Selecione sua unidade" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-2xl border-[#E5E5E5] bg-[#F2F2F2] text-[#111111]">
                 {UNIDADES.map((u) => (
-                  <SelectItem key={u} value={u}>
+                  <SelectItem
+                    key={u}
+                    value={u}
+                    className="text-base text-[#111111] focus:bg-[#0a6cff]/10 focus:text-[#111111]"
+                  >
                     {u}
                   </SelectItem>
                 ))}
@@ -518,13 +544,13 @@ export default function NpsPublico() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-[13px] font-medium text-white/50">WhatsApp</label>
+            <label className={labelClass}>WhatsApp</label>
             <Input
               value={whatsapp}
               onChange={(e) => setWhatsapp(maskPhone(e.target.value))}
               inputMode="tel"
               placeholder="(81) 99999-9999"
-              className="h-14 rounded-2xl border-white/10 bg-white/[0.03] px-5 text-base text-white placeholder:text-white/20"
+              className={inputFieldClass}
             />
           </div>
         </div>
@@ -551,7 +577,7 @@ export default function NpsPublico() {
               type="button"
               variant="ghost"
               onClick={() => setPhase('ident')}
-              className="h-12 w-full rounded-2xl text-white/50 hover:bg-white/5 hover:text-white"
+              className="h-12 w-full rounded-2xl text-white/60 hover:bg-white/5 hover:text-white"
             >
               Corrigir número
             </Button>
@@ -560,10 +586,10 @@ export default function NpsPublico() {
       >
         <div
           key={animKey}
-          className="animate-in fade-in zoom-in-95 rounded-3xl border border-white/10 bg-white/[0.03] px-6 py-10 text-center duration-300"
+          className="animate-in fade-in zoom-in-95 rounded-3xl border border-white/10 bg-white/[0.04] px-6 py-10 text-center duration-300"
         >
           <p className="text-[32px] font-semibold tracking-tight tabular-nums">{whatsapp}</p>
-          <p className="mt-3 text-sm text-white/40">Enviaremos sua resposta neste número.</p>
+          <p className="mt-3 text-sm text-white/50">Enviaremos sua resposta neste número.</p>
         </div>
       </StepFrame>
     );
