@@ -74,8 +74,9 @@ function useLoginRedirect() {
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, mustChangePassword } = useAuth();
   const loginTo = useLoginRedirect();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -87,6 +88,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return <Navigate to={loginTo} replace />;
+  }
+
+  if (mustChangePassword && location.pathname !== '/trocar-senha') {
+    return <Navigate to="/trocar-senha" replace />;
   }
 
   return <>{children}</>;
