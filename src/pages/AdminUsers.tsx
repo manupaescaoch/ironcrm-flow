@@ -116,6 +116,13 @@ export default function AdminUsers() {
   const [editingPhoneUser, setEditingPhoneUser] = useState<UserData | null>(null);
   const [editPhone, setEditPhone] = useState('');
   const [updatingPhone, setUpdatingPhone] = useState(false);
+
+  // Edit password state
+  const [editPasswordDialogOpen, setEditPasswordDialogOpen] = useState(false);
+  const [editingPasswordUser, setEditingPasswordUser] = useState<UserData | null>(null);
+  const [editPassword, setEditPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+
   
   // Edit notes state
   const [editNotesDialogOpen, setEditNotesDialogOpen] = useState(false);
