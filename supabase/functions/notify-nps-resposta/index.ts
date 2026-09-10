@@ -36,11 +36,20 @@ function findCoordenador(unidadeNome: string) {
   return null;
 }
 
+function normalizeUnidade(s: string): string {
+  return (s || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim();
+}
+
 function findGrupo(unidadeNome: string): string | null {
-  const key = (unidadeNome || '').toUpperCase().trim();
+  const key = normalizeUnidade(unidadeNome);
   for (const [k, v] of Object.entries(GRUPOS)) {
-    if (key.includes(k)) return v;
+    if (key.includes(normalizeUnidade(k))) return v;
   }
+
   return null;
 }
 
