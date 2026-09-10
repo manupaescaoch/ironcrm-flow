@@ -8,14 +8,18 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, EyeOff, MessageCircle } from 'lucide-react';
 import { z } from 'zod';
 import evoLogo from '@/assets/evo-logo.png.asset.json';
+
+// Número de WhatsApp do suporte (formato internacional, só dígitos)
+const SUPORTE_WHATSAPP = '5581995925412';
 
 const authSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
 });
+
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -142,11 +146,35 @@ export default function Login() {
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Entrar
           </Button>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-card px-2 text-xs text-muted-foreground">ou</span>
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            className="w-full border-[#25D366] text-[#128C7E] hover:bg-[#25D366]/10"
+            onClick={() => {
+              const texto = encodeURIComponent(
+                `Olá! Não estou conseguindo entrar no EVO CLUB CRM${email ? ` (e-mail: ${email})` : ''}. Pode me ajudar com a senha?`
+              );
+              window.open(`https://wa.me/${SUPORTE_WHATSAPP}?text=${texto}`, '_blank', 'noopener,noreferrer');
+            }}
+          >
+            <MessageCircle className="mr-2 h-4 w-4" />
+            Entrar com ajuda pelo WhatsApp
+          </Button>
+
           <div className="text-center">
             <Link to={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`} className="text-sm text-muted-foreground hover:text-foreground">
               Esqueci minha senha
             </Link>
           </div>
+
         </CardContent>
       </Card>
     </div>
