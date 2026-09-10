@@ -10,6 +10,8 @@ interface AuthContextType {
   loading: boolean;
   userRole: UserRole | null;
   userName: string | null;
+  mustChangePassword: boolean;
+  clearMustChangePassword: () => void;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -30,6 +32,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
+
+  const fetchMustChangePassword = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+      const row = data as unknown as { must_change_password?: boolean } | null;
+      setMustChangePassword(row?.must_change_password === true);
+    } catch {
+      setMustChangePassword(false);
+    }
+  };
 
   const fetchUserRole = async (userId: string): Promise<UserRole | null> => {
     try {
@@ -73,9 +90,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setUserRole(role);
               setLoading(false);
             });
+            fetchMustChangePassword(session.user.id);
           }, 0);
         } else {
           setUserRole(null);
+          setMustChangePassword(false);
           setLoading(false);
         }
       }
@@ -90,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserRole(role);
           setLoading(false);
         });
+        fetchMustChangePassword(session.user.id);
       } else {
         setLoading(false);
       }
@@ -136,6 +156,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Get user display name from email
   const userName = user?.email?.split('@')[0] || null;
 
+  const clearMustChangePassword = () => setMustChangePassword(false);
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -143,6 +165,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading, 
       userRole,
       userName,
+      mustChangePassword,
+      clearMustChangePassword,
       signIn, 
       signUp, 
       signOut,

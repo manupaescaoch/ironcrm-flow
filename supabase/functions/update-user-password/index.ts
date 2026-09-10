@@ -64,6 +64,12 @@ Deno.serve(async (req) => {
     const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password });
     if (error) return json({ error: error.message }, 400);
 
+    // Senha definida pelo admin: obrigar troca no próximo acesso
+    const { error: flagError } = await supabaseAdmin
+      .from('user_profiles')
+      .upsert({ user_id: userId, must_change_password: true }, { onConflict: 'user_id' });
+    if (flagError) console.error('Error setting must_change_password:', flagError);
+
     console.log(`Password updated for user ${userId} by ${auth.method}`);
     return json({ success: true, user_id: userId });
   } catch (e) {

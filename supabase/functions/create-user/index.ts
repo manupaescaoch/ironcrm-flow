@@ -135,15 +135,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 9. Add telefone to user_profiles if specified
-    if (telefone && newUser.user) {
-      const { error: phoneError } = await supabase
+    // 9. Create/update user profile: telefone (if specified) + force password change on first access
+    if (newUser.user) {
+      const { error: profileError } = await supabase
         .from('user_profiles')
-        .insert({ user_id: newUser.user.id, telefone });
+        .upsert(
+          { user_id: newUser.user.id, telefone: telefone || null, must_change_password: true },
+          { onConflict: 'user_id' },
+        );
 
-      if (phoneError) {
-        console.error('Error inserting telefone:', phoneError);
-        // User was created but phone failed - log but don't fail
+      if (profileError) {
+        console.error('Error upserting user profile:', profileError);
+        // User was created but profile failed - log but don't fail
       }
     }
 
