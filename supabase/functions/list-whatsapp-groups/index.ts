@@ -32,17 +32,18 @@ Deno.serve(async (req) => {
     // Canal: ?channel=comercial|operacional. Default: operacional.
     const url0 = new URL(req.url);
     const channelRaw = url0.searchParams.get('channel') ?? 'operacional';
-    if (channelRaw !== 'comercial' && channelRaw !== 'operacional') {
+    if (channelRaw !== 'comercial' && channelRaw !== 'operacional' && channelRaw !== 'operacional2') {
       return new Response(JSON.stringify({ error: "channel inválido" }), { status: 400, headers: corsHeaders });
     }
 
     let groups: { phone: string; name: string }[] = [];
 
     // Operacional → D-API (quando configurada)
-    const dapiKey = Deno.env.get('DAPI_API_KEY');
-    const dapiSession = Deno.env.get('DAPI_SESSION_ID');
+    const isOp2 = channelRaw === 'operacional2';
+    const dapiKey = isOp2 ? Deno.env.get('DAPI_OPERACIONAL_API_KEY') : Deno.env.get('DAPI_API_KEY');
+    const dapiSession = isOp2 ? Deno.env.get('DAPI_OPERACIONAL_SESSION_ID') : Deno.env.get('DAPI_SESSION_ID');
 
-    if (channelRaw === 'operacional' && dapiKey && dapiSession) {
+    if (channelRaw !== 'comercial' && dapiKey && dapiSession) {
       const url = `https://api.d-api.cloud/api/v1/groups/list?sessionId=${encodeURIComponent(dapiSession)}`;
       const resp = await fetch(url, { headers: { Authorization: dapiKey } });
       if (!resp.ok) {
