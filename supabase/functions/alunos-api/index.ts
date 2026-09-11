@@ -47,6 +47,11 @@ Deno.serve(async (req) => {
     return json({ error: 'unidade_id inválido' }, 400);
   }
 
+  const truthy = (v: string | null) => v === '1' || v === 'true' || v === 'sim';
+  const incluirAnamnese = truthy(url.searchParams.get('incluir_anamnese'));
+  const incluirNaoMatriculados = truthy(url.searchParams.get('incluir_nao_matriculados'));
+
+
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
