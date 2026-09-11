@@ -229,6 +229,25 @@ All colors MUST be HSL.
   margin: 0.5rem 0;
 }
 
+/* Barra de rolagem clara para o seletor de unidade (dropdown escuro) */
+.unidade-select-scroll [data-radix-select-viewport] {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--sidebar-foreground) / 0.45) transparent;
+}
+.unidade-select-scroll [data-radix-select-viewport]::-webkit-scrollbar {
+  width: 8px;
+}
+.unidade-select-scroll [data-radix-select-viewport]::-webkit-scrollbar-track {
+  background: transparent;
+}
+.unidade-select-scroll [data-radix-select-viewport]::-webkit-scrollbar-thumb {
+  background: hsl(var(--sidebar-foreground) / 0.45);
+  border-radius: 9999px;
+}
+.unidade-select-scroll [data-radix-select-viewport]::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--sidebar-foreground) / 0.65);
+}
+
 /* ===== EVO OPS — tema minimalista mobile (escopo .ops-theme) ===== */
 .ops-theme {
   --background: 240 6% 96%;      /* #F5F5F7 */

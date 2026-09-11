@@ -242,7 +242,7 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
                 </SelectValue>
               </div>
             </SelectTrigger>
-            <SelectContent className="bg-sidebar border-sidebar-border/60">
+            <SelectContent className="bg-sidebar border-sidebar-border/60 unidade-select-scroll">
               {unidadesPermitidas.map((unidade) => (
                 <SelectItem
                   key={unidade.id}
