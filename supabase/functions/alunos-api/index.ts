@@ -77,19 +77,23 @@ Deno.serve(async (req) => {
     const anamnesePorLead = new Map<string, Record<string, unknown>>();
     if (incluirAnamnese && rows.length > 0) {
       const ids = rows.map((r: Record<string, unknown>) => r.id as string);
-      const { data: anamneses, error: anamneseError } = await supabase
-        .from('anamneses_experimental')
-        .select(
-          'lead_id, nome, data_nascimento, objetivo, historico, frequencia_atual, obstaculo, dias_semana, preferencia_horario, tem_condicao_saude, condicao_saude_descricao, tem_lesao, lesao_descricao, observacoes, created_at',
-        )
-        .in('lead_id', ids)
-        .order('created_at', { ascending: true });
-      if (anamneseError) return json({ error: anamneseError.message }, 500);
-      for (const a of anamneses ?? []) {
-        const leadId = (a as Record<string, unknown>).lead_id as string | null;
-        if (leadId) anamnesePorLead.set(leadId, a as Record<string, unknown>);
+      const CHUNK = 100;
+      for (let i = 0; i < ids.length; i += CHUNK) {
+        const { data: anamneses, error: anamneseError } = await supabase
+          .from('anamneses_experimental')
+          .select(
+            'lead_id, nome, data_nascimento, objetivo, historico, frequencia_atual, obstaculo, dias_semana, preferencia_horario, tem_condicao_saude, condicao_saude_descricao, tem_lesao, lesao_descricao, observacoes, created_at',
+          )
+          .in('lead_id', ids.slice(i, i + CHUNK))
+          .order('created_at', { ascending: true });
+        if (anamneseError) return json({ error: anamneseError.message }, 500);
+        for (const a of anamneses ?? []) {
+          const leadId = (a as Record<string, unknown>).lead_id as string | null;
+          if (leadId) anamnesePorLead.set(leadId, a as Record<string, unknown>);
+        }
       }
     }
+
 
     const alunos = rows.map((r: Record<string, unknown>) => {
       const base: Record<string, unknown> = {
