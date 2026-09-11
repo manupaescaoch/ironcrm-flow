@@ -401,7 +401,12 @@ export default function EstoqueInterno() {
         nome_insumo: data.nome_insumo.toUpperCase(),
         unidade_id: unidadeAtual.id,
       });
-      if (error) throw error;
+      if (error) {
+        if (error.code === '23505' || /duplicate key/i.test(error.message)) {
+          throw new Error('Já existe um insumo com este código nesta unidade. Use outro código.');
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['insumos', unidadeAtual?.id] });
