@@ -27,4 +27,8 @@ verify_jwt = false
 [functions.painel-contas-pagar]
 verify_jwt = false
 
+[functions.alunos-api]
+verify_jwt = false
+
+
 
