@@ -56,27 +56,73 @@ Deno.serve(async (req) => {
 
     let query = supabase
       .from('leads')
-      .select('id, nome, telefone, ativo, unidade_id, unidades(nome)', { count: 'exact' })
-      .eq('is_matriculado', true)
+      .select('id, nome, telefone, ativo, is_matriculado, unidade_id, unidades(nome)', { count: 'exact' })
       .order('nome', { ascending: true })
       .range(offset, offset + limit - 1);
 
+    if (!incluirNaoMatriculados) query = query.eq('is_matriculado', true);
     if (unidadeParam) query = query.eq('unidade_id', unidadeParam);
 
     const { data, error, count } = await query;
     if (error) return json({ error: error.message }, 500);
 
-    const alunos = (data ?? []).map((r: Record<string, unknown>) => ({
-      id: r.id as string,
-      nome: (r.nome as string) ?? null,
-      telefone: (r.telefone as string) ?? null,
-      status: r.ativo ? 'ativo' : 'inativo',
-      unidade: r.unidade_id
-        ? { id: r.unidade_id as string, nome: (r.unidades as { nome?: string } | null)?.nome ?? null }
-        : null,
-    }));
+    const rows = data ?? [];
+
+    // Anamnese: buscada apenas para os leads desta página (no máximo 1000 ids)
+    const anamnesePorLead = new Map<string, Record<string, unknown>>();
+    if (incluirAnamnese && rows.length > 0) {
+      const ids = rows.map((r: Record<string, unknown>) => r.id as string);
+      const { data: anamneses, error: anamneseError } = await supabase
+        .from('anamneses_experimental')
+        .select(
+          'lead_id, nome, data_nascimento, objetivo, historico, frequencia_atual, obstaculo, dias_semana, preferencia_horario, tem_condicao_saude, condicao_saude_descricao, tem_lesao, lesao_descricao, observacoes, created_at',
+        )
+        .in('lead_id', ids)
+        .order('created_at', { ascending: true });
+      if (anamneseError) return json({ error: anamneseError.message }, 500);
+      for (const a of anamneses ?? []) {
+        const leadId = (a as Record<string, unknown>).lead_id as string | null;
+        if (leadId) anamnesePorLead.set(leadId, a as Record<string, unknown>);
+      }
+    }
+
+    const alunos = rows.map((r: Record<string, unknown>) => {
+      const base: Record<string, unknown> = {
+        id: r.id as string,
+        nome: (r.nome as string) ?? null,
+        telefone: (r.telefone as string) ?? null,
+        status: r.ativo ? 'ativo' : 'inativo',
+        matriculado: r.is_matriculado === true,
+        unidade: r.unidade_id
+          ? { id: r.unidade_id as string, nome: (r.unidades as { nome?: string } | null)?.nome ?? null }
+          : null,
+      };
+      if (incluirAnamnese) {
+        const a = anamnesePorLead.get(r.id as string);
+        base.anamnese = a
+          ? {
+              respondida_em: a.created_at ?? null,
+              nome: a.nome ?? null,
+              data_nascimento: a.data_nascimento ?? null,
+              objetivo: a.objetivo ?? null,
+              historico: a.historico ?? null,
+              frequencia_atual: a.frequencia_atual ?? null,
+              obstaculo: a.obstaculo ?? null,
+              dias_semana: a.dias_semana ?? null,
+              preferencia_horario: a.preferencia_horario ?? null,
+              tem_condicao_saude: a.tem_condicao_saude ?? null,
+              condicao_saude_descricao: a.condicao_saude_descricao ?? null,
+              tem_lesao: a.tem_lesao ?? null,
+              lesao_descricao: a.lesao_descricao ?? null,
+              observacoes: a.observacoes ?? null,
+            }
+          : null;
+      }
+      return base;
+    });
 
     return json({ total: count ?? alunos.length, limit, offset, alunos });
+
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : 'Internal error' }, 500);
   }
