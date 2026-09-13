@@ -49,6 +49,7 @@ import GruposWhatsApp from "./pages/admin/GruposWhatsApp";
 import WhatsAppComercial from "./pages/admin/WhatsAppComercial";
 import ZapiConexoes from "./pages/admin/ZapiConexoes";
 import CronogramaAutomacoes from "./pages/admin/CronogramaAutomacoes";
+import TelegramIntegracao from "./pages/configuracoes/TelegramIntegracao";
 import DashboardOperacional from "./pages/DashboardOperacional";
 import OpsMeuDia from "./pages/ops/OpsMeuDia";
 import OpsCronograma from "./pages/ops/OpsCronograma";
@@ -235,6 +236,7 @@ const AppRoutes = () => (
     <Route path="/admin/whatsapp-comercial" element={<ProtectedRoute><WhatsAppComercial /></ProtectedRoute>} />
     <Route path="/admin/zapi-conexoes" element={<AdminRoute><ZapiConexoes /></AdminRoute>} />
     <Route path="/admin/cronograma-automacoes" element={<AdminRoute><CronogramaAutomacoes /></AdminRoute>} />
+    <Route path="/configuracoes/integracoes/telegram" element={<AdminRoute><TelegramIntegracao /></AdminRoute>} />
 
 
     <Route path="/operacao" element={<ProtectedRoute><Operacao /></ProtectedRoute>} />
