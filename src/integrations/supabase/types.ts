@@ -2335,6 +2335,45 @@ export type Database = {
           },
         ]
       }
+      integracoes: {
+        Row: {
+          active: boolean
+          connected_at: string | null
+          created_at: string
+          external_id: string | null
+          external_name: string | null
+          external_username: string | null
+          id: string
+          provider: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          connected_at?: string | null
+          created_at?: string
+          external_id?: string | null
+          external_name?: string | null
+          external_username?: string | null
+          id?: string
+          provider: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          connected_at?: string | null
+          created_at?: string
+          external_id?: string | null
+          external_name?: string | null
+          external_username?: string | null
+          id?: string
+          provider?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       interacoes: {
         Row: {
           agendado_evo: boolean

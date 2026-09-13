@@ -68,6 +68,7 @@ const allNavItems = [
   { href: '/gestao-operacional', label: 'Gestão da Rede', icon: Building2, roles: ['admin', 'coordenador', 'gerente'], masterOnly: false },
   { href: '/backups', label: 'Backups', icon: Database, roles: ['admin'], masterOnly: false },
   { href: '/admin/cronograma-automacoes', label: 'Automações', icon: Zap, roles: ['admin'], masterOnly: false, isNew: true },
+  { href: '/configuracoes/integracoes/telegram', label: 'Integrações', icon: Zap, roles: ['admin'], masterOnly: false, isNew: true },
   { href: '/admin-users', label: 'Usuários', icon: Settings, roles: ['admin'], masterOnly: true },
 ];
 
