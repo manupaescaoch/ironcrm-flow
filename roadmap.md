@@ -4,3 +4,5 @@
 - [x] Formulários operacionais: unidades renomeadas para Madalena, Boa Viagem e Setúbal, com Setúbal habilitado em todos os formulários
 - [ ] Etapa 11 EVO OPS: API Hermes (Edge Function segura)
 - [ ] Corrigir instância operacional da Z-API (assinatura vencida) para envios automáticos de encerramento
+
+- [ ] Usuário cria bot no BotFather e fornece token; salvar como TELEGRAM_BOT_TOKEN e testar conexão na página Telegram
