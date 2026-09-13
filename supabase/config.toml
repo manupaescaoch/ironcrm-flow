@@ -30,5 +30,8 @@ verify_jwt = false
 [functions.alunos-api]
 verify_jwt = false
 
+[functions.telegram-health]
+verify_jwt = false
+
 
 
