@@ -384,20 +384,35 @@ export default function CRM() {
   const fetchLeads = useCallback(async () => {
     if (!unidadeAtual) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from('leads')
-      .select('*')
-      .eq('ativo', true)
-      .eq('unidade_id', unidadeAtual.id)
-      .order('created_at', { ascending: false });
+    const PAGE = 1000;
+    const all: Lead[] = [];
+    let from = 0;
+    // Paginate: PostgREST returns at most 1000 rows per request
+    while (true) {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('ativo', true)
+        .eq('unidade_id', unidadeAtual.id)
+        .order('created_at', { ascending: false })
+        .range(from, from + PAGE - 1);
 
-    if (error) {
-      toast({ title: 'Erro ao carregar leads', description: getErrorMessage(error), variant: 'destructive' });
-    } else {
-      setLeads((data as unknown as Lead[]) || []);
+      if (error) {
+        toast({ title: 'Erro ao carregar leads', description: getErrorMessage(error), variant: 'destructive' });
+        setLoading(false);
+        return;
+      }
+
+      const batch = (data as unknown as Lead[]) || [];
+      all.push(...batch);
+      if (batch.length < PAGE) break;
+      from += PAGE;
     }
+
+    setLeads(all);
     setLoading(false);
   }, [unidadeAtual, toast]);
+
 
   useEffect(() => {
     if (unidadeAtual && !unidadeLoading) {
