@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     const mappings: Mapping[] = body.mappings;
     if (!Array.isArray(mappings)) return json(400, { error: 'mappings required' });
 
-    const creds = getZapiCreds('operacional');
+    const creds = getZapiCreds('operacional2') || getZapiCreds('operacional');
     if (!creds || creds.provider !== 'dapi') return json(500, { error: 'D-API não configurada' });
 
     const headers = { 'Content-Type': 'application/json', Authorization: creds.apiKey! };
