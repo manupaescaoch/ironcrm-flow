@@ -29,6 +29,26 @@ Deno.serve(async (req) => {
     if (!roles?.some((r: any) => r.role === 'admin')) return json(403, { error: 'not admin' });
 
     const body = await req.json();
+
+    // Modo auxiliar: listar grupos do chip para localizar IDs manualmente.
+    if (body.list_groups) {
+      const creds0 = getZapiCreds('operacional2') || getZapiCreds('operacional');
+      if (!creds0 || creds0.provider !== 'dapi') return json(500, { error: 'D-API não configurada' });
+      const out: any[] = [];
+      for (const url of [
+        `https://api.d-api.cloud/api/v1/groups?sessionId=${encodeURIComponent(creds0.sessionId!)}`,
+        `https://api.d-api.cloud/api/v1/chats?sessionId=${encodeURIComponent(creds0.sessionId!)}`,
+      ]) {
+        try {
+          const r = await fetch(url, { headers: { Authorization: creds0.apiKey! } });
+          const txt = await r.text();
+          out.push({ url, http: r.status, body: txt.slice(0, 8000) });
+          if (r.ok) break;
+        } catch (e) { out.push({ url, error: String(e) }); }
+      }
+      return json(200, { attempts: out });
+    }
+
     const mappings: Mapping[] = body.mappings;
     if (!Array.isArray(mappings)) return json(400, { error: 'mappings required' });
 
