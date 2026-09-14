@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
-import { Lead } from '@/types/database';
 import { Stats, PeriodStats } from '@/components/dashboard/constants';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 
@@ -28,30 +27,44 @@ export function useDashboardStats(): UseDashboardStatsReturn {
     
     setLoading(true);
     try {
-      let query = supabase
-        .from('leads')
-        .select('*')
-        .eq('ativo', true)
-        .eq('unidade_id', unidadeAtual.id);
+      const applyFilters = (query: any) => {
+        let filteredQuery = query
+          .eq('ativo', true)
+          .eq('unidade_id', unidadeAtual.id);
 
-      if (startDate && endDate) {
-        const startStr = format(startDate, 'yyyy-MM-dd');
-        const endStr = format(endDate, 'yyyy-MM-dd');
-        query = query
-          .gte('created_at', `${startStr}T00:00:00`)
-          .lte('created_at', `${endStr}T23:59:59`);
-      }
+        if (startDate && endDate) {
+          const startStr = format(startDate, 'yyyy-MM-dd');
+          const endStr = format(endDate, 'yyyy-MM-dd');
+          filteredQuery = filteredQuery
+            .gte('created_at', `${startStr}T00:00:00`)
+            .lte('created_at', `${endStr}T23:59:59`);
+        }
 
-      const { data: leads } = await query;
+        return filteredQuery;
+      };
 
-      if (leads) {
-        const typedLeads = leads as unknown as Lead[];
-        setStats({
-          total: typedLeads.length,
-          novos: typedLeads.filter(l => l.status_funil === 'novo').length,
-          aulasAgendadas: typedLeads.filter(l => l.status_funil === 'aula_agendada').length,
-        });
-      }
+      const [totalResult, novosResult, aulasResult] = await Promise.all([
+        applyFilters(supabase
+          .from('leads')
+          .select('id', { count: 'exact', head: true })),
+        applyFilters(supabase
+          .from('leads')
+          .select('id', { count: 'exact', head: true }))
+          .eq('status_funil', 'novo'),
+        applyFilters(supabase
+          .from('leads')
+          .select('id', { count: 'exact', head: true }))
+          .eq('status_funil', 'aula_agendada'),
+      ]);
+
+      const queryError = totalResult.error ?? novosResult.error ?? aulasResult.error;
+      if (queryError) throw queryError;
+
+      setStats({
+        total: totalResult.count ?? 0,
+        novos: novosResult.count ?? 0,
+        aulasAgendadas: aulasResult.count ?? 0,
+      });
     } finally {
       setLoading(false);
     }
