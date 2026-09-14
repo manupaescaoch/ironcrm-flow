@@ -64,10 +64,11 @@ Deno.serve(async (req) => {
 
     const headers = { 'Content-Type': 'application/json', Authorization: creds.apiKey! };
     const candidates = (code: string) => [
-      { method: 'POST', url: `https://api.d-api.cloud/api/v1/groups/invite-info`, body: { sessionId: creds.sessionId, inviteCode: code } },
       { method: 'POST', url: `https://api.d-api.cloud/api/v1/groups/join`, body: { sessionId: creds.sessionId, inviteCode: code } },
+      { method: 'POST', url: `https://api.d-api.cloud/api/v1/groups/join`, body: { sessionId: creds.sessionId, inviteLink: `https://chat.whatsapp.com/${code}` } },
+      { method: 'POST', url: `https://api.d-api.cloud/api/v1/groups/join-by-invite`, body: { sessionId: creds.sessionId, inviteCode: code } },
+      { method: 'POST', url: `https://api.d-api.cloud/api/v1/groups/invite-info`, body: { sessionId: creds.sessionId, inviteCode: code } },
       { method: 'POST', url: `https://api.d-api.cloud/api/v1/groups/accept-invite`, body: { sessionId: creds.sessionId, inviteCode: code } },
-      { method: 'GET', url: `https://api.d-api.cloud/api/v1/groups/invite-info?sessionId=${creds.sessionId}&inviteCode=${code}`, body: null },
     ];
 
     const results: any[] = [];
