@@ -36,13 +36,20 @@ Deno.serve(async (req) => {
       if (!creds0 || creds0.provider !== 'dapi') return json(500, { error: 'D-API não configurada' });
       const out: any[] = [];
       for (const url of [
-        `https://api.d-api.cloud/api/v1/groups?sessionId=${encodeURIComponent(creds0.sessionId!)}`,
         `https://api.d-api.cloud/api/v1/chats?sessionId=${encodeURIComponent(creds0.sessionId!)}`,
       ]) {
         try {
           const r = await fetch(url, { headers: { Authorization: creds0.apiKey! } });
           const txt = await r.text();
-          out.push({ url, http: r.status, body: txt.slice(0, 8000) });
+          let groups: any[] = [];
+          try {
+            const parsed = JSON.parse(txt);
+            const items = Array.isArray(parsed) ? parsed : parsed?.data || [];
+            groups = items
+              .filter((g: any) => g?.isGroup)
+              .map((g: any) => ({ chatName: g.chatName, last: (g.last_message_preview || '').slice(0, 80) }));
+          } catch { /* raw */ }
+          out.push({ url, http: r.status, groups, raw: groups.length ? undefined : txt.slice(0, 1000) });
           if (r.ok) break;
         } catch (e) { out.push({ url, error: String(e) }); }
       }
