@@ -542,58 +542,27 @@ export async function checkRateLimit(
   return { ok: true };
 }
 
-// ---------------------- Group resolver ----------------------
+// ---------------------- Group resolver (Telegram) ----------------------
+
+/**
+ * Cada formulário vai para o grupo da unidade no Telegram, com fallback de tipo.
+ */
+const PRIORIDADE_GRUPO: Record<TipoFormulario, TelegramGroupType[]> = {
+  estagiario_lider: ['coordenadores', 'gerencia'],
+  coordenador_unidade: ['gerencia', 'coordenadores'],
+  coordenador_horario: ['coordenadores', 'gerencia'],
+  relatorio_comercial: ['comercial', 'gerencia'],
+  coordenador_tecnico: ['coordenadores', 'gerencia'],
+};
 
 export async function resolveGrupo(
   supabase: SupabaseClient,
   tipo: TipoFormulario,
   unidade: string,
-): Promise<string | null> {
-  const { data } = await supabase
-    .from('formulario_grupos_whatsapp')
-    .select('grupo_id, ativo')
-    .eq('formulario_key', tipo)
-    .eq('unidade', unidade)
-    .maybeSingle();
-  if (!data || !data.ativo || !data.grupo_id) return null;
-  return data.grupo_id as string;
-}
-
-// ---------------------- WhatsApp dispatch (routed via shared helper) ----------------------
-
-/**
- * Normaliza o ID do grupo conforme o provedor:
- * - D-API: exige `<id>@g.us` (minúsculo; não aceita @G.US)
- * - Z-API: exige `<id>-group` (se enviar @g.us, a Z-API trata como telefone e a msg não chega)
- */
-function normalizeGroupJid(raw: string, provider: string): string {
-  const trimmed = (raw || '').trim();
-  if (!trimmed) return trimmed;
-  const digits = trimmed.replace(/@g\.us$/i, '').replace(/-group$/i, '').trim();
-  if (!/^[0-9]+$/.test(digits)) return trimmed;
-  return provider === 'zapi' ? `${digits}-group` : `${digits}@g.us`;
-}
-
-async function sendWhatsapp(
-  supabase: SupabaseClient,
-  grupoId: string,
-  message: string,
-  tipoFormulario: TipoFormulario,
-  eventKey: string,
-): Promise<{ ok: boolean; status: number; body: any; provider: string }> {
-  // Todos os formulários de encerramento → chip D-API OPERACIONAL.
-  const channel = 'operacional2';
-
-  const creds = getZapiCreds(channel);
-  if (!creds) {
-    console.error(`[sendWhatsapp] Credenciais ausentes para canal ${channel}`);
-    return { ok: false, status: 500, body: { error: 'creds_missing' }, provider: 'none' };
-  }
-  const jid = normalizeGroupJid(grupoId, creds.provider);
-  const chave = buildIdempotencyKey(['formulario', tipoFormulario, eventKey, jid]);
-  const res = await sendTextIdempotent(supabase, creds, jid, message, { chave, funcao: 'notify-formulario-encerramento' });
-  const providerOk = res.ok && !res.body?.error && res.body?.success !== false;
-  return { ok: providerOk, status: res.status, body: res.body, provider: creds.provider };
+  unidadeId?: string | null,
+): Promise<TelegramGrupoUnidade | null> {
+  const id = unidadeId ?? (await resolveUnidadeId(supabase, unidade));
+  return resolveGrupoUnidade(supabase, id, PRIORIDADE_GRUPO[tipo]);
 }
 
 
