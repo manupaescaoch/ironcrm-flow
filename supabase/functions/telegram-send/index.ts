@@ -45,8 +45,11 @@ Deno.serve(async (req) => {
     let recipientId: string | null = null;
 
     if (!chatId && body?.group_type) {
-      const { data: grupo } = await admin.from('telegram_groups')
-        .select('telegram_chat_id').eq('group_type', String(body.group_type)).maybeSingle();
+      let q = admin.from('telegram_groups')
+        .select('telegram_chat_id').eq('group_type', String(body.group_type));
+      // Se informada a unidade, busca o grupo daquela unidade
+      if (body?.unidade_id) q = q.eq('unidade_id', String(body.unidade_id));
+      const { data: grupo } = await q.limit(1).maybeSingle();
       if (!grupo?.telegram_chat_id) return json({ error: 'grupo_nao_conectado' }, 400);
       chatId = grupo.telegram_chat_id;
       recipientType = 'grupo';
