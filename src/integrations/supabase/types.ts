@@ -4236,6 +4236,168 @@ export type Database = {
           },
         ]
       }
+      telegram_connection_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          token: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          token: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      telegram_detected_chats: {
+        Row: {
+          chat_type: string | null
+          created_at: string
+          id: string
+          last_seen_at: string
+          telegram_chat_id: number
+          title: string | null
+        }
+        Insert: {
+          chat_type?: string | null
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          telegram_chat_id: number
+          title?: string | null
+        }
+        Update: {
+          chat_type?: string | null
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          telegram_chat_id?: number
+          title?: string | null
+        }
+        Relationships: []
+      }
+      telegram_groups: {
+        Row: {
+          connected_at: string | null
+          created_at: string
+          group_type: string
+          id: string
+          name: string
+          status: string
+          telegram_chat_id: number | null
+          telegram_title: string | null
+          updated_at: string
+        }
+        Insert: {
+          connected_at?: string | null
+          created_at?: string
+          group_type: string
+          id?: string
+          name: string
+          status?: string
+          telegram_chat_id?: number | null
+          telegram_title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          connected_at?: string | null
+          created_at?: string
+          group_type?: string
+          id?: string
+          name?: string
+          status?: string
+          telegram_chat_id?: number | null
+          telegram_title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      telegram_message_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          message_type: string
+          recipient_id: string | null
+          recipient_type: string
+          status: string
+          telegram_chat_id: number | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_type?: string
+          recipient_id?: string | null
+          recipient_type: string
+          status: string
+          telegram_chat_id?: number | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_type?: string
+          recipient_id?: string | null
+          recipient_type?: string
+          status?: string
+          telegram_chat_id?: number | null
+        }
+        Relationships: []
+      }
+      telegram_users: {
+        Row: {
+          connected_at: string | null
+          created_at: string
+          id: string
+          status: string
+          telegram_first_name: string | null
+          telegram_last_name: string | null
+          telegram_user_id: number | null
+          telegram_username: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connected_at?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          telegram_first_name?: string | null
+          telegram_last_name?: string | null
+          telegram_user_id?: number | null
+          telegram_username?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connected_at?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          telegram_first_name?: string | null
+          telegram_last_name?: string | null
+          telegram_user_id?: number | null
+          telegram_username?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       unidade_whatsapp_config: {
         Row: {
           ativo: boolean
