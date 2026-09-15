@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -87,6 +88,7 @@ export default function TelegramIntegracao() {
   const [acao, setAcao] = useState<string | null>(null);
   const [linkDialog, setLinkDialog] = useState<{ nome: string; link: string } | null>(null);
   const [grupoDialog, setGrupoDialog] = useState<{ id: string; name: string; unidade: string } | null>(null);
+  const [convites, setConvites] = useState<{ enviados: number; pendentes: number; falhas: number } | null>(null);
 
   const status = health?.status ?? 'nao_configurado';
   const conectado = status === 'conectado';
@@ -192,6 +194,53 @@ export default function TelegramIntegracao() {
     toast.success('Link copiado.');
   };
 
+  const carregarConvites = useCallback(async () => {
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      const { data: res } = await supabase.functions.invoke('telegram-convites-whatsapp', {
+        body: { action: 'status' },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      if (res) setConvites({ enviados: res.enviados ?? 0, pendentes: res.pendentes ?? 0, falhas: res.falhas ?? 0 });
+    } catch {
+      /* silencioso */
+    }
+  }, []);
+
+  useEffect(() => {
+    carregarConvites();
+  }, [carregarConvites]);
+
+  useEffect(() => {
+    if (!convites?.pendentes) return;
+    const t = setInterval(carregarConvites, 20000);
+    return () => clearInterval(t);
+  }, [convites?.pendentes, carregarConvites]);
+
+  const enviarLinksWhatsApp = () => run('convites', async () => {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    const { data: res, error } = await supabase.functions.invoke('telegram-convites-whatsapp', {
+      body: { action: 'enfileirar' },
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    if (error) throw error;
+    toast.success(`${res?.enfileirados ?? 0} mensagens na fila. Envio a cada 45 segundos.`);
+    await carregarConvites();
+  });
+
+  const cancelarConvites = () => run('convites-cancelar', async () => {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    await supabase.functions.invoke('telegram-convites-whatsapp', {
+      body: { action: 'cancelar' },
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    toast.success('Fila cancelada.');
+    await carregarConvites();
+  });
+
   return (
     <Layout>
       <div className="mx-auto w-full max-w-5xl p-4 md:p-8 space-y-6">
@@ -296,6 +345,51 @@ export default function TelegramIntegracao() {
 
           {/* ---------------- USUÁRIOS ---------------- */}
           <TabsContent value="usuarios" className="space-y-4">
+            <Card className="border-border/60 shadow-none">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-medium">Envio dos links por WhatsApp</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-muted-foreground">
+                <p>
+                  Envia o link exclusivo de conexão para cada colaborador ainda não conectado que tenha
+                  telefone cadastrado, pelo WhatsApp da Manu, com intervalo de 45 segundos entre as mensagens.
+                </p>
+                {convites && (
+                  <p className="text-foreground">
+                    <span className="font-medium text-emerald-600 dark:text-emerald-400">{convites.enviados} enviadas</span>
+                    {' · '}
+                    <span className="font-medium text-amber-600 dark:text-amber-400">{convites.pendentes} na fila</span>
+                    {convites.falhas > 0 && (
+                      <>
+                        {' · '}
+                        <span className="font-medium text-destructive">{convites.falhas} falharam</span>
+                      </>
+                    )}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    disabled={!conectado || acao === 'convites'}
+                    onClick={enviarLinksWhatsApp}
+                  >
+                    {acao === 'convites'
+                      ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      : <Send className="mr-1.5 h-3.5 w-3.5" />}
+                    Enviar links por WhatsApp
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={carregarConvites}>
+                    <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Atualizar
+                  </Button>
+                  {!!convites?.pendentes && (
+                    <Button size="sm" variant="ghost" onClick={cancelarConvites}>
+                      Cancelar fila
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="relative max-w-sm">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input

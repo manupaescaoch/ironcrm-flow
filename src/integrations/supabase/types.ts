@@ -4263,6 +4263,48 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_convites_whatsapp: {
+        Row: {
+          created_at: string
+          enviar_em: string
+          erro: string | null
+          id: string
+          link: string
+          nome: string
+          sent_at: string | null
+          status: string
+          telefone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enviar_em?: string
+          erro?: string | null
+          id?: string
+          link: string
+          nome: string
+          sent_at?: string | null
+          status?: string
+          telefone: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enviar_em?: string
+          erro?: string | null
+          id?: string
+          link?: string
+          nome?: string
+          sent_at?: string | null
+          status?: string
+          telefone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       telegram_detected_chats: {
         Row: {
           chat_type: string | null
