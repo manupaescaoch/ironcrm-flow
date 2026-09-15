@@ -1,7 +1,6 @@
-// Núcleo do envio de contas a pagar para o grupo financeiro no WhatsApp.
-// Usa exclusivamente o canal COMERCIAL (Z-API) já configurado em secrets.
-// Nunca expõe token/client-token em retornos, logs ou mensagens.
-import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, logEnvio, sendTextIdempotent } from './zapi.ts';
+// Núcleo do envio de contas a pagar para o grupo financeiro no Telegram.
+// O token do bot é lido apenas no servidor (helpers de _shared/telegram.ts).
+import { sendTelegramGroupText, TelegramGrupoUnidade } from './telegram.ts';
 import { montarMensagemConta } from './contasPagarMensagem.ts';
 
 export type TipoEnvio = 'CADASTRO' | 'VENCIMENTO';
@@ -16,38 +15,36 @@ export interface ResultadoEnvio {
   message_id?: string | null;
 }
 
-/** ID do grupo financeiro: config da unidade → qualquer config preenchida → secret global. */
+/**
+ * Grupo do Telegram de contas a pagar: grupo da unidade (se existir)
+ * ou o grupo geral (unidade_id nulo).
+ */
 export async function resolverGrupoContasPagar(
   supabase: any,
-  unidadeId: string,
-): Promise<{ id: string | null; nome: string | null }> {
-  const { data: cfg } = await supabase
-    .from('unidade_whatsapp_config')
-    .select('grupo_contas_pagar_id, grupo_contas_pagar_nome')
-    .eq('unidade_id', unidadeId)
-    .maybeSingle();
+  unidadeId: string | null,
+): Promise<TelegramGrupoUnidade | null> {
+  const { data } = await supabase
+    .from('telegram_groups')
+    .select('id, group_type, telegram_chat_id, telegram_title, unidade_id')
+    .eq('group_type', 'contas_pagar')
+    .eq('status', 'conectado')
+    .not('telegram_chat_id', 'is', null);
 
-  if (cfg?.grupo_contas_pagar_id) {
-    return { id: cfg.grupo_contas_pagar_id, nome: cfg.grupo_contas_pagar_nome ?? null };
-  }
+  if (!data || data.length === 0) return null;
 
-  const { data: qualquer } = await supabase
-    .from('unidade_whatsapp_config')
-    .select('grupo_contas_pagar_id, grupo_contas_pagar_nome')
-    .not('grupo_contas_pagar_id', 'is', null)
-    .limit(1)
-    .maybeSingle();
+  const escolhido =
+    data.find((g: any) => unidadeId && g.unidade_id === unidadeId) ??
+    data.find((g: any) => g.unidade_id === null) ??
+    null;
 
-  if (qualquer?.grupo_contas_pagar_id) {
-    return { id: qualquer.grupo_contas_pagar_id, nome: qualquer.grupo_contas_pagar_nome ?? null };
-  }
+  if (!escolhido) return null;
 
-  const secret = Deno.env.get('WHATSAPP_GRUPO_CONTAS_PAGAR');
-  return { id: secret || null, nome: null };
-}
-
-export function normalizeGrupoId(id: string): string {
-  return String(id).replace(/@g\.us$/i, '').trim();
+  return {
+    id: escolhido.id,
+    group_type: 'contas_pagar' as any,
+    telegram_chat_id: Number(escolhido.telegram_chat_id),
+    telegram_title: escolhido.telegram_title ?? null,
+  };
 }
 
 async function marcarFalha(supabase: any, envioId: string, tentativas: number, erro: string) {
@@ -102,36 +99,14 @@ export async function processarEnvio(
   const envio = Array.isArray(reserva) ? reserva[0] : reserva;
   if (!envio?.id) return { ok: false, skipped: 'envio_ja_processado' };
 
-  // 3. Credenciais e grupo
-  const creds = getZapiCreds('comercial');
-  if (!creds) {
-    await marcarFalha(supabase, envio.id, envio.tentativas, 'Integração Z-API Comercial não configurada');
-    return { ok: false, erro: 'Integração Z-API Comercial não configurada' };
-  }
-
+  // 3. Grupo do Telegram
   const grupo = await resolverGrupoContasPagar(supabase, conta.unidade_id);
-  if (!grupo.id) {
-    await marcarFalha(supabase, envio.id, envio.tentativas, 'Grupo de contas a pagar não configurado');
-    return { ok: false, erro: 'Grupo de contas a pagar não configurado' };
+  if (!grupo) {
+    await marcarFalha(supabase, envio.id, envio.tentativas, 'Grupo de contas a pagar no Telegram não configurado');
+    return { ok: false, erro: 'Grupo de contas a pagar no Telegram não configurado' };
   }
 
-  const destino = normalizeGrupoId(grupo.id);
-
-  const status = await checkZapiStatus(creds);
-  if (!status.connected) {
-    await marcarFalha(supabase, envio.id, envio.tentativas, 'Integração Z-API Comercial desconectada');
-    await logEnvio(supabase, {
-      funcao: 'contas-pagar',
-      destino,
-      tipo_destino: 'grupo',
-      unidade_id: conta.unidade_id,
-      sucesso: false,
-      canal: 'comercial',
-      status_envio: 'falhou',
-      erro_msg: 'Integração Z-API Comercial desconectada',
-    });
-    return { ok: false, erro: 'Integração Z-API Comercial desconectada' };
-  }
+  const destino = String(grupo.telegram_chat_id);
 
   // 4. Nome da unidade (sempre dinâmico)
   const { data: unidade } = await supabase
@@ -143,29 +118,19 @@ export async function processarEnvio(
   const mensagem = montarMensagemConta(conta, unidade?.nome ?? '');
 
   // 5. Envio
-  const chave = buildIdempotencyKey(['contas-pagar', contaId, tipo, destino]);
-  const resp = await sendTextIdempotent(supabase, creds, destino, mensagem, { chave, funcao: `contas-pagar-${tipo.toLowerCase()}` });
-  if (resp.skipped) return { ok: false, skipped: 'duplicidade_bloqueada' };
-  const messageId = resp.body?.messageId ?? resp.body?.id ?? null;
-
-  await logEnvio(supabase, {
-    funcao: `contas-pagar-${tipo.toLowerCase()}`,
-    destino,
-    tipo_destino: 'grupo',
-    unidade_id: conta.unidade_id,
-    sucesso: resp.ok,
-    canal: 'comercial',
-    zapi_status_code: resp.status,
-    status_envio: resp.ok ? 'enviado' : 'falhou',
-    erro_msg: resp.ok ? null : `HTTP ${resp.status}`,
-    resposta_completa: resp.body,
-  });
+  const resp = await sendTelegramGroupText(
+    supabase,
+    grupo,
+    mensagem,
+    `contas_pagar_${tipo.toLowerCase()}`,
+  );
+  const messageId = resp.message_id ?? null;
 
   if (!resp.ok) {
-    const erro = `Z-API retornou ${resp.status}${resp.body?.error ? `: ${resp.body.error}` : ''}`;
+    const erro = `Telegram: ${resp.error ?? 'falha no envio'}`;
     await supabase
       .from('contas_pagar_envios')
-      .update({ instancia_id: creds.instanceId, grupo_destino: destino, mensagem_enviada: mensagem })
+      .update({ grupo_destino: destino, mensagem_enviada: mensagem })
       .eq('id', envio.id);
     await marcarFalha(supabase, envio.id, envio.tentativas, erro);
     return { ok: false, erro };
@@ -175,7 +140,6 @@ export async function processarEnvio(
     .from('contas_pagar_envios')
     .update({
       status: 'enviado',
-      instancia_id: creds.instanceId,
       grupo_destino: destino,
       zapi_message_id: messageId ? String(messageId) : null,
       mensagem_enviada: mensagem,
@@ -187,8 +151,8 @@ export async function processarEnvio(
   await supabase.from('contas_pagar_historico').insert({
     conta_id: contaId,
     acao: 'edicao',
-    campo: 'whatsapp',
-    valor_novo: `Mensagem de ${tipo === 'CADASTRO' ? 'cadastro' : 'vencimento'} enviada ao grupo`,
+    campo: 'telegram',
+    valor_novo: `Mensagem de ${tipo === 'CADASTRO' ? 'cadastro' : 'vencimento'} enviada ao grupo do Telegram`,
     user_nome: 'SISTEMA',
   });
 
