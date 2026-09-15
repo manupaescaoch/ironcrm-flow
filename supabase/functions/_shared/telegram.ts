@@ -108,7 +108,7 @@ export interface TelegramGrupoUnidade {
  * Resolve o grupo conectado da unidade seguindo a ordem de prioridade informada.
  */
 export async function resolveGrupoUnidade(
-  admin: SupabaseClient,
+  admin: any,
   unidadeId: string | null,
   prioridade: TelegramGroupType[],
 ): Promise<TelegramGrupoUnidade | null> {
@@ -136,7 +136,7 @@ export async function resolveGrupoUnidade(
 
 /** Descobre o unidade_id a partir do nome (ex.: "MADALENA" → EVO MADALENA). */
 export async function resolveUnidadeId(
-  admin: SupabaseClient,
+  admin: any,
   nome: string | null | undefined,
 ): Promise<string | null> {
   const termo = (nome ?? '').trim();
@@ -153,7 +153,7 @@ export async function resolveUnidadeId(
  * Envia texto ao grupo, com fallback sem Markdown se o parser do Telegram falhar.
  */
 export async function sendTelegramGroupText(
-  admin: SupabaseClient,
+  admin: any,
   grupo: TelegramGrupoUnidade,
   text: string,
   messageType: string,
