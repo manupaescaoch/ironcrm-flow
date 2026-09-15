@@ -393,6 +393,32 @@ Deno.serve(async (req) => {
           `👤 *Responsável:* ${resp.nome}`;
       }
 
+      // Caminho Telegram (encerramentos/relatórios de quem já conectou ao bot)
+      if (tgAlvo) {
+        const tgResult = await sendTelegramUserText(
+          supabase,
+          tgAlvo,
+          message,
+          `cronograma_${atividade.tipo_atividade || 'atividade'}`,
+        );
+        if (tgResult.ok) {
+          await supabase.from('cronograma_envios').insert({
+            atividade_id: atividade.id,
+            formulario_id: atividade.formulario_id || null,
+            funcionario_id: funcionarioId,
+            unidade_id: atividade.unidade_id,
+            status: 'enviado',
+            enviado_em: new Date().toISOString(),
+          });
+          sentCount++;
+          console.log(`[send-cronograma] ✅ Telegram enviado para ${resp.nome}`);
+        } else {
+          console.error(`[send-cronograma] ❌ Telegram falhou para ${resp.nome}: ${tgResult.error}`);
+          errors.push(`telegram: ${resp.nome} - ${atividade.titulo} - ${tgResult.error || 'sem detalhe'}`);
+        }
+        continue;
+      }
+
       console.log(`[send-cronograma] Enviando para ${resp.nome} (${normalizedPhone}): ${atividade.titulo}`);
 
       // Se Z-API está offline, registra erro imediatamente sem tentar enviar
