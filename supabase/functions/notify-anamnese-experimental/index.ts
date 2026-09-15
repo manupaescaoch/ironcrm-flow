@@ -129,8 +129,8 @@ ${fmt(a.observacoes)}
 ———
 _Anamnese preenchida pela recepção no momento da chegada do lead._`;
 
-    // Grupo da unidade no Telegram (comercial; fallback coordenadores/gerência)
-    const grupo = await resolveGrupoUnidade(supabase, a.unidade_id, ['comercial', 'coordenadores', 'gerencia']);
+    // Grupo da unidade no Telegram (anamnese; fallback comercial/coordenadores/gerência)
+    const grupo = await resolveGrupoUnidade(supabase, a.unidade_id, ['anamnese', 'comercial', 'coordenadores', 'gerencia']);
 
     if (!grupo) {
       console.log('[anamnese] unidade sem grupo do Telegram conectado — pulando envio.', {
