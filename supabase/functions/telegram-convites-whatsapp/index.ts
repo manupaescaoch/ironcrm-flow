@@ -304,7 +304,7 @@ Deno.serve(async (req) => {
 
             await admin.from('telegram_message_logs').insert({
               recipient_type: 'usuario',
-              recipient_id: item.user_id,
+              recipient_id: item.user_id ?? item.funcionario_id ?? null,
               telegram_chat_id: null,
               message_type: 'convite_whatsapp',
               status: r.ok ? 'enviado' : 'erro',
