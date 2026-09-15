@@ -169,7 +169,7 @@ export async function sendTelegramGroupText(
   if (!r.ok) {
     r = await sendTelegramMessage({
       chat_id: grupo.telegram_chat_id,
-      text: text.replace(/\*/g, ''),
+      text: text.replace(/\*/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
       recipient_type: 'grupo',
       recipient_id: grupo.id,
       message_type: messageType,
