@@ -174,6 +174,92 @@ Deno.serve(async (req) => {
         return json({ ok: true, enfileirados: linhas.length, intervalo_segundos: INTERVALO_MS / 1000 });
       }
 
+      // Fila para a equipe do cronograma (treinadores, estagiários líderes,
+      // gerentes de unidade e recepção) que não tem conta no CRM.
+      case 'enfileirar_funcionarios': {
+        const bot = await telegramApi('getMe', {});
+        if (!bot.ok) return json({ error: 'bot_indisponivel', details: bot.description }, 502);
+
+        const cargos: string[] = Array.isArray(body?.cargos) && body.cargos.length
+          ? body.cargos.map((c: unknown) => String(c))
+          : ['treinador', 'estagiario_lider', 'coordenador_unidade', 'recepcao'];
+
+        const [{ data: funcs }, { data: jaFunc }, { data: perfis }, { data: vinculos }] = await Promise.all([
+          admin.from('cronograma_funcionarios')
+            .select('id, nome, telefone, cargo, ativo')
+            .eq('ativo', true)
+            .in('cargo', cargos),
+          admin.from('telegram_funcionarios').select('funcionario_id, telefone, status'),
+          admin.from('user_profiles').select('user_id, telefone'),
+          admin.from('telegram_users').select('user_id, telegram_user_id'),
+        ]);
+
+        const ultimos = (t: string | null | undefined) => {
+          const d = (t ?? '').replace(/\D/g, '');
+          return d.length >= 10 ? d.slice(-11) : null;
+        };
+
+        // já conectados: funcionários vinculados + telefones de usuários do CRM conectados
+        const conectadosFunc = new Set(
+          (jaFunc ?? []).filter((f: any) => f.status === 'conectado').map((f: any) => f.funcionario_id),
+        );
+        const userConectado = new Set(
+          (vinculos ?? []).filter((v: any) => v.telegram_user_id).map((v: any) => v.user_id),
+        );
+        const telefonesConectados = new Set(
+          (perfis ?? [])
+            .filter((p: any) => userConectado.has(p.user_id))
+            .map((p: any) => ultimos(p.telefone))
+            .filter(Boolean) as string[],
+        );
+
+        await admin.from('telegram_convites_whatsapp').delete().in('status', ['pendente', 'enviando']);
+
+        const vistos = new Set<string>();
+        const agora = Date.now();
+        const linhas: any[] = [];
+        let i = 0;
+
+        for (const f of funcs ?? []) {
+          const tel = normalizaTelefone(f.telefone ?? '');
+          const chave = ultimos(f.telefone);
+          if (!tel || !chave) continue;
+          if (conectadosFunc.has(f.id) || telefonesConectados.has(chave) || vistos.has(chave)) continue;
+          vistos.add(chave);
+
+          const token = randomToken();
+          const { error: tokErr } = await admin.from('telegram_connection_tokens').insert({
+            funcionario_id: f.id,
+            token,
+            expires_at: new Date(agora + 48 * 60 * 60 * 1000).toISOString(),
+          });
+          if (tokErr) {
+            console.error('[telegram-convites] token funcionario', f.id, tokErr.message);
+            continue;
+          }
+          await admin.from('telegram_funcionarios').upsert(
+            { funcionario_id: f.id, nome: f.nome, telefone: f.telefone, status: 'nao_conectado' },
+            { onConflict: 'funcionario_id', ignoreDuplicates: true },
+          );
+          linhas.push({
+            funcionario_id: f.id,
+            nome: f.nome ?? 'Colaborador',
+            telefone: tel,
+            link: `https://t.me/${bot.result.username}?start=${token}`,
+            enviar_em: new Date(agora + i * INTERVALO_MS).toISOString(),
+          });
+          i++;
+        }
+
+        if (linhas.length) {
+          const { error } = await admin.from('telegram_convites_whatsapp').insert(linhas);
+          if (error) return json({ error: error.message }, 400);
+          await dispararProcessamento(0);
+        }
+
+        return json({ ok: true, enfileirados: linhas.length, intervalo_segundos: INTERVALO_MS / 1000 });
+      }
+
       // Envia a próxima mensagem devida e reagenda a seguinte em 45s
       case 'processar': {
         const creds = getZapiCreds('operacional');
