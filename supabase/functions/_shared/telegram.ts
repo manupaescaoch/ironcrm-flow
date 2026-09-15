@@ -229,6 +229,34 @@ export async function resolveTelegramUsuarioPorTelefone(
     const row = conectados.find((c: any) => c.user_id === userId);
     if (row) return { user_id: userId, telegram_user_id: Number(row.telegram_user_id) };
   }
+
+  return await resolveTelegramFuncionarioPorTelefone(admin, telefone);
+}
+
+/**
+ * Fallback: funcionários do cronograma (treinadores, estagiários líderes) que não
+ * têm conta no CRM mas conectaram o bot pelo link pessoal.
+ */
+export async function resolveTelegramFuncionarioPorTelefone(
+  admin: any,
+  telefone: string | null | undefined,
+): Promise<TelegramDestinoUsuario | null> {
+  const alvos = telefoneVariantes(telefone);
+  if (alvos.length === 0) return null;
+
+  const { data } = await admin
+    .from('telegram_funcionarios')
+    .select('funcionario_id, telefone, telegram_user_id')
+    .eq('status', 'conectado')
+    .not('telegram_user_id', 'is', null);
+  if (!data || data.length === 0) return null;
+
+  for (const row of data) {
+    const variantes = telefoneVariantes(row.telefone);
+    if (variantes.some((v) => alvos.includes(v))) {
+      return { user_id: row.funcionario_id, telegram_user_id: Number(row.telegram_user_id) };
+    }
+  }
   return null;
 }
 
