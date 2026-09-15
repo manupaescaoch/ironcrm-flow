@@ -1,9 +1,15 @@
 // Shared logic for notify-formulario-encerramento and submit-formulario-publico.
 // All template rendering, sanitization, idempotency, rate-limit, group resolution
-// and Z-API dispatch lives here so the two entrypoints share one trusted path.
+// and Telegram dispatch lives here so the two entrypoints share one trusted path.
 
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { buildIdempotencyKey, getZapiCreds, sendTextIdempotent } from './zapi.ts';
+import {
+  resolveGrupoUnidade,
+  resolveUnidadeId,
+  sendTelegramGroupText,
+  type TelegramGroupType,
+  type TelegramGrupoUnidade,
+} from './telegram.ts';
 
 export const TIPOS_FORMULARIO = [
   'estagiario_lider',
