@@ -14,13 +14,15 @@ const RESPONSAVEIS: Record<string, { nome: string; phone: string }> = {
   'BOA VIAGEM': { nome: 'Marcelo Santana', phone: '5581994145218' },
 };
 
-// Grupo da unidade no WhatsApp — recebe a mesma resposta (sem ação sugerida).
-// Z-API envia para grupo pelo mesmo endpoint de texto, trocando o "phone" pelo
-// ID do grupo no formato `<id>-group` (o `@g.us` do link não é aceito).
-const GRUPOS: Record<string, string> = {
-  MADALENA: '120363425937067624-group',
-  'BOA VIAGEM': '120363405337702455-group',
-  SETUBAL: '120363412499649887-group',
+// A resposta do NPS é enviada ao grupo da unidade no TELEGRAM (não mais no WhatsApp).
+// Prioridade: grupo de coordenadores da unidade; se não existir, grupo de gerência.
+const PRIORIDADE_GRUPOS = ['coordenadores', 'gerencia'] as const;
+
+// Fallback de unidade_id caso o nome informado no formulário não bata com a tabela.
+const UNIDADE_ID_FALLBACK: Record<string, string> = {
+  MADALENA: 'b4df0ba8-7fa8-4f28-8924-d5ce6a9b50c6',
+  'BOA VIAGEM': 'f3d048da-31d7-48df-b1f1-7e2a809c9a9a',
+  SETUBAL: '00000000-0000-0000-0000-000000000000',
 };
 
 function findCoordenador(unidadeNome: string) {
@@ -39,12 +41,11 @@ function normalizeUnidade(s: string): string {
     .trim();
 }
 
-function findGrupo(unidadeNome: string): string | null {
+function unidadeIdFallback(unidadeNome: string): string | null {
   const key = normalizeUnidade(unidadeNome);
-  for (const [k, v] of Object.entries(GRUPOS)) {
-    if (key.includes(normalizeUnidade(k))) return v;
+  for (const [k, v] of Object.entries(UNIDADE_ID_FALLBACK)) {
+    if (key.includes(k)) return v;
   }
-
   return null;
 }
 
