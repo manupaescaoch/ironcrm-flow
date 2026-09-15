@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -87,6 +88,7 @@ export default function TelegramIntegracao() {
   const [acao, setAcao] = useState<string | null>(null);
   const [linkDialog, setLinkDialog] = useState<{ nome: string; link: string } | null>(null);
   const [grupoDialog, setGrupoDialog] = useState<{ id: string; name: string; unidade: string } | null>(null);
+  const [convites, setConvites] = useState<{ enviados: number; pendentes: number; falhas: number } | null>(null);
 
   const status = health?.status ?? 'nao_configurado';
   const conectado = status === 'conectado';
