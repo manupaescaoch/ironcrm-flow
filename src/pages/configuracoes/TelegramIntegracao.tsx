@@ -402,62 +402,69 @@ export default function TelegramIntegracao() {
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              {groups.map((g) => {
-                const ativo = g.status === 'conectado';
-                return (
-                  <Card key={g.id} className="border-border/60 shadow-none">
-                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                      <CardTitle className="text-base font-medium">{g.name}</CardTitle>
-                      <span className="inline-flex items-center gap-1.5 text-xs">
-                        <StatusDot tone={ativo ? 'verde' : 'amarelo'} />
-                        {ativo ? 'Conectado' : 'Não conectado'}
-                      </span>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="min-h-[38px] text-sm">
-                        <p className="font-medium">{g.telegram_title ?? '—'}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {g.connected_at ? `Desde ${new Date(g.connected_at).toLocaleDateString('pt-BR')}` : 'Aguardando conexão'}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        <Button
-                          size="sm"
-                          variant={ativo ? 'outline' : 'default'}
-                          disabled={!conectado}
-                          onClick={() => setGrupoDialog({ group_type: g.group_type, name: g.name })}
-                        >
-                          {ativo ? 'Trocar grupo' : 'Conectar grupo'}
-                        </Button>
-                        {ativo && (
-                          <>
+            {gruposPorUnidade.map((secao) => (
+              <section key={secao.nome} className="space-y-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                  {secao.nome}
+                </h2>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  {secao.grupos.map((g) => {
+                    const ativo = g.status === 'conectado';
+                    return (
+                      <Card key={g.id} className="border-border/60 shadow-none">
+                        <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                          <CardTitle className="text-base font-medium">{g.name}</CardTitle>
+                          <span className="inline-flex items-center gap-1.5 text-xs">
+                            <StatusDot tone={ativo ? 'verde' : 'amarelo'} />
+                            {ativo ? 'Conectado' : 'Não conectado'}
+                          </span>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="min-h-[38px] text-sm">
+                            <p className="font-medium">{g.telegram_title ?? '—'}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {g.connected_at ? `Desde ${new Date(g.connected_at).toLocaleDateString('pt-BR')}` : 'Aguardando conexão'}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
                             <Button
                               size="sm"
-                              variant="ghost"
-                              disabled={acao === `grupo-teste-${g.group_type}`}
-                              onClick={() => testarGrupo(g.group_type, g.name)}
+                              variant={ativo ? 'outline' : 'default'}
+                              disabled={!conectado}
+                              onClick={() => setGrupoDialog({ id: g.id, name: g.name, unidade: secao.nome })}
                             >
-                              {acao === `grupo-teste-${g.group_type}`
-                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Testar'}
+                              {ativo ? 'Trocar grupo' : 'Conectar grupo'}
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={acao === `grupo-off-${g.group_type}`}
-                              onClick={() => desconectarGrupo(g.group_type, g.name)}
-                            >
-                              {acao === `grupo-off-${g.group_type}`
-                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Remover'}
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                            {ativo && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={acao === `grupo-teste-${g.id}`}
+                                  onClick={() => testarGrupo(g.id, g.name)}
+                                >
+                                  {acao === `grupo-teste-${g.id}`
+                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Testar'}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={acao === `grupo-off-${g.id}`}
+                                  onClick={() => desconectarGrupo(g.id, g.name)}
+                                >
+                                  {acao === `grupo-off-${g.id}`
+                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Remover'}
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </TabsContent>
         </Tabs>
       </div>
