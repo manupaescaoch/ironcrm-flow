@@ -1,11 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import {
-  getZapiCreds,
-  checkZapiStatus,
-  buildIdempotencyKey,
-  sendTextIdempotent,
-  logEnvio,
-} from '../_shared/zapi.ts';
+import { logEnvio } from '../_shared/zapi.ts';
+import { sendTelegramMessage } from '../_shared/telegram.ts';
 import { authorizeCronOrJwt, CRON_CORS_HEADERS } from '../_shared/cronAuth.ts';
 
 const corsHeaders = CRON_CORS_HEADERS;
