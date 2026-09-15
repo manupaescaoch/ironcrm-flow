@@ -492,7 +492,7 @@ export default function TelegramIntegracao() {
       <Dialog open={!!grupoDialog} onOpenChange={(o) => !o && setGrupoDialog(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Conectar grupo · {grupoDialog?.name}</DialogTitle>
+            <DialogTitle>Conectar grupo · {grupoDialog?.name} ({grupoDialog?.unidade})</DialogTitle>
             <DialogDescription>
               Escolha abaixo o grupo do Telegram correspondente. Se ele não aparecer, adicione o bot ao grupo e envie uma mensagem lá.
             </DialogDescription>
