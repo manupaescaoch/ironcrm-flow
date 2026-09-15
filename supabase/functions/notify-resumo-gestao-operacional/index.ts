@@ -251,15 +251,56 @@ Follow-ups atrasados: ${zs.fuAtrasados}
 ${focos.join(', ')}.`;
 
 
-    const creds = getZapiCreds('comercial');
-    if (!creds) {
-       return new Response(JSON.stringify({ error: 'ZAPI Comercial credentials missing' }), { status: 500, headers: corsHeaders });
-    }
-    const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
-    const chave = buildIdempotencyKey(['notify-resumo-gestao-operacional', dateStr, destPhone]);
-    const resp = await sendTextIdempotent(supabase, creds, destPhone, message, { chave, funcao: 'notify-resumo-gestao-operacional' });
+    // Destino no Telegram: chat privado do usuário cujo telefone corresponde ao informado.
+    const digitos = String(destPhone).replace(/\D/g, '').slice(-11);
 
-    return new Response(JSON.stringify({ success: resp.ok || resp.skipped, status: resp.status, duplicate: resp.skipped, message }), {
+    const { data: perfis } = await supabase
+      .from('user_profiles')
+      .select('user_id, telefone');
+
+    const perfil = (perfis ?? []).find(
+      (p: any) => String(p.telefone ?? '').replace(/\D/g, '').slice(-11) === digitos,
+    );
+
+    let chatId: number | null = null;
+    if (perfil?.user_id) {
+      const { data: tg } = await supabase
+        .from('telegram_users')
+        .select('telegram_user_id')
+        .eq('user_id', perfil.user_id)
+        .eq('status', 'conectado')
+        .maybeSingle();
+      if (tg?.telegram_user_id) chatId = Number(tg.telegram_user_id);
+    }
+
+    if (!chatId) {
+      return new Response(
+        JSON.stringify({ error: 'Destinatário não possui Telegram conectado', phone: destPhone }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    let resp = await sendTelegramMessage({
+      chat_id: chatId,
+      text: message,
+      parse_mode: 'Markdown',
+      recipient_type: 'usuario',
+      recipient_id: perfil?.user_id ?? null,
+      message_type: 'resumo_gestao_operacional',
+    }, supabase);
+
+    if (!resp.ok) {
+      resp = await sendTelegramMessage({
+        chat_id: chatId,
+        text: message.replace(/\*/g, ''),
+        recipient_type: 'usuario',
+        recipient_id: perfil?.user_id ?? null,
+        message_type: 'resumo_gestao_operacional',
+      }, supabase);
+    }
+
+    return new Response(JSON.stringify({ success: resp.ok, error: resp.error ?? null, message_id: resp.message_id ?? null, message }), {
+      status: resp.ok ? 200 : 502,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
