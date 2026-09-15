@@ -158,3 +158,8 @@ export async function processarEnvio(
 
   return { ok: true, message_id: messageId ? String(messageId) : null };
 }
+
+/** Compatibilidade: normaliza IDs de grupo do WhatsApp (usado pelo resolvedor legado). */
+export function normalizeGrupoId(id: string): string {
+  return String(id).replace(/@g\.us$/i, '').trim();
+}

@@ -1,6 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
-import { buildIdempotencyKey, getZapiCreds, sendTextIdempotent } from '../_shared/zapi.ts';
+import { sendTelegramMessage } from '../_shared/telegram.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,7 +9,8 @@ const corsHeaders = {
 
 const ZN_ID = 'b4df0ba8-7fa8-4f28-8924-d5ce6a9b50c6';
 const ZS_ID = 'f3d048da-31d7-48df-b1f1-7e2a809c9a9a';
-const DEFAULT_DEST_PHONE = '5581996392285';
+// Destinatário do resumo: telefone do gestor (o envio é feito pelo Telegram).
+const DEFAULT_DEST_PHONE = '81996392285';
 
 function getBrasiliaDate(): Date {
   const now = new Date();
