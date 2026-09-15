@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
 import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendButtonsIdempotent, sendTextIdempotent } from '../_shared/zapi.ts';
 import { maybeSendZapiOfflineAlert } from '../_shared/zapi-alert.ts';
+import { resolveTelegramUsuarioPorTelefone, sendTelegramUserText } from '../_shared/telegram.ts';
 
 
 const corsHeaders = {
@@ -306,28 +307,40 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const lookupResult = await resolveSendPhone(creds, resp.telefone);
-      const normalizedPhone = lookupResult.phone;
       const unidadeNome = unidadeMap.get(atividade.unidade_id) || 'Unidade';
 
-      // Se o número NÃO existe no WhatsApp, registra como nao_encontrado e pula (não é retentável).
-      if (lookupResult.exists === false || !normalizedPhone) {
-        console.error(`[send-cronograma] ⚠️ Número sem WhatsApp: ${resp.nome} (${resp.telefone})`);
-        await supabase.from('whatsapp_envios_log').insert({
-          funcao: 'send-cronograma-messages',
-          destino: normalizePhone(resp.telefone),
-          tipo_destino: 'funcionario',
-          unidade_id: atividade.unidade_id,
-          sucesso: false,
-          status_envio: 'nao_encontrado',
-          erro_msg: 'Número não registrado no WhatsApp (lookup)',
-          resposta_completa: lookupResult.raw ?? null,
-          zapi_status_code: null,
-        });
-        // NÃO grava em cronograma_envios → não bloqueia futuras execuções, mas também
-        // não fica tentando eternamente porque o número simplesmente não tem WhatsApp.
-        errors.push(`Número inexistente: ${resp.nome} - ${atividade.titulo}`);
-        continue;
+      // Encerramentos e relatórios diários vão pelo Telegram quando o responsável
+      // já está conectado ao bot; senão seguem pelo WhatsApp.
+      const alvoTexto = `${atividade.titulo || ''} ${(atividade as { tipo_atividade?: string }).tipo_atividade || ''}`;
+      const isEncerramento = /encerramento|relat[oó]rio/i.test(alvoTexto);
+      const tgAlvo = isEncerramento
+        ? await resolveTelegramUsuarioPorTelefone(supabase, resp.telefone)
+        : null;
+
+      let normalizedPhone: string | null = null;
+      if (!tgAlvo) {
+        const lookupResult = await resolveSendPhone(creds, resp.telefone);
+        normalizedPhone = lookupResult.phone;
+
+        // Se o número NÃO existe no WhatsApp, registra como nao_encontrado e pula (não é retentável).
+        if (lookupResult.exists === false || !normalizedPhone) {
+          console.error(`[send-cronograma] ⚠️ Número sem WhatsApp: ${resp.nome} (${resp.telefone})`);
+          await supabase.from('whatsapp_envios_log').insert({
+            funcao: 'send-cronograma-messages',
+            destino: normalizePhone(resp.telefone),
+            tipo_destino: 'funcionario',
+            unidade_id: atividade.unidade_id,
+            sucesso: false,
+            status_envio: 'nao_encontrado',
+            erro_msg: 'Número não registrado no WhatsApp (lookup)',
+            resposta_completa: lookupResult.raw ?? null,
+            zapi_status_code: null,
+          });
+          // NÃO grava em cronograma_envios → não bloqueia futuras execuções, mas também
+          // não fica tentando eternamente porque o número simplesmente não tem WhatsApp.
+          errors.push(`Número inexistente: ${resp.nome} - ${atividade.titulo}`);
+          continue;
+        }
       }
 
       // Montar a mensagem
