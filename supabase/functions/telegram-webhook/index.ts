@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     const nowIso = new Date().toISOString();
     const { data: tokenRow } = await admin
       .from('telegram_connection_tokens')
-      .select('id, user_id, expires_at, used_at')
+      .select('id, user_id, funcionario_id, expires_at, used_at')
       .eq('token', token)
       .maybeSingle();
 
@@ -73,15 +73,43 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, invalid_token: true }), { status: 200 });
     }
 
-    const { error: upsertErr } = await admin.from('telegram_users').upsert({
-      user_id: tokenRow.user_id,
-      telegram_user_id: from.id,
-      telegram_username: from.username ?? null,
-      telegram_first_name: from.first_name ?? null,
-      telegram_last_name: from.last_name ?? null,
-      connected_at: nowIso,
-      status: 'conectado',
-    }, { onConflict: 'user_id' });
+    // Colaborador com conta no CRM → telegram_users.
+    // Funcionário do cronograma (sem conta) → telegram_funcionarios.
+    let upsertErr: { message: string } | null = null;
+    let recipientId: string = tokenRow.user_id ?? tokenRow.funcionario_id;
+
+    if (tokenRow.user_id) {
+      const { error } = await admin.from('telegram_users').upsert({
+        user_id: tokenRow.user_id,
+        telegram_user_id: from.id,
+        telegram_username: from.username ?? null,
+        telegram_first_name: from.first_name ?? null,
+        telegram_last_name: from.last_name ?? null,
+        connected_at: nowIso,
+        status: 'conectado',
+      }, { onConflict: 'user_id' });
+      upsertErr = error;
+    } else if (tokenRow.funcionario_id) {
+      const { data: func } = await admin
+        .from('cronograma_funcionarios')
+        .select('nome, telefone')
+        .eq('id', tokenRow.funcionario_id)
+        .maybeSingle();
+      const { error } = await admin.from('telegram_funcionarios').upsert({
+        funcionario_id: tokenRow.funcionario_id,
+        nome: func?.nome ?? null,
+        telefone: func?.telefone ?? null,
+        telegram_user_id: from.id,
+        telegram_username: from.username ?? null,
+        telegram_first_name: from.first_name ?? null,
+        telegram_last_name: from.last_name ?? null,
+        connected_at: nowIso,
+        status: 'conectado',
+      }, { onConflict: 'funcionario_id' });
+      upsertErr = error;
+    } else {
+      upsertErr = { message: 'token sem destino' };
+    }
 
     if (upsertErr) {
       console.error('telegram-webhook upsert erro', upsertErr);
@@ -97,9 +125,9 @@ Deno.serve(async (req) => {
 
     await sendTelegramMessage({
       chat_id: chat.id,
-      text: 'Telegram conectado com sucesso à EVO.',
+      text: 'Telegram conectado com sucesso à EVO. A partir de agora seus formulários e avisos chegam por aqui.',
       recipient_type: 'usuario',
-      recipient_id: tokenRow.user_id,
+      recipient_id: recipientId,
       message_type: 'conexao_confirmada',
     }, admin);
 
