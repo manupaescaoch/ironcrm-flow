@@ -158,6 +158,34 @@ Deno.serve(async (req) => {
         return json({ ok: true, webhook: info.ok ? { url: info.result?.url, pending: info.result?.pending_update_count } : null });
       }
 
+      // Gera (ou exporta) link de convite para cada grupo conectado
+      case 'invite_links': {
+        const { data: grupos, error } = await admin.from('telegram_groups')
+          .select('id, group_type, telegram_chat_id, telegram_title, unidade_id, unidades(nome)')
+          .eq('status', 'conectado')
+          .not('telegram_chat_id', 'is', null);
+        if (error) return json({ error: error.message }, 400);
+
+        const links: Array<Record<string, unknown>> = [];
+        for (const g of grupos ?? []) {
+          const chatId = g.telegram_chat_id as unknown as number;
+          // cria um link de convite novo (membros ilimitados, sem aprovação)
+          const r = await telegramApi('createChatInviteLink', { chat_id: chatId });
+          if (!r.ok) {
+            links.push({ group_id: g.id, group_type: g.group_type, unidade: (g as { unidades?: { nome?: string } | null }).unidades?.nome ?? null, telegram_title: g.telegram_title, error: r.description ?? 'falha' });
+            continue;
+          }
+          links.push({
+            group_id: g.id,
+            group_type: g.group_type,
+            unidade: (g as { unidades?: { nome?: string } | null }).unidades?.nome ?? null,
+            telegram_title: g.telegram_title,
+            invite_link: r.result?.invite_link ?? null,
+          });
+        }
+        return json({ ok: true, links });
+      }
+
       case 'webhook_info': {
         const info = await telegramApi('getWebhookInfo', {});
         if (!info.ok) return json({ error: 'falha_webhook', details: info.description }, 502);
