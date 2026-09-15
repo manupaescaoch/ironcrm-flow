@@ -237,6 +237,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
       unidadeId = u?.id ?? null;
     }
+    if (!unidadeId) unidadeId = unidadeIdFallback(resp.unidade_nome || '');
 
     const log: Record<string, any> = {
       resposta_id: resp.id,
