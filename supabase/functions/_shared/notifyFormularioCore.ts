@@ -629,9 +629,9 @@ export async function executeNotification(
     return { status: 200, body: { ok: true, sent: false, reason: 'duplicate', idempotent: true } };
   }
 
-  // 4. Resolve group
-  const grupoId = await resolveGrupo(supabase, ctx.tipo_formulario, ctx.unidade);
-  if (!grupoId) {
+  // 4. Resolve group (Telegram, por unidade)
+  const grupo = await resolveGrupo(supabase, ctx.tipo_formulario, ctx.unidade, ctx.unidade_id ?? null);
+  if (!grupo) {
     await supabase.from('formulario_envios_log').upsert({
       idempotency_key,
       tipo_formulario: ctx.tipo_formulario,
