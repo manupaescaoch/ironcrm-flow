@@ -32,6 +32,8 @@ export interface TelegramGroupRow {
   telegram_title: string | null;
   status: string;
   connected_at: string | null;
+  unidade_id: string | null;
+  unidade_nome: string | null;
 }
 
 export interface DetectedChat {
@@ -133,7 +135,10 @@ export function useTelegramIntegracao() {
 
       rows.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
       setUsers(rows);
-      setGroups((groupsRes.data ?? []) as TelegramGroupRow[]);
+      setGroups(((groupsRes.data ?? []) as any[]).map((g) => ({
+        ...g,
+        unidade_nome: g.unidade_id ? (unidadeNome.get(g.unidade_id) ?? null) : null,
+      })) as TelegramGroupRow[]);
       setDetected((detectedRes.data ?? []) as DetectedChat[]);
       setFalhas24h(logsRes.count ?? 0);
     } finally {

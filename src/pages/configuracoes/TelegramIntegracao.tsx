@@ -86,7 +86,7 @@ export default function TelegramIntegracao() {
   const [busca, setBusca] = useState('');
   const [acao, setAcao] = useState<string | null>(null);
   const [linkDialog, setLinkDialog] = useState<{ nome: string; link: string } | null>(null);
-  const [grupoDialog, setGrupoDialog] = useState<{ group_type: string; name: string } | null>(null);
+  const [grupoDialog, setGrupoDialog] = useState<{ id: string; name: string; unidade: string } | null>(null);
 
   const status = health?.status ?? 'nao_configurado';
   const conectado = status === 'conectado';
@@ -152,22 +152,37 @@ export default function TelegramIntegracao() {
     await loadData();
   });
 
+  const gruposPorUnidade = useMemo(() => {
+    const mapa = new Map<string, { nome: string; grupos: typeof groups }>();
+    for (const g of groups) {
+      const key = g.unidade_id ?? 'sem-unidade';
+      const nome = g.unidade_nome ?? 'Geral';
+      if (!mapa.has(key)) mapa.set(key, { nome, grupos: [] });
+      mapa.get(key)!.grupos.push(g);
+    }
+    const ordem = ['coordenadores', 'comercial', 'gerencia'];
+    for (const v of mapa.values()) {
+      v.grupos.sort((a, b) => ordem.indexOf(a.group_type) - ordem.indexOf(b.group_type));
+    }
+    return [...mapa.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  }, [groups]);
+
   const vincularGrupo = (chatId: number) => run(`grupo-${chatId}`, async () => {
     if (!grupoDialog) return;
-    await callAdmin({ action: 'assign_group', group_type: grupoDialog.group_type, telegram_chat_id: chatId });
-    toast.success(`Grupo ${grupoDialog.name} conectado.`);
+    await callAdmin({ action: 'assign_group', group_id: grupoDialog.id, telegram_chat_id: chatId });
+    toast.success(`Grupo ${grupoDialog.name} (${grupoDialog.unidade}) conectado.`);
     setGrupoDialog(null);
     await loadData();
   });
 
-  const desconectarGrupo = (groupType: string, name: string) => run(`grupo-off-${groupType}`, async () => {
-    await callAdmin({ action: 'disconnect_group', group_type: groupType });
+  const desconectarGrupo = (id: string, name: string) => run(`grupo-off-${id}`, async () => {
+    await callAdmin({ action: 'disconnect_group', group_id: id });
     toast.success(`Grupo ${name} desconectado.`);
     await loadData();
   });
 
-  const testarGrupo = (groupType: string, name: string) => run(`grupo-teste-${groupType}`, async () => {
-    await callAdmin({ action: 'test_integration', group_type: groupType });
+  const testarGrupo = (id: string, name: string) => run(`grupo-teste-${id}`, async () => {
+    await callAdmin({ action: 'test_integration', group_id: id });
     toast.success(`Mensagem de teste enviada ao grupo ${name}.`);
     await loadData();
   });
@@ -387,62 +402,69 @@ export default function TelegramIntegracao() {
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              {groups.map((g) => {
-                const ativo = g.status === 'conectado';
-                return (
-                  <Card key={g.id} className="border-border/60 shadow-none">
-                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                      <CardTitle className="text-base font-medium">{g.name}</CardTitle>
-                      <span className="inline-flex items-center gap-1.5 text-xs">
-                        <StatusDot tone={ativo ? 'verde' : 'amarelo'} />
-                        {ativo ? 'Conectado' : 'Não conectado'}
-                      </span>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="min-h-[38px] text-sm">
-                        <p className="font-medium">{g.telegram_title ?? '—'}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {g.connected_at ? `Desde ${new Date(g.connected_at).toLocaleDateString('pt-BR')}` : 'Aguardando conexão'}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        <Button
-                          size="sm"
-                          variant={ativo ? 'outline' : 'default'}
-                          disabled={!conectado}
-                          onClick={() => setGrupoDialog({ group_type: g.group_type, name: g.name })}
-                        >
-                          {ativo ? 'Trocar grupo' : 'Conectar grupo'}
-                        </Button>
-                        {ativo && (
-                          <>
+            {gruposPorUnidade.map((secao) => (
+              <section key={secao.nome} className="space-y-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                  {secao.nome}
+                </h2>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  {secao.grupos.map((g) => {
+                    const ativo = g.status === 'conectado';
+                    return (
+                      <Card key={g.id} className="border-border/60 shadow-none">
+                        <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                          <CardTitle className="text-base font-medium">{g.name}</CardTitle>
+                          <span className="inline-flex items-center gap-1.5 text-xs">
+                            <StatusDot tone={ativo ? 'verde' : 'amarelo'} />
+                            {ativo ? 'Conectado' : 'Não conectado'}
+                          </span>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="min-h-[38px] text-sm">
+                            <p className="font-medium">{g.telegram_title ?? '—'}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {g.connected_at ? `Desde ${new Date(g.connected_at).toLocaleDateString('pt-BR')}` : 'Aguardando conexão'}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
                             <Button
                               size="sm"
-                              variant="ghost"
-                              disabled={acao === `grupo-teste-${g.group_type}`}
-                              onClick={() => testarGrupo(g.group_type, g.name)}
+                              variant={ativo ? 'outline' : 'default'}
+                              disabled={!conectado}
+                              onClick={() => setGrupoDialog({ id: g.id, name: g.name, unidade: secao.nome })}
                             >
-                              {acao === `grupo-teste-${g.group_type}`
-                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Testar'}
+                              {ativo ? 'Trocar grupo' : 'Conectar grupo'}
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={acao === `grupo-off-${g.group_type}`}
-                              onClick={() => desconectarGrupo(g.group_type, g.name)}
-                            >
-                              {acao === `grupo-off-${g.group_type}`
-                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Remover'}
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                            {ativo && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={acao === `grupo-teste-${g.id}`}
+                                  onClick={() => testarGrupo(g.id, g.name)}
+                                >
+                                  {acao === `grupo-teste-${g.id}`
+                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Testar'}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={acao === `grupo-off-${g.id}`}
+                                  onClick={() => desconectarGrupo(g.id, g.name)}
+                                >
+                                  {acao === `grupo-off-${g.id}`
+                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Remover'}
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </TabsContent>
         </Tabs>
       </div>
@@ -470,7 +492,7 @@ export default function TelegramIntegracao() {
       <Dialog open={!!grupoDialog} onOpenChange={(o) => !o && setGrupoDialog(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Conectar grupo · {grupoDialog?.name}</DialogTitle>
+            <DialogTitle>Conectar grupo · {grupoDialog?.name} ({grupoDialog?.unidade})</DialogTitle>
             <DialogDescription>
               Escolha abaixo o grupo do Telegram correspondente. Se ele não aparecer, adicione o bot ao grupo e envie uma mensagem lá.
             </DialogDescription>

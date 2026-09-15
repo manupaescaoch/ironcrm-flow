@@ -4300,6 +4300,7 @@ export type Database = {
           status: string
           telegram_chat_id: number | null
           telegram_title: string | null
+          unidade_id: string | null
           updated_at: string
         }
         Insert: {
@@ -4311,6 +4312,7 @@ export type Database = {
           status?: string
           telegram_chat_id?: number | null
           telegram_title?: string | null
+          unidade_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -4322,9 +4324,18 @@ export type Database = {
           status?: string
           telegram_chat_id?: number | null
           telegram_title?: string | null
+          unidade_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "telegram_groups_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       telegram_message_logs: {
         Row: {

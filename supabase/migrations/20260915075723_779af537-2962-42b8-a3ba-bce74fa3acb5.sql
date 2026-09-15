@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS public.idx_telegram_groups_type_ativo;
