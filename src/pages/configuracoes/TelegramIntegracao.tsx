@@ -192,6 +192,53 @@ export default function TelegramIntegracao() {
     toast.success('Link copiado.');
   };
 
+  const carregarConvites = useCallback(async () => {
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      const { data: res } = await supabase.functions.invoke('telegram-convites-whatsapp', {
+        body: { action: 'status' },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      if (res) setConvites({ enviados: res.enviados ?? 0, pendentes: res.pendentes ?? 0, falhas: res.falhas ?? 0 });
+    } catch {
+      /* silencioso */
+    }
+  }, []);
+
+  useEffect(() => {
+    carregarConvites();
+  }, [carregarConvites]);
+
+  useEffect(() => {
+    if (!convites?.pendentes) return;
+    const t = setInterval(carregarConvites, 20000);
+    return () => clearInterval(t);
+  }, [convites?.pendentes, carregarConvites]);
+
+  const enviarLinksWhatsApp = () => run('convites', async () => {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    const { data: res, error } = await supabase.functions.invoke('telegram-convites-whatsapp', {
+      body: { action: 'enfileirar' },
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    if (error) throw error;
+    toast.success(`${res?.enfileirados ?? 0} mensagens na fila. Envio a cada 45 segundos.`);
+    await carregarConvites();
+  });
+
+  const cancelarConvites = () => run('convites-cancelar', async () => {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    await supabase.functions.invoke('telegram-convites-whatsapp', {
+      body: { action: 'cancelar' },
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    toast.success('Fila cancelada.');
+    await carregarConvites();
+  });
+
   return (
     <Layout>
       <div className="mx-auto w-full max-w-5xl p-4 md:p-8 space-y-6">
