@@ -1,6 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
-import { buildIdempotencyKey, getZapiCreds, sendTextIdempotent } from '../_shared/zapi.ts';
+import { sendTelegramMessage } from '../_shared/telegram.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,7 +9,8 @@ const corsHeaders = {
 
 const ZN_ID = 'b4df0ba8-7fa8-4f28-8924-d5ce6a9b50c6';
 const ZS_ID = 'f3d048da-31d7-48df-b1f1-7e2a809c9a9a';
-const DEFAULT_DEST_PHONE = '5581996392285';
+// Destinatário do resumo: telefone do gestor (o envio é feito pelo Telegram).
+const DEFAULT_DEST_PHONE = '81996392285';
 
 function getBrasiliaDate(): Date {
   const now = new Date();
@@ -250,15 +251,56 @@ Follow-ups atrasados: ${zs.fuAtrasados}
 ${focos.join(', ')}.`;
 
 
-    const creds = getZapiCreds('comercial');
-    if (!creds) {
-       return new Response(JSON.stringify({ error: 'ZAPI Comercial credentials missing' }), { status: 500, headers: corsHeaders });
-    }
-    const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
-    const chave = buildIdempotencyKey(['notify-resumo-gestao-operacional', dateStr, destPhone]);
-    const resp = await sendTextIdempotent(supabase, creds, destPhone, message, { chave, funcao: 'notify-resumo-gestao-operacional' });
+    // Destino no Telegram: chat privado do usuário cujo telefone corresponde ao informado.
+    const digitos = String(destPhone).replace(/\D/g, '').slice(-11);
 
-    return new Response(JSON.stringify({ success: resp.ok || resp.skipped, status: resp.status, duplicate: resp.skipped, message }), {
+    const { data: perfis } = await supabase
+      .from('user_profiles')
+      .select('user_id, telefone');
+
+    const perfil = (perfis ?? []).find(
+      (p: any) => String(p.telefone ?? '').replace(/\D/g, '').slice(-11) === digitos,
+    );
+
+    let chatId: number | null = null;
+    if (perfil?.user_id) {
+      const { data: tg } = await supabase
+        .from('telegram_users')
+        .select('telegram_user_id')
+        .eq('user_id', perfil.user_id)
+        .eq('status', 'conectado')
+        .maybeSingle();
+      if (tg?.telegram_user_id) chatId = Number(tg.telegram_user_id);
+    }
+
+    if (!chatId) {
+      return new Response(
+        JSON.stringify({ error: 'Destinatário não possui Telegram conectado', phone: destPhone }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    let resp = await sendTelegramMessage({
+      chat_id: chatId,
+      text: message,
+      parse_mode: 'Markdown',
+      recipient_type: 'usuario',
+      recipient_id: perfil?.user_id ?? null,
+      message_type: 'resumo_gestao_operacional',
+    }, supabase);
+
+    if (!resp.ok) {
+      resp = await sendTelegramMessage({
+        chat_id: chatId,
+        text: message.replace(/\*/g, ''),
+        recipient_type: 'usuario',
+        recipient_id: perfil?.user_id ?? null,
+        message_type: 'resumo_gestao_operacional',
+      }, supabase);
+    }
+
+    return new Response(JSON.stringify({ success: resp.ok, error: resp.error ?? null, message_id: resp.message_id ?? null, message }), {
+      status: resp.ok ? 200 : 502,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
