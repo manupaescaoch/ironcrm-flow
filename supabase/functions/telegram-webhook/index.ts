@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     if (!update) return new Response(JSON.stringify({ ok: true, ignored: true }), { status: 200 });
 
     const admin = adminClient();
-    const msg = update.message ?? update.edited_message ?? update.my_chat_member?.chat ? (update.message ?? update.edited_message) : null;
+    const msg = update.message ?? update.edited_message ?? null;
     const chat = msg?.chat ?? update.my_chat_member?.chat ?? null;
 
     if (!chat) return new Response(JSON.stringify({ ok: true, ignored: true }), { status: 200 });
