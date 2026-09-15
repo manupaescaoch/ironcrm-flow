@@ -80,11 +80,11 @@ Deno.serve(async (req) => {
         return json({ ok: true });
       }
 
-      // Vincula um chat detectado a um tipo de grupo
+      // Vincula um chat detectado a um grupo (linha específica: tipo + unidade)
       case 'assign_group': {
-        const groupType = String(body?.group_type ?? '');
+        const groupId = String(body?.group_id ?? '');
         const chatId = Number(body?.telegram_chat_id);
-        if (!groupType || !Number.isFinite(chatId)) return json({ error: 'dados inválidos' }, 400);
+        if (!groupId || !Number.isFinite(chatId)) return json({ error: 'dados inválidos' }, 400);
 
         const { data: chat } = await admin.from('telegram_detected_chats')
           .select('title').eq('telegram_chat_id', chatId).maybeSingle();
@@ -94,31 +94,31 @@ Deno.serve(async (req) => {
           telegram_title: chat?.title ?? null,
           status: 'conectado',
           connected_at: new Date().toISOString(),
-        }).eq('group_type', groupType);
+        }).eq('id', groupId);
         if (error) return json({ error: error.message }, 400);
         return json({ ok: true });
       }
 
       case 'disconnect_group': {
-        const groupType = String(body?.group_type ?? '');
-        if (!groupType) return json({ error: 'group_type obrigatório' }, 400);
+        const groupId = String(body?.group_id ?? '');
+        if (!groupId) return json({ error: 'group_id obrigatório' }, 400);
         const { error } = await admin.from('telegram_groups').update({
           telegram_chat_id: null,
           telegram_title: null,
           status: 'nao_conectado',
           connected_at: null,
-        }).eq('group_type', groupType);
+        }).eq('id', groupId);
         if (error) return json({ error: error.message }, 400);
         return json({ ok: true });
       }
 
       // Envia mensagem de teste ao Telegram do próprio administrador (ou a um grupo)
       case 'test_integration': {
-        const groupType = body?.group_type ? String(body.group_type) : null;
+        const groupId = body?.group_id ? String(body.group_id) : null;
 
-        if (groupType) {
+        if (groupId) {
           const { data: grupo } = await admin.from('telegram_groups')
-            .select('telegram_chat_id, name').eq('group_type', groupType).maybeSingle();
+            .select('telegram_chat_id, name').eq('id', groupId).maybeSingle();
           if (!grupo?.telegram_chat_id) return json({ error: 'grupo_nao_conectado' }, 400);
           const r = await sendTelegramMessage({
             chat_id: grupo.telegram_chat_id,
