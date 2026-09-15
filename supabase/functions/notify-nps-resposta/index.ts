@@ -270,35 +270,64 @@ Deno.serve(async (req) => {
     log.interna_status = 'skip';
     log.interna_erro = 'consolidado-no-grupo';
 
-    // Grupo da unidade (mesmo endpoint de texto do Z-API, "phone" = ID do grupo)
-    const grupoId = findGrupo(resp.unidade_nome || '');
-    if (grupoId) {
-      const chaveGrupo = buildIdempotencyKey(['notify-nps-resposta', resp.id, 'grupo', grupoId]);
-      const rg = await sendTextIdempotent(supabase, creds, grupoId, msgGrupo, { chave: chaveGrupo, funcao: 'notify-nps-resposta' });
+    // Grupo da unidade no TELEGRAM (coordenadores; fallback gerência)
+    const { data: gruposUnidade } = await supabase
+      .from('telegram_groups')
+      .select('id, group_type, telegram_chat_id, telegram_title')
+      .eq('status', 'conectado')
+      .eq('unidade_id', unidadeId ?? '00000000-0000-0000-0000-000000000000')
+      .not('telegram_chat_id', 'is', null);
+
+    const grupo = PRIORIDADE_GRUPOS
+      .map((t) => (gruposUnidade ?? []).find((g: any) => g.group_type === t))
+      .find(Boolean) as any;
+
+    if (grupo) {
+      let r = await sendTelegramMessage({
+        chat_id: Number(grupo.telegram_chat_id),
+        text: msgGrupo,
+        parse_mode: 'Markdown',
+        recipient_type: 'grupo',
+        recipient_id: grupo.id,
+        message_type: 'nps_resposta',
+      }, supabase as any);
+
+      if (!r.ok) {
+        // Fallback sem formatação, caso o texto quebre o parser do Telegram.
+        r = await sendTelegramMessage({
+          chat_id: Number(grupo.telegram_chat_id),
+          text: msgGrupo.replace(/\*/g, ''),
+          recipient_type: 'grupo',
+          recipient_id: grupo.id,
+          message_type: 'nps_resposta',
+        }, supabase as any);
+      }
+
       log.payload = {
-        grupo_id: grupoId,
-        grupo_status: rg.skipped ? 'duplicado' : rg.ok ? 'enviado' : 'erro',
-        grupo_message_id: (rg.body as any)?.messageId ?? (rg.body as any)?.zaapId ?? null,
-        grupo_erro: rg.ok ? null : JSON.stringify(rg.body).slice(0, 500),
+        canal: 'telegram',
+        grupo_id: grupo.id,
+        grupo_tipo: grupo.group_type,
+        grupo_titulo: grupo.telegram_title,
+        grupo_status: r.ok ? 'enviado' : 'erro',
+        grupo_message_id: r.message_id ?? null,
+        grupo_erro: r.ok ? null : (r.error ?? 'erro desconhecido'),
       };
       await logEnvio(supabase, {
         funcao: 'notify-nps-resposta',
-        destino: grupoId,
+        destino: String(grupo.telegram_chat_id),
         tipo_destino: 'grupo',
-        sucesso: rg.ok,
-        zapi_status_code: rg.status,
-        erro_msg: rg.ok ? null : JSON.stringify(rg.body).slice(0, 500),
-        canal: 'operacional2',
-        resposta_completa: rg.body,
+        sucesso: r.ok,
+        erro_msg: r.ok ? null : (r.error ?? 'erro desconhecido'),
+        canal: 'telegram',
       });
     } else {
-      log.payload = { grupo_status: 'skip', grupo_erro: `unidade-sem-grupo:${unidadeKey}` };
+      log.payload = { canal: 'telegram', grupo_status: 'skip', grupo_erro: `unidade-sem-grupo-telegram:${unidadeKey}` };
       await logEnvio(supabase, {
         funcao: 'notify-nps-resposta',
         tipo_destino: 'grupo',
         sucesso: false,
-        motivo_skip: `unidade-sem-grupo:${unidadeKey}`,
-        canal: 'operacional2',
+        motivo_skip: `unidade-sem-grupo-telegram:${unidadeKey}`,
+        canal: 'telegram',
       });
     }
 
