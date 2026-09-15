@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
 import { generateShiftClosingMessage } from '../_shared/shiftMessages.ts';
+import { resolveTelegramUsuarioPorTelefone, sendTelegramUserText } from '../_shared/telegram.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
@@ -300,6 +301,26 @@ Deno.serve(async (req) => {
 
       if (dryRun) {
         results.push({ chave, status: 'dry_run', telefone: resp.telefone });
+        continue;
+      }
+
+      // Preferência: Telegram (privado) quando o colaborador está conectado ao bot.
+      const tgAlvo = await resolveTelegramUsuarioPorTelefone(supabase, resp.telefone);
+      if (tgAlvo) {
+        const tgResult = await sendTelegramUserText(supabase, tgAlvo, message, `lembrete_${tipo}`);
+        const tgStatus = tgResult.ok ? 'enviado' : 'erro';
+        const tgTentativas = (existente?.tentativas || 0) + 1;
+        await supabase.from('formulario_lembretes').upsert({
+          chave, data: br.dateStr, unidade_id: a.unidade_id, unidade_nome: unidadeShort,
+          turno, atividade_id: a.id, formulario_tipo: tipo, formulario_titulo: TIPO_LABEL[tipo],
+          responsavel_id: resp.id, responsavel_nome: resp.nome, responsavel_telefone: resp.telefone,
+          horario_previsto: a.horario, horario_lembrete: new Date().toISOString(),
+          status_preenchimento: 'pendente', status_lembrete: tgStatus, tentativas: tgTentativas,
+          erro_zapi: tgResult.ok ? null : (tgResult.error || 'erro telegram'),
+          zapi_response: { canal: 'telegram', message_id: tgResult.message_id ?? null },
+        }, { onConflict: 'chave' });
+        console.log(`[lembretes] telegram ${tgStatus} → ${resp.nome}`);
+        results.push({ chave, status: tgStatus, canal: 'telegram', tentativas: tgTentativas });
         continue;
       }
 

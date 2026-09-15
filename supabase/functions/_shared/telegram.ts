@@ -177,3 +177,84 @@ export async function sendTelegramGroupText(
   }
   return r;
 }
+
+/** Variantes de um telefone brasileiro (com/sem 55, com/sem o nono dígito). */
+export function telefoneVariantes(raw: string | null | undefined): string[] {
+  const d = (raw ?? '').replace(/\D/g, '');
+  if (!d) return [];
+  const local = d.startsWith('55') && d.length > 11 ? d.slice(2) : d;
+  const out = new Set<string>([local]);
+  if (local.length === 11) out.add(local.slice(0, 2) + local.slice(3));
+  if (local.length === 10) out.add(local.slice(0, 2) + '9' + local.slice(2));
+  return [...out];
+}
+
+export interface TelegramDestinoUsuario {
+  user_id: string;
+  telegram_user_id: number;
+}
+
+/**
+ * Encontra o usuário conectado ao bot a partir de um telefone (ex.: telefone
+ * cadastrado em cronograma_funcionarios). Retorna null se ninguém conectado
+ * corresponder ao número.
+ */
+export async function resolveTelegramUsuarioPorTelefone(
+  admin: any,
+  telefone: string | null | undefined,
+): Promise<TelegramDestinoUsuario | null> {
+  const alvos = telefoneVariantes(telefone);
+  if (alvos.length === 0) return null;
+
+  const { data: conectados } = await admin
+    .from('telegram_users')
+    .select('user_id, telegram_user_id')
+    .eq('status', 'conectado')
+    .not('telegram_user_id', 'is', null);
+  if (!conectados || conectados.length === 0) return null;
+
+  const { data: perfis } = await admin
+    .from('user_profiles')
+    .select('user_id, telefone')
+    .in('user_id', conectados.map((c: any) => c.user_id));
+
+  const porVariante = new Map<string, string>();
+  for (const p of perfis || []) {
+    for (const v of telefoneVariantes(p.telefone)) porVariante.set(v, p.user_id);
+  }
+
+  for (const v of alvos) {
+    const userId = porVariante.get(v);
+    if (!userId) continue;
+    const row = conectados.find((c: any) => c.user_id === userId);
+    if (row) return { user_id: userId, telegram_user_id: Number(row.telegram_user_id) };
+  }
+  return null;
+}
+
+/** Envia mensagem privada ao colaborador, com fallback sem Markdown. */
+export async function sendTelegramUserText(
+  admin: any,
+  alvo: TelegramDestinoUsuario,
+  text: string,
+  messageType: string,
+): Promise<{ ok: boolean; error?: string; message_id?: number }> {
+  let r = await sendTelegramMessage({
+    chat_id: alvo.telegram_user_id,
+    text,
+    parse_mode: 'Markdown',
+    recipient_type: 'usuario',
+    recipient_id: alvo.user_id,
+    message_type: messageType,
+  }, admin);
+  if (!r.ok) {
+    r = await sendTelegramMessage({
+      chat_id: alvo.telegram_user_id,
+      text: text.replace(/\*/g, ''),
+      recipient_type: 'usuario',
+      recipient_id: alvo.user_id,
+      message_type: messageType,
+    }, admin);
+  }
+  return r;
+}
