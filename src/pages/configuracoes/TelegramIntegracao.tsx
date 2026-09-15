@@ -390,6 +390,17 @@ export default function TelegramIntegracao() {
                       : <Send className="mr-1.5 h-3.5 w-3.5" />}
                     Enviar links por WhatsApp
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!conectado || acao === 'convites-equipe'}
+                    onClick={enviarLinksEquipe}
+                  >
+                    {acao === 'convites-equipe'
+                      ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      : <Send className="mr-1.5 h-3.5 w-3.5" />}
+                    Enviar links à equipe de encerramento
+                  </Button>
                   <Button size="sm" variant="outline" onClick={carregarConvites}>
                     <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Atualizar
                   </Button>
