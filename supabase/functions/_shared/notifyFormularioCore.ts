@@ -647,16 +647,19 @@ export async function executeNotification(
 
   // 5. Build message (template server-side)
   const message = buildMessage(ctx.tipo_formulario, ctx.unidade, row);
-  const grupoHash = (await sha1Hex(grupoId)).slice(0, 12);
+  const grupoHash = (await sha1Hex(String(grupo.telegram_chat_id))).slice(0, 12);
   const payloadHash = (await sha1Hex(message)).slice(0, 16);
 
-  // 6. Send via WhatsApp (D-API operacional ou Z-API comercial)
-  const send = await sendWhatsapp(supabase, grupoId, message, ctx.tipo_formulario, idempotency_key);
+  // 6. Envio pelo Telegram, no grupo da unidade
+  const send = await sendTelegramGroupText(
+    supabase,
+    grupo,
+    message,
+    `formulario_${ctx.tipo_formulario}`,
+  );
 
   // 7. Log
-  const errMsg = send.ok
-    ? null
-    : (send.body?.error || send.body?.message || `provider_${send.provider}_status_${send.status}`);
+  const errMsg = send.ok ? null : (send.error || 'telegram_erro');
   await supabase.from('formulario_envios_log').upsert({
     idempotency_key,
     tipo_formulario: ctx.tipo_formulario,
