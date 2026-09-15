@@ -16,7 +16,7 @@ const RESPONSAVEIS: Record<string, { nome: string; phone: string }> = {
 
 // A resposta do NPS é enviada ao grupo da unidade no TELEGRAM (não mais no WhatsApp).
 // Prioridade: grupo de coordenadores da unidade; se não existir, grupo de gerência.
-const PRIORIDADE_GRUPOS = ['coordenadores', 'gerencia'] as const;
+const PRIORIDADE_GRUPOS = ['nps', 'coordenadores', 'gerencia'] as const;
 
 // Fallback de unidade_id caso o nome informado no formulário não bata com a tabela.
 const UNIDADE_ID_FALLBACK: Record<string, string> = {
