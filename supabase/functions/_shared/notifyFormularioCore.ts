@@ -676,7 +676,7 @@ export async function executeNotification(
   }, { onConflict: 'idempotency_key' });
 
   if (!send.ok) {
-    console.error('[executeNotification] envio falhou', { provider: send.provider, status: send.status, body: send.body });
+    console.error('[executeNotification] envio falhou (telegram)', { erro: send.error, grupo: grupo.id });
     return { status: 502, body: { error: 'Falha ao notificar. Tente novamente.' } };
   }
   return { status: 200, body: { ok: true, sent: true } };
