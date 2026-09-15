@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
-import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, logEnvio, sendTextIdempotent } from '../_shared/zapi.ts';
+import { logEnvio } from '../_shared/zapi.ts';
+import { resolveGrupoUnidade, sendTelegramGroupText } from '../_shared/telegram.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -128,80 +129,37 @@ ${fmt(a.observacoes)}
 ———
 _Anamnese preenchida pela recepção no momento da chegada do lead._`;
 
-    // Seleciona o grupo de WhatsApp configurado para a unidade (tabela unidade_whatsapp_config)
-    const { data: cfg } = await supabase
-      .from('unidade_whatsapp_config')
-      .select('grupo_anamnese_id, ativo')
-      .eq('unidade_id', a.unidade_id)
-      .maybeSingle();
-
-    const nomeUnidade = (unidade?.nome ?? '').toUpperCase();
-    const isZS = nomeUnidade.includes('SUL');
-    const isZN = nomeUnidade.includes('NORTE');
-
-    const grupo =
-      (cfg?.ativo !== false && cfg?.grupo_anamnese_id) ||
-      (isZS && Deno.env.get('WHATSAPP_GRUPO_ANAMNESE_ZS')) ||
-      (isZN && Deno.env.get('WHATSAPP_GRUPO_ANAMNESE_ZN')) ||
-      Deno.env.get('WHATSAPP_GRUPO_ANAMNESE'); // fallback legado
+    // Grupo da unidade no Telegram (comercial; fallback coordenadores/gerência)
+    const grupo = await resolveGrupoUnidade(supabase, a.unidade_id, ['comercial', 'coordenadores', 'gerencia']);
 
     if (!grupo) {
-      console.log('[anamnese] grupo WhatsApp não configurado para a unidade — pulando envio.', {
+      console.log('[anamnese] unidade sem grupo do Telegram conectado — pulando envio.', {
         unidade: unidade?.nome,
+      });
+      await logEnvio(supabase, {
+        funcao: FUNC,
+        tipo_destino: 'grupo',
+        unidade_id: a.unidade_id,
+        sucesso: false,
+        motivo_skip: 'unidade-sem-grupo-telegram',
+        canal: 'telegram',
       });
       return new Response(JSON.stringify({ ok: true, sent: false, reason: 'no_group' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-
-    // Envio pelo chip DAPI MANU (operacional) (anamnese vai para grupo comercial da unidade)
-    const creds = getZapiCreds('operacional');
-    if (!creds) throw new Error('Z-API comercial não configurada');
-
-    // [Z-API health] aborta cedo se o chip estiver offline (será retentado pelo cron retry-anamneses-pendentes)
-    {
-      const st = await checkZapiStatus(creds);
-      if (!st.connected) {
-        console.warn('[notify-anamnese] Z-API offline', st.raw);
-        await logEnvio(supabase, { 
-          funcao: FUNC, 
-          sucesso: false, 
-          motivo_skip: 'zapi_offline', 
-          erro_msg: JSON.stringify(st.raw).slice(0, 500), 
-          canal: 'operacional' 
-        });
-        
-        await supabase.from('anamneses_experimental').update({
-          notificacao_tentativas: (a.notificacao_tentativas ?? 0) + 1,
-          notificacao_ultimo_erro: 'zapi_offline',
-        }).eq('id', anamnese_id);
-        
-        return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: st.raw }), { 
-          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        });
-      }
-    }
-
-    const chave = buildIdempotencyKey([FUNC, anamnese_id, a.lead_id, grupo]);
-    const r = await sendTextIdempotent(supabase, creds, grupo, message, { chave, funcao: FUNC });
-    if (r.skipped) {
-      await supabase.from('anamneses_experimental').update({ notificado_em: new Date().toISOString(), notificacao_ultimo_erro: null }).eq('id', anamnese_id);
-      return new Response(JSON.stringify({ ok: true, sent: false, reason: 'duplicate' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-    const messageId = r.body?.messageId || r.body?.id || null;
-    const zapiError = r.body?.error || (typeof r.body?.message === 'string' ? r.body.message : null);
-    const reallyOk = r.ok && !!messageId && !zapiError;
+    const r = await sendTelegramGroupText(supabase, grupo, message, 'anamnese_experimental');
+    const reallyOk = r.ok;
 
     await logEnvio(supabase, {
       funcao: FUNC,
-      destino: String(grupo),
+      destino: String(grupo.telegram_chat_id),
       tipo_destino: 'grupo',
       unidade_id: a.unidade_id,
       sucesso: reallyOk,
-      erro_msg: reallyOk ? null : (zapiError || `sem messageId (HTTP ${r.status})`),
-      zapi_status_code: r.status,
-      canal: 'operacional',
+      erro_msg: reallyOk ? null : (r.error ?? 'erro desconhecido'),
+      canal: 'telegram',
     });
 
     if (reallyOk) {
@@ -213,12 +171,12 @@ _Anamnese preenchida pela recepção no momento da chegada do lead._`;
     } else {
       await supabase.from('anamneses_experimental').update({
         notificacao_tentativas: (a.notificacao_tentativas ?? 0) + 1,
-        notificacao_ultimo_erro: (zapiError || `sem messageId (HTTP ${r.status})`).toString().slice(0, 500),
+        notificacao_ultimo_erro: (r.error ?? 'erro desconhecido').toString().slice(0, 500),
       }).eq('id', anamnese_id);
     }
 
     return new Response(
-      JSON.stringify({ ok: reallyOk, status: r.status, result: r.body }),
+      JSON.stringify({ ok: reallyOk, message_id: r.message_id ?? null, error: r.error ?? null }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
 

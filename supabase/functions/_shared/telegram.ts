@@ -94,3 +94,86 @@ export async function sendTelegramMessage(
 
   return { ok, error, message_id: messageId };
 }
+
+export type TelegramGroupType = 'coordenadores' | 'comercial' | 'gerencia';
+
+export interface TelegramGrupoUnidade {
+  id: string;
+  group_type: TelegramGroupType;
+  telegram_chat_id: number;
+  telegram_title: string | null;
+}
+
+/**
+ * Resolve o grupo conectado da unidade seguindo a ordem de prioridade informada.
+ */
+export async function resolveGrupoUnidade(
+  admin: any,
+  unidadeId: string | null,
+  prioridade: TelegramGroupType[],
+): Promise<TelegramGrupoUnidade | null> {
+  if (!unidadeId) return null;
+  const { data } = await admin
+    .from('telegram_groups')
+    .select('id, group_type, telegram_chat_id, telegram_title')
+    .eq('status', 'conectado')
+    .eq('unidade_id', unidadeId)
+    .not('telegram_chat_id', 'is', null);
+  if (!data || data.length === 0) return null;
+  for (const tipo of prioridade) {
+    const found = data.find((g: any) => g.group_type === tipo);
+    if (found) {
+      return {
+        id: found.id,
+        group_type: found.group_type,
+        telegram_chat_id: Number(found.telegram_chat_id),
+        telegram_title: found.telegram_title ?? null,
+      };
+    }
+  }
+  return null;
+}
+
+/** Descobre o unidade_id a partir do nome (ex.: "MADALENA" → EVO MADALENA). */
+export async function resolveUnidadeId(
+  admin: any,
+  nome: string | null | undefined,
+): Promise<string | null> {
+  const termo = (nome ?? '').trim();
+  if (!termo) return null;
+  const { data } = await admin
+    .from('unidades')
+    .select('id, nome')
+    .ilike('nome', `%${termo}%`)
+    .limit(1);
+  return data?.[0]?.id ?? null;
+}
+
+/**
+ * Envia texto ao grupo, com fallback sem Markdown se o parser do Telegram falhar.
+ */
+export async function sendTelegramGroupText(
+  admin: any,
+  grupo: TelegramGrupoUnidade,
+  text: string,
+  messageType: string,
+): Promise<{ ok: boolean; error?: string; message_id?: number }> {
+  let r = await sendTelegramMessage({
+    chat_id: grupo.telegram_chat_id,
+    text,
+    parse_mode: 'Markdown',
+    recipient_type: 'grupo',
+    recipient_id: grupo.id,
+    message_type: messageType,
+  }, admin);
+  if (!r.ok) {
+    r = await sendTelegramMessage({
+      chat_id: grupo.telegram_chat_id,
+      text: text.replace(/\*/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+      recipient_type: 'grupo',
+      recipient_id: grupo.id,
+      message_type: messageType,
+    }, admin);
+  }
+  return r;
+}
