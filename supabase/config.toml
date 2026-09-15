@@ -45,5 +45,8 @@ verify_jwt = false
 [functions.telegram-test-formularios]
 verify_jwt = false
 
+[functions.telegram-convites-whatsapp]
+verify_jwt = false
+
 
 
