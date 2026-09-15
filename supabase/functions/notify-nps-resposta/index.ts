@@ -220,34 +220,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    const creds = getZapiCreds('operacional2');
-    if (!creds) {
-      await logEnvio(supabase, {
-        funcao: 'notify-nps-resposta',
-        sucesso: false,
-        motivo_skip: 'credenciais-comercial-ausentes',
-        canal: 'operacional2',
-      });
-      return new Response(JSON.stringify({ ok: false, reason: 'no-creds' }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const status = await checkZapiStatus(creds);
-    if (!status.connected) {
-      await logEnvio(supabase, {
-        funcao: 'notify-nps-resposta',
-        sucesso: false,
-        motivo_skip: 'chip-desconectado',
-        canal: 'operacional2',
-      });
-      return new Response(JSON.stringify({ ok: false, reason: 'chip-off' }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     const nota = Number(resp.nota_nps);
     const classificacao = classificar(nota);
     const unidadeKey = (resp.unidade_nome || '').toUpperCase().trim();
