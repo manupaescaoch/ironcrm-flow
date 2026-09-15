@@ -42,5 +42,8 @@ verify_jwt = false
 [functions.telegram-send]
 verify_jwt = false
 
+[functions.telegram-test-formularios]
+verify_jwt = false
+
 
 
