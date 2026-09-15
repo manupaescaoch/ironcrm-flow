@@ -86,7 +86,7 @@ export default function TelegramIntegracao() {
   const [busca, setBusca] = useState('');
   const [acao, setAcao] = useState<string | null>(null);
   const [linkDialog, setLinkDialog] = useState<{ nome: string; link: string } | null>(null);
-  const [grupoDialog, setGrupoDialog] = useState<{ group_type: string; name: string } | null>(null);
+  const [grupoDialog, setGrupoDialog] = useState<{ id: string; name: string; unidade: string } | null>(null);
 
   const status = health?.status ?? 'nao_configurado';
   const conectado = status === 'conectado';
@@ -152,22 +152,37 @@ export default function TelegramIntegracao() {
     await loadData();
   });
 
+  const gruposPorUnidade = useMemo(() => {
+    const mapa = new Map<string, { nome: string; grupos: typeof groups }>();
+    for (const g of groups) {
+      const key = g.unidade_id ?? 'sem-unidade';
+      const nome = g.unidade_nome ?? 'Geral';
+      if (!mapa.has(key)) mapa.set(key, { nome, grupos: [] });
+      mapa.get(key)!.grupos.push(g);
+    }
+    const ordem = ['coordenadores', 'comercial', 'gerencia'];
+    for (const v of mapa.values()) {
+      v.grupos.sort((a, b) => ordem.indexOf(a.group_type) - ordem.indexOf(b.group_type));
+    }
+    return [...mapa.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  }, [groups]);
+
   const vincularGrupo = (chatId: number) => run(`grupo-${chatId}`, async () => {
     if (!grupoDialog) return;
-    await callAdmin({ action: 'assign_group', group_type: grupoDialog.group_type, telegram_chat_id: chatId });
-    toast.success(`Grupo ${grupoDialog.name} conectado.`);
+    await callAdmin({ action: 'assign_group', group_id: grupoDialog.id, telegram_chat_id: chatId });
+    toast.success(`Grupo ${grupoDialog.name} (${grupoDialog.unidade}) conectado.`);
     setGrupoDialog(null);
     await loadData();
   });
 
-  const desconectarGrupo = (groupType: string, name: string) => run(`grupo-off-${groupType}`, async () => {
-    await callAdmin({ action: 'disconnect_group', group_type: groupType });
+  const desconectarGrupo = (id: string, name: string) => run(`grupo-off-${id}`, async () => {
+    await callAdmin({ action: 'disconnect_group', group_id: id });
     toast.success(`Grupo ${name} desconectado.`);
     await loadData();
   });
 
-  const testarGrupo = (groupType: string, name: string) => run(`grupo-teste-${groupType}`, async () => {
-    await callAdmin({ action: 'test_integration', group_type: groupType });
+  const testarGrupo = (id: string, name: string) => run(`grupo-teste-${id}`, async () => {
+    await callAdmin({ action: 'test_integration', group_id: id });
     toast.success(`Mensagem de teste enviada ao grupo ${name}.`);
     await loadData();
   });
