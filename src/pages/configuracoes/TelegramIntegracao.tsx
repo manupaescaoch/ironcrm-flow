@@ -592,29 +592,31 @@ export default function TelegramIntegracao() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            {detected.length === 0 && (
-              <p className="rounded-md bg-muted/50 p-4 text-sm text-muted-foreground">
-                Nenhum grupo detectado ainda.
-              </p>
-            )}
-            {detected.map((d) => (
-              <button
-                key={d.telegram_chat_id}
-                onClick={() => vincularGrupo(d.telegram_chat_id)}
-                disabled={acao === `grupo-${d.telegram_chat_id}`}
-                className="flex w-full items-center justify-between rounded-lg border border-border/60 p-3 text-left transition-colors hover:bg-muted/50 disabled:opacity-60"
-              >
-                <div>
-                  <p className="text-sm font-medium">{d.title ?? `Grupo ${d.telegram_chat_id}`}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Visto em {new Date(d.last_seen_at).toLocaleString('pt-BR')}
-                  </p>
-                </div>
-                {acao === `grupo-${d.telegram_chat_id}`
-                  ? <Loader2 className="h-4 w-4 animate-spin" />
-                  : <Link2 className="h-4 w-4 text-muted-foreground" />}
-              </button>
-            ))}
+            <div className="max-h-[320px] overflow-y-auto rounded-lg border border-border/60 p-1 space-y-1">
+              {detected.length === 0 && (
+                <p className="rounded-md bg-muted/50 p-4 text-sm text-muted-foreground">
+                  Nenhum grupo detectado ainda.
+                </p>
+              )}
+              {detected.map((d) => (
+                <button
+                  key={d.telegram_chat_id}
+                  onClick={() => vincularGrupo(d.telegram_chat_id)}
+                  disabled={acao === `grupo-${d.telegram_chat_id}`}
+                  className="flex w-full items-center justify-between rounded-md border border-border/60 p-3 text-left transition-colors hover:bg-muted/50 disabled:opacity-60"
+                >
+                  <div>
+                    <p className="text-sm font-medium">{d.title ?? `Grupo ${d.telegram_chat_id}`}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Visto em {new Date(d.last_seen_at).toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                  {acao === `grupo-${d.telegram_chat_id}`
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Link2 className="h-4 w-4 text-muted-foreground" />}
+                </button>
+              ))}
+            </div>
             <Button variant="outline" size="sm" onClick={loadData} className="w-full">
               <RefreshCw className="mr-2 h-4 w-4" /> Atualizar lista
             </Button>
