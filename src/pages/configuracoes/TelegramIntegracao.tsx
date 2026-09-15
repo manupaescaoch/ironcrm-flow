@@ -230,6 +230,18 @@ export default function TelegramIntegracao() {
     await carregarConvites();
   });
 
+  const enviarLinksEquipe = () => run('convites-equipe', async () => {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    const { data: res, error } = await supabase.functions.invoke('telegram-convites-whatsapp', {
+      body: { action: 'enfileirar_funcionarios' },
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    if (error) throw error;
+    toast.success(`${res?.enfileirados ?? 0} mensagens na fila. Envio a cada 45 segundos.`);
+    await carregarConvites();
+  });
+
   const cancelarConvites = () => run('convites-cancelar', async () => {
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
@@ -377,6 +389,17 @@ export default function TelegramIntegracao() {
                       ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                       : <Send className="mr-1.5 h-3.5 w-3.5" />}
                     Enviar links por WhatsApp
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!conectado || acao === 'convites-equipe'}
+                    onClick={enviarLinksEquipe}
+                  >
+                    {acao === 'convites-equipe'
+                      ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      : <Send className="mr-1.5 h-3.5 w-3.5" />}
+                    Enviar links à equipe de encerramento
                   </Button>
                   <Button size="sm" variant="outline" onClick={carregarConvites}>
                     <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Atualizar

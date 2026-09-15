@@ -4240,34 +4240,46 @@ export type Database = {
         Row: {
           created_at: string
           expires_at: string
+          funcionario_id: string | null
           id: string
           token: string
           used_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
           expires_at: string
+          funcionario_id?: string | null
           id?: string
           token: string
           used_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
           expires_at?: string
+          funcionario_id?: string | null
           id?: string
           token?: string
           used_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "telegram_connection_tokens_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "cronograma_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       telegram_convites_whatsapp: {
         Row: {
           created_at: string
           enviar_em: string
           erro: string | null
+          funcionario_id: string | null
           id: string
           link: string
           nome: string
@@ -4275,12 +4287,13 @@ export type Database = {
           status: string
           telefone: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
           enviar_em?: string
           erro?: string | null
+          funcionario_id?: string | null
           id?: string
           link: string
           nome: string
@@ -4288,12 +4301,13 @@ export type Database = {
           status?: string
           telefone: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
           enviar_em?: string
           erro?: string | null
+          funcionario_id?: string | null
           id?: string
           link?: string
           nome?: string
@@ -4301,9 +4315,17 @@ export type Database = {
           status?: string
           telefone?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "telegram_convites_whatsapp_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "cronograma_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       telegram_detected_chats: {
         Row: {
@@ -4331,6 +4353,59 @@ export type Database = {
           title?: string | null
         }
         Relationships: []
+      }
+      telegram_funcionarios: {
+        Row: {
+          connected_at: string | null
+          created_at: string
+          funcionario_id: string
+          id: string
+          nome: string | null
+          status: string
+          telefone: string | null
+          telegram_first_name: string | null
+          telegram_last_name: string | null
+          telegram_user_id: number | null
+          telegram_username: string | null
+          updated_at: string
+        }
+        Insert: {
+          connected_at?: string | null
+          created_at?: string
+          funcionario_id: string
+          id?: string
+          nome?: string | null
+          status?: string
+          telefone?: string | null
+          telegram_first_name?: string | null
+          telegram_last_name?: string | null
+          telegram_user_id?: number | null
+          telegram_username?: string | null
+          updated_at?: string
+        }
+        Update: {
+          connected_at?: string | null
+          created_at?: string
+          funcionario_id?: string
+          id?: string
+          nome?: string | null
+          status?: string
+          telefone?: string | null
+          telegram_first_name?: string | null
+          telegram_last_name?: string | null
+          telegram_user_id?: number | null
+          telegram_username?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_funcionarios_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: true
+            referencedRelation: "cronograma_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       telegram_groups: {
         Row: {
