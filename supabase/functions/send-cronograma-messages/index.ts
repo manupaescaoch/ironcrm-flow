@@ -580,7 +580,20 @@ Deno.serve(async (req) => {
           zapi_status_code: sendResult.status,
         });
 
+        if (isEncerramento) {
+          relatorioEncerramentos.push({
+            nome: resp.nome,
+            titulo: atividade.titulo || 'Atividade',
+            unidade: unidadeNome,
+            horario: atividade.horario?.substring(0, 5) ?? '',
+            canal: 'WhatsApp',
+            ok: reallyOk,
+            erro: reallyOk ? undefined : (erroMsg || statusEnvio),
+          });
+        }
+
         if (reallyOk) {
+
           sentCount++;
           console.log(`[send-cronograma] ✅ Enviado para ${resp.nome} (${statusEnvio})`);
         } else {
