@@ -637,6 +637,49 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Resumo de acompanhamento no Telegram da gestão: quem recebeu os
+    // encerramentos/relatórios nesta rodada.
+    if (relatorioEncerramentos.length > 0) {
+      try {
+        const gestaoTelefone = Deno.env.get('TELEGRAM_RESUMO_TELEFONE') || '81996392285';
+        const alvoGestao = await resolveTelegramUsuarioPorTelefone(supabase, gestaoTelefone);
+        if (alvoGestao) {
+          const horaAgora = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
+          const porUnidade = new Map<string, typeof relatorioEncerramentos>();
+          for (const item of relatorioEncerramentos) {
+            const lista = porUnidade.get(item.unidade) ?? [];
+            lista.push(item);
+            porUnidade.set(item.unidade, lista);
+          }
+          const okCount = relatorioEncerramentos.filter((i) => i.ok).length;
+          const falhaCount = relatorioEncerramentos.length - okCount;
+
+          let texto = `📋 *ENCERRAMENTOS ENVIADOS — ${horaAgora}*\n`;
+          for (const [unidade, itens] of porUnidade) {
+            texto += `\n📍 *${unidade}*\n`;
+            for (const i of itens) {
+              const icone = i.ok ? '✅' : '❌';
+              texto += `${icone} ${i.nome} — ${i.titulo}`;
+              if (i.horario) texto += ` (${i.horario})`;
+              texto += ` · ${i.canal}`;
+              if (!i.ok) texto += `\n   ⚠️ ${i.erro}`;
+              texto += `\n`;
+            }
+          }
+          texto += `\n📊 ${okCount} enviado(s)`;
+          if (falhaCount > 0) texto += ` · ${falhaCount} falha(s)`;
+
+          await sendTelegramUserText(supabase, alvoGestao, texto, 'cronograma_resumo_encerramentos');
+        } else {
+          console.log('[send-cronograma] resumo não enviado: gestão não conectada ao bot');
+        }
+      } catch (e) {
+        console.error('[send-cronograma] falha ao enviar resumo (ignorada)', e);
+      }
+    }
+
+
+
 
     return new Response(
       JSON.stringify({
