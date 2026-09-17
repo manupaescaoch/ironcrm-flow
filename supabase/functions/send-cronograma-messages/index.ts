@@ -286,10 +286,21 @@ Deno.serve(async (req) => {
     const isBridgeOffline = (raw: string) =>
       /no responders|bridge offline|nats|session .* not (connected|found)|econnrefused|502|503|504/i.test(raw || '');
     const errors: string[] = [];
+    // Relatório de acompanhamento enviado à Manu no fim da execução (só encerramentos/relatórios).
+    const relatorioEncerramentos: {
+      nome: string;
+      titulo: string;
+      unidade: string;
+      horario: string;
+      canal: 'Telegram' | 'WhatsApp';
+      ok: boolean;
+      erro?: string;
+    }[] = [];
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const RATE_LIMIT_MS = 10000; // 10s entre envios para proteger o chip
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
     let isFirstSend = true;
+
 
 
 
