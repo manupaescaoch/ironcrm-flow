@@ -9,6 +9,7 @@ const corsHeaders = {
 
 const ZN_ID = 'b4df0ba8-7fa8-4f28-8924-d5ce6a9b50c6';
 const ZS_ID = 'f3d048da-31d7-48df-b1f1-7e2a809c9a9a';
+const STB_ID = '00000000-0000-0000-0000-000000000000';
 // Destinatário do resumo: telefone do gestor (o envio é feito pelo Telegram).
 const DEFAULT_DEST_PHONE = '81996392285';
 
@@ -160,6 +161,7 @@ Deno.serve(async (req) => {
     const consolidated = await getStats(supabase, null);
     const zn = await getStats(supabase, ZN_ID);
     const zs = await getStats(supabase, ZS_ID);
+    const stb = await getStats(supabase, STB_ID);
 
     const now = getBrasiliaDate();
     const dataHora = now.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).replace(',', '');
@@ -168,8 +170,10 @@ Deno.serve(async (req) => {
     const focos = [];
     if (zs.fuAtrasados > 0 || zs.fuTotal > 50) focos.push('Revisar follow-ups pendentes na EVO Boa Viagem');
     if (zn.fuAtrasados > 0 || zn.fuTotal > 50) focos.push('Revisar follow-ups pendentes na EVO Madalena');
+    if (stb.fuAtrasados > 0 || stb.fuTotal > 50) focos.push('Revisar follow-ups pendentes na EVO Setúbal');
     if (parseFloat(zs.comp) < 60) focos.push('Recuperar comparecimento na EVO Boa Viagem');
     if (parseFloat(zn.comp) < 60) focos.push('Recuperar comparecimento na EVO Madalena');
+    if (parseFloat(stb.comp) < 60) focos.push('Recuperar comparecimento na EVO Setúbal');
     if (focos.length === 0) focos.push('Manter o ritmo de matrículas e follow-ups');
 
     const message = `📊 *GESTÃO OPERACIONAL EVO CLUB*
@@ -243,6 +247,34 @@ Ticket médio: ${fmtBRL(zs.ticket)}
 Receita recorrente projetada: ${fmtBRL(zs.ativos * zs.ticket)}
 
 Follow-ups atrasados: ${zs.fuAtrasados}
+
+━━━━━━━━━━━━━━
+
+📍 *EVO SETÚBAL*
+
+Alunos ativos: ${stb.ativos}
+Meta: ${stb.ativos} / ${stb.meta}
+Realizado: ${pct(stb.ativos, stb.meta)}
+Faltam: ${Math.max(0, stb.meta - stb.ativos)} alunos
+
+Matrículas: ${stb.matsWeek}
+Semana anterior: ${stb.matsPrev}
+Variação: ${diffPct(stb.matsWeek, stb.matsPrev)}
+
+Comparecimento: ${stb.comp}
+Semana anterior: ${stb.compPrev}
+
+Conversão EXP → MAT: ${stb.conv}
+Semana anterior: ${stb.convPrev}
+
+Receita do mês: ${fmtBRL(stb.receita)}
+Mês anterior: ${fmtBRL(stb.receitaPrev)}
+Variação: ${diffPct(stb.receita, stb.receitaPrev)}
+
+Ticket médio: ${fmtBRL(stb.ticket)}
+Receita recorrente projetada: ${fmtBRL(stb.ativos * stb.ticket)}
+
+Follow-ups atrasados: ${stb.fuAtrasados}
 
 ━━━━━━━━━━━━━━
 
