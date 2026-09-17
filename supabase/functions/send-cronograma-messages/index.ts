@@ -286,10 +286,21 @@ Deno.serve(async (req) => {
     const isBridgeOffline = (raw: string) =>
       /no responders|bridge offline|nats|session .* not (connected|found)|econnrefused|502|503|504/i.test(raw || '');
     const errors: string[] = [];
+    // Relatório de acompanhamento enviado à Manu no fim da execução (só encerramentos/relatórios).
+    const relatorioEncerramentos: {
+      nome: string;
+      titulo: string;
+      unidade: string;
+      horario: string;
+      canal: 'Telegram' | 'WhatsApp';
+      ok: boolean;
+      erro?: string;
+    }[] = [];
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const RATE_LIMIT_MS = 10000; // 10s entre envios para proteger o chip
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
     let isFirstSend = true;
+
 
 
 
@@ -416,6 +427,16 @@ Deno.serve(async (req) => {
           console.error(`[send-cronograma] ❌ Telegram falhou para ${resp.nome}: ${tgResult.error}`);
           errors.push(`telegram: ${resp.nome} - ${atividade.titulo} - ${tgResult.error || 'sem detalhe'}`);
         }
+        relatorioEncerramentos.push({
+          nome: resp.nome,
+          titulo: atividade.titulo || 'Atividade',
+          unidade: unidadeNome,
+          horario: atividade.horario?.substring(0, 5) ?? '',
+          canal: 'Telegram',
+          ok: tgResult.ok,
+          erro: tgResult.ok ? undefined : (tgResult.error || 'sem detalhe'),
+        });
+
         continue;
       }
 
@@ -559,7 +580,20 @@ Deno.serve(async (req) => {
           zapi_status_code: sendResult.status,
         });
 
+        if (isEncerramento) {
+          relatorioEncerramentos.push({
+            nome: resp.nome,
+            titulo: atividade.titulo || 'Atividade',
+            unidade: unidadeNome,
+            horario: atividade.horario?.substring(0, 5) ?? '',
+            canal: 'WhatsApp',
+            ok: reallyOk,
+            erro: reallyOk ? undefined : (erroMsg || statusEnvio),
+          });
+        }
+
         if (reallyOk) {
+
           sentCount++;
           console.log(`[send-cronograma] ✅ Enviado para ${resp.nome} (${statusEnvio})`);
         } else {
@@ -602,6 +636,49 @@ Deno.serve(async (req) => {
         zapiStatus: bridgeOffline ? { motivo: 'bridge_offline', detalhe: errors.slice(0, 3) } : zapiStatusData,
       });
     }
+
+    // Resumo de acompanhamento no Telegram da gestão: quem recebeu os
+    // encerramentos/relatórios nesta rodada.
+    if (relatorioEncerramentos.length > 0) {
+      try {
+        const gestaoTelefone = Deno.env.get('TELEGRAM_RESUMO_TELEFONE') || '81996392285';
+        const alvoGestao = await resolveTelegramUsuarioPorTelefone(supabase, gestaoTelefone);
+        if (alvoGestao) {
+          const horaAgora = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
+          const porUnidade = new Map<string, typeof relatorioEncerramentos>();
+          for (const item of relatorioEncerramentos) {
+            const lista = porUnidade.get(item.unidade) ?? [];
+            lista.push(item);
+            porUnidade.set(item.unidade, lista);
+          }
+          const okCount = relatorioEncerramentos.filter((i) => i.ok).length;
+          const falhaCount = relatorioEncerramentos.length - okCount;
+
+          let texto = `📋 *ENCERRAMENTOS ENVIADOS — ${horaAgora}*\n`;
+          for (const [unidade, itens] of porUnidade) {
+            texto += `\n📍 *${unidade}*\n`;
+            for (const i of itens) {
+              const icone = i.ok ? '✅' : '❌';
+              texto += `${icone} ${i.nome} — ${i.titulo}`;
+              if (i.horario) texto += ` (${i.horario})`;
+              texto += ` · ${i.canal}`;
+              if (!i.ok) texto += `\n   ⚠️ ${i.erro}`;
+              texto += `\n`;
+            }
+          }
+          texto += `\n📊 ${okCount} enviado(s)`;
+          if (falhaCount > 0) texto += ` · ${falhaCount} falha(s)`;
+
+          await sendTelegramUserText(supabase, alvoGestao, texto, 'cronograma_resumo_encerramentos');
+        } else {
+          console.log('[send-cronograma] resumo não enviado: gestão não conectada ao bot');
+        }
+      } catch (e) {
+        console.error('[send-cronograma] falha ao enviar resumo (ignorada)', e);
+      }
+    }
+
+
 
 
     return new Response(
