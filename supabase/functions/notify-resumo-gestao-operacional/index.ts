@@ -161,6 +161,7 @@ Deno.serve(async (req) => {
     const consolidated = await getStats(supabase, null);
     const zn = await getStats(supabase, ZN_ID);
     const zs = await getStats(supabase, ZS_ID);
+    const stb = await getStats(supabase, STB_ID);
 
     const now = getBrasiliaDate();
     const dataHora = now.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).replace(',', '');
@@ -169,8 +170,10 @@ Deno.serve(async (req) => {
     const focos = [];
     if (zs.fuAtrasados > 0 || zs.fuTotal > 50) focos.push('Revisar follow-ups pendentes na EVO Boa Viagem');
     if (zn.fuAtrasados > 0 || zn.fuTotal > 50) focos.push('Revisar follow-ups pendentes na EVO Madalena');
+    if (stb.fuAtrasados > 0 || stb.fuTotal > 50) focos.push('Revisar follow-ups pendentes na EVO Setúbal');
     if (parseFloat(zs.comp) < 60) focos.push('Recuperar comparecimento na EVO Boa Viagem');
     if (parseFloat(zn.comp) < 60) focos.push('Recuperar comparecimento na EVO Madalena');
+    if (parseFloat(stb.comp) < 60) focos.push('Recuperar comparecimento na EVO Setúbal');
     if (focos.length === 0) focos.push('Manter o ritmo de matrículas e follow-ups');
 
     const message = `📊 *GESTÃO OPERACIONAL EVO CLUB*
