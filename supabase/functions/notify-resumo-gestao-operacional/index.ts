@@ -250,6 +250,34 @@ Follow-ups atrasados: ${zs.fuAtrasados}
 
 ━━━━━━━━━━━━━━
 
+📍 *EVO SETÚBAL*
+
+Alunos ativos: ${stb.ativos}
+Meta: ${stb.ativos} / ${stb.meta}
+Realizado: ${pct(stb.ativos, stb.meta)}
+Faltam: ${Math.max(0, stb.meta - stb.ativos)} alunos
+
+Matrículas: ${stb.matsWeek}
+Semana anterior: ${stb.matsPrev}
+Variação: ${diffPct(stb.matsWeek, stb.matsPrev)}
+
+Comparecimento: ${stb.comp}
+Semana anterior: ${stb.compPrev}
+
+Conversão EXP → MAT: ${stb.conv}
+Semana anterior: ${stb.convPrev}
+
+Receita do mês: ${fmtBRL(stb.receita)}
+Mês anterior: ${fmtBRL(stb.receitaPrev)}
+Variação: ${diffPct(stb.receita, stb.receitaPrev)}
+
+Ticket médio: ${fmtBRL(stb.ticket)}
+Receita recorrente projetada: ${fmtBRL(stb.ativos * stb.ticket)}
+
+Follow-ups atrasados: ${stb.fuAtrasados}
+
+━━━━━━━━━━━━━━
+
 ✅ *FOCO DO DIA*
 
 ${focos.join(', ')}.`;
