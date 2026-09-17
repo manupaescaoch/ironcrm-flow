@@ -427,6 +427,16 @@ Deno.serve(async (req) => {
           console.error(`[send-cronograma] ❌ Telegram falhou para ${resp.nome}: ${tgResult.error}`);
           errors.push(`telegram: ${resp.nome} - ${atividade.titulo} - ${tgResult.error || 'sem detalhe'}`);
         }
+        relatorioEncerramentos.push({
+          nome: resp.nome,
+          titulo: atividade.titulo || 'Atividade',
+          unidade: unidadeNome,
+          horario: atividade.horario?.substring(0, 5) ?? '',
+          canal: 'Telegram',
+          ok: tgResult.ok,
+          erro: tgResult.ok ? undefined : (tgResult.error || 'sem detalhe'),
+        });
+
         continue;
       }
 
