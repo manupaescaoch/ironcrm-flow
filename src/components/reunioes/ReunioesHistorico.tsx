@@ -56,8 +56,8 @@ export function ReunioesHistorico() {
       if (dataInicio && r.data < dataInicio) return false;
       if (dataFim && r.data > dataFim) return false;
       if (search) {
-        const q = search.toLowerCase();
-        const hay = `${r.tipo} ${r.responsavel ?? ''} ${stripHtml(r.pauta)} ${stripHtml(r.feedback)} ${r.participantes.join(' ')}`.toLowerCase();
+        const q = normalize(search);
+        const hay = normalize(`${r.tipo} ${r.responsavel ?? ''} ${stripHtml(r.pauta)} ${stripHtml(r.feedback)} ${r.participantes.join(' ')}`);
         if (!hay.includes(q)) return false;
       }
       return true;
