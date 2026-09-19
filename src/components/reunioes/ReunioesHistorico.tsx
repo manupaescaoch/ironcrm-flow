@@ -19,7 +19,16 @@ function formatDate(iso: string) {
 
 function stripHtml(s: string | null | undefined) {
   if (!s) return '';
-  return s.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+  const div = document.createElement('div');
+  div.innerHTML = s;
+  return (div.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
+function normalize(s: string) {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
 }
 
 export function ReunioesHistorico() {
