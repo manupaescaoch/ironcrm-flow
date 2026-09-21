@@ -60,10 +60,14 @@ function formatarDataBR(d: Date): string {
   return `${dd}/${mm}`;
 }
 
-function template24h(nome: string, data: string, hora: string): string {
+function template24h(nome: string, data: string, hora: string, unidade: string): string {
   return `Oi, ${nome}! Tudo certo, sua experimental está confirmada! 🔵
 
-📅 ${data} ⏰ ${hora}
+📅 ${data}
+
+⏰ ${hora}
+
+📍 Unidade EVO ${unidade}
 
 Chega 15 minutinhos antes, tá? Assim a gente te apresenta como funciona a EVO e já preenche sua ficha antes de começar.
 
@@ -139,7 +143,7 @@ Deno.serve(async (req) => {
 
     const { data: leads, error } = await supabase
       .from('leads')
-      .select('id, nome, telefone, data_aula_experimental, hora_aula_experimental, confirmacao_24h_enviada_em, confirmacao_2h_enviada_em, status_funil, ativo, is_matriculado, pausado_fu')
+      .select('id, nome, telefone, unidade_id, data_aula_experimental, hora_aula_experimental, confirmacao_24h_enviada_em, confirmacao_2h_enviada_em, status_funil, ativo, is_matriculado, pausado_fu')
       .eq('ativo', true)
       .neq('pausado_fu', true)
       .eq('is_matriculado', false)
@@ -152,6 +156,15 @@ Deno.serve(async (req) => {
       .lte('data_aula_experimental', `${getBrasiliaDateOnly(limiteFuturo)}T23:59:59-03:00`);
 
     if (error) throw error;
+
+    // Nomes das unidades (para exibir na confirmação 24h)
+    const unidadeIds = [...new Set((leads || []).map((l: any) => l.unidade_id).filter(Boolean))];
+    const { data: unidades } = unidadeIds.length
+      ? await supabase.from('unidades').select('id, nome').in('id', unidadeIds)
+      : { data: [] };
+    const unidadeNome = new Map((unidades || []).map((u: any) => [u.id, u.nome]));
+    const unidadeCurta = (nome?: string | null) =>
+      (nome || '').replace(/^(EVO|IRON)\s+/i, '').trim().toUpperCase() || 'SUA UNIDADE';
 
     // Busca leads que já compareceram à experimental (qualquer interação com compareceu=true)
     const leadIds = (leads || []).map((l) => l.id);
@@ -279,7 +292,7 @@ Deno.serve(async (req) => {
         // formata data e hora em BRT
         const dataStr = formatarDataBR(new Date(ano, mes - 1, dia));
         const horaStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-        const message = template24h(nome, dataStr, horaStr);
+        const message = template24h(nome, dataStr, horaStr, unidadeCurta(unidadeNome.get((lead as any).unidade_id)));
 
         if (dryRun) {
           resultados.push({ lead_id: lead.id, tipo: '24h', dryRun: true, phone, preview: message });
