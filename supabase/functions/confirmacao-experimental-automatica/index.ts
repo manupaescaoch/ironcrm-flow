@@ -292,7 +292,7 @@ Deno.serve(async (req) => {
         // formata data e hora em BRT
         const dataStr = formatarDataBR(new Date(ano, mes - 1, dia));
         const horaStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-        const message = template24h(nome, dataStr, horaStr);
+        const message = template24h(nome, dataStr, horaStr, unidadeCurta(unidadeNome.get((lead as any).unidade_id)));
 
         if (dryRun) {
           resultados.push({ lead_id: lead.id, tipo: '24h', dryRun: true, phone, preview: message });
