@@ -60,10 +60,14 @@ function formatarDataBR(d: Date): string {
   return `${dd}/${mm}`;
 }
 
-function template24h(nome: string, data: string, hora: string): string {
+function template24h(nome: string, data: string, hora: string, unidade: string): string {
   return `Oi, ${nome}! Tudo certo, sua experimental está confirmada! 🔵
 
-📅 ${data} ⏰ ${hora}
+📅 ${data}
+
+⏰ ${hora}
+
+📍 Unidade EVO ${unidade}
 
 Chega 15 minutinhos antes, tá? Assim a gente te apresenta como funciona a EVO e já preenche sua ficha antes de começar.
 
@@ -139,7 +143,7 @@ Deno.serve(async (req) => {
 
     const { data: leads, error } = await supabase
       .from('leads')
-      .select('id, nome, telefone, data_aula_experimental, hora_aula_experimental, confirmacao_24h_enviada_em, confirmacao_2h_enviada_em, status_funil, ativo, is_matriculado, pausado_fu')
+      .select('id, nome, telefone, unidade_id, data_aula_experimental, hora_aula_experimental, confirmacao_24h_enviada_em, confirmacao_2h_enviada_em, status_funil, ativo, is_matriculado, pausado_fu')
       .eq('ativo', true)
       .neq('pausado_fu', true)
       .eq('is_matriculado', false)
