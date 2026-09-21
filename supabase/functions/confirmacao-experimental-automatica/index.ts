@@ -157,6 +157,15 @@ Deno.serve(async (req) => {
 
     if (error) throw error;
 
+    // Nomes das unidades (para exibir na confirmação 24h)
+    const unidadeIds = [...new Set((leads || []).map((l: any) => l.unidade_id).filter(Boolean))];
+    const { data: unidades } = unidadeIds.length
+      ? await supabase.from('unidades').select('id, nome').in('id', unidadeIds)
+      : { data: [] };
+    const unidadeNome = new Map((unidades || []).map((u: any) => [u.id, u.nome]));
+    const unidadeCurta = (nome?: string | null) =>
+      (nome || '').replace(/^(EVO|IRON)\s+/i, '').trim().toUpperCase() || 'SUA UNIDADE';
+
     // Busca leads que já compareceram à experimental (qualquer interação com compareceu=true)
     const leadIds = (leads || []).map((l) => l.id);
     let leadsJaCompareceram = new Set<string>();
