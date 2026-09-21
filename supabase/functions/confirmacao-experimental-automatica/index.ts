@@ -76,14 +76,18 @@ Qualquer imprevisto é só me chamar aqui. A gente se vê em breve! 💪
 Equipe EVO`;
 }
 
-function template2h(nome: string, hora: string): string {
+function template2h(nome: string, hora: string, unidade: string): string {
   return `Oi, ${nome}! Daqui a pouco é hora do treino. 💪
 
 Queremos te conhecer melhor! Preenche essa ficha rapidinho antes de vir assim a gente garante a melhor experiência pra você aqui na EVO. 😊
 
 👉 ${ANAMNESE_URL}
 
-Te esperamos às ${hora}. Qualquer imprevisto é só me chamar aqui. 🔵
+Te esperamos às ${hora}.
+
+📍 Unidade EVO ${unidade}
+
+Qualquer imprevisto é só me chamar aqui. 🔵
 
 Equipe EVO`;
 }
@@ -330,7 +334,7 @@ Deno.serve(async (req) => {
       // 2h
       if (dentro2h && !lead.confirmacao_2h_enviada_em) {
         const horaStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-        const message = template2h(nome, horaStr);
+        const message = template2h(nome, horaStr, unidadeCurta(unidadeNome.get((lead as any).unidade_id)));
 
         if (dryRun) {
           resultados.push({ lead_id: lead.id, tipo: '2h', dryRun: true, phone, preview: message });
