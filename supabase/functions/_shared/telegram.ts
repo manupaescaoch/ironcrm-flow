@@ -1,7 +1,7 @@
 // Utilitários da integração com o Telegram.
 // O TELEGRAM_BOT_TOKEN só é lido aqui, no servidor, e nunca é retornado ao cliente.
 
-import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+import { createClient, SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
 export const TELEGRAM_API = 'https://api.telegram.org';
 
