@@ -437,10 +437,9 @@ export default function TelegramIntegracao() {
                           <TableHead>Nome</TableHead>
                           <TableHead>Unidade</TableHead>
                           <TableHead>Função</TableHead>
-                          <TableHead>Turno</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Telegram</TableHead>
-                          <TableHead>Conexão</TableHead>
+                          <TableHead>ID do Telegram</TableHead>
                           <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -453,14 +452,12 @@ export default function TelegramIntegracao() {
                             </TableCell>
                             <TableCell className="text-sm">{u.unidades}</TableCell>
                             <TableCell className="text-sm">{u.funcao}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{u.turno}</TableCell>
                             <TableCell><UserStatusBadge status={u.status} /></TableCell>
                             <TableCell className="text-sm">
                               {u.telegram_username ? `@${u.telegram_username}` : '—'}
-                              <span className="block text-xs text-muted-foreground">{u.telegram_user_id ?? ''}</span>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {u.connected_at ? new Date(u.connected_at).toLocaleDateString('pt-BR') : '—'}
+                            <TableCell className="text-sm font-mono">
+                              {u.telegram_user_id ?? '—'}
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1.5">
@@ -493,7 +490,7 @@ export default function TelegramIntegracao() {
                         ))}
                         {filtrados.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                            <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
                               Nenhum colaborador encontrado.
                             </TableCell>
                           </TableRow>
