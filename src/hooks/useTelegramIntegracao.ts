@@ -22,6 +22,7 @@ export interface TelegramUserRow {
   telegram_username: string | null;
   telegram_user_id: string | null;
   connected_at: string | null;
+  origem: 'usuario' | 'funcionario';
 }
 
 export interface TelegramGroupRow {
