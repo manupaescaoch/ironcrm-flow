@@ -460,31 +460,37 @@ export default function TelegramIntegracao() {
                               {u.telegram_user_id ?? '—'}
                             </TableCell>
                             <TableCell className="text-right">
-                              <div className="flex justify-end gap-1.5">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={!conectado || acao === `link-${u.user_id}`}
-                                  onClick={() => gerarLink(u)}
-                                >
-                                  {acao === `link-${u.user_id}`
-                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                    : <Link2 className="h-3.5 w-3.5" />}
-                                  <span className="ml-1.5 hidden sm:inline">Gerar link</span>
-                                </Button>
-                                {u.status === 'conectado' && (
+                              {u.origem === 'funcionario' ? (
+                                <span className="text-xs text-muted-foreground">
+                                  {u.status === 'conectado' ? 'Conectado pelo telefone' : 'Link enviado por WhatsApp'}
+                                </span>
+                              ) : (
+                                <div className="flex justify-end gap-1.5">
                                   <Button
                                     size="sm"
-                                    variant="ghost"
-                                    disabled={acao === `off-${u.user_id}`}
-                                    onClick={() => desconectarUsuario(u)}
+                                    variant="outline"
+                                    disabled={!conectado || acao === `link-${u.user_id}`}
+                                    onClick={() => gerarLink(u)}
                                   >
-                                    {acao === `off-${u.user_id}`
+                                    {acao === `link-${u.user_id}`
                                       ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                      : <Unlink className="h-3.5 w-3.5" />}
+                                      : <Link2 className="h-3.5 w-3.5" />}
+                                    <span className="ml-1.5 hidden sm:inline">Gerar link</span>
                                   </Button>
-                                )}
-                              </div>
+                                  {u.status === 'conectado' && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      disabled={acao === `off-${u.user_id}`}
+                                      onClick={() => desconectarUsuario(u)}
+                                    >
+                                      {acao === `off-${u.user_id}`
+                                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        : <Unlink className="h-3.5 w-3.5" />}
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}
