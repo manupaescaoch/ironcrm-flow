@@ -22,6 +22,7 @@ export interface TelegramUserRow {
   telegram_username: string | null;
   telegram_user_id: string | null;
   connected_at: string | null;
+  origem: 'usuario' | 'funcionario';
 }
 
 export interface TelegramGroupRow {
@@ -50,6 +51,21 @@ const FUNCAO_LABEL: Record<string, string> = {
   coordenador: 'Gerente de Unidade',
   gerente: 'Gerente Geral',
 };
+
+const CARGO_LABEL: Record<string, string> = {
+  treinador: 'Coordenador de Horário',
+  estagiario_lider: 'Estagiário Líder',
+  coordenador_unidade: 'Gerente de Unidade',
+  coordenador_tecnico: 'Coordenador Técnico',
+  recepcao: 'Recepção',
+  comercial: 'Comercial',
+};
+
+// Últimos 8 dígitos: ignora DDI, DDD e o nono dígito
+function chaveTelefone(valor: string | null | undefined): string {
+  const digitos = String(valor ?? '').replace(/\D/g, '');
+  return digitos.length >= 8 ? digitos.slice(-8) : '';
+}
 
 async function authHeaders() {
   const { data } = await supabase.auth.getSession();
@@ -94,7 +110,10 @@ export function useTelegramIntegracao() {
       const headers = await authHeaders();
       const desde = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-      const [usersRes, linksRes, groupsRes, detectedRes, unidadesRes, unidadesUserRes, logsRes] = await Promise.all([
+      const [
+        usersRes, linksRes, groupsRes, detectedRes, unidadesRes, unidadesUserRes, logsRes,
+        perfisRes, funcionariosRes, funcLinksRes,
+      ] = await Promise.all([
         supabase.functions.invoke('list-users', headers ? { headers } : undefined),
         supabase.from('telegram_users').select('*'),
         supabase.from('telegram_groups').select('*').order('name'),
@@ -102,6 +121,9 @@ export function useTelegramIntegracao() {
         supabase.from('unidades').select('id, nome'),
         supabase.from('user_unidades').select('user_id, unidade_id'),
         supabase.from('telegram_message_logs').select('id', { count: 'exact', head: true }).eq('status', 'erro').gte('created_at', desde),
+        supabase.from('user_profiles').select('user_id, telefone'),
+        supabase.from('cronograma_funcionarios').select('id, nome, telefone, cargo, unidade_id, user_id, ativo').eq('ativo', true),
+        supabase.from('telegram_funcionarios').select('*'),
       ]);
 
       const unidadeNome = new Map<string, string>(
@@ -116,9 +138,35 @@ export function useTelegramIntegracao() {
 
       const linkMap = new Map<string, any>((linksRes.data ?? []).map((l: any) => [l.user_id, l]));
 
+      // Vínculos feitos por telefone (equipe de encerramento)
+      const funcLinkPorId = new Map<string, any>(
+        ((funcLinksRes.data ?? []) as any[]).map((f) => [f.funcionario_id, f]),
+      );
+      const funcionarios = ((funcionariosRes.data ?? []) as any[]);
+      const telefonePorUser = new Map<string, string>(
+        ((perfisRes.data ?? []) as any[])
+          .filter((p) => p.telefone)
+          .map((p) => [p.user_id, chaveTelefone(p.telefone)]),
+      );
+      const funcPorTelefone = new Map<string, any>();
+      const funcPorUserId = new Map<string, any>();
+      for (const f of funcionarios) {
+        const link = funcLinkPorId.get(f.id);
+        if (!link?.telegram_user_id) continue;
+        const chave = chaveTelefone(f.telefone ?? link.telefone ?? '');
+        if (chave) funcPorTelefone.set(chave, { ...f, link });
+        if (f.user_id) funcPorUserId.set(f.user_id, { ...f, link });
+      }
+
+      const funcionariosUsados = new Set<string>();
+
       const rows: TelegramUserRow[] = ((usersRes.data as any)?.users ?? []).map((u: any) => {
         const link = linkMap.get(u.id);
-        const conectado = !!link?.telegram_user_id;
+        const chave = telefonePorUser.get(u.id);
+        const viaFuncionario = funcPorUserId.get(u.id) ?? (chave ? funcPorTelefone.get(chave) : undefined);
+        if (viaFuncionario) funcionariosUsados.add(viaFuncionario.id);
+        const vinculo = link?.telegram_user_id ? link : viaFuncionario?.link ?? link;
+        const conectado = !!vinculo?.telegram_user_id;
         return {
           user_id: u.id,
           nome: (u.name || u.email?.split('@')[0] || 'Usuário').toUpperCase(),
@@ -127,11 +175,33 @@ export function useTelegramIntegracao() {
           funcao: u.role ? (FUNCAO_LABEL[u.role] ?? u.role) : '—',
           turno: '—',
           status: conectado ? 'conectado' : link?.status === 'inativo' ? 'inativo' : 'nao_conectado',
+          telegram_username: vinculo?.telegram_username ?? null,
+          telegram_user_id: vinculo?.telegram_user_id ? String(vinculo.telegram_user_id) : null,
+          connected_at: vinculo?.connected_at ?? null,
+          origem: 'usuario' as const,
+        };
+      });
+
+      // Equipe de encerramento sem conta no CRM
+      for (const f of funcionarios) {
+        if (f.user_id && rows.some((r) => r.user_id === f.user_id)) continue;
+        if (funcionariosUsados.has(f.id)) continue;
+        const link = funcLinkPorId.get(f.id);
+        const conectado = !!link?.telegram_user_id;
+        rows.push({
+          user_id: f.id,
+          nome: String(f.nome ?? '').trim().toUpperCase() || 'COLABORADOR',
+          email: f.telefone ?? '',
+          unidades: f.unidade_id ? (unidadeNome.get(f.unidade_id) ?? '—') : '—',
+          funcao: CARGO_LABEL[f.cargo] ?? f.cargo ?? '—',
+          turno: f.turno ?? '—',
+          status: conectado ? 'conectado' : 'nao_conectado',
           telegram_username: link?.telegram_username ?? null,
           telegram_user_id: link?.telegram_user_id ? String(link.telegram_user_id) : null,
           connected_at: link?.connected_at ?? null,
-        };
-      });
+          origem: 'funcionario' as const,
+        });
+      }
 
       rows.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
       setUsers(rows);
