@@ -52,6 +52,21 @@ const FUNCAO_LABEL: Record<string, string> = {
   gerente: 'Gerente Geral',
 };
 
+const CARGO_LABEL: Record<string, string> = {
+  treinador: 'Coordenador de Horário',
+  estagiario_lider: 'Estagiário Líder',
+  coordenador_unidade: 'Gerente de Unidade',
+  coordenador_tecnico: 'Coordenador Técnico',
+  recepcao: 'Recepção',
+  comercial: 'Comercial',
+};
+
+// Últimos 8 dígitos: ignora DDI, DDD e o nono dígito
+function chaveTelefone(valor: string | null | undefined): string {
+  const digitos = String(valor ?? '').replace(/\D/g, '');
+  return digitos.length >= 8 ? digitos.slice(-8) : '';
+}
+
 async function authHeaders() {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
