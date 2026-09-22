@@ -163,8 +163,9 @@ Deno.serve(async (req) => {
     const zs = await getStats(supabase, ZS_ID);
     const stb = await getStats(supabase, STB_ID);
 
-    const now = getBrasiliaDate();
-    const dataHora = now.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).replace(',', '');
+    // Exibição no horário de Recife (UTC-3, igual a America/Sao_Paulo).
+    // Usa o relógio real do servidor para não aplicar o fuso duas vezes.
+    const dataHora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Recife' }).replace(',', '');
 
     // Foco do dia: lógica simples baseada nos dados
     const focos = [];
