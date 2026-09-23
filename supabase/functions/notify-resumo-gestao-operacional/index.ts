@@ -178,12 +178,13 @@ Deno.serve(async (req) => {
     // Usa o relógio real do servidor para não aplicar o fuso duas vezes.
     const dataHora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Recife' }).replace(',', '');
 
-    const focoDaUnidade = (nome: string, dados: any): string => {
+    const focoDaUnidade = (dados: any): string => {
       const focos: string[] = [];
-      if (dados.fuAtrasados > 0 || dados.fuTotal > 50) focos.push(`Revisar follow-ups pendentes na ${nome}`);
-      if (parseFloat(dados.comp) < 60) focos.push(`Recuperar comparecimento na ${nome}`);
-      if (dados.meta > 0 && dados.ativos < dados.meta) focos.push(`Avançar na meta de alunos da ${nome}`);
-      return focos.length > 0 ? focos.join(', ') : 'Manter o ritmo de matrículas e follow-ups';
+      if (dados.fuAtrasados > 0 || dados.fuTotal > 50) focos.push('Revisar follow-ups pendentes');
+      if (parseFloat(dados.comp) < 60) focos.push('Recuperar o comparecimento');
+      if (dados.meta > 0 && dados.ativos < dados.meta) focos.push(`Avançar na meta de ${dados.meta} alunos`);
+      if (focos.length === 0) focos.push('Manter o ritmo de matrículas e follow-ups');
+      return focos.map((foco) => `• ${foco}`).join('\n');
     };
 
     const montarMensagem = (nome: string, dados: any): string => {
@@ -196,43 +197,32 @@ Atualização: ${dataHora}
 
 📍 *${nome}*
 
-Alunos ativos: ${dados.ativos}
-
-Meta: ${dados.meta}
-
-Realizado: ${pct(dados.ativos, dados.meta)}
-
+👥 *ALUNOS*
+Ativos: ${dados.ativos}
+Meta: ${dados.meta} | Realizado: ${pct(dados.ativos, dados.meta)}
 Faltam: ${Math.max(0, dados.meta - dados.ativos)} alunos
 
+📈 *COMERCIAL*
 Matrículas: ${dados.matsWeek}
-
-Semana anterior: ${dados.matsPrev}
-
-Variação: ${diffPct(dados.matsWeek, dados.matsPrev)}
+Semana anterior: ${dados.matsPrev} | Variação: ${diffPct(dados.matsWeek, dados.matsPrev)}
 
 Comparecimento: ${dados.comp}
-
 Semana anterior: ${dados.compPrev}
 
 Conversão EXP → MAT: ${dados.conv}
-
 Semana anterior: ${dados.convPrev}
 
-Vendas do mês: ${dados.matsMonth} matrículas × ${fmtBRL(dados.ticket)} = ${fmtBRL(vendasMes)}
-
-Vendas mês anterior: ${fmtBRL(vendasMesAnterior)}
-
-Variação: ${diffPct(vendasMes, vendasMesAnterior)}
+💰 *VENDAS*
+Mês: ${dados.matsMonth} matrículas × ${fmtBRL(dados.ticket)} = ${fmtBRL(vendasMes)}
+Mês anterior: ${fmtBRL(vendasMesAnterior)} | Variação: ${diffPct(vendasMes, vendasMesAnterior)}
 
 Ticket médio: ${fmtBRL(dados.ticket)}
 
-Receita recorrente projetada do mês: ${fmtBRL(dados.recorrente)}
-
-Receita recorrente do mês anterior: ${fmtBRL(recorrenteMesAnterior)}
+Receita recorrente projetada: ${fmtBRL(dados.recorrente)}
+Receita recorrente mês anterior: ${fmtBRL(recorrenteMesAnterior)}
 
 ✅ *FOCO DO DIA*
-
-${focoDaUnidade(nome, dados)}.`;
+${focoDaUnidade(dados)}`;
     };
 
     const messages = [
