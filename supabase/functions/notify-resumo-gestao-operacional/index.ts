@@ -213,7 +213,7 @@ Conversão EXP → MAT: ${dados.conv}
 Semana anterior: ${dados.convPrev}
 
 💰 *VENDAS*
-Mês: ${dados.matsMonth} matrículas × ${fmtBRL(dados.ticket)} = ${fmtBRL(vendasMes)}
+Mês: ${fmtBRL(vendasMes)}
 Mês anterior: ${fmtBRL(vendasMesAnterior)} | Variação: ${diffPct(vendasMes, vendasMesAnterior)}
 
 Ticket médio: ${fmtBRL(dados.ticket)}
