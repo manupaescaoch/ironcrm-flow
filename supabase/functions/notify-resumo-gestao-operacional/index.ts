@@ -60,6 +60,7 @@ async function getStats(supabase: any, unidadeId: string | null) {
   const { data: metas } = await metaQuery;
   
   const totalAtivos = (metas || []).reduce((acc: number, m: any) => acc + (m.alunos_ativos_manual || 0), 0);
+  const totalAtivosAnterior = (metas || []).reduce((acc: number, m: any) => acc + (m.alunos_ativos_semana_anterior || 0), 0);
   const totalMetaAlunos = (metas || []).reduce((acc: number, m: any) => acc + (m.meta_alunos_mes || 0), 0);
   const avgTicket = (metas || []).reduce((acc: number, m: any) => acc + (m.ticket_medio_real || 0), 0) / (metas?.length || 1);
   const avgEvasao = (metas || []).reduce((acc: number, m: any) => acc + (m.evasao_pct_manual || 0), 0) / (metas?.length || 1);
@@ -76,6 +77,14 @@ async function getStats(supabase: any, unidadeId: string | null) {
   const matsLastWeek = (allMats || []).filter((m: any) => {
     const d = new Date(m.data_fechamento + 'T12:00:00');
     return d >= lastSunday && d < sunday;
+  }).length;
+  const matsThisMonth = (allMats || []).filter((m: any) => {
+    const d = new Date(m.data_fechamento + 'T12:00:00');
+    return d >= monthStart;
+  }).length;
+  const matsLastMonth = (allMats || []).filter((m: any) => {
+    const d = new Date(m.data_fechamento + 'T12:00:00');
+    return d >= prevMonthStart && d <= prevMonthEnd;
   }).length;
 
   // 3. Comparecimento (Experimentais)
@@ -126,9 +135,12 @@ async function getStats(supabase: any, unidadeId: string | null) {
 
   return {
     ativos: totalAtivos,
+    ativosAnterior: totalAtivosAnterior,
     meta: totalMetaAlunos,
     matsWeek: matsThisWeek,
     matsPrev: matsLastWeek,
+    matsMonth: matsThisMonth,
+    matsPrevMonth: matsLastMonth,
     fuAtrasados: atrasados,
     fuTotal: totalFus,
     comp: compThisWeek,
@@ -158,7 +170,6 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch { /* body opcional */ }
     const destPhone = body?.phone || DEFAULT_DEST_PHONE;
 
-    const consolidated = await getStats(supabase, null);
     const zn = await getStats(supabase, ZN_ID);
     const zs = await getStats(supabase, ZS_ID);
     const stb = await getStats(supabase, STB_ID);
@@ -167,121 +178,68 @@ Deno.serve(async (req) => {
     // Usa o relógio real do servidor para não aplicar o fuso duas vezes.
     const dataHora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Recife' }).replace(',', '');
 
-    // Foco do dia: lógica simples baseada nos dados
-    const focos = [];
-    if (zs.fuAtrasados > 0 || zs.fuTotal > 50) focos.push('Revisar follow-ups pendentes na EVO Boa Viagem');
-    if (zn.fuAtrasados > 0 || zn.fuTotal > 50) focos.push('Revisar follow-ups pendentes na EVO Madalena');
-    if (stb.fuAtrasados > 0 || stb.fuTotal > 50) focos.push('Revisar follow-ups pendentes na EVO Setúbal');
-    if (parseFloat(zs.comp) < 60) focos.push('Recuperar comparecimento na EVO Boa Viagem');
-    if (parseFloat(zn.comp) < 60) focos.push('Recuperar comparecimento na EVO Madalena');
-    if (parseFloat(stb.comp) < 60) focos.push('Recuperar comparecimento na EVO Setúbal');
-    if (focos.length === 0) focos.push('Manter o ritmo de matrículas e follow-ups');
+    const focoDaUnidade = (nome: string, dados: any): string => {
+      const focos: string[] = [];
+      if (dados.fuAtrasados > 0 || dados.fuTotal > 50) focos.push(`Revisar follow-ups pendentes na ${nome}`);
+      if (parseFloat(dados.comp) < 60) focos.push(`Recuperar comparecimento na ${nome}`);
+      if (dados.meta > 0 && dados.ativos < dados.meta) focos.push(`Avançar na meta de alunos da ${nome}`);
+      return focos.length > 0 ? focos.join(', ') : 'Manter o ritmo de matrículas e follow-ups';
+    };
 
-    const message = `📊 *GESTÃO OPERACIONAL EVO CLUB*
+    const montarMensagem = (nome: string, dados: any): string => {
+      const vendasMes = dados.matsMonth * dados.ticket;
+      const vendasMesAnterior = dados.matsPrevMonth * dados.ticket;
+      const recorrenteMesAnterior = dados.ativosAnterior * dados.ticket;
+
+      return `📊 *GESTÃO OPERACIONAL EVO CLUB*
 Atualização: ${dataHora}
 
-🏋️ *CONSOLIDADO*
+📍 *${nome}*
 
-Alunos ativos: ${consolidated.ativos}
-Meta: ${consolidated.ativos} / ${consolidated.meta}
-Realizado: ${pct(consolidated.ativos, consolidated.meta)}
-Faltam: ${Math.max(0, consolidated.meta - consolidated.ativos)} alunos
+Alunos ativos: ${dados.ativos}
 
-Matrículas da semana: ${consolidated.matsWeek}
-Semana anterior: ${consolidated.matsPrev}
-Variação: ${diffPct(consolidated.matsWeek, consolidated.matsPrev)}
+Meta: ${dados.meta}
 
-Follow-ups atrasados: ${consolidated.fuAtrasados}
+Realizado: ${pct(dados.ativos, dados.meta)}
 
-━━━━━━━━━━━━━━
+Faltam: ${Math.max(0, dados.meta - dados.ativos)} alunos
 
-📍 *EVO MADALENA*
+Matrículas: ${dados.matsWeek}
 
-Alunos ativos: ${zn.ativos}
-Meta: ${zn.ativos} / ${zn.meta}
-Realizado: ${pct(zn.ativos, zn.meta)}
-Faltam: ${Math.max(0, zn.meta - zn.ativos)} alunos
+Semana anterior: ${dados.matsPrev}
 
-Matrículas: ${zn.matsWeek}
-Semana anterior: ${zn.matsPrev}
-Variação: ${diffPct(zn.matsWeek, zn.matsPrev)}
+Variação: ${diffPct(dados.matsWeek, dados.matsPrev)}
 
-Comparecimento: ${zn.comp}
-Semana anterior: ${zn.compPrev}
+Comparecimento: ${dados.comp}
 
-Conversão EXP → MAT: ${zn.conv}
-Semana anterior: ${zn.convPrev}
+Semana anterior: ${dados.compPrev}
 
-Receita do mês: ${fmtBRL(zn.receita)}
-Mês anterior: ${fmtBRL(zn.receitaPrev)}
-Variação: ${diffPct(zn.receita, zn.receitaPrev)}
+Conversão EXP → MAT: ${dados.conv}
 
-Ticket médio: ${fmtBRL(zn.ticket)}
-Receita recorrente projetada: ${fmtBRL(zn.ativos * zn.ticket)}
+Semana anterior: ${dados.convPrev}
 
-Follow-ups atrasados: ${zn.fuAtrasados}
+Vendas do mês: ${dados.matsMonth} matrículas × ${fmtBRL(dados.ticket)} = ${fmtBRL(vendasMes)}
 
-━━━━━━━━━━━━━━
+Vendas mês anterior: ${fmtBRL(vendasMesAnterior)}
 
-📍 *EVO BOA VIAGEM*
+Variação: ${diffPct(vendasMes, vendasMesAnterior)}
 
-Alunos ativos: ${zs.ativos}
-Meta: ${zs.ativos} / ${zs.meta}
-Realizado: ${pct(zs.ativos, zs.meta)}
-Faltam: ${Math.max(0, zs.meta - zs.ativos)} alunos
+Ticket médio: ${fmtBRL(dados.ticket)}
 
-Matrículas: ${zs.matsWeek}
-Semana anterior: ${zs.matsPrev}
-Variação: ${diffPct(zs.matsWeek, zs.matsPrev)}
+Receita recorrente projetada do mês: ${fmtBRL(dados.recorrente)}
 
-Comparecimento: ${zs.comp}
-Semana anterior: ${zs.compPrev}
-
-Conversão EXP → MAT: ${zs.conv}
-Semana anterior: ${zs.convPrev}
-
-Receita do mês: ${fmtBRL(zs.receita)}
-Mês anterior: ${fmtBRL(zs.receitaPrev)}
-Variação: ${diffPct(zs.receita, zs.receitaPrev)}
-
-Ticket médio: ${fmtBRL(zs.ticket)}
-Receita recorrente projetada: ${fmtBRL(zs.ativos * zs.ticket)}
-
-Follow-ups atrasados: ${zs.fuAtrasados}
-
-━━━━━━━━━━━━━━
-
-📍 *EVO SETÚBAL*
-
-Alunos ativos: ${stb.ativos}
-Meta: ${stb.ativos} / ${stb.meta}
-Realizado: ${pct(stb.ativos, stb.meta)}
-Faltam: ${Math.max(0, stb.meta - stb.ativos)} alunos
-
-Matrículas: ${stb.matsWeek}
-Semana anterior: ${stb.matsPrev}
-Variação: ${diffPct(stb.matsWeek, stb.matsPrev)}
-
-Comparecimento: ${stb.comp}
-Semana anterior: ${stb.compPrev}
-
-Conversão EXP → MAT: ${stb.conv}
-Semana anterior: ${stb.convPrev}
-
-Receita do mês: ${fmtBRL(stb.receita)}
-Mês anterior: ${fmtBRL(stb.receitaPrev)}
-Variação: ${diffPct(stb.receita, stb.receitaPrev)}
-
-Ticket médio: ${fmtBRL(stb.ticket)}
-Receita recorrente projetada: ${fmtBRL(stb.ativos * stb.ticket)}
-
-Follow-ups atrasados: ${stb.fuAtrasados}
-
-━━━━━━━━━━━━━━
+Receita recorrente do mês anterior: ${fmtBRL(recorrenteMesAnterior)}
 
 ✅ *FOCO DO DIA*
 
-${focos.join(', ')}.`;
+${focoDaUnidade(nome, dados)}.`;
+    };
+
+    const messages = [
+      { unidade: 'EVO MADALENA', text: montarMensagem('EVO MADALENA', zn) },
+      { unidade: 'EVO BOA VIAGEM', text: montarMensagem('EVO BOA VIAGEM', zs) },
+      { unidade: 'EVO SETÚBAL', text: montarMensagem('EVO SETÚBAL', stb) },
+    ];
 
 
     // Destino no Telegram: chat privado do usuário cujo telefone corresponde ao informado.
@@ -313,27 +271,38 @@ ${focos.join(', ')}.`;
       );
     }
 
-    let resp = await sendTelegramMessage({
-      chat_id: chatId,
-      text: message,
-      parse_mode: 'Markdown',
-      recipient_type: 'usuario',
-      recipient_id: perfil?.user_id ?? null,
-      message_type: 'resumo_gestao_operacional',
-    }, supabase);
-
-    if (!resp.ok) {
-      resp = await sendTelegramMessage({
+    const results = [];
+    for (const message of messages) {
+      let resp = await sendTelegramMessage({
         chat_id: chatId,
-        text: message.replace(/\*/g, ''),
+        text: message.text,
+        parse_mode: 'Markdown',
         recipient_type: 'usuario',
         recipient_id: perfil?.user_id ?? null,
         message_type: 'resumo_gestao_operacional',
       }, supabase);
+
+      if (!resp.ok) {
+        resp = await sendTelegramMessage({
+          chat_id: chatId,
+          text: message.text.replace(/\*/g, ''),
+          recipient_type: 'usuario',
+          recipient_id: perfil?.user_id ?? null,
+          message_type: 'resumo_gestao_operacional',
+        }, supabase);
+      }
+
+      results.push({
+        unidade: message.unidade,
+        success: resp.ok,
+        error: resp.error ?? null,
+        message_id: resp.message_id ?? null,
+      });
     }
 
-    return new Response(JSON.stringify({ success: resp.ok, error: resp.error ?? null, message_id: resp.message_id ?? null, message }), {
-      status: resp.ok ? 200 : 502,
+    const success = results.every((result) => result.success);
+    return new Response(JSON.stringify({ success, results, messages }), {
+      status: success ? 200 : 502,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
