@@ -38,7 +38,7 @@ const PAISES = [
   { code: 'AU', flag: '🇦🇺', nome: 'Austrália', ddi: '+61' },
 ];
 
-const UNIDADES = ['EVO MADALENA', 'EVO BOA VIAGEM', 'EVO SETÚBAL', 'EVO SANTA CRUZ DO CAPIBARIBE'];
+const UNIDADES = ['EVO MADALENA', 'EVO BOA VIAGEM', 'EVO SETÚBAL', 'EVO SANTA CRUZ'];
 
 type Tipo = 'contato' | 'unidade' | 'single' | 'multi' | 'paragrafo' | 'curto' | 'escala';
 interface Etapa {
