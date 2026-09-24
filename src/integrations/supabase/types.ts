@@ -344,6 +344,41 @@ export type Database = {
         }
         Relationships: []
       }
+      cancelamento_observacoes: {
+        Row: {
+          created_at: string
+          id: string
+          solicitacao_id: string
+          texto: string
+          user_id: string
+          usuario_nome: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          solicitacao_id: string
+          texto: string
+          user_id?: string
+          usuario_nome?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          solicitacao_id?: string
+          texto?: string
+          user_id?: string
+          usuario_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cancelamento_observacoes_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "cancelamento_solicitacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cancelamento_solicitacoes: {
         Row: {
           aceita_contato_antes: boolean | null
