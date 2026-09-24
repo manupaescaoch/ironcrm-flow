@@ -454,7 +454,7 @@ export default function CancelamentoPublico() {
   /* ---------- layout ---------- */
 
   return (
-    <div className="min-h-screen bg-[#F4F5F7] px-4 py-8 font-[Inter,system-ui,sans-serif] text-[#0F172A] sm:py-14" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" }}>
+    <div className="min-h-screen bg-[#F4F5F7] px-4 py-8 text-[#0F172A] sm:py-14" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" }}>
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
       <div className="mx-auto w-full max-w-[760px]">
         <div className="overflow-hidden rounded-[28px] border border-[#EAECF0] bg-white shadow-[0_1px_3px_rgba(16,24,40,0.06),0_24px_48px_-24px_rgba(16,24,40,0.12)]">
