@@ -11,7 +11,7 @@ const UNIDADES: Record<string, { env: string; busca: string }> = {
   'EVO MADALENA': { env: 'GERENCIA_MADALENA', busca: 'MADALENA' },
   'EVO BOA VIAGEM': { env: 'GERENCIA_BOA_VIAGEM', busca: 'BOA VIAGEM' },
   'EVO SETÚBAL': { env: 'GERENCIA_SETUBAL', busca: 'SET' },
-  'EVO SANTA CRUZ DO CAPIBARIBE': { env: 'GERENCIA_SANTA_CRUZ', busca: 'SANTA CRUZ' },
+  'EVO SANTA CRUZ': { env: 'GERENCIA_SANTA_CRUZ', busca: 'SANTA CRUZ' },
 };
 
 const s = (max: number) => z.string().trim().max(max).optional().nullable();
