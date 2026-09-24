@@ -162,7 +162,7 @@ export default function TelegramIntegracao() {
       if (!mapa.has(key)) mapa.set(key, { nome, grupos: [] });
       mapa.get(key)!.grupos.push(g);
     }
-    const ordem = ['coordenadores', 'comercial', 'gerencia', 'nps', 'anamnese', 'contas_pagar'];
+    const ordem = ['coordenadores', 'comercial', 'gerencia', 'nps', 'anamnese', 'cancelamento', 'contas_pagar'];
     for (const v of mapa.values()) {
       v.grupos.sort((a, b) => ordem.indexOf(a.group_type) - ordem.indexOf(b.group_type));
     }
