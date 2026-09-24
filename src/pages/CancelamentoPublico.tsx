@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronDown, Loader2, User, Phone, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import evoClubLogo from '@/assets/evo-club-logo.png.asset.json';
+import evoClubLogo from '@/assets/evo-club-logo-dark.png.asset.json';
 
 /* ---------------- dados ---------------- */
 
@@ -459,8 +459,8 @@ export default function CancelamentoPublico() {
       <div className="mx-auto w-full max-w-[760px]">
         <div className="overflow-hidden rounded-[28px] border border-[#EAECF0] bg-white shadow-[0_1px_3px_rgba(16,24,40,0.06),0_24px_48px_-24px_rgba(16,24,40,0.12)]">
           {/* Cabeçalho */}
-          <header className="flex justify-center border-b border-[#F2F4F7] px-6 pb-8 pt-10 sm:pt-12">
-            <img src={evoClubLogo.url} alt="EVO Club" className="h-14 w-auto object-contain sm:h-16" />
+          <header className="flex justify-center bg-black px-6 py-6 sm:py-7">
+            <img src={evoClubLogo.url} alt="EVO Club" className="h-auto w-44 object-contain sm:w-56" />
           </header>
 
           {step === TOTAL + 1 ? (
