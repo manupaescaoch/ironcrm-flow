@@ -344,6 +344,90 @@ export type Database = {
         }
         Relationships: []
       }
+      cancelamento_solicitacoes: {
+        Row: {
+          aceita_contato_antes: boolean | null
+          aceita_contato_futuro: boolean | null
+          acompanhamento: string | null
+          created_at: string
+          ddi: string
+          detalhamento: string | null
+          evitaria_saida: string | null
+          evolucao: string | null
+          fator_escolha: string | null
+          id: string
+          motivos: string[]
+          nome: string
+          nota: number | null
+          plano: string | null
+          pontos_positivos: string | null
+          problemas: string[]
+          proxima_escolha: string | null
+          solucoes_retencao: string[]
+          status: string
+          telefone: string
+          telegram_enviado: boolean
+          unidade: string
+          unidade_id: string | null
+          updated_at: string
+          vai_treinar_outro_local: string | null
+        }
+        Insert: {
+          aceita_contato_antes?: boolean | null
+          aceita_contato_futuro?: boolean | null
+          acompanhamento?: string | null
+          created_at?: string
+          ddi?: string
+          detalhamento?: string | null
+          evitaria_saida?: string | null
+          evolucao?: string | null
+          fator_escolha?: string | null
+          id?: string
+          motivos?: string[]
+          nome: string
+          nota?: number | null
+          plano?: string | null
+          pontos_positivos?: string | null
+          problemas?: string[]
+          proxima_escolha?: string | null
+          solucoes_retencao?: string[]
+          status?: string
+          telefone: string
+          telegram_enviado?: boolean
+          unidade: string
+          unidade_id?: string | null
+          updated_at?: string
+          vai_treinar_outro_local?: string | null
+        }
+        Update: {
+          aceita_contato_antes?: boolean | null
+          aceita_contato_futuro?: boolean | null
+          acompanhamento?: string | null
+          created_at?: string
+          ddi?: string
+          detalhamento?: string | null
+          evitaria_saida?: string | null
+          evolucao?: string | null
+          fator_escolha?: string | null
+          id?: string
+          motivos?: string[]
+          nome?: string
+          nota?: number | null
+          plano?: string | null
+          pontos_positivos?: string | null
+          problemas?: string[]
+          proxima_escolha?: string | null
+          solucoes_retencao?: string[]
+          status?: string
+          telefone?: string
+          telegram_enviado?: boolean
+          unidade?: string
+          unidade_id?: string | null
+          updated_at?: string
+          vai_treinar_outro_local?: string | null
+        }
+        Relationships: []
+      }
       contas_pagar: {
         Row: {
           agencia: string | null
