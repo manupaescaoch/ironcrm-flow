@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.cancelamento-solicitacao]
 verify_jwt = false
+
+[functions.telegram-comunicado]
+verify_jwt = false
