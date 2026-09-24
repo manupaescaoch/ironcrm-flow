@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
     if (envChat && /^-?\d+$/.test(envChat.trim())) {
       grupo = { id: null as any, group_type: 'gerencia', telegram_chat_id: Number(envChat.trim()), telegram_title: null };
     } else {
-      grupo = await resolveGrupoUnidade(admin, unidadeId, ['gerencia', 'coordenadores']);
+      grupo = await resolveGrupoUnidade(admin, unidadeId, ['cancelamento', 'gerencia', 'coordenadores']);
     }
 
     let enviado = false;
