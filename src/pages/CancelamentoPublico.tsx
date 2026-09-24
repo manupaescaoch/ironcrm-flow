@@ -52,8 +52,7 @@ interface Etapa {
 }
 
 const ETAPAS: Etapa[] = [
-  { key: 'contato', titulo: 'Seu nome e WhatsApp', tipo: 'contato', obrigatorio: true },
-  { key: 'unidade', titulo: 'Em qual unidade você treina?', tipo: 'unidade', opcoes: UNIDADES, obrigatorio: true },
+  { key: 'contato', titulo: 'Seu nome, WhatsApp e unidade', tipo: 'contato', obrigatorio: true },
   { key: 'plano', titulo: 'Qual é o seu plano atual?', tipo: 'single', obrigatorio: true, outro: true,
     opcoes: ['Mensal', 'Semestral', 'Anual', 'Executivo', 'Completo', 'Outro'] },
   { key: 'motivos', titulo: 'Qual é o principal motivo da sua decisão?', tipo: 'multi', obrigatorio: true, outro: true,
@@ -190,6 +189,7 @@ export default function CancelamentoPublico() {
       if (!r.nome || r.nome.trim().length < 2) return 'Informe seu nome.';
       const min = isBR ? 10 : 6;
       if (digits.length < min) return 'Informe um WhatsApp válido.';
+      if (!r.unidade) return 'Selecione sua unidade.';
       return null;
     }
     if (!e.obrigatorio) return null;
@@ -346,6 +346,21 @@ export default function CancelamentoPublico() {
                     className={cn(fieldClass, 'pl-11')}
                   />
                 </div>
+              </div>
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label htmlFor="unidade" className="text-sm font-semibold text-[#344054]">Unidade <span className="text-[#0A6CFF]">*</span></label>
+              <div className="relative">
+                <select
+                  id="unidade"
+                  value={r.unidade ?? ''}
+                  onChange={(ev) => set('unidade', ev.target.value)}
+                  className={cn(fieldClass, 'w-full appearance-none rounded-xl border border-[#E4E7EC] bg-white px-4 pr-11 text-base', !r.unidade && 'text-[#98A2B3]')}
+                >
+                  <option value="" disabled>Selecione sua unidade</option>
+                  {UNIDADES.map((u) => <option key={u} value={u} className="text-[#0F172A]">{u}</option>)}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
               </div>
             </div>
           </div>
