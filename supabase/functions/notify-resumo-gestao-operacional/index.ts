@@ -62,6 +62,7 @@ async function getStats(supabase: any, unidadeId: string | null) {
   const totalAtivos = (metas || []).reduce((acc: number, m: any) => acc + (m.alunos_ativos_manual || 0), 0);
   const totalAtivosAnterior = (metas || []).reduce((acc: number, m: any) => acc + (m.alunos_ativos_semana_anterior || 0), 0);
   const totalMetaAlunos = (metas || []).reduce((acc: number, m: any) => acc + (m.meta_alunos_mes || 0), 0);
+  const totalSupermetaAlunos = (metas || []).reduce((acc: number, m: any) => acc + (m.supermeta_alunos_mes || 0), 0);
   const avgTicket = (metas || []).reduce((acc: number, m: any) => acc + (m.ticket_medio_real || 0), 0) / (metas?.length || 1);
   const avgEvasao = (metas || []).reduce((acc: number, m: any) => acc + (m.evasao_pct_manual || 0), 0) / (metas?.length || 1);
   const totalRecorrente = (metas || []).reduce((acc: number, m: any) => acc + ((m.alunos_ativos_manual || 0) * (m.ticket_medio_real || 0)), 0);
@@ -137,6 +138,7 @@ async function getStats(supabase: any, unidadeId: string | null) {
     ativos: totalAtivos,
     ativosAnterior: totalAtivosAnterior,
     meta: totalMetaAlunos,
+    supermeta: totalSupermetaAlunos,
     matsWeek: matsThisWeek,
     matsPrev: matsLastWeek,
     matsMonth: matsThisMonth,
@@ -182,7 +184,8 @@ Deno.serve(async (req) => {
       const focos: string[] = [];
       if (dados.fuAtrasados > 0 || dados.fuTotal > 50) focos.push('Revisar follow-ups pendentes');
       if (parseFloat(dados.comp) < 60) focos.push('Recuperar o comparecimento');
-      if (dados.meta > 0 && dados.ativos < dados.meta) focos.push(`Avançar na meta de ${dados.meta} alunos`);
+      if (dados.meta > 0 && dados.ativos < dados.meta) focos.push(`Avançar na Meta Mínima de ${dados.meta} alunos`);
+      else if (dados.supermeta > 0 && dados.ativos < dados.supermeta) focos.push(`Avançar na Supermeta de ${dados.supermeta} alunos`);
       if (focos.length === 0) focos.push('Manter o ritmo de matrículas e follow-ups');
       return focos.map((foco) => `• ${foco}`).join('\n');
     };
@@ -199,8 +202,9 @@ Atualização: ${dataHora}
 
 👥 *ALUNOS*
 Ativos: ${dados.ativos}
-Meta: ${dados.meta} | Realizado: ${pct(dados.ativos, dados.meta)}
-Faltam: ${Math.max(0, dados.meta - dados.ativos)} alunos
+Meta Mínima: ${dados.meta} | Realizado: ${pct(dados.ativos, dados.meta)}
+Supermeta: ${dados.supermeta || 'Não definida'}${dados.supermeta ? ` | Realizado: ${pct(dados.ativos, dados.supermeta)}` : ''}
+Faltam: ${Math.max(0, (dados.ativos < dados.meta ? dados.meta : (dados.supermeta || dados.meta)) - dados.ativos)} alunos
 
 📈 *COMERCIAL*
 Matrículas: ${dados.matsWeek}

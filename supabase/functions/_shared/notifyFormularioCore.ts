@@ -590,12 +590,13 @@ export async function executeNotification(
     try {
       const metasRes = await supabase
         .from('gestao_metas')
-        .select('meta_alunos_mes')
+        .select('meta_alunos_mes, supermeta_alunos_mes')
         .eq('unidade_id', ctx.unidade_id)
         .maybeSingle();
 
       row._meta = {
         meta_alunos: metasRes.data?.meta_alunos_mes,
+        supermeta_alunos: metasRes.data?.supermeta_alunos_mes,
       };
     } catch (e) {
       console.error('[executeNotification] Failed to fetch metadata', e);

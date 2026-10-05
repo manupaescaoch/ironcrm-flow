@@ -15,6 +15,7 @@ export interface MetaUnidade {
   alunos_ativos_manual: number;
   ticket_medio_real: number;
   meta_alunos_mes: number;
+  supermeta_alunos_mes: number;
   evasao_pct_manual: number;
   cac_manual: number;
 }
@@ -42,6 +43,7 @@ export interface UnidadeKPIs {
   ticket_medio_real: number;
   receita_recorrente_projetada: number;
   meta_alunos_mes: number;
+  supermeta_alunos_mes: number;
   cancelamentos_mes: number;
   matriculas_mes: number;
   investimento_mes: number;
@@ -251,6 +253,7 @@ async function fetchUnidadeKPIs(unidade_id: string, unidade_nome: string, meta: 
     ticket_medio_real: meta?.ticket_medio_real ?? 0,
     receita_recorrente_projetada: (alunosAtivos ?? 0) * Number(meta?.ticket_medio_real ?? 0),
     meta_alunos_mes: meta?.meta_alunos_mes ?? 0,
+    supermeta_alunos_mes: meta?.supermeta_alunos_mes ?? 0,
     cancelamentos_mes: cancelamentosMes,
     matriculas_mes: matriculasMes,
     investimento_mes: investimentoMes,

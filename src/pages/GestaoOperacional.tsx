@@ -96,20 +96,26 @@ function EditarMetasDialog({ k, onSaved }: { k: UnidadeKPIs; onSaved: () => void
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [metaAlunos, setMetaAlunos] = useState(k.meta_alunos_mes);
+  const [supermetaAlunos, setSupermetaAlunos] = useState(k.supermeta_alunos_mes);
   const [evasao, setEvasao] = useState(k.meta?.evasao_pct_manual ?? 0);
   const [cac, setCac] = useState(k.meta?.cac_manual ?? 0);
 
   useEffect(() => {
     if (open) {
       setMetaAlunos(k.meta_alunos_mes);
+      setSupermetaAlunos(k.supermeta_alunos_mes);
       setEvasao(k.meta?.evasao_pct_manual ?? 0);
       setCac(k.meta?.cac_manual ?? 0);
     }
   }, [open, k]);
 
   const handleSave = async () => {
+    if (supermetaAlunos > 0 && supermetaAlunos < metaAlunos) {
+      toast.error('A Supermeta não pode ser menor que a Meta Mínima.');
+      return;
+    }
     setSaving(true);
-    const payload = { meta_alunos_mes: metaAlunos, evasao_pct_manual: evasao, cac_manual: cac };
+    const payload = { meta_alunos_mes: metaAlunos, supermeta_alunos_mes: supermetaAlunos, evasao_pct_manual: evasao, cac_manual: cac };
     let error;
     if (k.meta?.id) {
       ({ error } = await supabase.from('gestao_metas').update(payload).eq('id', k.meta.id));
@@ -137,8 +143,13 @@ function EditarMetasDialog({ k, onSaved }: { k: UnidadeKPIs; onSaved: () => void
         </DialogHeader>
         <div className="py-2 space-y-3">
           <div>
-            <Label className="text-xs">Meta de alunos no mês</Label>
+            <Label className="text-xs">Meta Mínima</Label>
             <Input type="number" value={metaAlunos} onChange={e => setMetaAlunos(+e.target.value)} autoFocus />
+          </div>
+          <div>
+            <Label className="text-xs">Supermeta</Label>
+            <Input type="number" value={supermetaAlunos} onChange={e => setSupermetaAlunos(+e.target.value)} min={metaAlunos || 0} />
+            <p className="mt-1 text-[11px] text-muted-foreground">Use 0 caso ainda não queira definir uma Supermeta.</p>
           </div>
           <div>
             <Label className="text-xs">Evasão do mês (%)</Label>
@@ -165,6 +176,7 @@ function EditarMetasDialog({ k, onSaved }: { k: UnidadeKPIs; onSaved: () => void
 function TopKPIsRow({ kpis }: { kpis: UnidadeKPIs[] }) {
   const totAtivos = kpis.reduce((s, k) => s + k.alunos_ativos, 0);
   const totMeta = kpis.reduce((s, k) => s + (k.meta_alunos_mes ?? 0), 0);
+  const totSupermeta = kpis.reduce((s, k) => s + (k.supermeta_alunos_mes ?? 0), 0);
   const pctMeta = totMeta > 0 ? Math.round((totAtivos / totMeta) * 100) : 0;
 
   const totMatr = kpis.reduce((s, k) => s + k.matriculas_semana, 0);
@@ -182,7 +194,7 @@ function TopKPIsRow({ kpis }: { kpis: UnidadeKPIs[] }) {
         icon={Users}
         label="Alunos ativos total"
         value={totAtivos}
-        sub={totMeta > 0 ? `${pctMeta}% da meta (${totMeta})` : 'Meta não definida'}
+        sub={totMeta > 0 ? `${pctMeta}% da Meta Mínima (${totMeta})${totSupermeta > 0 ? ` · Supermeta ${totSupermeta}` : ''}` : 'Meta Mínima não definida'}
       />
       <SummaryKPI
         icon={GraduationCap}
@@ -625,31 +637,37 @@ function LancamentoSemanal({ unidades, onSaved }: { unidades: UnidadeKPIs[]; onS
 /** Bloco "Meta vs Realizado — Consolidado" com % grande à esquerda e barras à direita */
 function MetaConsolidada({ kpis }: { kpis: UnidadeKPIs[] }) {
   const totalAlunos = kpis.reduce((s, k) => s + k.alunos_ativos, 0);
-  const totalMeta = kpis.reduce((s, k) => s + (k.meta_alunos_mes ?? 0), 0);
-  const pct = totalMeta > 0 ? Math.round((totalAlunos / totalMeta) * 100) : 0;
+  const totalMetaMinima = kpis.reduce((s, k) => s + (k.meta_alunos_mes ?? 0), 0);
+  const totalSupermeta = kpis.reduce((s, k) => s + (k.supermeta_alunos_mes ?? 0), 0);
+  const alvoAtual = totalMetaMinima > 0 && totalAlunos < totalMetaMinima ? totalMetaMinima : (totalSupermeta || totalMetaMinima);
+  const pct = alvoAtual > 0 ? Math.round((totalAlunos / alvoAtual) * 100) : 0;
 
   return (
     <Card className="shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Meta vs Realizado — Consolidado</CardTitle>
-        <CardDescription>Total de alunos vs meta do mês (somatório de todas as unidades).</CardDescription>
+        <CardDescription>Total de alunos comparado à Meta Mínima e à Supermeta.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6 items-center">
           <div>
             <div className="text-6xl font-bold text-primary leading-none">{pct}%</div>
-            <div className="text-sm text-muted-foreground mt-2">{totalAlunos} / {totalMeta} alunos</div>
+            <div className="text-sm text-muted-foreground mt-2">{totalAlunos} alunos ativos</div>
+            <div className="mt-1 text-xs text-muted-foreground">Meta Mínima: {totalMetaMinima || '—'} · Supermeta: {totalSupermeta || '—'}</div>
           </div>
           <div className="space-y-3">
             <Progress value={Math.min(100, pct)} className="h-3" />
             {kpis.map(k => {
-              const p = k.meta_alunos_mes > 0 ? Math.round((k.alunos_ativos / k.meta_alunos_mes) * 100) : 0;
+              const alvo = k.meta_alunos_mes > 0 && k.alunos_ativos < k.meta_alunos_mes
+                ? k.meta_alunos_mes
+                : (k.supermeta_alunos_mes || k.meta_alunos_mes);
+              const p = alvo > 0 ? Math.round((k.alunos_ativos / alvo) * 100) : 0;
               return (
-                <div key={k.unidade_id} className="grid grid-cols-[140px_1fr_120px] items-center gap-3">
+                <div key={k.unidade_id} className="grid grid-cols-1 gap-1 sm:grid-cols-[140px_1fr_220px] sm:items-center sm:gap-3">
                   <span className="text-sm font-medium truncate">{k.unidade_nome}</span>
                   <Progress value={Math.min(100, p)} className="h-2" />
-                  <span className="text-sm text-muted-foreground text-right">
-                    {k.alunos_ativos} / {k.meta_alunos_mes || '—'} <span className="font-semibold text-foreground ml-1">{p}%</span>
+                  <span className="text-xs text-muted-foreground sm:text-right">
+                    {k.alunos_ativos} · Mín. {k.meta_alunos_mes || '—'} · Super {k.supermeta_alunos_mes || '—'} <span className="font-semibold text-foreground ml-1">{p}%</span>
                   </span>
                 </div>
               );
