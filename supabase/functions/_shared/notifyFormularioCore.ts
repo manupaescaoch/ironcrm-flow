@@ -230,7 +230,7 @@ function renderRelatorioComercial(row: Record<string, unknown>): Item[] {
   const items: Item[] = [
     { label: 'Responsável pelo relatório', value: sanitizeText(row.nome) },
     { label: 'Data', value: sanitizeText(row.data) },
-    { label: 'Total de alunos ativos', value: `${row.total_alunos_ativos ?? 0}${meta.meta_alunos ? ` (Meta: ${meta.meta_alunos})` : ''}` },
+    { label: 'Total de alunos ativos', value: `${row.total_alunos_ativos ?? 0}${meta.meta_alunos ? ` (Meta Mínima: ${meta.meta_alunos}${meta.supermeta_alunos ? ` · Supermeta: ${meta.supermeta_alunos}` : ''})` : ''}` },
     { label: 'Leads recebidos', value: String(row.leads_recebidos ?? 0) },
     { label: 'Experimentais agendadas', value: row.experimentais_agendadas != null ? String(row.experimentais_agendadas) : '' },
     { label: 'Experimentais realizadas', value: String(row.experimentais_realizadas ?? 0) },
@@ -590,12 +590,13 @@ export async function executeNotification(
     try {
       const metasRes = await supabase
         .from('gestao_metas')
-        .select('meta_alunos_mes')
+        .select('meta_alunos_mes, supermeta_alunos_mes')
         .eq('unidade_id', ctx.unidade_id)
         .maybeSingle();
 
       row._meta = {
         meta_alunos: metasRes.data?.meta_alunos_mes,
+        supermeta_alunos: metasRes.data?.supermeta_alunos_mes,
       };
     } catch (e) {
       console.error('[executeNotification] Failed to fetch metadata', e);

@@ -2326,6 +2326,7 @@ export type Database = {
           meta_receita_mes: number
           meta_taxa_comparecimento_pct: number
           meta_taxa_conversao_pct: number
+          supermeta_alunos_mes: number
           ticket_medio_real: number
           unidade_id: string
           updated_at: string
@@ -2344,6 +2345,7 @@ export type Database = {
           meta_receita_mes?: number
           meta_taxa_comparecimento_pct?: number
           meta_taxa_conversao_pct?: number
+          supermeta_alunos_mes?: number
           ticket_medio_real?: number
           unidade_id: string
           updated_at?: string
@@ -2362,6 +2364,7 @@ export type Database = {
           meta_receita_mes?: number
           meta_taxa_comparecimento_pct?: number
           meta_taxa_conversao_pct?: number
+          supermeta_alunos_mes?: number
           ticket_medio_real?: number
           unidade_id?: string
           updated_at?: string
