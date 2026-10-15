@@ -43,7 +43,7 @@ export function useComissoesData() {
 
     const { data: interacoesData, error } = await supabase
       .from('interacoes')
-      .select('*, leads(nome, cadastrado_por)')
+      .select('id, lead_id, responsavel_fechamento, treinador_responsavel, valor_plano, plano_escolhido, comissao_comercial, comissao_recepcao, data_fechamento, fechou_matricula, compareceu, leads(nome, cadastrado_por)')
       .eq('fechou_matricula', true)
       .eq('unidade_id', unidadeAtual.id)
       .gte('data_fechamento', startDateStr)
@@ -70,7 +70,8 @@ export function useComissoesData() {
     if (mes && ano && unidadeAtual) {
       fetchComissoes();
     }
-  }, [mes, ano, unidadeAtual]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mes, ano, unidadeAtual?.id]);
 
   const filteredInteracoes = useMemo(() => {
     if (!filterFuncionario.trim()) return interacoes;
