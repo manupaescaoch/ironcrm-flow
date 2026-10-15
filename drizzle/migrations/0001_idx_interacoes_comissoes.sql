@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS idx_interacoes_comissoes ON public.interacoes (unidade_id, data_fechamento) WHERE fechou_matricula = true;

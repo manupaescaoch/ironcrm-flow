@@ -8,6 +8,13 @@
       "when": 1791193073663,
       "tag": "0000_add_supermeta_alunos_mes",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792084092157,
+      "tag": "0001_idx_interacoes_comissoes",
+      "breakpoints": true
     }
   ]
 }
