@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Ajustar FU de matriculados e pendentes para dias úteis, com fins de semana transferidos para a semana seguinte sem duplicidade.
+- [x] Ajustar FU de matriculados e pendentes para dias úteis, com fins de semana transferidos para a semana seguinte sem duplicidade.
 
 - [x] Enviar os follow-ups a realizar aos gerentes pelo Telegram de segunda a sexta.
 
