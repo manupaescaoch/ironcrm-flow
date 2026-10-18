@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Enviar os follow-ups a realizar aos gerentes pelo Telegram de segunda a sexta.
+
 - [x] Gestão da Rede: separar a meta mensal em Meta Mínima e Supermeta
 - [x] Cronograma: campos Prioridade e Setor na nova atividade, edição, edição rápida, edição em lote e detalhes (auditoria já coberta pelo histórico da atividade)
 - [x] Formulários operacionais: unidades renomeadas para Madalena, Boa Viagem e Setúbal, com Setúbal habilitado em todos os formulários
