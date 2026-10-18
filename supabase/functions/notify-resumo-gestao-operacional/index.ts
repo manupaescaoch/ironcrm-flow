@@ -1,6 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
 import { sendTelegramMessage } from '../_shared/telegram.ts';
+import { sendManagerFuDigest } from '../_shared/fuGerenteDigest.ts';
+import { z } from 'npm:zod@3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -170,7 +172,18 @@ Deno.serve(async (req) => {
     
     let body: any = {};
     try { body = await req.json(); } catch { /* body opcional */ }
-    const destPhone = body?.phone || DEFAULT_DEST_PHONE;
+    const parsed = z.object({ phone: z.string().regex(/^\+?[\d\s()-]{8,20}$/).optional(), mode: z.literal('fu_gerente_only').optional(), dry_run: z.boolean().optional() }).safeParse(body);
+    if (!parsed.success) return Response.json({ error: 'Parâmetros inválidos' }, { status: 400, headers: corsHeaders });
+    const destPhone = parsed.data.phone || DEFAULT_DEST_PHONE;
+    // Keep the existing unmanaged callback/authentication unchanged. Only cron may
+    // dispatch the manager digest; authenticated staff cannot broadcast it.
+    const managerFu = __auth.method === 'cron'
+      ? await sendManagerFuDigest(supabase, parsed.data.dry_run === true)
+      : null;
+    if (parsed.data.mode === 'fu_gerente_only') {
+      if (!managerFu) return Response.json({ error: 'Cron only' }, { status: 403, headers: corsHeaders });
+      return Response.json(managerFu, { headers: corsHeaders, status: managerFu.success ? 200 : 502 });
+    }
 
     const zn = await getStats(supabase, ZN_ID);
     const zs = await getStats(supabase, ZS_ID);
@@ -295,7 +308,7 @@ ${focoDaUnidade(dados)}`;
     }
 
     const success = results.every((result) => result.success);
-    return new Response(JSON.stringify({ success, results, messages }), {
+    return new Response(JSON.stringify({ success, results, messages, managerFu }), {
       status: success ? 200 : 502,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
