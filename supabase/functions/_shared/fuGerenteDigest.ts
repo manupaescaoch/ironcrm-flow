@@ -70,7 +70,7 @@ export async function sendManagerFuDigest(admin: SupabaseClient, dryRun = false,
       const key = `fu-gerente|${unit.id}|${today}|${index}`;
       const { error: claimError } = await admin.from('formulario_envios_log').insert({
         idempotency_key: key, tipo_formulario: 'fu_gerente_digest', unidade: unit.nome,
-        unidade_id: unit.id, origem: 'cron', status: 'processando',
+        unidade_id: unit.id, origem: 'internal_test', status: 'pendente',
       });
       if (claimError) {
         if (claimError.code === '23505') {
