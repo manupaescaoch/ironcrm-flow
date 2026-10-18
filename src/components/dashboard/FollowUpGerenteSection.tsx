@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { FollowUpGerenteItem, FollowUpGerenteTipo } from '@/hooks/useFollowUpsGerente';
+import { fuDate, diffFuBusinessDays, fuDay } from '@/lib/fuBusinessDays';
 
 interface Props {
   urgentItems: FollowUpGerenteItem[];
@@ -86,23 +87,20 @@ export function FollowUpGerenteSection({ urgentItems, onRefresh }: Props) {
 
   const sorted = useMemo(() => {
     return [...urgentItems].sort((a, b) => {
-      const atrasoA = a.diasDesdeMatricula - ALVO_DIAS[a.tipo];
-      const atrasoB = b.diasDesdeMatricula - ALVO_DIAS[b.tipo];
+      const atrasoA = diffFuBusinessDays(a.data_prevista, fuDay(fuDate(new Date())));
+      const atrasoB = diffFuBusinessDays(b.data_prevista, fuDay(fuDate(new Date())));
       return atrasoB - atrasoA;
     });
   }, [urgentItems]);
 
   const getTimeInfo = (item: FollowUpGerenteItem) => {
-    const atraso = item.diasDesdeMatricula - ALVO_DIAS[item.tipo];
+    const atraso = diffFuBusinessDays(item.data_prevista, fuDay(fuDate(new Date())));
     if (atraso <= 0) return { text: 'hoje', className: 'text-amber-700 bg-amber-100' };
     return { text: `${atraso}d atrasado`, className: 'text-red-700 bg-red-100' };
   };
 
   const getFuDate = (item: FollowUpGerenteItem) => {
-    const [y, m, d] = (item.data_matricula || '').split('-').map(Number);
-    if (!y || !m || !d) return null;
-    const base = new Date(y, m - 1, d);
-    base.setDate(base.getDate() + ALVO_DIAS[item.tipo]);
+    const base = fuDate(item.data_prevista);
     return base.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
   };
 
@@ -177,8 +175,8 @@ export function FollowUpGerenteSection({ urgentItems, onRefresh }: Props) {
     const timeInfo = getTimeInfo(item);
     const primeiroNome = item.lead.nome?.split(' ')[0] || 'Aluno';
     const message = buildMessage(item.tipo, primeiroNome, gerenteNome, unidadeNome);
-    const fuDate = getFuDate(item);
-    const atraso = item.diasDesdeMatricula - ALVO_DIAS[item.tipo];
+    const displayFuDate = getFuDate(item);
+    const atraso = diffFuBusinessDays(item.data_prevista, fuDay(fuDate(new Date())));
 
     return (
       <div
@@ -200,10 +198,10 @@ export function FollowUpGerenteSection({ urgentItems, onRefresh }: Props) {
                   className="text-green-600 hover:text-green-700"
                 />
               )}
-              {fuDate && (
+              {displayFuDate && (
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
                   <CalendarClock className="w-3 h-3" />
-                  FU: {fuDate}
+                  FU: {displayFuDate}
                   {atraso > 0 && (
                     <span className="text-red-600 font-medium">· há {atraso}d</span>
                   )}

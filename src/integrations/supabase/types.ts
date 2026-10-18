@@ -5119,6 +5119,11 @@ export type Database = {
         Args: { p_coordenador: string; p_data: string; p_unidade_id: string }
         Returns: string
       }
+      fu_add_business_days: {
+        Args: { p_date: string; p_days: number }
+        Returns: string
+      }
+      fu_next_weekday: { Args: { p_date: string }; Returns: string }
       generate_follow_ups_for_lead: {
         Args: { p_lead_id: string }
         Returns: undefined

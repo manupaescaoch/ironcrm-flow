@@ -23,7 +23,7 @@ Deno.test('Telegram manager digest sends only each unit pending FU and does not 
     if (table === 'telegram_groups') data = [{ id: 'group', group_type: 'gerencia', telegram_chat_id: url.searchParams.get('unidade_id') === 'eq.unit-a' ? -1 : -2 }];
     if (table === 'interacoes') {
       const unit = url.searchParams.get('unidade_id')?.slice(3);
-      const make = (id: string, name: string, date = '2026-10-12', active = true) => ({ id, lead_id: id, data_fechamento: date, leads: { id, nome: name, telefone: '81999990000', unidade_id: unit, ativo: active, is_matriculado: true } });
+      const make = (id: string, name: string, date = '2026-10-08', active = true) => ({ id, lead_id: id, data_fechamento: date, leads: { id, nome: name, telefone: '81999990000', unidade_id: unit, ativo: active, is_matriculado: true } });
       data = unit === 'unit-a'
         ? [make('recent', 'RECENT', '2026-10-18'), make('eligible', 'ALUNO A'), make('done', 'DONE'), make('future', 'FUTURE'), make('inactive', 'INACTIVE', '2026-10-12', false), make('recent', 'OLD', '2026-10-12')]
         : [make('b', 'ALUNO B')];

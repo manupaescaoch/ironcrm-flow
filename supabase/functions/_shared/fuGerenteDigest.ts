@@ -1,6 +1,7 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { resolveGrupoUnidade, sendTelegramMessage } from './telegram.ts';
 import { isManagerFuWeekday, managerFuStage, recifeDay, suppressManagerFu } from './fuGerenteRules.ts';
+import { addFuBusinessDays, fuDay, fuDate } from './fuBusinessDays.ts';
 
 const escapeHtml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -9,7 +10,7 @@ export async function sendManagerFuDigest(admin: SupabaseClient, dryRun = false,
   if (!dryRun && !isManagerFuWeekday(now)) return { success: true, skipped: 'fim_de_semana', results: [] };
   const today = recifeDay(now);
   const cutoff = new Date(`${today}T12:00:00-03:00`);
-  cutoff.setUTCDate(cutoff.getUTCDate() - 45);
+  cutoff.setUTCDate(cutoff.getUTCDate() - 65);
   const { data: units, error: unitError } = await admin.from('unidades').select('id,nome').order('nome');
   if (unitError) throw unitError;
   const results = [];
@@ -47,6 +48,7 @@ export async function sendManagerFuDigest(admin: SupabaseClient, dryRun = false,
     const pending = [...latest.values()].flatMap(row => {
       const stage = managerFuStage(row.data_fechamento, today);
       if (!stage || suppressManagerFu(follows.filter(f => f.lead_id === row.lead_id && f.tipo === stage.tipo), today)) return [];
+      if (fuDay(addFuBusinessDays(fuDate(row.data_fechamento), Number(stage.tipo.slice(2)))) > today) return [];
       return [{ ...stage, lead: row.lead }];
     }).sort((a, b) => b.atraso - a.atraso);
     if (!pending.length) {
