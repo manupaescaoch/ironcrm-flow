@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
+import { fuDate, fuDay, addFuBusinessDays, diffFuBusinessDays, effectiveFuDay } from '@/lib/fuBusinessDays';
 
 export type FollowUpGerenteTipo = 'G+7' | 'G+30';
 
@@ -9,6 +10,7 @@ export interface FollowUpGerenteItem {
   tipo: FollowUpGerenteTipo;
   data_matricula: string; // ISO
   diasDesdeMatricula: number;
+  data_prevista: string;
   lead: {
     id: string;
     nome: string;
@@ -32,9 +34,7 @@ function calcularEtapa(dias: number): FollowUpGerenteTipo | null {
 }
 
 function diffDays(dataMatricula: Date, hoje: Date) {
-  const a = new Date(dataMatricula.getFullYear(), dataMatricula.getMonth(), dataMatricula.getDate());
-  const b = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-  return Math.floor((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
+  return diffFuBusinessDays(dataMatricula, hoje);
 }
 
 export function useFollowUpsGerente() {
@@ -80,6 +80,7 @@ export function useFollowUpsGerente() {
       const { data: fus, error: errFu } = await supabase
         .from('follow_ups')
         .select('lead_id, tipo, status, data_prevista')
+        .eq('unidade_id', unidadeAtual.id)
         .in('lead_id', leadIds)
         .in('tipo', ['G+7', 'G+30']);
 
@@ -89,7 +90,7 @@ export function useFollowUpsGerente() {
 
       const concluidos = new Set<string>();
       const reagendadoFuturo = new Set<string>();
-      const hoje = new Date();
+      const hoje = fuDate(new Date());
       hoje.setHours(0, 0, 0, 0);
 
       (fus || []).forEach((f: any) => {
@@ -97,24 +98,28 @@ export function useFollowUpsGerente() {
         if (f.status === 'concluido') {
           concluidos.add(key);
         } else if (f.status === 'pendente' && f.data_prevista) {
-          if (new Date(f.data_prevista) > hoje) reagendadoFuturo.add(key);
+          if (fuDate(effectiveFuDay(f.data_prevista)) > hoje) reagendadoFuturo.add(key);
         }
       });
 
       const computados: FollowUpGerenteItem[] = [];
       for (const [leadId, info] of maisRecentePorLead) {
-        const dias = diffDays(new Date(info.data_fechamento), new Date());
+        const dias = diffDays(fuDate(info.data_fechamento), hoje);
         const etapa = calcularEtapa(dias);
         if (!etapa) continue;
 
         const key = `${leadId}|${etapa}`;
         if (concluidos.has(key) || reagendadoFuturo.has(key)) continue;
+        const saved = (fus || []).find(f => f.lead_id === leadId && f.tipo === etapa && f.status === 'pendente');
+        const due = saved?.data_prevista ? effectiveFuDay(saved.data_prevista) : fuDay(addFuBusinessDays(info.data_fechamento, Number(etapa.slice(2))));
+        if (due > fuDay(hoje)) continue;
 
         computados.push({
           lead_id: leadId,
           tipo: etapa,
           data_matricula: info.data_fechamento,
           diasDesdeMatricula: dias,
+          data_prevista: due,
           lead: {
             id: info.lead.id,
             nome: info.lead.nome,

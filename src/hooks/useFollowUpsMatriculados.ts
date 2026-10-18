@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
+import { fuDate, fuDay, addFuBusinessDays, diffFuBusinessDays, effectiveFuDay } from '@/lib/fuBusinessDays';
 
 export type FollowUpMatriculadoTipo = 'D+1' | 'D+7' | 'D+30';
 
@@ -9,6 +10,7 @@ export interface FollowUpMatriculadoItem {
   tipo: FollowUpMatriculadoTipo;
   data_matricula: string; // ISO
   diasDesdeMatricula: number;
+  data_prevista: string;
   lead: {
     id: string;
     nome: string;
@@ -25,7 +27,7 @@ export interface FollowUpMatriculadoItem {
  *   >45   → null (não exibe)
  */
 function calcularEtapa(dias: number): FollowUpMatriculadoTipo | null {
-  if (dias < 0) return null;
+  if (dias < 1) return null;
   if (dias <= 1) return 'D+1';
   if (dias <= 15) return 'D+7';
   if (dias <= 45) return 'D+30';
@@ -33,9 +35,7 @@ function calcularEtapa(dias: number): FollowUpMatriculadoTipo | null {
 }
 
 function diffDays(dataMatricula: Date, hoje: Date) {
-  const a = new Date(dataMatricula.getFullYear(), dataMatricula.getMonth(), dataMatricula.getDate());
-  const b = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-  return Math.floor((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
+  return diffFuBusinessDays(dataMatricula, hoje);
 }
 
 export function useFollowUpsMatriculados() {
@@ -88,6 +88,7 @@ export function useFollowUpsMatriculados() {
       const { data: fus, error: errFu } = await supabase
         .from('follow_ups')
         .select('lead_id, tipo, status, data_prevista')
+        .eq('unidade_id', unidadeAtual.id)
         .in('lead_id', leadIds)
         .in('tipo', ['D+1', 'D+7', 'D+30']);
 
@@ -97,7 +98,7 @@ export function useFollowUpsMatriculados() {
 
       const concluidos = new Set<string>(); // key = lead_id|tipo
       const reagendadoFuturo = new Map<string, Date>(); // key = lead_id|tipo => data
-      const hoje = new Date();
+      const hoje = fuDate(new Date());
       hoje.setHours(0, 0, 0, 0);
 
       (fus || []).forEach((f: any) => {
@@ -105,7 +106,7 @@ export function useFollowUpsMatriculados() {
         if (f.status === 'concluido') {
           concluidos.add(key);
         } else if (f.status === 'pendente' && f.data_prevista) {
-          const dp = new Date(f.data_prevista);
+          const dp = fuDate(effectiveFuDay(f.data_prevista));
           if (dp > hoje) {
             reagendadoFuturo.set(key, dp);
           }
@@ -115,20 +116,24 @@ export function useFollowUpsMatriculados() {
       // 4) Calcular etapa por lead
       const computados: FollowUpMatriculadoItem[] = [];
       for (const [leadId, info] of maisRecentePorLead) {
-        const dataMat = new Date(info.data_fechamento);
-        const dias = diffDays(dataMat, new Date());
+        const dataMat = fuDate(info.data_fechamento);
+        const dias = diffDays(dataMat, hoje);
         const etapa = calcularEtapa(dias);
         if (!etapa) continue;
 
         const key = `${leadId}|${etapa}`;
         if (concluidos.has(key)) continue;
         if (reagendadoFuturo.has(key)) continue;
+        const saved = (fus || []).find(f => f.lead_id === leadId && f.tipo === etapa && f.status === 'pendente');
+        const due = saved?.data_prevista ? effectiveFuDay(saved.data_prevista) : fuDay(addFuBusinessDays(dataMat, Number(etapa.slice(2))));
+        if (due > fuDay(hoje)) continue;
 
         computados.push({
           lead_id: leadId,
           tipo: etapa,
           data_matricula: info.data_fechamento,
           diasDesdeMatricula: dias,
+          data_prevista: due,
           lead: {
             id: info.lead.id,
             nome: info.lead.nome,

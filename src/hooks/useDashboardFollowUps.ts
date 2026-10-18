@@ -4,6 +4,7 @@ import { useUnidade } from '@/contexts/UnidadeContext';
 import { EventoItem } from '@/components/dashboard/EventosHoje';
 import { FollowUpAutoItem } from '@/components/dashboard/AutoFollowUpCard';
 import { mapToLead, mapToInteracao } from '@/utils/dashboardMappers';
+import { effectiveFuDay, fuDay, fuDate } from '@/lib/fuBusinessDays';
 
 interface UseDashboardFollowUpsReturn {
   followUpItems: EventoItem[];
@@ -28,14 +29,13 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
 
   // Separate follow-ups into urgent (today/overdue) and upcoming (future)
   const { urgentAutoFollowUpItems, upcomingAutoFollowUpItems } = useMemo(() => {
-    const hoje = new Date();
-    hoje.setHours(23, 59, 59, 999);
+    const hoje = fuDay(fuDate(new Date()));
     
     const urgent: FollowUpAutoItem[] = [];
     const upcoming: FollowUpAutoItem[] = [];
     
     autoFollowUpItems.forEach(item => {
-      const dataPrevista = new Date(item.data_prevista);
+      const dataPrevista = effectiveFuDay(item.data_prevista);
       if (dataPrevista <= hoje) {
         urgent.push(item);
       } else {
@@ -116,7 +116,7 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
       lead_id: item.lead_id,
       tipo: item.tipo,
       data_referencia: item.data_referencia,
-      data_prevista: item.data_prevista,
+      data_prevista: `${effectiveFuDay(item.data_prevista)}T00:00:00-03:00`,
       status: item.status,
       concluido_por: item.concluido_por,
       concluido_em: item.concluido_em,
@@ -352,7 +352,7 @@ export function useDashboardFollowUps(): UseDashboardFollowUpsReturn {
       lead_id: item.lead_id,
       tipo: item.tipo,
       data_referencia: item.data_referencia,
-      data_prevista: item.data_prevista,
+      data_prevista: `${effectiveFuDay(item.data_prevista)}T00:00:00-03:00`,
       status: item.status,
       concluido_por: item.concluido_por,
       concluido_em: item.concluido_em,
