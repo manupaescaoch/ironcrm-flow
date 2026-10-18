@@ -150,7 +150,7 @@ export function FollowUpMatriculadosSection({ urgentItems, onRefresh }: Props) {
     const timeInfo = getTimeInfo(item);
     const primeiroNome = item.lead.nome?.split(' ')[0] || 'Aluno';
     const message = MESSAGES[item.tipo](primeiroNome);
-    const fuDate = getFuDate(item);
+    const displayFuDate = getFuDate(item);
     const atraso = diffFuBusinessDays(item.data_prevista, fuDay(fuDate(new Date())));
 
     return (
@@ -173,10 +173,10 @@ export function FollowUpMatriculadosSection({ urgentItems, onRefresh }: Props) {
                   className="text-green-600 hover:text-green-700"
                 />
               )}
-              {fuDate && (
+              {displayFuDate && (
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
                   <CalendarClock className="w-3 h-3" />
-                  FU: {fuDate}
+                  FU: {displayFuDate}
                   {atraso > 0 && (
                     <span className="text-red-600 font-medium">
                       · há {atraso}d

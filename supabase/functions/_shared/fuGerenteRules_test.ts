@@ -10,12 +10,12 @@ Deno.test('Telegram manager FU runs Monday through Friday, never Saturday/Sunday
   eq(isManagerFuWeekday(new Date('2026-10-19T01:00:00Z')), false);
 });
 Deno.test('Manager FU age boundaries match the dashboard', () => {
-  eq(managerFuStage('2026-10-13', '2026-10-19'), null);
-  eq(managerFuStage('2026-10-12', '2026-10-19'), { tipo: 'G+7', atraso: 0 });
-  eq(managerFuStage('2026-09-20', '2026-10-19'), { tipo: 'G+7', atraso: 22 });
-  eq(managerFuStage('2026-09-19', '2026-10-19'), { tipo: 'G+30', atraso: 0 });
-  eq(managerFuStage('2026-09-04', '2026-10-19'), { tipo: 'G+30', atraso: 15 });
-  eq(managerFuStage('2026-09-03', '2026-10-19'), null);
+  eq(managerFuStage('2026-10-09', '2026-10-19'), null);
+  eq(managerFuStage('2026-10-08', '2026-10-19'), { tipo: 'G+7', atraso: 0 });
+  eq(managerFuStage('2026-09-08', '2026-10-19'), { tipo: 'G+7', atraso: 22 });
+  eq(managerFuStage('2026-09-07', '2026-10-19'), { tipo: 'G+30', atraso: 0 });
+  eq(managerFuStage('2026-08-17', '2026-10-19'), { tipo: 'G+30', atraso: 15 });
+  eq(managerFuStage('2026-08-14', '2026-10-19'), null);
 });
 Deno.test('Completed and future rescheduled FU are excluded', () => {
   eq(suppressManagerFu([{ status: 'concluido', data_prevista: null }], '2026-10-19'), true);
