@@ -10,8 +10,9 @@ Deno.test('Telegram manager digest sends only each unit pending FU and does not 
   const units = [{ id: 'unit-a', nome: 'A' }, { id: 'unit-b', nome: 'B' }];
   globalThis.fetch = async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
-    const method = init?.method || 'GET';
-    const body = init?.body ? JSON.parse(String(init.body)) : null;
+    const options = init as { method?: string; body?: unknown } | undefined;
+    const method = options?.method || 'GET';
+    const body = options?.body ? JSON.parse(String(options.body)) : null;
     let data: unknown = [];
     if (url.hostname === 'api.telegram.org') {
       sent.push(body);
