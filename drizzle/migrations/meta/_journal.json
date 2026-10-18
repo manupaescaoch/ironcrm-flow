@@ -15,6 +15,13 @@
       "when": 1792084092157,
       "tag": "0001_idx_interacoes_comissoes",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792328723642,
+      "tag": "0002_fu_business_day_deadlines",
+      "breakpoints": true
     }
   ]
 }
