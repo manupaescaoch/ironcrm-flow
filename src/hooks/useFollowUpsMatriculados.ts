@@ -57,6 +57,8 @@ export function useFollowUpsMatriculados() {
         .eq('unidade_id', unidadeAtual.id)
         .eq('fechou_matricula', true)
         .not('data_fechamento', 'is', null)
+        // Only the last ~80 calendar days can still be in the 45-business-day window.
+        .gte('data_fechamento', fuDay(new Date(Date.now() - 80 * 86400000)))
         .order('data_fechamento', { ascending: false });
 
       if (errMat) {
@@ -85,16 +87,19 @@ export function useFollowUpsMatriculados() {
 
       // 3) Buscar follow_ups D+ desses leads para excluir os já concluídos
       //    e respeitar reagendamentos (pendentes futuros)
-      const { data: fus, error: errFu } = await supabase
-        .from('follow_ups')
-        .select('lead_id, tipo, status, data_prevista')
-        .eq('unidade_id', unidadeAtual.id)
-        .in('lead_id', leadIds)
-        .in('tipo', ['D+1', 'D+7', 'D+30']);
-
-      if (errFu) {
-        console.error('Erro ao buscar follow_ups matriculados:', errFu);
+      // Chunk ids to keep request URLs short.
+      const fus: any[] = [];
+      for (let i = 0; i < leadIds.length; i += 100) {
+        const { data, error: errFu } = await supabase
+          .from('follow_ups')
+          .select('lead_id, tipo, status, data_prevista')
+          .eq('unidade_id', unidadeAtual.id)
+          .in('lead_id', leadIds.slice(i, i + 100))
+          .in('tipo', ['D+1', 'D+7', 'D+30']);
+        if (errFu) console.error('Erro ao buscar follow_ups matriculados:', errFu);
+        fus.push(...(data ?? []));
       }
+      const pendentePorChave = new Map<string, any>();
 
       const concluidos = new Set<string>(); // key = lead_id|tipo
       const reagendadoFuturo = new Map<string, Date>(); // key = lead_id|tipo => data
@@ -106,6 +111,7 @@ export function useFollowUpsMatriculados() {
         if (f.status === 'concluido') {
           concluidos.add(key);
         } else if (f.status === 'pendente' && f.data_prevista) {
+          pendentePorChave.set(key, f);
           const dp = fuDate(effectiveFuDay(f.data_prevista));
           if (dp > hoje) {
             reagendadoFuturo.set(key, dp);
@@ -124,7 +130,7 @@ export function useFollowUpsMatriculados() {
         const key = `${leadId}|${etapa}`;
         if (concluidos.has(key)) continue;
         if (reagendadoFuturo.has(key)) continue;
-        const saved = (fus || []).find(f => f.lead_id === leadId && f.tipo === etapa && f.status === 'pendente');
+        const saved = pendentePorChave.get(key);
         const due = saved?.data_prevista ? effectiveFuDay(saved.data_prevista) : fuDay(addFuBusinessDays(dataMat, Number(etapa.slice(2))));
         if (due > fuDay(hoje)) continue;
 
@@ -156,18 +162,21 @@ export function useFollowUpsMatriculados() {
   // Realtime: follow_ups + interacoes da unidade
   useEffect(() => {
     if (!unidadeAtual) return;
+    // Debounce bursts of changes (e.g. bulk updates) into a single refetch.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => { clearTimeout(timer); timer = setTimeout(() => fetchItems(), 1500); };
     const channel = supabase
       .channel('follow_ups_matriculados_realtime')
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'follow_ups',
         filter: `unidade_id=eq.${unidadeAtual.id}`,
-      }, () => fetchItems())
+      }, schedule)
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'interacoes',
         filter: `unidade_id=eq.${unidadeAtual.id}`,
-      }, () => fetchItems())
+      }, schedule)
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearTimeout(timer); supabase.removeChannel(channel); };
   }, [unidadeAtual?.id, fetchItems]);
 
   // Urgent = vencidos ou hoje (mesma lógica usada antes)
