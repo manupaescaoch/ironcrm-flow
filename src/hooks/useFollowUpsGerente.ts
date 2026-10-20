@@ -55,6 +55,7 @@ export function useFollowUpsGerente() {
         .eq('unidade_id', unidadeAtual.id)
         .eq('fechou_matricula', true)
         .not('data_fechamento', 'is', null)
+        .gte('data_fechamento', fuDay(new Date(Date.now() - 80 * 86400000)))
         .order('data_fechamento', { ascending: false });
 
       if (errMat) {
@@ -77,15 +78,16 @@ export function useFollowUpsGerente() {
         return;
       }
 
-      const { data: fus, error: errFu } = await supabase
-        .from('follow_ups')
-        .select('lead_id, tipo, status, data_prevista')
-        .eq('unidade_id', unidadeAtual.id)
-        .in('lead_id', leadIds)
-        .in('tipo', ['G+7', 'G+30']);
-
-      if (errFu) {
-        console.error('Erro ao buscar follow_ups gerente:', errFu);
+      const fus: any[] = [];
+      for (let i = 0; i < leadIds.length; i += 100) {
+        const { data, error: errFu } = await supabase
+          .from('follow_ups')
+          .select('lead_id, tipo, status, data_prevista')
+          .eq('unidade_id', unidadeAtual.id)
+          .in('lead_id', leadIds.slice(i, i + 100))
+          .in('tipo', ['G+7', 'G+30']);
+        if (errFu) console.error('Erro ao buscar follow_ups gerente:', errFu);
+        fus.push(...(data ?? []));
       }
 
       const concluidos = new Set<string>();
@@ -141,18 +143,20 @@ export function useFollowUpsGerente() {
 
   useEffect(() => {
     if (!unidadeAtual) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => { clearTimeout(timer); timer = setTimeout(() => fetchItems(), 1500); };
     const channel = supabase
       .channel('follow_ups_gerente_realtime')
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'follow_ups',
         filter: `unidade_id=eq.${unidadeAtual.id}`,
-      }, () => fetchItems())
+      }, schedule)
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'interacoes',
         filter: `unidade_id=eq.${unidadeAtual.id}`,
-      }, () => fetchItems())
+      }, schedule)
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearTimeout(timer); supabase.removeChannel(channel); };
   }, [unidadeAtual?.id, fetchItems]);
 
   const urgentItems = useMemo(() => items, [items]);
