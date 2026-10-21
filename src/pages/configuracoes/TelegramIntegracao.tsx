@@ -718,6 +718,89 @@ export default function TelegramIntegracao() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de adicionar pessoa */}
+      <Dialog open={addDialog} onOpenChange={setAddDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar pessoa</DialogTitle>
+            <DialogDescription>
+              Cadastre um colaborador para receber o link de conexão do Telegram por WhatsApp.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="add-nome">Nome</Label>
+              <Input
+                id="add-nome"
+                value={addForm.nome}
+                onChange={(e) => setAddForm((f) => ({ ...f, nome: e.target.value.toUpperCase() }))}
+                placeholder="NOME COMPLETO"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="add-telefone">WhatsApp</Label>
+              <Input
+                id="add-telefone"
+                value={addForm.telefone}
+                onChange={(e) => setAddForm((f) => ({ ...f, telefone: e.target.value }))}
+                placeholder="81999999999"
+                inputMode="tel"
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Cargo</Label>
+                <Select value={addForm.cargo} onValueChange={(v) => setAddForm((f) => ({ ...f, cargo: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {CARGOS.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Unidade</Label>
+                <Select value={addForm.unidade_id} onValueChange={(v) => setAddForm((f) => ({ ...f, unidade_id: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {unidades.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setAddDialog(false)}>Cancelar</Button>
+              <Button onClick={adicionarPessoa} disabled={acao === 'add-pessoa'}>
+                {acao === 'add-pessoa' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Adicionar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de confirmação de remoção */}
+      <Dialog open={!!removerAlvo} onOpenChange={(o) => !o && setRemoverAlvo(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remover {removerAlvo?.nome}?</DialogTitle>
+            <DialogDescription>
+              A pessoa sai da lista do Telegram e da equipe de encerramento. Essa ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setRemoverAlvo(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={removerPessoa} disabled={acao === 'remover-pessoa'}>
+              {acao === 'remover-pessoa' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Remover
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
