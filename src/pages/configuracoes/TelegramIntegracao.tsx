@@ -467,14 +467,19 @@ export default function TelegramIntegracao() {
               </CardContent>
             </Card>
 
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Buscar por nome, e-mail ou unidade"
-                className="pl-9"
-              />
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative w-full max-w-sm">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Buscar por nome, e-mail ou unidade"
+                  className="pl-9"
+                />
+              </div>
+              <Button size="sm" onClick={() => setAddDialog(true)}>
+                <Plus className="mr-1.5 h-4 w-4" /> Adicionar pessoa
+              </Button>
             </div>
 
             <Card className="border-border/60 shadow-none">
@@ -515,9 +520,19 @@ export default function TelegramIntegracao() {
                             </TableCell>
                             <TableCell className="text-right">
                               {u.origem === 'funcionario' ? (
-                                <span className="text-xs text-muted-foreground">
-                                  {u.status === 'conectado' ? 'Conectado pelo telefone' : 'Link enviado por WhatsApp'}
-                                </span>
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <span className="text-xs text-muted-foreground">
+                                    {u.status === 'conectado' ? 'Conectado pelo telefone' : 'Link enviado por WhatsApp'}
+                                  </span>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-destructive hover:text-destructive"
+                                    onClick={() => setRemoverAlvo(u)}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
                               ) : (
                                 <div className="flex justify-end gap-1.5">
                                   <Button
