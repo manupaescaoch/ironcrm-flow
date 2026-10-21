@@ -184,6 +184,10 @@ Deno.serve(async (req) => {
           ? body.cargos.map((c: unknown) => String(c))
           : ['treinador', 'estagiario_lider', 'coordenador_unidade', 'recepcao'];
 
+        const somenteFunc: string[] | null = Array.isArray(body?.funcionario_ids) && body.funcionario_ids.length
+          ? body.funcionario_ids.map((x: unknown) => String(x))
+          : null;
+
         const [{ data: funcs }, { data: jaFunc }, { data: perfis }, { data: vinculos }] = await Promise.all([
           admin.from('cronograma_funcionarios')
             .select('id, nome, telefone, cargo, ativo')
@@ -221,6 +225,7 @@ Deno.serve(async (req) => {
         let i = 0;
 
         for (const f of funcs ?? []) {
+          if (somenteFunc && !somenteFunc.includes(f.id)) continue;
           const tel = normalizaTelefone(f.telefone ?? '');
           const chave = ultimos(f.telefone);
           if (!tel || !chave) continue;
