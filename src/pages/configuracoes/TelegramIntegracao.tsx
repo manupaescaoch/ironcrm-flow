@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -95,6 +96,7 @@ export default function TelegramIntegracao() {
   const [addForm, setAddForm] = useState({ nome: '', telefone: '', cargo: '', unidade_id: '' });
   const [unidades, setUnidades] = useState<{ id: string; nome: string }[]>([]);
   const [removerAlvo, setRemoverAlvo] = useState<TelegramUserRow | null>(null);
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     supabase.from('unidades').select('id, nome').order('nome')
