@@ -300,27 +300,43 @@ export default function TelegramIntegracao() {
     return () => clearInterval(t);
   }, [convites?.pendentes, carregarConvites]);
 
-  const enviarLinksWhatsApp = () => run('convites', async () => {
+  const enviarLinksSelecionados = () => run('convites', async () => {
+    const marcados = users.filter((u) => selecionados.has(u.user_id) && u.status === 'nao_conectado');
+    if (!marcados.length) {
+      toast.error('Selecione ao menos uma pessoa não conectada na lista.');
+      return;
+    }
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
-    const { data: res, error } = await supabase.functions.invoke('telegram-convites-whatsapp', {
-      body: { action: 'enfileirar' },
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    });
-    if (error) throw error;
-    toast.success(`${res?.enfileirados ?? 0} mensagens na fila. Envio a cada 45 segundos.`);
-    await carregarConvites();
-  });
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
-  const enviarLinksEquipe = () => run('convites-equipe', async () => {
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    const { data: res, error } = await supabase.functions.invoke('telegram-convites-whatsapp', {
-      body: { action: 'enfileirar_funcionarios' },
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    });
-    if (error) throw error;
-    toast.success(`${res?.enfileirados ?? 0} mensagens na fila. Envio a cada 45 segundos.`);
+    const userIds = marcados.filter((u) => u.origem !== 'funcionario').map((u) => u.user_id);
+    const funcIds = marcados.filter((u) => u.origem === 'funcionario').map((u) => u.user_id);
+
+    let total = 0;
+    if (userIds.length) {
+      const { data: res, error } = await supabase.functions.invoke('telegram-convites-whatsapp', {
+        body: { action: 'enfileirar', user_ids: userIds },
+        headers,
+      });
+      if (error) throw error;
+      total += res?.enfileirados ?? 0;
+    }
+    if (funcIds.length) {
+      const { data: res, error } = await supabase.functions.invoke('telegram-convites-whatsapp', {
+        body: { action: 'enfileirar_funcionarios', funcionario_ids: funcIds },
+        headers,
+      });
+      if (error) throw error;
+      total += res?.enfileirados ?? 0;
+    }
+
+    if (!total) {
+      toast.error('Nenhuma pessoa selecionada tem WhatsApp válido cadastrado.');
+      return;
+    }
+    toast.success(`${total} mensagens na fila. Envio a cada 45 segundos.`);
+    setSelecionados(new Set());
     await carregarConvites();
   });
 
