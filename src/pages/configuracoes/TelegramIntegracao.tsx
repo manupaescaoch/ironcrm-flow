@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -95,6 +96,7 @@ export default function TelegramIntegracao() {
   const [addForm, setAddForm] = useState({ nome: '', telefone: '', cargo: '', unidade_id: '' });
   const [unidades, setUnidades] = useState<{ id: string; nome: string }[]>([]);
   const [removerAlvo, setRemoverAlvo] = useState<TelegramUserRow | null>(null);
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     supabase.from('unidades').select('id, nome').order('nome')
@@ -114,6 +116,32 @@ export default function TelegramIntegracao() {
     return users.filter((u) =>
       u.nome.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.unidades.toLowerCase().includes(q));
   }, [users, busca]);
+
+  const pendentesFiltrados = useMemo(
+    () => filtrados.filter((u) => u.status === 'nao_conectado'),
+    [filtrados],
+  );
+
+  const toggleSelecionado = (id: string) => {
+    setSelecionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleTodosPendentes = () => {
+    setSelecionados((prev) => {
+      const todosMarcados = pendentesFiltrados.length > 0 && pendentesFiltrados.every((u) => prev.has(u.user_id));
+      const next = new Set(prev);
+      for (const u of pendentesFiltrados) {
+        if (todosMarcados) next.delete(u.user_id);
+        else next.add(u.user_id);
+      }
+      return next;
+    });
+  };
 
   const run = async (key: string, fn: () => Promise<void>) => {
     setAcao(key);
@@ -272,27 +300,43 @@ export default function TelegramIntegracao() {
     return () => clearInterval(t);
   }, [convites?.pendentes, carregarConvites]);
 
-  const enviarLinksWhatsApp = () => run('convites', async () => {
+  const enviarLinksSelecionados = () => run('convites', async () => {
+    const marcados = users.filter((u) => selecionados.has(u.user_id) && u.status === 'nao_conectado');
+    if (!marcados.length) {
+      toast.error('Selecione ao menos uma pessoa não conectada na lista.');
+      return;
+    }
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
-    const { data: res, error } = await supabase.functions.invoke('telegram-convites-whatsapp', {
-      body: { action: 'enfileirar' },
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    });
-    if (error) throw error;
-    toast.success(`${res?.enfileirados ?? 0} mensagens na fila. Envio a cada 45 segundos.`);
-    await carregarConvites();
-  });
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
-  const enviarLinksEquipe = () => run('convites-equipe', async () => {
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    const { data: res, error } = await supabase.functions.invoke('telegram-convites-whatsapp', {
-      body: { action: 'enfileirar_funcionarios' },
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    });
-    if (error) throw error;
-    toast.success(`${res?.enfileirados ?? 0} mensagens na fila. Envio a cada 45 segundos.`);
+    const userIds = marcados.filter((u) => u.origem !== 'funcionario').map((u) => u.user_id);
+    const funcIds = marcados.filter((u) => u.origem === 'funcionario').map((u) => u.user_id);
+
+    let total = 0;
+    if (userIds.length) {
+      const { data: res, error } = await supabase.functions.invoke('telegram-convites-whatsapp', {
+        body: { action: 'enfileirar', user_ids: userIds },
+        headers,
+      });
+      if (error) throw error;
+      total += res?.enfileirados ?? 0;
+    }
+    if (funcIds.length) {
+      const { data: res, error } = await supabase.functions.invoke('telegram-convites-whatsapp', {
+        body: { action: 'enfileirar_funcionarios', funcionario_ids: funcIds },
+        headers,
+      });
+      if (error) throw error;
+      total += res?.enfileirados ?? 0;
+    }
+
+    if (!total) {
+      toast.error('Nenhuma pessoa selecionada tem WhatsApp válido cadastrado.');
+      return;
+    }
+    toast.success(`${total} mensagens na fila. Envio a cada 45 segundos.`);
+    setSelecionados(new Set());
     await carregarConvites();
   });
 
@@ -417,8 +461,8 @@ export default function TelegramIntegracao() {
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-muted-foreground">
                 <p>
-                  Envia o link exclusivo de conexão para cada colaborador ainda não conectado que tenha
-                  telefone cadastrado, pelo WhatsApp da Manu, com intervalo de 45 segundos entre as mensagens.
+                  Marque na lista abaixo quem deve receber o link exclusivo de conexão pelo WhatsApp da Manu.
+                  O envio é feito apenas para os selecionados, com intervalo de 45 segundos entre as mensagens.
                 </p>
                 {convites && (
                   <p className="text-foreground">
@@ -436,24 +480,13 @@ export default function TelegramIntegracao() {
                 <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
-                    disabled={!conectado || acao === 'convites'}
-                    onClick={enviarLinksWhatsApp}
+                    disabled={!conectado || acao === 'convites' || selecionados.size === 0}
+                    onClick={enviarLinksSelecionados}
                   >
                     {acao === 'convites'
                       ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                       : <Send className="mr-1.5 h-3.5 w-3.5" />}
-                    Enviar links por WhatsApp
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={!conectado || acao === 'convites-equipe'}
-                    onClick={enviarLinksEquipe}
-                  >
-                    {acao === 'convites-equipe'
-                      ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                      : <Send className="mr-1.5 h-3.5 w-3.5" />}
-                    Enviar links à equipe de encerramento
+                    Enviar para selecionados{selecionados.size > 0 ? ` (${selecionados.size})` : ''}
                   </Button>
                   <Button size="sm" variant="outline" onClick={carregarConvites}>
                     <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Atualizar
@@ -493,6 +526,14 @@ export default function TelegramIntegracao() {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-10">
+                            <Checkbox
+                              checked={pendentesFiltrados.length > 0 && pendentesFiltrados.every((u) => selecionados.has(u.user_id))}
+                              onCheckedChange={toggleTodosPendentes}
+                              disabled={pendentesFiltrados.length === 0}
+                              aria-label="Selecionar todos os pendentes"
+                            />
+                          </TableHead>
                           <TableHead>Nome</TableHead>
                           <TableHead>Unidade</TableHead>
                           <TableHead>Função</TableHead>
@@ -505,6 +546,14 @@ export default function TelegramIntegracao() {
                       <TableBody>
                         {filtrados.map((u) => (
                           <TableRow key={u.user_id}>
+                            <TableCell>
+                              <Checkbox
+                                checked={selecionados.has(u.user_id)}
+                                onCheckedChange={() => toggleSelecionado(u.user_id)}
+                                disabled={u.status !== 'nao_conectado'}
+                                aria-label={`Selecionar ${u.nome}`}
+                              />
+                            </TableCell>
                             <TableCell className="font-medium">
                               {u.nome}
                               <span className="block text-xs font-normal text-muted-foreground">{u.email}</span>
@@ -565,7 +614,7 @@ export default function TelegramIntegracao() {
                         ))}
                         {filtrados.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                            <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                               Nenhum colaborador encontrado.
                             </TableCell>
                           </TableRow>
