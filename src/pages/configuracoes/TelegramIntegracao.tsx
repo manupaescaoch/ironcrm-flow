@@ -8,9 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Loader2, Send, RefreshCw, Users, CheckCircle2, AlertTriangle, Copy, Link2,
-  Unlink, Users2, Clock, XCircle, Search, PlugZap,
+  Unlink, Users2, Clock, XCircle, Search, PlugZap, Plus, Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -89,6 +91,15 @@ export default function TelegramIntegracao() {
   const [linkDialog, setLinkDialog] = useState<{ nome: string; link: string } | null>(null);
   const [grupoDialog, setGrupoDialog] = useState<{ id: string; name: string; unidade: string } | null>(null);
   const [convites, setConvites] = useState<{ enviados: number; pendentes: number; falhas: number } | null>(null);
+  const [addDialog, setAddDialog] = useState(false);
+  const [addForm, setAddForm] = useState({ nome: '', telefone: '', cargo: '', unidade_id: '' });
+  const [unidades, setUnidades] = useState<{ id: string; nome: string }[]>([]);
+  const [removerAlvo, setRemoverAlvo] = useState<TelegramUserRow | null>(null);
+
+  useEffect(() => {
+    supabase.from('unidades').select('id, nome').order('nome')
+      .then(({ data }) => setUnidades((data ?? []) as { id: string; nome: string }[]));
+  }, []);
 
   const status = health?.status ?? 'nao_configurado';
   const conectado = status === 'conectado';
