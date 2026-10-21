@@ -461,8 +461,8 @@ export default function TelegramIntegracao() {
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-muted-foreground">
                 <p>
-                  Envia o link exclusivo de conexão para cada colaborador ainda não conectado que tenha
-                  telefone cadastrado, pelo WhatsApp da Manu, com intervalo de 45 segundos entre as mensagens.
+                  Marque na lista abaixo quem deve receber o link exclusivo de conexão pelo WhatsApp da Manu.
+                  O envio é feito apenas para os selecionados, com intervalo de 45 segundos entre as mensagens.
                 </p>
                 {convites && (
                   <p className="text-foreground">
@@ -480,24 +480,13 @@ export default function TelegramIntegracao() {
                 <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
-                    disabled={!conectado || acao === 'convites'}
-                    onClick={enviarLinksWhatsApp}
+                    disabled={!conectado || acao === 'convites' || selecionados.size === 0}
+                    onClick={enviarLinksSelecionados}
                   >
                     {acao === 'convites'
                       ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                       : <Send className="mr-1.5 h-3.5 w-3.5" />}
-                    Enviar links por WhatsApp
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={!conectado || acao === 'convites-equipe'}
-                    onClick={enviarLinksEquipe}
-                  >
-                    {acao === 'convites-equipe'
-                      ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                      : <Send className="mr-1.5 h-3.5 w-3.5" />}
-                    Enviar links à equipe de encerramento
+                    Enviar para selecionados{selecionados.size > 0 ? ` (${selecionados.size})` : ''}
                   </Button>
                   <Button size="sm" variant="outline" onClick={carregarConvites}>
                     <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Atualizar
