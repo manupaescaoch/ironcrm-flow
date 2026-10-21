@@ -8,9 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Loader2, Send, RefreshCw, Users, CheckCircle2, AlertTriangle, Copy, Link2,
-  Unlink, Users2, Clock, XCircle, Search, PlugZap,
+  Unlink, Users2, Clock, XCircle, Search, PlugZap, Plus, Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -89,6 +91,15 @@ export default function TelegramIntegracao() {
   const [linkDialog, setLinkDialog] = useState<{ nome: string; link: string } | null>(null);
   const [grupoDialog, setGrupoDialog] = useState<{ id: string; name: string; unidade: string } | null>(null);
   const [convites, setConvites] = useState<{ enviados: number; pendentes: number; falhas: number } | null>(null);
+  const [addDialog, setAddDialog] = useState(false);
+  const [addForm, setAddForm] = useState({ nome: '', telefone: '', cargo: '', unidade_id: '' });
+  const [unidades, setUnidades] = useState<{ id: string; nome: string }[]>([]);
+  const [removerAlvo, setRemoverAlvo] = useState<TelegramUserRow | null>(null);
+
+  useEffect(() => {
+    supabase.from('unidades').select('id, nome').order('nome')
+      .then(({ data }) => setUnidades((data ?? []) as { id: string; nome: string }[]));
+  }, []);
 
   const status = health?.status ?? 'nao_configurado';
   const conectado = status === 'conectado';
@@ -151,6 +162,49 @@ export default function TelegramIntegracao() {
   const desconectarUsuario = (u: TelegramUserRow) => run(`off-${u.user_id}`, async () => {
     await callAdmin({ action: 'disconnect_user', user_id: u.user_id });
     toast.success(`Telegram de ${u.nome} desconectado.`);
+    await loadData();
+  });
+
+  const CARGOS = [
+    { value: 'treinador', label: 'Coordenador de Horário' },
+    { value: 'estagiario_lider', label: 'Estagiário Líder' },
+    { value: 'coordenador_unidade', label: 'Gerente de Unidade' },
+    { value: 'coordenador_tecnico', label: 'Coordenador Técnico' },
+    { value: 'recepcao', label: 'Recepção' },
+    { value: 'comercial', label: 'Comercial' },
+  ];
+
+  const adicionarPessoa = () => run('add-pessoa', async () => {
+    const nome = addForm.nome.trim().toUpperCase();
+    const telefone = addForm.telefone.replace(/\D/g, '');
+    if (!nome || !addForm.cargo || !addForm.unidade_id) {
+      toast.error('Preencha nome, cargo e unidade.');
+      return;
+    }
+    const { error } = await supabase.from('cronograma_funcionarios').insert({
+      nome,
+      telefone: telefone || null,
+      cargo: addForm.cargo,
+      unidade_id: addForm.unidade_id,
+      setor: 'operacional',
+      turno: 'integral',
+      ativo: true,
+    });
+    if (error) throw new Error(error.message);
+    toast.success(`${nome} adicionado(a) à lista.`);
+    setAddDialog(false);
+    setAddForm({ nome: '', telefone: '', cargo: '', unidade_id: '' });
+    await loadData();
+  });
+
+  const removerPessoa = () => run('remover-pessoa', async () => {
+    if (!removerAlvo) return;
+    const id = removerAlvo.user_id;
+    await supabase.from('telegram_funcionarios').delete().eq('funcionario_id', id);
+    const { error } = await supabase.from('cronograma_funcionarios').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+    toast.success(`${removerAlvo.nome} removido(a) da lista.`);
+    setRemoverAlvo(null);
     await loadData();
   });
 
@@ -413,14 +467,19 @@ export default function TelegramIntegracao() {
               </CardContent>
             </Card>
 
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Buscar por nome, e-mail ou unidade"
-                className="pl-9"
-              />
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative w-full max-w-sm">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Buscar por nome, e-mail ou unidade"
+                  className="pl-9"
+                />
+              </div>
+              <Button size="sm" onClick={() => setAddDialog(true)}>
+                <Plus className="mr-1.5 h-4 w-4" /> Adicionar pessoa
+              </Button>
             </div>
 
             <Card className="border-border/60 shadow-none">
@@ -461,9 +520,19 @@ export default function TelegramIntegracao() {
                             </TableCell>
                             <TableCell className="text-right">
                               {u.origem === 'funcionario' ? (
-                                <span className="text-xs text-muted-foreground">
-                                  {u.status === 'conectado' ? 'Conectado pelo telefone' : 'Link enviado por WhatsApp'}
-                                </span>
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <span className="text-xs text-muted-foreground">
+                                    {u.status === 'conectado' ? 'Conectado pelo telefone' : 'Link enviado por WhatsApp'}
+                                  </span>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-destructive hover:text-destructive"
+                                    onClick={() => setRemoverAlvo(u)}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
                               ) : (
                                 <div className="flex justify-end gap-1.5">
                                   <Button
@@ -645,6 +714,89 @@ export default function TelegramIntegracao() {
             </div>
             <Button variant="outline" size="sm" onClick={loadData} className="w-full">
               <RefreshCw className="mr-2 h-4 w-4" /> Atualizar lista
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de adicionar pessoa */}
+      <Dialog open={addDialog} onOpenChange={setAddDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar pessoa</DialogTitle>
+            <DialogDescription>
+              Cadastre um colaborador para receber o link de conexão do Telegram por WhatsApp.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="add-nome">Nome</Label>
+              <Input
+                id="add-nome"
+                value={addForm.nome}
+                onChange={(e) => setAddForm((f) => ({ ...f, nome: e.target.value.toUpperCase() }))}
+                placeholder="NOME COMPLETO"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="add-telefone">WhatsApp</Label>
+              <Input
+                id="add-telefone"
+                value={addForm.telefone}
+                onChange={(e) => setAddForm((f) => ({ ...f, telefone: e.target.value }))}
+                placeholder="81999999999"
+                inputMode="tel"
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Cargo</Label>
+                <Select value={addForm.cargo} onValueChange={(v) => setAddForm((f) => ({ ...f, cargo: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {CARGOS.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Unidade</Label>
+                <Select value={addForm.unidade_id} onValueChange={(v) => setAddForm((f) => ({ ...f, unidade_id: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {unidades.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setAddDialog(false)}>Cancelar</Button>
+              <Button onClick={adicionarPessoa} disabled={acao === 'add-pessoa'}>
+                {acao === 'add-pessoa' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Adicionar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de confirmação de remoção */}
+      <Dialog open={!!removerAlvo} onOpenChange={(o) => !o && setRemoverAlvo(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remover {removerAlvo?.nome}?</DialogTitle>
+            <DialogDescription>
+              A pessoa sai da lista do Telegram e da equipe de encerramento. Essa ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setRemoverAlvo(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={removerPessoa} disabled={acao === 'remover-pessoa'}>
+              {acao === 'remover-pessoa' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Remover
             </Button>
           </div>
         </DialogContent>
