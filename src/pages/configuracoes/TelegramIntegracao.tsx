@@ -117,6 +117,32 @@ export default function TelegramIntegracao() {
       u.nome.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.unidades.toLowerCase().includes(q));
   }, [users, busca]);
 
+  const pendentesFiltrados = useMemo(
+    () => filtrados.filter((u) => u.status === 'nao_conectado'),
+    [filtrados],
+  );
+
+  const toggleSelecionado = (id: string) => {
+    setSelecionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleTodosPendentes = () => {
+    setSelecionados((prev) => {
+      const todosMarcados = pendentesFiltrados.length > 0 && pendentesFiltrados.every((u) => prev.has(u.user_id));
+      const next = new Set(prev);
+      for (const u of pendentesFiltrados) {
+        if (todosMarcados) next.delete(u.user_id);
+        else next.add(u.user_id);
+      }
+      return next;
+    });
+  };
+
   const run = async (key: string, fn: () => Promise<void>) => {
     setAcao(key);
     try {
