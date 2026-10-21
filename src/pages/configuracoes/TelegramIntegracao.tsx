@@ -526,6 +526,14 @@ export default function TelegramIntegracao() {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-10">
+                            <Checkbox
+                              checked={pendentesFiltrados.length > 0 && pendentesFiltrados.every((u) => selecionados.has(u.user_id))}
+                              onCheckedChange={toggleTodosPendentes}
+                              disabled={pendentesFiltrados.length === 0}
+                              aria-label="Selecionar todos os pendentes"
+                            />
+                          </TableHead>
                           <TableHead>Nome</TableHead>
                           <TableHead>Unidade</TableHead>
                           <TableHead>Função</TableHead>
@@ -538,6 +546,14 @@ export default function TelegramIntegracao() {
                       <TableBody>
                         {filtrados.map((u) => (
                           <TableRow key={u.user_id}>
+                            <TableCell>
+                              <Checkbox
+                                checked={selecionados.has(u.user_id)}
+                                onCheckedChange={() => toggleSelecionado(u.user_id)}
+                                disabled={u.status !== 'nao_conectado'}
+                                aria-label={`Selecionar ${u.nome}`}
+                              />
+                            </TableCell>
                             <TableCell className="font-medium">
                               {u.nome}
                               <span className="block text-xs font-normal text-muted-foreground">{u.email}</span>
@@ -598,7 +614,7 @@ export default function TelegramIntegracao() {
                         ))}
                         {filtrados.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                            <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                               Nenhum colaborador encontrado.
                             </TableCell>
                           </TableRow>
