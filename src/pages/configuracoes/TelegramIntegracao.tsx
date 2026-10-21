@@ -165,6 +165,49 @@ export default function TelegramIntegracao() {
     await loadData();
   });
 
+  const CARGOS = [
+    { value: 'treinador', label: 'Coordenador de Horário' },
+    { value: 'estagiario_lider', label: 'Estagiário Líder' },
+    { value: 'coordenador_unidade', label: 'Gerente de Unidade' },
+    { value: 'coordenador_tecnico', label: 'Coordenador Técnico' },
+    { value: 'recepcao', label: 'Recepção' },
+    { value: 'comercial', label: 'Comercial' },
+  ];
+
+  const adicionarPessoa = () => run('add-pessoa', async () => {
+    const nome = addForm.nome.trim().toUpperCase();
+    const telefone = addForm.telefone.replace(/\D/g, '');
+    if (!nome || !addForm.cargo || !addForm.unidade_id) {
+      toast.error('Preencha nome, cargo e unidade.');
+      return;
+    }
+    const { error } = await supabase.from('cronograma_funcionarios').insert({
+      nome,
+      telefone: telefone || null,
+      cargo: addForm.cargo,
+      unidade_id: addForm.unidade_id,
+      setor: 'operacional',
+      turno: 'integral',
+      ativo: true,
+    });
+    if (error) throw new Error(error.message);
+    toast.success(`${nome} adicionado(a) à lista.`);
+    setAddDialog(false);
+    setAddForm({ nome: '', telefone: '', cargo: '', unidade_id: '' });
+    await loadData();
+  });
+
+  const removerPessoa = () => run('remover-pessoa', async () => {
+    if (!removerAlvo) return;
+    const id = removerAlvo.user_id;
+    await supabase.from('telegram_funcionarios').delete().eq('funcionario_id', id);
+    const { error } = await supabase.from('cronograma_funcionarios').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+    toast.success(`${removerAlvo.nome} removido(a) da lista.`);
+    setRemoverAlvo(null);
+    await loadData();
+  });
+
   const gruposPorUnidade = useMemo(() => {
     const mapa = new Map<string, { nome: string; grupos: typeof groups }>();
     for (const g of groups) {
