@@ -31,7 +31,7 @@ export default function Operacao() {
   const [endDate] = useState(() => new Date(2030, 11, 31));
 
   const [showFollowUpSection, setShowFollowUpSection] = useState(false);
-  const [showFollowUpMatriculadosSection, setShowFollowUpMatriculadosSection] = useState(false);
+  const [showFollowUpMatriculadosSection, setShowFollowUpMatriculadosSection] = useState(true);
   const [showFollowUpGerenteSection, setShowFollowUpGerenteSection] = useState(false);
   const [showExperimentaisSemana, setShowExperimentaisSemana] = useState(false);
   const [followUpTipoFilter, setFollowUpTipoFilter] = useState<string | null>(null);
@@ -61,7 +61,7 @@ export default function Operacao() {
     refetchEventos,
   } = useDashboardData(startDate, endDate);
 
-  const { urgentItems: urgentMatriculadosFU, refetch: refetchMatriculadosFU } = useFollowUpsMatriculados();
+  const { urgentItems: urgentMatriculadosFU, loading: matriculadosLoading, error: matriculadosError, refetch: refetchMatriculadosFU } = useFollowUpsMatriculados();
   const { urgentItems: urgentGerenteFU, refetch: refetchGerenteFU } = useFollowUpsGerente();
 
   const { tarefas, resumoPorUnidade, isLoading: tarefasLoading } = useOpsGestao();
@@ -245,6 +245,8 @@ export default function Operacao() {
             <FollowUpMatriculadosSection
               urgentItems={urgentMatriculadosFU}
               onRefresh={refetchMatriculadosFU}
+              fetching={matriculadosLoading || unidadeLoading}
+              error={matriculadosError}
             />
           </div>
         )}
