@@ -1811,9 +1811,7 @@ export default function CRM() {
                         </TableCell>
 
                         <TableCell>
-                          {lead.data_aula_experimental 
-                            ? format(new Date(lead.data_aula_experimental), 'dd/MM/yyyy', { locale: ptBR })
-                            : '-'}
+                          {formatDate(lead.data_aula_experimental as string)}
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
