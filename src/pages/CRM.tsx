@@ -1048,7 +1048,11 @@ export default function CRM() {
   }, [filteredLeads]);
 
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
+    if (!dateString) return '-';
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(dateString)
+      ? new Date(+dateString.slice(0, 4), +dateString.slice(5, 7) - 1, +dateString.slice(8, 10))
+      : new Date(dateString);
+    return isNaN(d.getTime()) ? '-' : format(d, 'dd/MM/yyyy', { locale: ptBR });
   };
 
   const handleExportLeads = useCallback(() => {
@@ -1807,9 +1811,7 @@ export default function CRM() {
                         </TableCell>
 
                         <TableCell>
-                          {lead.data_aula_experimental 
-                            ? format(new Date(lead.data_aula_experimental), 'dd/MM/yyyy', { locale: ptBR })
-                            : '-'}
+                          {formatDate(lead.data_aula_experimental as string)}
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
