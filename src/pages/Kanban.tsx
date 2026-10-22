@@ -93,11 +93,14 @@ export default function Kanban() {
 
     // Fetch ALL interactions for leads (needed for score calculation)
     const leadIds = leadsArray.map(l => l.id);
-    const { data: interacoesData } = await supabase
-      .from('interacoes')
-      .select('*')
-      .in('lead_id', leadIds)
-      .order('data_interacao', { ascending: false });
+    // Chunk ids: a single huge IN() exceeds the URL limit and returns 400.
+    const chunks: string[][] = [];
+    for (let i = 0; i < leadIds.length; i += 150) chunks.push(leadIds.slice(i, i + 150));
+    const results = await Promise.all(chunks.map((ids) =>
+      supabase.from('interacoes').select('*').in('lead_id', ids).order('data_interacao', { ascending: false })
+    ));
+    const interacoesData = results.flatMap((r) => r.data ?? [])
+      .sort((a: any, b: any) => String(b.data_interacao ?? '').localeCompare(String(a.data_interacao ?? '')));
 
     // Create a map of lead_id to interactions array
     const interacoesMap = new Map<string, Interacao[]>();

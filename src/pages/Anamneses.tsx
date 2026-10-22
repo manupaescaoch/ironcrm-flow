@@ -96,7 +96,7 @@ export default function Anamneses() {
     queryFn: async () => {
       let q = supabase
         .from('anamneses_experimental')
-        .select('*, leads(nome, telefone)', { count: 'exact' })
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
       if (unidade !== TODAS) q = q.eq('unidade_id', unidade);
@@ -105,7 +105,14 @@ export default function Anamneses() {
       if (ate) q = q.lte('created_at', `${ate}T23:59:59`);
       const { data: rows, error, count } = await q;
       if (error) throw error;
-      return { rows: (rows ?? []) as unknown as Anamnese[], total: count ?? 0 };
+      const list = (rows ?? []) as unknown as Anamnese[];
+      const ids = [...new Set(list.map((r) => r.lead_id).filter(Boolean))] as string[];
+      if (ids.length) {
+        const { data: leads } = await supabase.from('leads').select('id, nome, telefone').in('id', ids);
+        const map = new Map((leads ?? []).map((l) => [l.id, l]));
+        list.forEach((r) => { r.leads = r.lead_id ? map.get(r.lead_id) ?? null : null; });
+      }
+      return { rows: list, total: count ?? 0 };
     },
   });
 
