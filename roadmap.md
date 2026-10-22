@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Corrigir visibilidade e controles da lista de FU de matriculados na Operação.
+- [x] Corrigir visibilidade e controles da lista de FU de matriculados na Operação.
 
 - [x] Ajustar FU de matriculados e pendentes para dias úteis, com fins de semana transferidos para a semana seguinte sem duplicidade.
 

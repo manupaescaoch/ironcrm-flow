@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertTriangle, Check, Eye, CalendarClock, MessageCircle, Loader2, RefreshCw } from 'lucide-react';
 import { WhatsAppLink, normalizePhoneForWhatsApp } from '@/components/WhatsAppLink';
 import { cn } from '@/lib/utils';
@@ -165,7 +164,7 @@ export function FollowUpMatriculadosSection({ urgentItems, onRefresh, fetching =
             {tipoCfg.label}
           </Badge>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold truncate">{item.lead.nome}</p>
+            <p className="font-semibold break-words">{item.lead.nome}</p>
             <div className="flex flex-wrap items-center gap-2 text-sm">
               {item.lead.telefone && (
                 <WhatsAppLink
@@ -242,11 +241,11 @@ export function FollowUpMatriculadosSection({ urgentItems, onRefresh, fetching =
               <Loader2 className="w-4 h-4 animate-spin" />Carregando FU de matriculados…
             </div>
           ) : sorted.length > 0 ? (
-            <ScrollArea className="h-[min(500px,60vh)]">
-              <div className="space-y-2 pr-4">
+            <div className="max-h-[500px] overflow-y-auto">
+              <div className="space-y-2">
                 {sorted.map(renderItem)}
               </div>
-            </ScrollArea>
+            </div>
           ) : (
             <div className="py-6 text-center text-muted-foreground">
               <Check className="w-8 h-8 mx-auto mb-2 text-green-500" />
