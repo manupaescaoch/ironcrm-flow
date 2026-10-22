@@ -2,8 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertTriangle, Check, Eye, CalendarClock } from 'lucide-react';
-import { WhatsAppLink } from '@/components/WhatsAppLink';
+import { AlertTriangle, Check, Eye, CalendarClock, MessageCircle, Loader2, RefreshCw } from 'lucide-react';
+import { WhatsAppLink, normalizePhoneForWhatsApp } from '@/components/WhatsAppLink';
 import { cn } from '@/lib/utils';
 import { useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +20,8 @@ import { fuDate, diffFuBusinessDays, fuDay } from '@/lib/fuBusinessDays';
 interface Props {
   urgentItems: FollowUpMatriculadoItem[];
   onRefresh: () => void;
+  fetching?: boolean;
+  error?: string | null;
 }
 
 const TIPO_CONFIG: Record<FollowUpMatriculadoTipo, { label: string; color: string; bgColor: string }> = {
@@ -49,7 +51,7 @@ const ALVO_DIAS: Record<FollowUpMatriculadoTipo, number> = {
   'D+30': 30,
 };
 
-export function FollowUpMatriculadosSection({ urgentItems, onRefresh }: Props) {
+export function FollowUpMatriculadosSection({ urgentItems, onRefresh, fetching = false, error = null }: Props) {
   const navigate = useNavigate();
   const { unidadeAtual } = useUnidade();
   const [loading, setLoading] = useState(false);
@@ -192,17 +194,22 @@ export function FollowUpMatriculadosSection({ urgentItems, onRefresh }: Props) {
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="sm" onClick={() => handleMarkDone(item)} disabled={loading} title="Marcar como enviado">
+          <Button variant="ghost" size="sm" onClick={() => handleMarkDone(item)} disabled={loading || fetching || !!error} title="Marcar como realizado" aria-label={`Marcar FU de ${item.lead.nome} como realizado`}>
             <Check className="w-4 h-4 text-green-600" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => openReschedule(item)} disabled={loading} title="Reagendar">
+          <Button variant="ghost" size="sm" onClick={() => openReschedule(item)} disabled={loading || fetching || !!error} title="Reagendar" aria-label={`Reagendar FU de ${item.lead.nome}`}>
             <CalendarClock className="w-4 h-4 text-blue-600" />
           </Button>
           <Button variant="ghost" size="sm" onClick={() => navigate(`/lead/${item.lead_id}`)} title="Ver aluno">
             <Eye className="w-4 h-4" />
           </Button>
           {item.lead.telefone && (
-            <WhatsAppLink phone={item.lead.telefone} message={message} iconOnly />
+            <Button variant="outline" size="sm" asChild>
+              <a href={`https://wa.me/${normalizePhoneForWhatsApp(item.lead.telefone)}?text=${encodeURIComponent(message)}`} target="_blank" rel="noopener noreferrer" aria-label={`Enviar FU para ${item.lead.nome} pelo WhatsApp`}>
+                <MessageCircle className="w-4 h-4 mr-2" />
+                WhatsApp
+              </a>
+            </Button>
           )}
         </div>
       </div>
@@ -216,14 +223,26 @@ export function FollowUpMatriculadosSection({ urgentItems, onRefresh }: Props) {
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-red-500" />
-              <span>Vencidos / Hoje</span>
+              <span>FU Matriculados</span>
             </div>
             <Badge variant="destructive">{sorted.length}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {sorted.length > 0 ? (
-            <ScrollArea className="max-h-[500px]">
+          <p className="text-sm text-muted-foreground mb-3">Vencidos / Hoje</p>
+          {error ? (
+            <div role="alert" className="flex flex-wrap items-center gap-3 py-4">
+              <p className="text-sm text-destructive">{error}</p>
+              <Button variant="outline" size="sm" onClick={onRefresh} disabled={fetching}>
+                <RefreshCw className="w-4 h-4 mr-2" />Tentar novamente
+              </Button>
+            </div>
+          ) : fetching ? (
+            <div role="status" className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />Carregando FU de matriculados…
+            </div>
+          ) : sorted.length > 0 ? (
+            <ScrollArea className="h-[min(500px,60vh)]">
               <div className="space-y-2 pr-4">
                 {sorted.map(renderItem)}
               </div>

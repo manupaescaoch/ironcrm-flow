@@ -42,10 +42,12 @@ export function useFollowUpsMatriculados() {
   const { unidadeAtual } = useUnidade();
   const [items, setItems] = useState<FollowUpMatriculadoItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchItems = useCallback(async () => {
     if (!unidadeAtual) return;
     setLoading(true);
+    setError(null);
     try {
       // 1) Buscar matrículas (interacoes.fechou_matricula = true) da unidade
       const { data: matriculas, error: errMat } = await supabase
@@ -62,8 +64,7 @@ export function useFollowUpsMatriculados() {
         .order('data_fechamento', { ascending: false });
 
       if (errMat) {
-        console.error('Erro ao buscar matriculados:', errMat);
-        return;
+        throw errMat;
       }
 
       // 2) Manter a matrícula mais recente por lead, filtrando ativos e is_matriculado
@@ -96,7 +97,7 @@ export function useFollowUpsMatriculados() {
           .eq('unidade_id', unidadeAtual.id)
           .in('lead_id', leadIds.slice(i, i + 100))
           .in('tipo', ['D+1', 'D+7', 'D+30']);
-        if (errFu) console.error('Erro ao buscar follow_ups matriculados:', errFu);
+        if (errFu) throw errFu;
         fus.push(...(data ?? []));
       }
       const pendentePorChave = new Map<string, any>();
@@ -150,6 +151,9 @@ export function useFollowUpsMatriculados() {
       }
 
       setItems(computados);
+    } catch (e) {
+      console.error('Erro ao carregar FU de matriculados:', e);
+      setError('Não foi possível carregar os FU de matriculados.');
     } finally {
       setLoading(false);
     }
@@ -187,5 +191,5 @@ export function useFollowUpsMatriculados() {
     return items;
   }, [items]);
 
-  return { items, urgentItems, loading, refetch: fetchItems };
+  return { items, urgentItems, loading, error, refetch: fetchItems };
 }
