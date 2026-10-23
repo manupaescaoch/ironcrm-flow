@@ -469,6 +469,7 @@ export type Database = {
           aprovado_em: string | null
           aprovado_por_nome: string | null
           baixa_observacoes: string | null
+          baixa_origem: string | null
           baixado_em: string | null
           baixado_por: string | null
           baixado_por_nome: string | null
@@ -492,6 +493,7 @@ export type Database = {
           created_by_nome: string | null
           data_emissao: string | null
           data_pagamento: string | null
+          data_pagamento_prevista: string | null
           data_vencimento: string
           deleted_at: string | null
           desconto: number
@@ -515,6 +517,8 @@ export type Database = {
           origem: string
           pagador_cnpj: string | null
           prioridade: string
+          reagendado_em: string | null
+          reagendado_por_nome: string | null
           recebido_em: string | null
           status: string
           telegram_remetente: string | null
@@ -528,6 +532,7 @@ export type Database = {
           aprovado_em?: string | null
           aprovado_por_nome?: string | null
           baixa_observacoes?: string | null
+          baixa_origem?: string | null
           baixado_em?: string | null
           baixado_por?: string | null
           baixado_por_nome?: string | null
@@ -551,6 +556,7 @@ export type Database = {
           created_by_nome?: string | null
           data_emissao?: string | null
           data_pagamento?: string | null
+          data_pagamento_prevista?: string | null
           data_vencimento: string
           deleted_at?: string | null
           desconto?: number
@@ -574,6 +580,8 @@ export type Database = {
           origem?: string
           pagador_cnpj?: string | null
           prioridade?: string
+          reagendado_em?: string | null
+          reagendado_por_nome?: string | null
           recebido_em?: string | null
           status?: string
           telegram_remetente?: string | null
@@ -587,6 +595,7 @@ export type Database = {
           aprovado_em?: string | null
           aprovado_por_nome?: string | null
           baixa_observacoes?: string | null
+          baixa_origem?: string | null
           baixado_em?: string | null
           baixado_por?: string | null
           baixado_por_nome?: string | null
@@ -610,6 +619,7 @@ export type Database = {
           created_by_nome?: string | null
           data_emissao?: string | null
           data_pagamento?: string | null
+          data_pagamento_prevista?: string | null
           data_vencimento?: string
           deleted_at?: string | null
           desconto?: number
@@ -633,6 +643,8 @@ export type Database = {
           origem?: string
           pagador_cnpj?: string | null
           prioridade?: string
+          reagendado_em?: string | null
+          reagendado_por_nome?: string | null
           recebido_em?: string | null
           status?: string
           telegram_remetente?: string | null
