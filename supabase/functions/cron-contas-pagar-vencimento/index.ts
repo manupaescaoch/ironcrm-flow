@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     const { data: contas, error } = await supabase
       .from('contas_pagar')
       .select('id')
-      .eq('data_vencimento', hoje)
+      .or(`and(data_vencimento.eq.${hoje},data_pagamento_prevista.is.null),data_pagamento_prevista.eq.${hoje}`)
       .eq('status', 'pendente')
       .is('deleted_at', null);
 

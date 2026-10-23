@@ -157,11 +157,13 @@ export async function sendTelegramGroupText(
   grupo: TelegramGrupoUnidade,
   text: string,
   messageType: string,
+  reply_markup?: unknown,
 ): Promise<{ ok: boolean; error?: string; message_id?: number }> {
   let r = await sendTelegramMessage({
     chat_id: grupo.telegram_chat_id,
     text,
     parse_mode: 'Markdown',
+    reply_markup,
     recipient_type: 'grupo',
     recipient_id: grupo.id,
     message_type: messageType,
@@ -170,6 +172,7 @@ export async function sendTelegramGroupText(
     r = await sendTelegramMessage({
       chat_id: grupo.telegram_chat_id,
       text: text.replace(/\*/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+      reply_markup,
       recipient_type: 'grupo',
       recipient_id: grupo.id,
       message_type: messageType,

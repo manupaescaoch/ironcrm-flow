@@ -165,7 +165,7 @@ export async function receberBotaoCobranca(admin: any, cq: any): Promise<boolean
     }
 
     if (acao === 'cpr') {
-      const base = conta.data_pagamento_prevista && conta.data_pagamento_prevista > hojeBRT() ? hojeBRT() : hojeBRT();
+      const base = hojeBRT();
       const dias = proximosDiasUteis(base, 6);
       const linhas = [];
       for (let i = 0; i < dias.length; i += 3) {
