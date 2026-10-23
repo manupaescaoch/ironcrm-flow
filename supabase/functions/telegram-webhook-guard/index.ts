@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     if (!info.ok) return json({ error: 'falha_webhook_info', details: info.description }, 502);
 
     const currentUrl: string = info.result?.url ?? '';
-    const ok = currentUrl === expectedUrl;
+    const ok = currentUrl === expectedUrl && (info.result?.allowed_updates ?? []).includes('callback_query');
 
     if (ok) {
       return json({
