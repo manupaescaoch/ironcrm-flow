@@ -165,7 +165,7 @@ export function ImportarDocumentoConta({
         return;
       }
       const e = data.dados as Extraido;
-      setCampos({
+      const novo: Campos = {
         fornecedor: (e.fornecedor || '').toUpperCase(),
         cpf_cnpj: e.cpf_cnpj || '',
         descricao: (e.descricao || '').toUpperCase(),
@@ -177,9 +177,18 @@ export function ImportarDocumentoConta({
         codigo_pix: e.codigo_pix || '',
         chave_pix: e.chave_pix || '',
         observacoes: '',
+      };
+      // Segundo documento (ex.: boleto da mesma nota) só completa o que ainda está em branco.
+      setCampos((atual) => {
+        const m = { ...atual };
+        (Object.keys(novo) as (keyof Campos)[]).forEach((k) => {
+          if (!m[k].trim()) m[k] = novo[k];
+        });
+        return m;
       });
+      const parcelasVazias = parcelas.every((p) => !p.valor.trim() && !p.vencimento);
       const ps = (e.parcelas || []).filter((p) => p.valor || p.vencimento);
-      setParcelas(
+      if (parcelasVazias || ps.length > 1) setParcelas(
         ps.length > 1
           ? ps.map((p) => ({ valor: valorStr(p.valor), vencimento: isoOk(p.vencimento) }))
           : [{ valor: valorStr(e.valor ?? ps[0]?.valor), vencimento: isoOk(e.data_vencimento ?? ps[0]?.vencimento) }],
