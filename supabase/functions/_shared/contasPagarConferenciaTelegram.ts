@@ -80,7 +80,7 @@ export function resumo(c: any, rascunho: Record<string, unknown> = {}, nomeUnida
     `Linha digitável: ${v.linha_digitavel ?? '—'}${mud('linha_digitavel')}`,
     `Status: ${c.status === 'paga' ? 'Paga' : STATUS_LABEL[c.conferencia_status] ?? 'Pendente'}`,
   ];
-  if (c.fornecedor_validar && !('fornecedor' in rascunho)) linhas.push('', 'Fornecedor não cadastrado: aguardando validação.');
+  if (c.fornecedor_validar && !('fornecedor' in rascunho)) linhas.push('', 'Fornecedor sem CNPJ/CPF válido: corrija em EDITAR.');
   return linhas.join('\n');
 }
 
