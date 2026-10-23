@@ -203,6 +203,17 @@ export function ContaDetalhesDrawer({
             <Separator />
             <div className="space-y-2">
               <h4 className="text-sm font-semibold">Nota fiscal / cupom fiscal</h4>
+              {(conta.fornecedor_documento || conta.data_emissao || conta.numero_fatura) && (
+                <p className="text-xs text-muted-foreground">
+                  {[
+                    conta.fornecedor_documento && `CPF/CNPJ: ${conta.fornecedor_documento}`,
+                    conta.numero_fatura && `Nº ${conta.numero_fatura}`,
+                    conta.data_emissao && `Emissão: ${conta.data_emissao.slice(0, 10).split('-').reverse().join('/')}`,
+                  ]
+                    .filter(Boolean)
+                    .join(' • ')}
+                </p>
+              )}
               {docsFiscais.length ? (
                 docsFiscais.map(linhaArquivo)
               ) : (
