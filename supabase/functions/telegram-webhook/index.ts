@@ -4,6 +4,7 @@
 import { adminClient, safeEqual, sendTelegramMessage, webhookSecretToken } from '../_shared/telegram.ts';
 import { receberCallbackContasPagar, receberMensagemContasPagar } from '../_shared/contasPagarTelegram.ts';
 import { receberBotaoCobranca } from '../_shared/contasPagarBotoes.ts';
+import { receberPerguntaFinanceira } from '../_shared/contasPagarAssistente.ts';
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
@@ -33,6 +34,17 @@ Deno.serve(async (req) => {
         }
       } catch (e) {
         console.error('contas-pagar telegram', e);
+      }
+    }
+
+    // --- Contas a Pagar: assistente financeiro (perguntas em texto no grupo) ---
+    if (update.message?.text && (update.message.chat?.type === 'group' || update.message.chat?.type === 'supergroup')) {
+      try {
+        if (await receberPerguntaFinanceira(admin, update)) {
+          return new Response(JSON.stringify({ ok: true, assistente: true }), { status: 200 });
+        }
+      } catch (e) {
+        console.error('assistente financeiro', e);
       }
     }
 

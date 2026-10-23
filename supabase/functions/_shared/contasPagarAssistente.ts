@@ -92,7 +92,7 @@ export function montarResposta(f: Filtros, contas: any[], unidades: { id: string
   const porUnidade = unidades.map((u) => ({ u, ...classificar(filtradas.filter((c) => c.unidade_id === u.id), inicio, fim) }));
   const soma = (arr: any[], fn: (c: any) => number) => arr.reduce((s, c) => s + fn(c), 0);
   const nomeU = (n: string) => n.toUpperCase().startsWith('EVO') ? n.toUpperCase() : `EVO ${n.toUpperCase()}`;
-  const curtoU = (n: string) => norm(n).replace(/\b\w/g, (x) => x).toLowerCase().replace(/(^|\s)\S/g, (x) => x.toUpperCase());
+  const curtoU = (n: string) => norm(n).toLowerCase().replace(/(^|\s)\S/g, (x) => x.toUpperCase());
   const out: string[] = [];
   const pendentesBotao: any[] = [];
   const intencao = f.intencao === 'vencidas' ? 'vencidas' : f.intencao;
@@ -144,7 +144,7 @@ export function montarResposta(f: Filtros, contas: any[], unidades: { id: string
 const GATILHO = /\b(conta|contas|pag|pago|pagos|pagamos|pagou|pagar|aberta|abertas|vence|vencem|vencid|pendente|resumo|financeiro|despesa|fornecedor|quanto|quais|total|semana|m[eê]s|hoje)\b/i;
 
 /** Mensagem de texto no grupo de Contas a Pagar. Retorna true se tratou. */
-export async function receberPerguntaFinanceira(admin: any, update: any, botUsername?: string): Promise<boolean> {
+export async function receberPerguntaFinanceira(admin: any, update: any): Promise<boolean> {
   const msg = update.message;
   const texto: string = (msg?.text ?? '').trim();
   const chatId = Number(msg?.chat?.id);
@@ -153,10 +153,11 @@ export async function receberPerguntaFinanceira(admin: any, update: any, botUser
     .eq('group_type', 'contas_pagar').eq('status', 'conectado');
   if (!(grupos ?? []).some((g: any) => Number(g.telegram_chat_id) === chatId)) return false;
 
+  const me = await telegramApi('getMe', {});
+  const botUsername: string | undefined = me.result?.username;
   const mencionou = botUsername ? texto.toLowerCase().includes(`@${botUsername.toLowerCase()}`) : false;
   const respondeuBot = !!msg.reply_to_message?.from?.is_bot;
-  if (!mencionou && !respondeuBot && !(texto.includes('?') || GATILHO.test(texto))) return true;
-  if (!GATILHO.test(texto) && !mencionou && !respondeuBot) return true;
+  if (!mencionou && !respondeuBot && !GATILHO.test(texto)) return true;
 
   // Idempotência: o Telegram reenvia o update se o webhook demorar.
   const { data: reg, error: regErr } = await admin.from('contas_pagar_assistente_consultas').insert({
