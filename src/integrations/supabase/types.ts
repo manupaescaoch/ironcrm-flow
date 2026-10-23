@@ -484,6 +484,11 @@ export type Database = {
           codigo_pix: string | null
           competencia: string | null
           comprovante_url: string | null
+          conciliacao_notificado_em: string | null
+          conciliacao_status: string
+          conciliacao_sugestoes: string[] | null
+          conciliado_em: string | null
+          conciliado_por_nome: string | null
           conferencia_status: string | null
           conferido_em: string | null
           conferido_por_nome: string | null
@@ -498,6 +503,7 @@ export type Database = {
           deleted_at: string | null
           desconto: number
           descricao: string
+          diferenca_classificacao: string | null
           documento_url: string | null
           documentos_fiscais: string[]
           favorecido: string | null
@@ -522,9 +528,11 @@ export type Database = {
           recebido_em: string | null
           status: string
           telegram_remetente: string | null
+          transacao_bancaria_id: string | null
           unidade_id: string
           updated_at: string
           valor: number
+          valor_debitado: number | null
           valor_pago: number | null
         }
         Insert: {
@@ -547,6 +555,11 @@ export type Database = {
           codigo_pix?: string | null
           competencia?: string | null
           comprovante_url?: string | null
+          conciliacao_notificado_em?: string | null
+          conciliacao_status?: string
+          conciliacao_sugestoes?: string[] | null
+          conciliado_em?: string | null
+          conciliado_por_nome?: string | null
           conferencia_status?: string | null
           conferido_em?: string | null
           conferido_por_nome?: string | null
@@ -561,6 +574,7 @@ export type Database = {
           deleted_at?: string | null
           desconto?: number
           descricao: string
+          diferenca_classificacao?: string | null
           documento_url?: string | null
           documentos_fiscais?: string[]
           favorecido?: string | null
@@ -585,9 +599,11 @@ export type Database = {
           recebido_em?: string | null
           status?: string
           telegram_remetente?: string | null
+          transacao_bancaria_id?: string | null
           unidade_id: string
           updated_at?: string
           valor: number
+          valor_debitado?: number | null
           valor_pago?: number | null
         }
         Update: {
@@ -610,6 +626,11 @@ export type Database = {
           codigo_pix?: string | null
           competencia?: string | null
           comprovante_url?: string | null
+          conciliacao_notificado_em?: string | null
+          conciliacao_status?: string
+          conciliacao_sugestoes?: string[] | null
+          conciliado_em?: string | null
+          conciliado_por_nome?: string | null
           conferencia_status?: string | null
           conferido_em?: string | null
           conferido_por_nome?: string | null
@@ -624,6 +645,7 @@ export type Database = {
           deleted_at?: string | null
           desconto?: number
           descricao?: string
+          diferenca_classificacao?: string | null
           documento_url?: string | null
           documentos_fiscais?: string[]
           favorecido?: string | null
@@ -648,9 +670,11 @@ export type Database = {
           recebido_em?: string | null
           status?: string
           telegram_remetente?: string | null
+          transacao_bancaria_id?: string | null
           unidade_id?: string
           updated_at?: string
           valor?: number
+          valor_debitado?: number | null
           valor_pago?: number | null
         }
         Relationships: [
@@ -4823,6 +4847,77 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      transacoes_bancarias_evo_os: {
+        Row: {
+          autenticacao: string | null
+          beneficiario: string | null
+          conciliado_em: string | null
+          conta_bancaria: string | null
+          conta_pagar_id: string | null
+          created_at: string
+          data: string
+          descricao: string | null
+          documento: string | null
+          external_id: string
+          id: string
+          pix_id: string | null
+          raw: Json | null
+          tipo: string
+          unidade_id: string | null
+          unidade_origem: string | null
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          autenticacao?: string | null
+          beneficiario?: string | null
+          conciliado_em?: string | null
+          conta_bancaria?: string | null
+          conta_pagar_id?: string | null
+          created_at?: string
+          data: string
+          descricao?: string | null
+          documento?: string | null
+          external_id: string
+          id?: string
+          pix_id?: string | null
+          raw?: Json | null
+          tipo?: string
+          unidade_id?: string | null
+          unidade_origem?: string | null
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          autenticacao?: string | null
+          beneficiario?: string | null
+          conciliado_em?: string | null
+          conta_bancaria?: string | null
+          conta_pagar_id?: string | null
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          documento?: string | null
+          external_id?: string
+          id?: string
+          pix_id?: string | null
+          raw?: Json | null
+          tipo?: string
+          unidade_id?: string | null
+          unidade_origem?: string | null
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transacoes_bancarias_evo_os_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: true
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       unidade_whatsapp_config: {
         Row: {
