@@ -1,0 +1,3 @@
+ALTER TABLE public.contas_pagar ADD COLUMN IF NOT EXISTS documentos_fiscais text[] NOT NULL DEFAULT '{}';
+UPDATE public.contas_pagar SET documentos_fiscais = ARRAY[documento_url] WHERE documento_url IS NOT NULL AND documento_url <> '' AND cardinality(documentos_fiscais) = 0;
+COMMENT ON COLUMN public.contas_pagar.documentos_fiscais IS 'Caminhos no storage das notas/cupons fiscais da cobrança. documento_url guarda o primeiro, por compatibilidade.';
