@@ -1,6 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
-import { sendTelegramMessage } from '../_shared/telegram.ts';
+import { resolveGrupoUnidade, sendTelegramMessage } from '../_shared/telegram.ts';
 import { sendManagerFuDigest } from '../_shared/fuGerenteDigest.ts';
 import { z } from 'npm:zod@3';
 
@@ -243,62 +243,28 @@ ${focoDaUnidade(dados)}`;
     };
 
     const messages = [
-      { unidade: 'EVO MADALENA', text: montarMensagem('EVO MADALENA', zn) },
-      { unidade: 'EVO BOA VIAGEM', text: montarMensagem('EVO BOA VIAGEM', zs) },
-      { unidade: 'EVO SETÚBAL', text: montarMensagem('EVO SETÚBAL', stb) },
+      { unidade: 'EVO MADALENA', unidadeId: ZN_ID, text: montarMensagem('EVO MADALENA', zn) },
+      { unidade: 'EVO BOA VIAGEM', unidadeId: ZS_ID, text: montarMensagem('EVO BOA VIAGEM', zs) },
+      { unidade: 'EVO SETÚBAL', unidadeId: STB_ID, text: montarMensagem('EVO SETÚBAL', stb) },
     ];
 
 
-    // Destino no Telegram: chat privado do usuário cujo telefone corresponde ao informado.
-    const digitos = String(destPhone).replace(/\D/g, '').slice(-11);
-
-    const { data: perfis } = await supabase
-      .from('user_profiles')
-      .select('user_id, telefone');
-
-    const perfil = (perfis ?? []).find(
-      (p: any) => String(p.telefone ?? '').replace(/\D/g, '').slice(-11) === digitos,
-    );
-
-    let chatId: number | null = null;
-    if (perfil?.user_id) {
-      const { data: tg } = await supabase
-        .from('telegram_users')
-        .select('telegram_user_id')
-        .eq('user_id', perfil.user_id)
-        .eq('status', 'conectado')
-        .maybeSingle();
-      if (tg?.telegram_user_id) chatId = Number(tg.telegram_user_id);
-    }
-
-    if (!chatId) {
-      return new Response(
-        JSON.stringify({ error: 'Destinatário não possui Telegram conectado', phone: destPhone }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
-
+    // Destino: cada unidade vai SOMENTE ao grupo de Gerência da própria unidade, em mensagem individual.
     const results = [];
     for (const message of messages) {
-      let resp = await sendTelegramMessage({
-        chat_id: chatId,
-        text: message.text,
-        parse_mode: 'Markdown',
-        recipient_type: 'usuario',
-        recipient_id: perfil?.user_id ?? null,
-        message_type: 'resumo_gestao_operacional',
-      }, supabase);
-
-      if (!resp.ok) {
-        resp = await sendTelegramMessage({
-          chat_id: chatId,
-          text: message.text.replace(/\*/g, ''),
-          recipient_type: 'usuario',
-          recipient_id: perfil?.user_id ?? null,
-          message_type: 'resumo_gestao_operacional',
-        }, supabase);
+      const grupo = await resolveGrupoUnidade(supabase, message.unidadeId, ['gerencia']);
+      if (!grupo?.telegram_chat_id) {
+        results.push({ unidade: message.unidade, success: false, error: 'grupo_nao_conectado', message_id: null });
+        continue;
       }
-
+      const base = {
+        chat_id: grupo.telegram_chat_id,
+        recipient_type: 'grupo',
+        recipient_id: grupo.id,
+        message_type: 'resumo_gestao_operacional',
+      };
+      let resp = await sendTelegramMessage({ ...base, text: message.text, parse_mode: 'Markdown' } as any, supabase);
+      if (!resp.ok) resp = await sendTelegramMessage({ ...base, text: message.text.replace(/\*/g, '') } as any, supabase);
       results.push({
         unidade: message.unidade,
         success: resp.ok,
