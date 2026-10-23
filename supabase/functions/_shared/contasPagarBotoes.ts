@@ -44,7 +44,7 @@ async function grupoIds(admin: any): Promise<number[]> {
 }
 
 /** Usuário autorizado = Telegram vinculado a um usuário do CRM com permissão de gerir contas. */
-async function autorizar(admin: any, from: any): Promise<{ userId: string; nome: string } | null> {
+export async function autorizar(admin: any, from: any): Promise<{ userId: string; nome: string } | null> {
   if (!from?.id) return null;
   const { data: tu } = await admin.from('telegram_users').select('user_id, status')
     .eq('telegram_user_id', from.id).maybeSingle();
