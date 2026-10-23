@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Copy, ExternalLink, CheckCircle2, Pencil, RotateCcw, Ban, Trash2, Send, RefreshCw } from 'lucide-react';
+import { Copy, Download, ExternalLink, AlertTriangle, FileText, CheckCircle2, Pencil, RotateCcw, Ban, Trash2, Send, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useContaEnvios, useContaHistorico } from '@/hooks/useContasPagar';
-import { getContaArquivoUrl } from './uploadHelpers';
+import { getContaArquivoUrl, getContaArquivoDownloadUrl } from './uploadHelpers';
+import { nomeDoPath } from './DocumentosFiscaisInput';
+import { documentosDaConta } from './NovaContaModal';
 import {
   ContaPagar,
   ContaStatusView,
@@ -98,7 +100,27 @@ export function ContaDetalhesDrawer({
     else toast({ title: 'Não foi possível abrir o documento', variant: 'destructive' });
   };
 
+  const baixarArquivo = async (path: string) => {
+    const url = await getContaArquivoDownloadUrl(path);
+    if (url) window.location.href = url;
+    else toast({ title: 'Não foi possível baixar o documento', variant: 'destructive' });
+  };
+
   if (!conta) return null;
+  const docsFiscais = documentosDaConta(conta);
+
+  const linhaArquivo = (path: string) => (
+    <div key={path} className="flex items-center gap-2 text-sm">
+      <FileText className="w-4 h-4 shrink-0 text-muted-foreground" />
+      <span className="flex-1 truncate">{nomeDoPath(path)}</span>
+      <Button size="sm" variant="outline" onClick={() => abrirArquivo(path)}>
+        <ExternalLink className="w-3.5 h-3.5 mr-1" /> Ver
+      </Button>
+      <Button size="sm" variant="outline" onClick={() => baixarArquivo(path)}>
+        <Download className="w-3.5 h-3.5 mr-1" /> Baixar
+      </Button>
+    </div>
+  );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -178,24 +200,33 @@ export function ContaDetalhesDrawer({
                 )}
             </div>
 
-            {(conta.documento_url || conta.comprovante_url) && (
-              <>
-                <Separator />
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold">Documentos</h4>
-                  {conta.documento_url && (
-                    <Button size="sm" variant="outline" onClick={() => abrirArquivo(conta.documento_url)}>
-                      <ExternalLink className="w-3.5 h-3.5 mr-1" /> Ver documento
-                    </Button>
-                  )}
-                  {conta.comprovante_url && (
-                    <Button size="sm" variant="outline" onClick={() => abrirArquivo(conta.comprovante_url)}>
-                      <ExternalLink className="w-3.5 h-3.5 mr-1" /> Ver comprovante
+            <Separator />
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold">Nota fiscal / cupom fiscal</h4>
+              {docsFiscais.length ? (
+                docsFiscais.map(linhaArquivo)
+              ) : (
+                <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-2 text-sm text-destructive">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span className="flex-1">Documento fiscal pendente para esta cobrança.</span>
+                  {canManage && (
+                    <Button size="sm" variant="outline" onClick={() => onEditar(conta)}>
+                      Anexar
                     </Button>
                   )}
                 </div>
-              </>
-            )}
+              )}
+            </div>
+
+            <Separator />
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold">Comprovante de pagamento</h4>
+              {conta.comprovante_url ? (
+                linhaArquivo(conta.comprovante_url)
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum comprovante anexado (é enviado na baixa).</p>
+              )}
+            </div>
 
             <Separator />
 

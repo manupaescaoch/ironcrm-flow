@@ -34,6 +34,7 @@ export interface ContaPagar {
   conta_bancaria: string | null;
   favorecido: string | null;
   documento_url: string | null;
+  documentos_fiscais?: string[] | null;
   status: ContaStatusBase;
   valor_pago: number | null;
   data_pagamento: string | null;

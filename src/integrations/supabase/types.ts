@@ -490,6 +490,7 @@ export type Database = {
           desconto: number
           descricao: string
           documento_url: string | null
+          documentos_fiscais: string[]
           favorecido: string | null
           forma_pagamento: string | null
           forma_pagamento_baixa: string | null
@@ -534,6 +535,7 @@ export type Database = {
           desconto?: number
           descricao: string
           documento_url?: string | null
+          documentos_fiscais?: string[]
           favorecido?: string | null
           forma_pagamento?: string | null
           forma_pagamento_baixa?: string | null
@@ -578,6 +580,7 @@ export type Database = {
           desconto?: number
           descricao?: string
           documento_url?: string | null
+          documentos_fiscais?: string[]
           favorecido?: string | null
           forma_pagamento?: string | null
           forma_pagamento_baixa?: string | null
