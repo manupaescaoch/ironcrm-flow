@@ -1,6 +1,7 @@
 // Ações do painel "Telegram" de Contas a Pagar: reprocessar, definir unidade e ligar/desligar.
 import { adminCorsHeaders } from '../_shared/cors.ts';
-import { adminClient } from '../_shared/telegram.ts';
+import { adminClient, telegramApi } from '../_shared/telegram.ts';
+import { garantirFornecedor, resumo, tecladoConferencia } from '../_shared/contasPagarConferenciaTelegram.ts';
 import { processarDocumento } from '../_shared/contasPagarTelegram.ts';
 
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -47,6 +48,29 @@ Deno.serve(async (req) => {
       if (doc.status !== 'aguardando_unidade' && doc.status !== 'erro') return json({ error: 'Documento já processado' }, 409);
       await admin.from('contas_pagar_telegram_docs').update({ unidade_id, unidade_metodo: 'manual:painel', status: 'recebido' }).eq('id', doc_id);
       return json(await processarDocumento(admin, doc_id));
+    }
+    if (action === 'reenviar_conferencia') {
+      // Reenvia ao grupo o resumo da conta com CONFIRMAR/EDITAR (identifica/cadastra o fornecedor antes).
+      const { data: d } = await admin.from('contas_pagar_telegram_docs').select('conta_id, telegram_chat_id, telegram_message_id').eq('id', doc_id).maybeSingle();
+      if (!d?.conta_id) return json({ error: 'Documento sem lançamento' }, 409);
+      const { data: c } = await admin.from('contas_pagar').select('*, unidades(nome)').eq('id', d.conta_id).maybeSingle();
+      if (!c || c.status === 'paga' || c.conferencia_status !== 'pendente_conferencia') return json({ error: 'Conta já conferida ou paga' }, 409);
+      let aviso = '';
+      if (!c.fornecedor_id) {
+        const f = await garantirFornecedor(admin, c);
+        if ('erro' in f) aviso = `Fornecedor não identificado: ${f.erro}`;
+        else {
+          await admin.from('contas_pagar').update({ fornecedor_id: f.id, fornecedor_validar: false }).eq('id', c.id);
+          c.fornecedor_id = f.id; c.fornecedor_validar = false;
+          aviso = f.criado ? 'Fornecedor cadastrado automaticamente.' : 'Fornecedor identificado no cadastro.';
+        }
+      }
+      const r = await telegramApi('sendMessage', {
+        chat_id: d.telegram_chat_id, reply_to_message_id: d.telegram_message_id, allow_sending_without_reply: true,
+        text: resumo(c) + (aviso ? `\n\n${aviso}` : '') + '\n\nDocumento anexado ao Contas a Pagar.',
+        reply_markup: tecladoConferencia(c.id),
+      });
+      return json({ ok: r.ok, erro: r.description, aviso });
     }
     if (action === 'reprocessar') {
       if (!['erro', 'recebido'].includes(doc.status)) return json({ error: 'Só documentos com falha podem ser reprocessados' }, 409);
