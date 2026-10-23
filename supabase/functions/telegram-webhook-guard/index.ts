@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     if (!info.ok) return json({ error: 'falha_webhook_info', details: info.description }, 502);
 
     const currentUrl: string = info.result?.url ?? '';
-    const ok = currentUrl === expectedUrl;
+    const ok = currentUrl === expectedUrl && (info.result?.allowed_updates ?? []).includes('callback_query');
 
     if (ok) {
       return json({
@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     const fix = await telegramApi('setWebhook', {
       url: expectedUrl,
       secret_token: secret,
-      allowed_updates: ['message', 'edited_message', 'my_chat_member'],
+      allowed_updates: ['message', 'edited_message', 'my_chat_member', 'callback_query'],
       drop_pending_updates: true,
     });
 
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     // Avisa a gestão
     const telefone = Deno.env.get('TELEGRAM_RESUMO_TELEFONE') || '81996392285';
     const alvo = await resolveTelegramUsuarioPorTelefone(admin, telefone);
-    if (alvo) {
+    if (alvo && currentUrl !== expectedUrl) {
       const texto = fix.ok
         ? `⚠️ *BOT DO TELEGRAM REAPONTADO*\n\nO bot estava respondendo por outro sistema (webhook em \`${currentUrl || 'vazio'}\`).\n\nJá corrigi automaticamente: as mensagens voltam para o CRM EVO.`
         : `🚨 *BOT DO TELEGRAM FORA DO CRM*\n\nO webhook está em \`${currentUrl || 'vazio'}\` e não consegui corrigir: ${fix.description ?? 'erro'}`;

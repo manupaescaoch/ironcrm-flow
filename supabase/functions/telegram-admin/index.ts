@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
         const r = await telegramApi('setWebhook', {
           url,
           secret_token: secret,
-          allowed_updates: ['message', 'edited_message', 'my_chat_member'],
+          allowed_updates: ['message', 'edited_message', 'my_chat_member', 'callback_query'],
           drop_pending_updates: false,
         });
         if (!r.ok) return json({ error: 'falha_webhook', details: r.description }, 502);

@@ -27,6 +27,8 @@ import { NovaContaModal } from '@/components/contas-pagar/NovaContaModal';
 import { BaixaModal } from '@/components/contas-pagar/BaixaModal';
 import { ContaDetalhesDrawer } from '@/components/contas-pagar/ContaDetalhesDrawer';
 import { ContaPagar } from '@/components/contas-pagar/constants';
+import { TelegramDocsPanel } from '@/components/contas-pagar/TelegramDocsPanel';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { descreverErroConta } from '@/components/contas-pagar/erros';
 
 function iso(date: Date): string {
@@ -186,6 +188,17 @@ export default function ContasPagar() {
           )}
         </div>
 
+        <Tabs defaultValue="contas">
+          {canManage && (
+            <TabsList>
+              <TabsTrigger value="contas">Contas</TabsTrigger>
+              <TabsTrigger value="telegram">Telegram</TabsTrigger>
+            </TabsList>
+          )}
+          <TabsContent value="telegram" className="mt-4">
+            {canManage && <TelegramDocsPanel />}
+          </TabsContent>
+          <TabsContent value="contas" className="mt-4 space-y-5">
         <ContasPagarKPIs {...kpis} onSelectStatus={(s) => setStatus(s)} />
 
         <Card className="p-4 space-y-4">
@@ -228,6 +241,8 @@ export default function ContasPagar() {
           onReagendar={(c) => setReagendarConta(c)}
           onExcluir={(c) => setConfirmacao({ tipo: 'excluir', conta: c })}
         />
+          </TabsContent>
+        </Tabs>
       </div>
 
       <ReagendarModal

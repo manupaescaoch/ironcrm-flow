@@ -81,6 +81,9 @@ export async function processarEnvio(
   if (conta.deleted_at) return { ok: false, skipped: 'conta_excluida' };
   if (conta.status === 'paga') return { ok: false, skipped: 'conta_paga' };
   if (conta.status === 'cancelada') return { ok: false, skipped: 'conta_cancelada' };
+  if (conta.conferencia_status === 'pendente_conferencia' || conta.conferencia_status === 'conferida') {
+    return { ok: false, skipped: 'aguardando_aprovacao' };
+  }
 
   // Regra: só é enviado ao grupo no DIA do vencimento.
   const hojeBRT = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());

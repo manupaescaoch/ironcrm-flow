@@ -466,6 +466,8 @@ export type Database = {
       contas_pagar: {
         Row: {
           agencia: string | null
+          aprovado_em: string | null
+          aprovado_por_nome: string | null
           baixa_observacoes: string | null
           baixado_em: string | null
           baixado_por: string | null
@@ -475,11 +477,15 @@ export type Database = {
           cancelado_por_nome: string | null
           categoria: string | null
           centro_custo: string | null
+          chave_nfe: string | null
           chave_pix: string | null
           codigo_barras: string | null
           codigo_pix: string | null
           competencia: string | null
           comprovante_url: string | null
+          conferencia_status: string | null
+          conferido_em: string | null
+          conferido_por_nome: string | null
           conta_bancaria: string | null
           created_at: string
           created_by: string | null
@@ -497,6 +503,7 @@ export type Database = {
           forma_pagamento_baixa: string | null
           fornecedor: string | null
           fornecedor_documento: string | null
+          fornecedor_validar: boolean
           id: string
           import_key: string | null
           juros: number
@@ -505,8 +512,12 @@ export type Database = {
           multa: number
           numero_fatura: string | null
           observacoes: string | null
+          origem: string
+          pagador_cnpj: string | null
           prioridade: string
+          recebido_em: string | null
           status: string
+          telegram_remetente: string | null
           unidade_id: string
           updated_at: string
           valor: number
@@ -514,6 +525,8 @@ export type Database = {
         }
         Insert: {
           agencia?: string | null
+          aprovado_em?: string | null
+          aprovado_por_nome?: string | null
           baixa_observacoes?: string | null
           baixado_em?: string | null
           baixado_por?: string | null
@@ -523,11 +536,15 @@ export type Database = {
           cancelado_por_nome?: string | null
           categoria?: string | null
           centro_custo?: string | null
+          chave_nfe?: string | null
           chave_pix?: string | null
           codigo_barras?: string | null
           codigo_pix?: string | null
           competencia?: string | null
           comprovante_url?: string | null
+          conferencia_status?: string | null
+          conferido_em?: string | null
+          conferido_por_nome?: string | null
           conta_bancaria?: string | null
           created_at?: string
           created_by?: string | null
@@ -545,6 +562,7 @@ export type Database = {
           forma_pagamento_baixa?: string | null
           fornecedor?: string | null
           fornecedor_documento?: string | null
+          fornecedor_validar?: boolean
           id?: string
           import_key?: string | null
           juros?: number
@@ -553,8 +571,12 @@ export type Database = {
           multa?: number
           numero_fatura?: string | null
           observacoes?: string | null
+          origem?: string
+          pagador_cnpj?: string | null
           prioridade?: string
+          recebido_em?: string | null
           status?: string
+          telegram_remetente?: string | null
           unidade_id: string
           updated_at?: string
           valor: number
@@ -562,6 +584,8 @@ export type Database = {
         }
         Update: {
           agencia?: string | null
+          aprovado_em?: string | null
+          aprovado_por_nome?: string | null
           baixa_observacoes?: string | null
           baixado_em?: string | null
           baixado_por?: string | null
@@ -571,11 +595,15 @@ export type Database = {
           cancelado_por_nome?: string | null
           categoria?: string | null
           centro_custo?: string | null
+          chave_nfe?: string | null
           chave_pix?: string | null
           codigo_barras?: string | null
           codigo_pix?: string | null
           competencia?: string | null
           comprovante_url?: string | null
+          conferencia_status?: string | null
+          conferido_em?: string | null
+          conferido_por_nome?: string | null
           conta_bancaria?: string | null
           created_at?: string
           created_by?: string | null
@@ -593,6 +621,7 @@ export type Database = {
           forma_pagamento_baixa?: string | null
           fornecedor?: string | null
           fornecedor_documento?: string | null
+          fornecedor_validar?: boolean
           id?: string
           import_key?: string | null
           juros?: number
@@ -601,8 +630,12 @@ export type Database = {
           multa?: number
           numero_fatura?: string | null
           observacoes?: string | null
+          origem?: string
+          pagador_cnpj?: string | null
           prioridade?: string
+          recebido_em?: string | null
           status?: string
+          telegram_remetente?: string | null
           unidade_id?: string
           updated_at?: string
           valor?: number
@@ -717,6 +750,86 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "contas_pagar_historico_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contas_pagar_telegram_docs: {
+        Row: {
+          conta_id: string | null
+          created_at: string
+          dados: Json | null
+          erro: string | null
+          file_id: string
+          file_name: string | null
+          id: string
+          mime_type: string | null
+          prompt_message_id: number | null
+          recebido_em: string
+          remetente: string | null
+          resultado: string | null
+          status: string
+          storage_path: string | null
+          telegram_chat_id: number
+          telegram_message_id: number
+          tentativas: number
+          unidade_id: string | null
+          unidade_metodo: string | null
+          update_id: number | null
+          updated_at: string
+        }
+        Insert: {
+          conta_id?: string | null
+          created_at?: string
+          dados?: Json | null
+          erro?: string | null
+          file_id: string
+          file_name?: string | null
+          id?: string
+          mime_type?: string | null
+          prompt_message_id?: number | null
+          recebido_em?: string
+          remetente?: string | null
+          resultado?: string | null
+          status?: string
+          storage_path?: string | null
+          telegram_chat_id: number
+          telegram_message_id: number
+          tentativas?: number
+          unidade_id?: string | null
+          unidade_metodo?: string | null
+          update_id?: number | null
+          updated_at?: string
+        }
+        Update: {
+          conta_id?: string | null
+          created_at?: string
+          dados?: Json | null
+          erro?: string | null
+          file_id?: string
+          file_name?: string | null
+          id?: string
+          mime_type?: string | null
+          prompt_message_id?: number | null
+          recebido_em?: string
+          remetente?: string | null
+          resultado?: string | null
+          status?: string
+          storage_path?: string | null
+          telegram_chat_id?: number
+          telegram_message_id?: number
+          tentativas?: number
+          unidade_id?: string | null
+          unidade_metodo?: string | null
+          update_id?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pagar_telegram_docs_conta_id_fkey"
             columns: ["conta_id"]
             isOneToOne: false
             referencedRelation: "contas_pagar"
@@ -4705,6 +4818,7 @@ export type Database = {
       unidades: {
         Row: {
           ativo: boolean
+          cnpj: string | null
           created_at: string
           id: string
           nome: string
@@ -4712,6 +4826,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          cnpj?: string | null
           created_at?: string
           id?: string
           nome: string
@@ -4719,6 +4834,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          cnpj?: string | null
           created_at?: string
           id?: string
           nome?: string

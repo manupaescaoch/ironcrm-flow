@@ -43,6 +43,20 @@
       "when": 1792765387697,
       "tag": "0005_contas_pagar_importar_documento",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792787625318,
+      "tag": "0006_contas_pagar_telegram",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792787887571,
+      "tag": "0007_unidades_cnpj_admin_update",
+      "breakpoints": true
     }
   ]
 }

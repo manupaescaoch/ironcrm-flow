@@ -2,6 +2,7 @@
 // Valida o header X-Telegram-Bot-Api-Secret-Token. Público (verify_jwt = false).
 
 import { adminClient, safeEqual, sendTelegramMessage, webhookSecretToken } from '../_shared/telegram.ts';
+import { receberCallbackContasPagar, receberMensagemContasPagar } from '../_shared/contasPagarTelegram.ts';
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
@@ -18,6 +19,22 @@ Deno.serve(async (req) => {
     if (!update) return new Response(JSON.stringify({ ok: true, ignored: true }), { status: 200 });
 
     const admin = adminClient();
+
+    // --- Contas a Pagar: botões de unidade e documentos enviados ao grupo ---
+    if (update.callback_query) {
+      await receberCallbackContasPagar(admin, update.callback_query);
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    }
+    if (update.message && (update.message.document || update.message.photo)) {
+      try {
+        if (await receberMensagemContasPagar(admin, update)) {
+          return new Response(JSON.stringify({ ok: true, contas_pagar: true }), { status: 200 });
+        }
+      } catch (e) {
+        console.error('contas-pagar telegram', e);
+      }
+    }
+
     const msg = update.message ?? update.edited_message ?? null;
     const chat = msg?.chat ?? update.my_chat_member?.chat ?? null;
 
