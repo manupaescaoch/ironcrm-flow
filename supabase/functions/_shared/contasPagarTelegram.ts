@@ -6,6 +6,7 @@ import {
   acharCorrespondencia, identificarUnidade, msgAguardandoVencimento, msgConfirmarUnidade,
   msgDuplicado, msgProcessado, soDigitos, UnidadeCnpj,
 } from './contasPagarTelegramRegras.ts';
+import { tecladoConferencia } from './contasPagarConferenciaTelegram.ts';
 
 const BUCKET = 'contas-pagar-docs';
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -338,7 +339,10 @@ export async function processarDocumento(admin: any, docId: string): Promise<{ s
       !fornCadastrado ? 'Fornecedor não cadastrado: validar em Contas a Pagar.' : '',
       notaParada ? 'Nota fiscal enviada antes foi vinculada a este boleto.' : '',
     ].filter(Boolean).join('\n');
-    await responder(admin, doc.telegram_chat_id, doc.telegram_message_id, msgProcessado({ ...base, data_vencimento: linhas[0].vencimento }, unidadeNome, extra));
+    await responder(admin, doc.telegram_chat_id, doc.telegram_message_id,
+      msgProcessado({ ...base, data_vencimento: linhas[0].vencimento }, unidadeNome, extra) +
+        (criadas.length > 1 ? '\n\nVárias parcelas: confira e aprove cada uma em Contas a Pagar.' : ''),
+      criadas.length === 1 ? tecladoConferencia(criadas[0]) : undefined);
     return await fim('criado', { conta_id: criadas[0] ?? null, resultado: `${criadas.length} lançamento(s)` });
   } catch (e) {
     const erro = e instanceof Error ? e.message : String(e);

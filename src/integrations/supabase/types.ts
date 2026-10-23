@@ -511,6 +511,7 @@ export type Database = {
           forma_pagamento_baixa: string | null
           fornecedor: string | null
           fornecedor_documento: string | null
+          fornecedor_id: string | null
           fornecedor_validar: boolean
           id: string
           import_key: string | null
@@ -582,6 +583,7 @@ export type Database = {
           forma_pagamento_baixa?: string | null
           fornecedor?: string | null
           fornecedor_documento?: string | null
+          fornecedor_id?: string | null
           fornecedor_validar?: boolean
           id?: string
           import_key?: string | null
@@ -653,6 +655,7 @@ export type Database = {
           forma_pagamento_baixa?: string | null
           fornecedor?: string | null
           fornecedor_documento?: string | null
+          fornecedor_id?: string | null
           fornecedor_validar?: boolean
           id?: string
           import_key?: string | null
@@ -678,6 +681,13 @@ export type Database = {
           valor_pago?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contas_pagar_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contas_pagar_unidade_id_fkey"
             columns: ["unidade_id"]
@@ -905,6 +915,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "contas_pagar_telegram_docs_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contas_pagar_telegram_edicoes: {
+        Row: {
+          campo_aguardando: string | null
+          conta_id: string
+          created_at: string
+          id: string
+          message_id: number | null
+          rascunho: Json
+          status: string
+          telegram_chat_id: number
+          telegram_user_id: number
+          updated_at: string
+        }
+        Insert: {
+          campo_aguardando?: string | null
+          conta_id: string
+          created_at?: string
+          id?: string
+          message_id?: number | null
+          rascunho?: Json
+          status?: string
+          telegram_chat_id: number
+          telegram_user_id: number
+          updated_at?: string
+        }
+        Update: {
+          campo_aguardando?: string | null
+          conta_id?: string
+          created_at?: string
+          id?: string
+          message_id?: number | null
+          rascunho?: Json
+          status?: string
+          telegram_chat_id?: number
+          telegram_user_id?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pagar_telegram_edicoes_conta_id_fkey"
             columns: ["conta_id"]
             isOneToOne: false
             referencedRelation: "contas_pagar"
@@ -2408,6 +2465,7 @@ export type Database = {
       fornecedores: {
         Row: {
           ativo: boolean
+          cnpj: string | null
           created_at: string
           email: string | null
           id: string
@@ -2420,6 +2478,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          cnpj?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -2432,6 +2491,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          cnpj?: string | null
           created_at?: string
           email?: string | null
           id?: string
