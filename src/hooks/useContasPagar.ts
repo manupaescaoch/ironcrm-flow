@@ -35,6 +35,7 @@ export interface ContaFormPayload {
   conta_bancaria: string | null;
   favorecido: string | null;
   documento_url: string | null;
+  documentos_fiscais?: string[];
 }
 
 export interface BaixaPayload {
@@ -189,8 +190,11 @@ export function useContasPagar(from: string, to: string) {
       if (!unidadeId) throw new Error('Nenhuma unidade selecionada');
       if (!user?.id) throw new Error('Usuário não autenticado');
       if (!datas.length) return 0;
+      // Cada parcela exige o próprio documento fiscal: não repete o anexo da primeira.
       const rows = datas.map((data_vencimento) => ({
         ...payload,
+        documento_url: null,
+        documentos_fiscais: [],
         data_vencimento,
         unidade_id: unidadeId,
         status: 'pendente',

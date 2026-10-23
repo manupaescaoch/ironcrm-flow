@@ -19,6 +19,18 @@ import { SucessoConta } from './SucessoConta';
 import { ContaPagar } from './constants';
 import { descreverErroConta, descreverPendencias } from './erros';
 import type { ContaFormPayload } from '@/hooks/useContasPagar';
+import {
+  DocumentoFiscalItem,
+  DocumentosFiscaisInput,
+  MSG_DOCUMENTO_OBRIGATORIO,
+  docsFromPaths,
+} from './DocumentosFiscaisInput';
+import { uploadContaArquivo } from './uploadHelpers';
+
+export function documentosDaConta(conta: Pick<ContaPagar, 'documentos_fiscais' | 'documento_url'>): string[] {
+  if (conta.documentos_fiscais && conta.documentos_fiscais.length) return conta.documentos_fiscais;
+  return conta.documento_url ? [conta.documento_url] : [];
+}
 
 interface Props {
   open: boolean;
@@ -94,6 +106,13 @@ export function NovaContaModal({
   const [aba, setAba] = useState<'manual' | 'texto'>('manual');
   const [texto, setTexto] = useState('');
   const [avisoUnidade, setAvisoUnidade] = useState<string | null>(null);
+  const [docs, setDocs] = useState<DocumentoFiscalItem[]>([]);
+  const [docsErro, setDocsErro] = useState<string | undefined>();
+
+  const setDocsLimpo = (d: DocumentoFiscalItem[]) => {
+    setDocs(d);
+    if (d.length) setDocsErro(undefined);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -105,6 +124,8 @@ export function NovaContaModal({
     setAba('manual');
     setTexto('');
     setAvisoUnidade(null);
+    setDocs(contaEdicao ? docsFromPaths(documentosDaConta(contaEdicao)) : []);
+    setDocsErro(undefined);
   }, [open, contaEdicao]);
 
   const analisarTexto = async () => {
@@ -142,6 +163,11 @@ export function NovaContaModal({
 
     // Texto completo e unidade compatível: cadastra automaticamente
     if (qtdFaltando === 0 && !divergente) {
+      if (docs.length === 0) {
+        setDocsErro(MSG_DOCUMENTO_OBRIGATORIO);
+        toast({ title: 'Documento fiscal obrigatório', description: MSG_DOCUMENTO_OBRIGATORIO, variant: 'destructive' });
+        return;
+      }
       await salvar(false, next);
       return;
     }
@@ -163,6 +189,11 @@ export function NovaContaModal({
     const formAtual = formOverride ?? form;
     const validation = validateContaForm(formAtual);
     setErrors(validation);
+    if (!isEdicao && docs.length === 0) {
+      setDocsErro(MSG_DOCUMENTO_OBRIGATORIO);
+      toast({ title: 'Documento fiscal obrigatório', description: MSG_DOCUMENTO_OBRIGATORIO, variant: 'destructive' });
+      return;
+    }
     if (Object.keys(validation).length > 0) {
       toast({
         title: 'Corrija antes de salvar',
@@ -184,8 +215,24 @@ export function NovaContaModal({
 
     setSaving(true);
     try {
-      const documentoUrl = contaEdicao?.documento_url ?? null;
-      const payload = contaFormToPayload(formAtual, documentoUrl);
+      // Envia os anexos novos e mantém os já salvos
+      const paths: string[] = [];
+      const enviados: DocumentoFiscalItem[] = [];
+      for (const d of docs) {
+        if (d.path) {
+          paths.push(d.path);
+          enviados.push(d);
+        } else if (d.file) {
+          const path = await uploadContaArquivo(d.file, unidadeId, 'documentos');
+          paths.push(path);
+          enviados.push({ ...d, path, file: undefined });
+        }
+      }
+      setDocs(enviados);
+      const payload: ContaFormPayload = {
+        ...contaFormToPayload(formAtual, paths[0] ?? null),
+        documentos_fiscais: paths,
+      };
 
       if (isEdicao && contaEdicao) {
         await onAtualizar(contaEdicao.id, payload);
@@ -223,7 +270,10 @@ export function NovaContaModal({
         ).slice(1);
         try {
           const qtd = await onCriarParcelas(payload, datas);
-          toast({ title: `Conta cadastrada com ${qtd + 1} parcelas.` });
+          toast({
+            title: `Conta cadastrada com ${qtd + 1} parcelas.`,
+            description: 'Anexe a nota ou cupom fiscal de cada próxima parcela quando chegar (Editar conta).',
+          });
         } catch (error) {
           const { descricao } = descreverErroConta(error);
           toast({
@@ -266,6 +316,8 @@ export function NovaContaModal({
                 setAvisoUnidade(null);
                 setAba('manual');
                 setErrors({});
+                setDocs([]);
+                setDocsErro(undefined);
               }}
               onFechar={() => onOpenChange(false)}
             />
@@ -293,6 +345,7 @@ export function NovaContaModal({
                     className="font-mono text-xs"
                     placeholder={`EVO BOA VIAGEM\nDescrição: CONTA TIM\nVencimento: 15/04/2026\nValor: R$ 149,99\nPix:\n\n00020126940014br.gov.bcb.pix...`}
                   />
+                  <DocumentosFiscaisInput docs={docs} setDocs={setDocsLimpo} error={docsErro} disabled={saving} />
                   <Button
                     type="button"
                     variant="secondary"
@@ -327,6 +380,9 @@ export function NovaContaModal({
                   unidadeNome={unidadeNome}
                   permitirRecorrencia={!isEdicao}
                 />
+                <div className="mt-4">
+                  <DocumentosFiscaisInput docs={docs} setDocs={setDocsLimpo} error={docsErro} disabled={saving} />
+                </div>
 
               </div>
               )}
