@@ -1,6 +1,6 @@
 // Recebimento de documentos no grupo "Contas a Pagar" do Telegram → lançamento em Contas a Pagar.
 // Nunca marca conta como paga nem aprovada. Idempotente por (chat, mensagem).
-import { botToken, sendTelegramMessage, telegramApi, TELEGRAM_API } from './telegram.ts';
+import { botToken, telegramApi, TELEGRAM_API } from './telegram.ts';
 import { extrairDocumentoConta, CATEGORIAS } from './extrairDocumentoConta.ts';
 import {
   acharCorrespondencia, identificarUnidade, msgAguardandoVencimento, msgConfirmarUnidade,
@@ -225,7 +225,7 @@ export async function processarDocumento(admin: any, docId: string): Promise<{ s
 
     // 4. Duplicidade / vínculo com lançamento existente
     const { data: contas } = await admin.from('contas_pagar')
-      .select('id, valor, data_vencimento, linha_digitavel, codigo_barras, chave_nfe, numero_fatura, fornecedor_documento, status, documentos_fiscais, documento_url, conferencia_status')
+      .select('id, valor, data_vencimento, linha_digitavel, codigo_barras, chave_nfe, numero_fatura, fornecedor_documento, status, documentos_fiscais, documento_url, conferencia_status, aprovado_em')
       .eq('unidade_id', unidadeId).is('deleted_at', null).neq('status', 'cancelada')
       .order('created_at', { ascending: false }).limit(500);
     const corr = acharCorrespondencia(dados, contas ?? []);

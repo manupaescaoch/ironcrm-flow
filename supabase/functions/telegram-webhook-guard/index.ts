@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     const fix = await telegramApi('setWebhook', {
       url: expectedUrl,
       secret_token: secret,
-      allowed_updates: ['message', 'edited_message', 'my_chat_member'],
+      allowed_updates: ['message', 'edited_message', 'my_chat_member', 'callback_query'],
       drop_pending_updates: true,
     });
 
