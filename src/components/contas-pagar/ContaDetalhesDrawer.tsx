@@ -11,6 +11,7 @@ import { useContaEnvios, useContaHistorico } from '@/hooks/useContasPagar';
 import { getContaArquivoUrl, getContaArquivoDownloadUrl } from './uploadHelpers';
 import { nomeDoPath } from './DocumentosFiscaisInput';
 import { documentosDaConta } from './NovaContaModal';
+import { ConferenciaConta } from './ConferenciaConta';
 import {
   ContaPagar,
   ContaStatusView,
@@ -139,6 +140,7 @@ export function ContaDetalhesDrawer({
 
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-4">
+            <ConferenciaConta conta={conta} canManage={canManage} />
             <div>
               <Linha label="Unidade" value={unidadeNome} />
               <Linha label="Valor" value={formatCurrency(Number(conta.valor))} />

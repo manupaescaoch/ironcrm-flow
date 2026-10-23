@@ -50,6 +50,13 @@
       "when": 1792787625318,
       "tag": "0006_contas_pagar_telegram",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792787887571,
+      "tag": "0007_unidades_cnpj_admin_update",
+      "breakpoints": true
     }
   ]
 }
