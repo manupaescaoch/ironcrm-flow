@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     // Avisa a gestão
     const telefone = Deno.env.get('TELEGRAM_RESUMO_TELEFONE') || '81996392285';
     const alvo = await resolveTelegramUsuarioPorTelefone(admin, telefone);
-    if (alvo) {
+    if (alvo && currentUrl !== expectedUrl) {
       const texto = fix.ok
         ? `⚠️ *BOT DO TELEGRAM REAPONTADO*\n\nO bot estava respondendo por outro sistema (webhook em \`${currentUrl || 'vazio'}\`).\n\nJá corrigi automaticamente: as mensagens voltam para o CRM EVO.`
         : `🚨 *BOT DO TELEGRAM FORA DO CRM*\n\nO webhook está em \`${currentUrl || 'vazio'}\` e não consegui corrigir: ${fix.description ?? 'erro'}`;
