@@ -156,7 +156,7 @@ export function BaixaModal({ open, onOpenChange, conta, onConfirmar }: Props) {
               />
             </div>
             <div>
-              <Label>Comprovante</Label>
+              <Label>Comprovante de pagamento</Label>
               <Input
                 type="file"
                 accept=".pdf,.png,.jpg,.jpeg,.webp"
