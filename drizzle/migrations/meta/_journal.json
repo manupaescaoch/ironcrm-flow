@@ -36,6 +36,13 @@
       "when": 1792761129596,
       "tag": "0004_contas_pagar_documentos_fiscais",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792765387697,
+      "tag": "0005_contas_pagar_importar_documento",
+      "breakpoints": true
     }
   ]
 }

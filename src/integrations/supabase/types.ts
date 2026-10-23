@@ -484,6 +484,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           created_by_nome: string | null
+          data_emissao: string | null
           data_pagamento: string | null
           data_vencimento: string
           deleted_at: string | null
@@ -495,7 +496,9 @@ export type Database = {
           forma_pagamento: string | null
           forma_pagamento_baixa: string | null
           fornecedor: string | null
+          fornecedor_documento: string | null
           id: string
+          import_key: string | null
           juros: number
           linha_digitavel: string | null
           link_pagamento: string | null
@@ -529,6 +532,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_by_nome?: string | null
+          data_emissao?: string | null
           data_pagamento?: string | null
           data_vencimento: string
           deleted_at?: string | null
@@ -540,7 +544,9 @@ export type Database = {
           forma_pagamento?: string | null
           forma_pagamento_baixa?: string | null
           fornecedor?: string | null
+          fornecedor_documento?: string | null
           id?: string
+          import_key?: string | null
           juros?: number
           linha_digitavel?: string | null
           link_pagamento?: string | null
@@ -574,6 +580,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_by_nome?: string | null
+          data_emissao?: string | null
           data_pagamento?: string | null
           data_vencimento?: string
           deleted_at?: string | null
@@ -585,7 +592,9 @@ export type Database = {
           forma_pagamento?: string | null
           forma_pagamento_baixa?: string | null
           fornecedor?: string | null
+          fornecedor_documento?: string | null
           id?: string
+          import_key?: string | null
           juros?: number
           linha_digitavel?: string | null
           link_pagamento?: string | null
