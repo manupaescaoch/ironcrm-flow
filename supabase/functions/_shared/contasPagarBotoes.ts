@@ -2,8 +2,9 @@
 // Ações reais no banco: baixa (pagamento declarado) e reagendamento interno.
 import { telegramApi } from './telegram.ts';
 import { formatarDataBR, formatarValorBR } from './contasPagarMensagem.ts';
+import { conciliarConta, receberBotaoConciliacao, textoConciliado, textoDivergencia } from './conciliacaoBancaria.ts';
 
-export const PREFIXOS = ['cpp:', 'cpr:', 'cprd:', 'cprc:', 'cprx:'];
+export const PREFIXOS = ['cpp:', 'cpr:', 'cprd:', 'cprc:', 'cprx:', 'cpcj:', 'cpcd:', 'cpcp:', 'cpcx:', 'cpcs:'];
 
 export function tecladoCobranca(contaId: string) {
   return {
@@ -120,6 +121,12 @@ export async function receberBotaoCobranca(admin: any, cq: any): Promise<boolean
     return true;
   }
 
+  if (acao.startsWith('cpc')) {
+    try { await receberBotaoConciliacao(admin, cq, user); }
+    catch (e) { console.error('[conciliacao]', e); await alerta(cq, 'Erro ao conciliar. Tente pelo CRM.', true); }
+    return true;
+  }
+
   const conta = await carregar(admin, contaId);
   if (!conta || conta.deleted_at) {
     await alerta(cq, 'Lançamento não encontrado.', true);
@@ -151,6 +158,7 @@ export async function receberBotaoCobranca(admin: any, cq: any): Promise<boolean
         baixado_por_nome: user.nome,
         baixado_em: new Date().toISOString(),
         baixa_origem: 'telegram_declarado',
+        conciliacao_status: 'aguardando_transacao',
         baixa_observacoes: 'Pagamento declarado via Telegram (sem comprovante) — sujeito a conciliação bancária.',
       }).eq('id', contaId).eq('status', 'pendente').select('id').maybeSingle();
       if (error) throw error;
@@ -160,7 +168,28 @@ export async function receberBotaoCobranca(admin: any, cq: any): Promise<boolean
         user_id: user.userId, user_nome: user.nome,
       });
       await alerta(cq, 'Baixa registrada ✅');
-      await editar(cq, textoPago(conta, user.nome, agoraBR()));
+      // Procura o débito no extrato do EVO OS e concilia quando a correspondência é única.
+      const contaPaga = { ...conta, status: 'paga', data_pagamento: hoje };
+      let r: any = { status: 'aguardando' };
+      try { r = await conciliarConta(admin, contaId, { notificar: false }); } catch (e) { console.error('[conciliacao]', e); }
+      if (r.status === 'conciliado') {
+        await editar(cq, textoPago(conta, user.nome, agoraBR()) + '\n\n' + textoConciliado(contaPaga, r.transacao, 'AUTOMÁTICO'));
+      } else if (r.status === 'divergencia' || r.status === 'ambiguo') {
+        const d = textoDivergencia(contaPaga, r);
+        await editar(cq, textoPago(conta, user.nome, agoraBR()) + '\n\n' + d.text, d.reply_markup);
+        await admin.from('contas_pagar').update({ conciliacao_notificado_em: new Date().toISOString() }).eq('id', contaId);
+      } else {
+        await editar(cq, [
+          '✅ PAGAMENTO REGISTRADO', '',
+          `Unidade: ${conta.unidades?.nome ?? ''}`,
+          `Fornecedor: ${String(conta.fornecedor || conta.descricao || '').toUpperCase()}`,
+          `Valor declarado: ${formatarValorBR(conta.valor)}`,
+          'Status da conta: Pago',
+          'Conciliação bancária: Pendente',
+          `Confirmado por: ${user.nome} em ${agoraBR()}`, '',
+          'Pagamento registrado. Aguardando identificação no extrato bancário.',
+        ].join('\n'));
+      }
       return true;
     }
 
