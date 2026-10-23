@@ -89,6 +89,7 @@ export default function ContasPagar() {
     cancelarConta,
     excluirConta,
     buscarDuplicidade,
+    inserirContaImportada,
     reenviarWhatsapp,
   } = useContasPagar(from, to);
 
@@ -271,6 +272,7 @@ export default function ContasPagar() {
         onCriarParcelas={criarParcelasRecorrentes}
         onAtualizar={(id, payload) => atualizarConta.mutateAsync({ id, payload })}
         buscarDuplicidade={buscarDuplicidade}
+        onInserirImportada={inserirContaImportada}
         onVerConta={(c) => setDetalhe(c)}
       />
 
