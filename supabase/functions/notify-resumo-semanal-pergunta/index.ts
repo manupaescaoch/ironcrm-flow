@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.0'
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts'
+import { legacyManagerWhatsAppResult } from '../_shared/managerMessagingPolicy.ts'
 import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, sendTextIdempotent, logEnvio } from '../_shared/zapi.ts'
 
 
@@ -38,6 +39,8 @@ Deno.serve(async (req) => {
     }
   }
 
+
+  return Response.json(legacyManagerWhatsAppResult(), { headers: corsHeaders })
 
   try {
     const supabase = createClient(

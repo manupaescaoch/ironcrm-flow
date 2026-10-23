@@ -3,6 +3,7 @@ import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
 import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendButtonsIdempotent, sendTextIdempotent } from '../_shared/zapi.ts';
 import { maybeSendZapiOfflineAlert } from '../_shared/zapi-alert.ts';
 import { resolveTelegramUsuarioPorTelefone, sendTelegramUserText } from '../_shared/telegram.ts';
+import { isManagerRecipient } from '../_shared/managerMessagingPolicy.ts';
 
 
 const corsHeaders = {
@@ -186,7 +187,7 @@ Deno.serve(async (req) => {
       .from('cronograma_atividades')
       .select(`
         id, titulo, horario, mensagem, formulario_id, unidade_id, tipo_atividade,
-        responsavel:cronograma_funcionarios!cronograma_atividades_responsavel_id_fkey(id, nome, telefone)
+        responsavel:cronograma_funcionarios!cronograma_atividades_responsavel_id_fkey(id, nome, telefone, cargo)
       `)
       .eq('ativo', true)
       .eq('dia_semana', dayOfWeek);
@@ -320,13 +321,17 @@ Deno.serve(async (req) => {
 
       const unidadeNome = unidadeMap.get(atividade.unidade_id) || 'Unidade';
 
-      // Encerramentos e relatórios diários vão pelo Telegram quando o responsável
-      // já está conectado ao bot; senão seguem pelo WhatsApp.
+      // Gerentes usam Telegram para toda atividade, sem fallback para WhatsApp.
       const alvoTexto = `${atividade.titulo || ''} ${(atividade as { tipo_atividade?: string }).tipo_atividade || ''}`;
       const isEncerramento = /encerramento|relat[oó]rio/i.test(alvoTexto);
-      const tgAlvo = isEncerramento
+      const managerOnlyTelegram = isManagerRecipient(resp.cargo);
+      const tgAlvo = isEncerramento || managerOnlyTelegram
         ? await resolveTelegramUsuarioPorTelefone(supabase, resp.telefone)
         : null;
+      if (managerOnlyTelegram && !tgAlvo) {
+        errors.push(`Telegram não conectado: ${resp.nome} - ${atividade.titulo}`);
+        continue;
+      }
 
       let normalizedPhone: string | null = null;
       if (!tgAlvo) {
