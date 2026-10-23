@@ -80,7 +80,7 @@ export function resumo(c: any, rascunho: Record<string, unknown> = {}, nomeUnida
     `Linha digitável: ${v.linha_digitavel ?? '—'}${mud('linha_digitavel')}`,
     `Status: ${c.status === 'paga' ? 'Paga' : STATUS_LABEL[c.conferencia_status] ?? 'Pendente'}`,
   ];
-  if (c.fornecedor_validar && !('fornecedor' in rascunho)) linhas.push('', 'Fornecedor não cadastrado: aguardando validação.');
+  if (c.fornecedor_validar && !('fornecedor' in rascunho)) linhas.push('', 'Fornecedor sem CNPJ/CPF válido: corrija em EDITAR.');
   return linhas.join('\n');
 }
 
@@ -93,7 +93,7 @@ async function editar(cq: any, text: string, reply_markup: unknown = { inline_ke
 }
 
 /** Procura o fornecedor por CNPJ ou nome; cadastra se não existir. Nunca duplica. */
-async function garantirFornecedor(admin: any, c: any): Promise<{ id: string } | { erro: string }> {
+export async function garantirFornecedor(admin: any, c: { fornecedor?: unknown; fornecedor_documento?: unknown }): Promise<{ id: string; criado?: boolean } | { erro: string }> {
   const doc = soDig(c.fornecedor_documento);
   if (doc && !documentoFornecedorValido(doc)) return { erro: 'O CNPJ do fornecedor está inconsistente. Corrija em EDITAR.' };
   if (doc) {
@@ -112,7 +112,7 @@ async function garantirFornecedor(admin: any, c: any): Promise<{ id: string } | 
   const { data: novo, error } = await admin.from('fornecedores')
     .insert({ nome: String(c.fornecedor).toUpperCase(), cnpj: doc, unidade_id: null, observacoes: 'Cadastrado pelo Telegram (Contas a Pagar)' })
     .select('id').maybeSingle();
-  if (novo) return { id: novo.id };
+  if (novo) return { id: novo.id, criado: true };
   if (String(error?.code) === '23505') {
     const { data } = await admin.from('fornecedores').select('id').eq('cnpj', doc).maybeSingle();
     if (data) return { id: data.id };
@@ -293,7 +293,11 @@ export async function receberBotaoConferencia(admin: any, cq: any): Promise<bool
       return true;
     }
     const patch: Record<string, unknown> = Object.fromEntries(mudou);
-    if ('fornecedor' in patch || 'fornecedor_documento' in patch) { patch.fornecedor_validar = true; patch.fornecedor_id = null; }
+    if ('fornecedor' in patch || 'fornecedor_documento' in patch) {
+      // Só muda o vínculo desta despesa; o cadastro anterior e outras contas ficam intactos.
+      const f = await garantirFornecedor(admin, { fornecedor: patch.fornecedor ?? c.fornecedor, fornecedor_documento: patch.fornecedor_documento ?? c.fornecedor_documento });
+      if ('erro' in f) { patch.fornecedor_validar = true; patch.fornecedor_id = null; } else { patch.fornecedor_validar = false; patch.fornecedor_id = f.id; }
+    }
     if ('linha_digitavel' in patch) patch.forma_pagamento = 'boleto';
     // Dados mudaram: volta para conferência (inclusive se já estava aprovada).
     patch.conferencia_status = 'pendente_conferencia';

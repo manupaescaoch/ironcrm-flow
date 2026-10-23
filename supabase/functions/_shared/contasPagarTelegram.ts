@@ -6,7 +6,7 @@ import {
   acharCorrespondencia, identificarUnidade, msgAguardandoVencimento, msgConfirmarUnidade,
   msgDuplicado, msgProcessado, soDigitos, UnidadeCnpj,
 } from './contasPagarTelegramRegras.ts';
-import { tecladoConferencia } from './contasPagarConferenciaTelegram.ts';
+import { garantirFornecedor, tecladoConferencia } from './contasPagarConferenciaTelegram.ts';
 
 const BUCKET = 'contas-pagar-docs';
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -275,9 +275,13 @@ export async function processarDocumento(admin: any, docId: string): Promise<{ s
 
     // 6. Novo lançamento (pendente de conferência)
     const base = notaParada ? { ...notaParada.dados, ...Object.fromEntries(Object.entries(dados).filter(([, v]) => v != null && v !== '')) } : dados;
-    const { data: forns } = await admin.from('fornecedores').select('nome').eq('ativo', true);
     const nomeForn = String(base.fornecedor ?? '').trim().toUpperCase();
-    const fornCadastrado = !!nomeForn && (forns ?? []).some((f: any) => String(f.nome).trim().toUpperCase() === nomeForn);
+    // Fornecedor: busca por CNPJ/CPF (depois nome); cria só com documento válido, nunca inventa dados.
+    const forn = await garantirFornecedor(admin, { fornecedor: nomeForn, fornecedor_documento: base.cpf_cnpj });
+    const fornecedorId = 'erro' in forn ? null : forn.id;
+    const fornCadastrado = !!fornecedorId;
+    const fornMsg = 'erro' in forn ? `Fornecedor não identificado: ${forn.erro.replace(' em EDITAR', ' pelo botão EDITAR')}`
+      : forn.criado ? 'Fornecedor cadastrado automaticamente.' : 'Fornecedor identificado no cadastro.';
     const anexos = notaParada?.storage_path ? [notaParada.storage_path, path] : [path];
     const linhas = parcelas.length > 1 ? parcelas : [{ numero: 1, valor: base.valor, vencimento: base.data_vencimento ?? parcelas[0]?.vencimento }];
 
@@ -292,6 +296,7 @@ export async function processarDocumento(admin: any, docId: string): Promise<{ s
         fornecedor: nomeForn || null,
         fornecedor_documento: base.cpf_cnpj ?? null,
         fornecedor_validar: !fornCadastrado,
+        fornecedor_id: fornecedorId,
         categoria: base.categoria ?? 'Outros',
         prioridade: 'normal',
         competencia: base.competencia ?? null,
@@ -336,7 +341,7 @@ export async function processarDocumento(admin: any, docId: string): Promise<{ s
 
     const extra = [
       linhas.length > 1 ? `${linhas.length} parcelas cadastradas.` : '',
-      !fornCadastrado ? 'Fornecedor não cadastrado: validar em Contas a Pagar.' : '',
+      fornMsg,
       notaParada ? 'Nota fiscal enviada antes foi vinculada a este boleto.' : '',
     ].filter(Boolean).join('\n');
     await responder(admin, doc.telegram_chat_id, doc.telegram_message_id,
