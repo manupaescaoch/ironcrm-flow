@@ -259,6 +259,23 @@ export function ContaDetalhesDrawer({
                   <Linha label="Observações da baixa" value={conta.baixa_observacoes} />
                 </>
               )}
+              {(conta as any).data_pagamento_prevista && (
+                <Linha label="Pagamento previsto (reagendado)" value={formatDateBR((conta as any).data_pagamento_prevista)} />
+              )}
+              {(conta.status === 'paga' || (conta as any).conciliacao_status === 'conciliado') && (
+                <>
+                  <Linha
+                    label="Conciliação bancária"
+                    value={({ nao_conciliado: 'Não conciliado', aguardando_transacao: 'Aguardando transação', divergencia: 'Divergência encontrada', conciliado: 'Conciliado' } as Record<string, string>)[(conta as any).conciliacao_status] ?? '-'}
+                  />
+                  {(conta as any).valor_debitado != null && (
+                    <Linha label="Valor debitado no banco" value={formatCurrency(Number((conta as any).valor_debitado))} />
+                  )}
+                  {(conta as any).conciliado_por_nome && (
+                    <Linha label="Conciliado por" value={`${(conta as any).conciliado_por_nome} em ${formatDateTimeBR((conta as any).conciliado_em)}`} />
+                  )}
+                </>
+              )}
             </div>
 
             <Separator />
