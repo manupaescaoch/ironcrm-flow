@@ -5,6 +5,7 @@ import { adminClient, safeEqual, sendTelegramMessage, webhookSecretToken } from 
 import { receberCallbackContasPagar, receberMensagemContasPagar } from '../_shared/contasPagarTelegram.ts';
 import { receberBotaoCobranca } from '../_shared/contasPagarBotoes.ts';
 import { receberPerguntaFinanceira } from '../_shared/contasPagarAssistente.ts';
+import { receberBotaoConferencia, receberRespostaEdicao } from '../_shared/contasPagarConferenciaTelegram.ts';
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
@@ -24,7 +25,8 @@ Deno.serve(async (req) => {
 
     // --- Contas a Pagar: botões de unidade e documentos enviados ao grupo ---
     if (update.callback_query) {
-      if (!(await receberBotaoCobranca(admin, update.callback_query))) await receberCallbackContasPagar(admin, update.callback_query);
+      const cq = update.callback_query;
+      if (!(await receberBotaoConferencia(admin, cq)) && !(await receberBotaoCobranca(admin, cq))) await receberCallbackContasPagar(admin, cq);
       return new Response(JSON.stringify({ ok: true }), { status: 200 });
     }
     if (update.message && (update.message.document || update.message.photo)) {
@@ -37,8 +39,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    // --- Contas a Pagar: assistente financeiro (perguntas em texto no grupo) ---
+    // --- Contas a Pagar: resposta a um campo em edição, depois assistente financeiro ---
     if (update.message?.text && (update.message.chat?.type === 'group' || update.message.chat?.type === 'supergroup')) {
+      try {
+        if (await receberRespostaEdicao(admin, update)) {
+          return new Response(JSON.stringify({ ok: true, edicao: true }), { status: 200 });
+        }
+      } catch (e) {
+        console.error('edição contas a pagar', e);
+      }
       try {
         if (await receberPerguntaFinanceira(admin, update)) {
           return new Response(JSON.stringify({ ok: true, assistente: true }), { status: 200 });
