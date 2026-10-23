@@ -26,6 +26,7 @@ import {
   docsFromPaths,
 } from './DocumentosFiscaisInput';
 import { uploadContaArquivo } from './uploadHelpers';
+import { ImportarDocumentoConta } from './ImportarDocumentoConta';
 
 export function documentosDaConta(conta: Pick<ContaPagar, 'documentos_fiscais' | 'documento_url'>): string[] {
   if (conta.documentos_fiscais && conta.documentos_fiscais.length) return conta.documentos_fiscais;
@@ -50,7 +51,10 @@ interface Props {
     codigo_pix?: string | null;
     linha_digitavel?: string | null;
     numero_fatura?: string | null;
+    fornecedor?: string | null;
+    ignorarImportPrefix?: string | null;
   }) => Promise<ContaPagar[]>;
+  onInserirImportada?: (payload: ContaFormPayload) => Promise<ContaPagar>;
   onVerConta: (conta: ContaPagar) => void;
 }
 
@@ -94,6 +98,7 @@ export function NovaContaModal({
   onCriarParcelas,
   onAtualizar,
   buscarDuplicidade,
+  onInserirImportada,
   onVerConta,
 }: Props) {
   const { toast } = useToast();
@@ -103,11 +108,12 @@ export function NovaContaModal({
   const [saving, setSaving] = useState(false);
   const [duplicados, setDuplicados] = useState<ContaPagar[]>([]);
   const [criada, setCriada] = useState<ContaPagar | null>(null);
-  const [aba, setAba] = useState<'manual' | 'texto'>('manual');
+  const [aba, setAba] = useState<'manual' | 'texto' | 'documento'>('manual');
   const [texto, setTexto] = useState('');
   const [avisoUnidade, setAvisoUnidade] = useState<string | null>(null);
   const [docs, setDocs] = useState<DocumentoFiscalItem[]>([]);
   const [docsErro, setDocsErro] = useState<string | undefined>();
+  const [importSessao, setImportSessao] = useState(0);
 
   const setDocsLimpo = (d: DocumentoFiscalItem[]) => {
     setDocs(d);
@@ -324,14 +330,37 @@ export function NovaContaModal({
           ) : (
             <>
               {!isEdicao && (
-                <Tabs value={aba} onValueChange={(v) => setAba(v as 'manual' | 'texto')}>
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="manual">Preencher manualmente</TabsTrigger>
-                    <TabsTrigger value="texto">Importar por texto</TabsTrigger>
+                <Tabs value={aba} onValueChange={(v) => setAba(v as 'manual' | 'texto' | 'documento')}>
+                  <TabsList className="grid w-full grid-cols-3 h-auto">
+                    <TabsTrigger value="manual" className="whitespace-normal">Preencher manualmente</TabsTrigger>
+                    <TabsTrigger value="documento" className="whitespace-normal">Importar documento</TabsTrigger>
+                    <TabsTrigger value="texto" className="whitespace-normal">Importar por texto</TabsTrigger>
                   </TabsList>
                 </Tabs>
               )}
 
+              {aba === 'documento' && !isEdicao ? (
+                <ImportarDocumentoConta
+                  key={`${open}-${importSessao}`}
+                  unidadeId={unidadeId}
+                  unidadeNome={unidadeNome}
+                  canManage={canManage}
+                  onCriar={onCriar}
+                  onInserirImportada={onInserirImportada ?? onCriar}
+                  buscarDuplicidade={buscarDuplicidade}
+                  onConcluido={(conta, qtd) => {
+                    setCriada(conta);
+                    setImportSessao((n) => n + 1);
+                    if (qtd > 1) toast({ title: `Conta cadastrada com ${qtd} parcelas, todas com o documento vinculado.` });
+                  }}
+                  onVerConta={(conta) => {
+                    onOpenChange(false);
+                    onVerConta(conta);
+                  }}
+                  onCancelar={() => onOpenChange(false)}
+                />
+              ) : (
+              <>
               {aba === 'texto' && !isEdicao ? (
                 <div className="flex-1 overflow-y-auto pr-1 space-y-3">
                   <p className="text-sm text-muted-foreground">
@@ -399,6 +428,8 @@ export function NovaContaModal({
                   {isEdicao ? 'Salvar alterações' : 'Cadastrar conta'}
                 </Button>
               </div>
+              </>
+              )}
             </>
           )}
         </DialogContent>
