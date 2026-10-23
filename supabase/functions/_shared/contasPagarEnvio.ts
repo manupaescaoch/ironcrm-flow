@@ -2,6 +2,7 @@
 // O token do bot é lido apenas no servidor (helpers de _shared/telegram.ts).
 import { sendTelegramGroupText, TelegramGrupoUnidade } from './telegram.ts';
 import { montarMensagemConta } from './contasPagarMensagem.ts';
+import { tecladoCobranca } from './contasPagarBotoes.ts';
 
 export type TipoEnvio = 'CADASTRO' | 'VENCIMENTO';
 
@@ -87,7 +88,9 @@ export async function processarEnvio(
 
   // Regra: só é enviado ao grupo no DIA do vencimento.
   const hojeBRT = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
-  if (String(conta.data_vencimento).slice(0, 10) !== hojeBRT) {
+  // Conta reagendada: o lembrete passa a sair na data prevista de pagamento.
+  const dataEfetiva = String(conta.data_pagamento_prevista ?? conta.data_vencimento).slice(0, 10);
+  if (dataEfetiva !== hojeBRT) {
     return { ok: false, skipped: 'fora_do_dia_de_vencimento' };
   }
 
@@ -126,6 +129,7 @@ export async function processarEnvio(
     grupo,
     mensagem,
     `contas_pagar_${tipo.toLowerCase()}`,
+    tipo === 'VENCIMENTO' ? tecladoCobranca(contaId) : undefined,
   );
   const messageId = resp.message_id ?? null;
 
