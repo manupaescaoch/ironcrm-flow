@@ -64,6 +64,13 @@
       "when": 1792788067667,
       "tag": "0008_contas_pagar_reagendamento_telegram",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792788261183,
+      "tag": "0009_contas_pagar_assistente_consultas",
+      "breakpoints": true
     }
   ]
 }
