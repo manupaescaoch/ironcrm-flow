@@ -36,6 +36,10 @@ export interface ContaFormPayload {
   favorecido: string | null;
   documento_url: string | null;
   documentos_fiscais?: string[];
+  fornecedor_documento?: string | null;
+  data_emissao?: string | null;
+  /** Chave única da importação: nova tentativa não duplica a conta. */
+  import_key?: string | null;
 }
 
 export interface BaixaPayload {
@@ -117,6 +121,46 @@ export function useContasPagar(from: string, to: string) {
     queryClient.invalidateQueries({ queryKey: ['contas-pagar'] });
   }, [queryClient]);
 
+  const buscarPorImportKey = async (key: string): Promise<ContaPagar | null> => {
+    const { data } = await supabase
+      .from('contas_pagar')
+      .select('*')
+      .eq('unidade_id', unidadeId as string)
+      .eq('import_key', key)
+      .maybeSingle();
+    return (data as unknown as ContaPagar) ?? null;
+  };
+
+  /** Insere uma conta importada de documento sem aviso imediato; idempotente pela import_key. */
+  const inserirContaImportada = async (payload: ContaFormPayload): Promise<ContaPagar> => {
+    if (!unidadeId) throw new Error('Nenhuma unidade selecionada');
+    if (!user?.id) throw new Error('Usuário não autenticado');
+    if (payload.import_key) {
+      const existente = await buscarPorImportKey(payload.import_key);
+      if (existente) return existente;
+    }
+    const { data, error } = await supabase
+      .from('contas_pagar')
+      .insert({
+        ...payload,
+        unidade_id: unidadeId,
+        status: 'pendente',
+        created_by: user.id,
+        created_by_nome: userNome,
+      } as never)
+      .select('*')
+      .single();
+    if (error) {
+      if ((error as { code?: string }).code === '23505' && payload.import_key) {
+        const existente = await buscarPorImportKey(payload.import_key);
+        if (existente) return existente;
+      }
+      throw error;
+    }
+    queryClient.invalidateQueries({ queryKey: ['contas-pagar'] });
+    return data as unknown as ContaPagar;
+  };
+
   const criarConta = useMutation({
     mutationFn: async (payload: ContaFormPayload) => {
       if (!unidadeId) throw new Error('Nenhuma unidade selecionada');
@@ -132,7 +176,14 @@ export function useContasPagar(from: string, to: string) {
         } as never)
         .select('*')
         .single();
-      if (error) throw error;
+      if (error) {
+        // Nova tentativa de uma importação já salva: devolve a conta existente, sem duplicar nem reenviar aviso.
+        if ((error as { code?: string }).code === '23505' && payload.import_key) {
+          const existente = await buscarPorImportKey(payload.import_key);
+          if (existente) return existente;
+        }
+        throw error;
+      }
       const conta = inserted as unknown as ContaPagar;
 
       // Regra: o alerta sai SEMPRE às 10h do dia do vencimento (rotina automática).
@@ -308,6 +359,8 @@ export function useContasPagar(from: string, to: string) {
       codigo_pix?: string | null;
       linha_digitavel?: string | null;
       numero_fatura?: string | null;
+      fornecedor?: string | null;
+      ignorarImportPrefix?: string | null;
     }): Promise<ContaPagar[]> => {
       if (!unidadeId) return [];
       const encontrados = new Map<string, ContaPagar>();
@@ -334,6 +387,34 @@ export function useContasPagar(from: string, to: string) {
         encontrados.set(c.id, c);
       });
 
+      // Fornecedor + número do documento, ou fornecedor + valor + vencimento.
+      const forn = normDesc(payload.fornecedor);
+      if (forn) {
+        const { data: mesmoForn } = await supabase
+          .from('contas_pagar')
+          .select('*')
+          .eq('unidade_id', unidadeId)
+          .is('deleted_at', null)
+          .ilike('fornecedor', (payload.fornecedor || '').trim());
+        const numDoc = (payload.numero_fatura || '').replace(/\W/g, '');
+        ((mesmoForn || []) as unknown as ContaPagar[]).forEach((c) => {
+          if (c.status === 'cancelada') return;
+          const mesmoNum = numDoc && (c.numero_fatura || '').replace(/\W/g, '') === numDoc;
+          const mesmoValorVenc =
+            Math.abs(Number(c.valor) - payload.valor) < 0.005 &&
+            String(c.data_vencimento).slice(0, 10) === payload.data_vencimento;
+          if (mesmoNum || mesmoValorVenc) encontrados.set(c.id, c);
+        });
+      }
+
+      const prefix = payload.ignorarImportPrefix;
+      if (prefix) {
+        for (const [id, c] of encontrados) {
+          const key = (c as ContaPagar & { import_key?: string | null }).import_key;
+          if (key && key.startsWith(prefix)) encontrados.delete(id);
+        }
+      }
+
       return Array.from(encontrados.values());
     },
     [unidadeId],
@@ -355,6 +436,7 @@ export function useContasPagar(from: string, to: string) {
     unidadeNome: unidadeAtual?.nome ?? '',
     statusDe,
     criarConta,
+    inserirContaImportada,
     criarParcelasRecorrentes,
     atualizarConta,
     darBaixa,
