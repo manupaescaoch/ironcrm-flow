@@ -663,6 +663,45 @@ export type Database = {
           },
         ]
       }
+      contas_pagar_assistente_consultas: {
+        Row: {
+          created_at: string
+          erro: string | null
+          filtros: Json | null
+          id: string
+          pergunta: string
+          status: string
+          telegram_chat_id: number
+          telegram_message_id: number
+          telegram_user_id: number
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          erro?: string | null
+          filtros?: Json | null
+          id?: string
+          pergunta: string
+          status?: string
+          telegram_chat_id: number
+          telegram_message_id: number
+          telegram_user_id: number
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          erro?: string | null
+          filtros?: Json | null
+          id?: string
+          pergunta?: string
+          status?: string
+          telegram_chat_id?: number
+          telegram_message_id?: number
+          telegram_user_id?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       contas_pagar_envios: {
         Row: {
           conta_id: string
