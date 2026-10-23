@@ -6,7 +6,7 @@ import { autorizar, tecladoCobranca } from './contasPagarBotoes.ts';
 import { formatarDataBR, formatarValorBR } from './contasPagarMensagem.ts';
 import { classificar, dataEfetiva, hojeRecife, intervalo, Periodo, saldoPendente, valorPago } from './contasPagarPeriodos.ts';
 
-type Intencao = 'abertas' | 'pagas' | 'resumo' | 'vencidas' | 'fora_escopo';
+type Intencao = 'abertas' | 'pagas' | 'resumo' | 'vencidas' | 'nao_conciliadas' | 'divergencias' | 'pago_banco' | 'resumo_conciliacao' | 'fora_escopo';
 interface Filtros {
   intencao: Intencao; periodo: Periodo; data_inicio: string | null; data_fim: string | null;
   unidade: string | null; fornecedor: string | null; detalhar: boolean;
@@ -19,7 +19,7 @@ const schema = {
   type: 'object', additionalProperties: false,
   required: ['intencao', 'periodo', 'data_inicio', 'data_fim', 'unidade', 'fornecedor', 'detalhar'],
   properties: {
-    intencao: { type: 'string', enum: ['abertas', 'pagas', 'resumo', 'vencidas', 'fora_escopo'] },
+    intencao: { type: 'string', enum: ['abertas', 'pagas', 'resumo', 'vencidas', 'nao_conciliadas', 'divergencias', 'pago_banco', 'resumo_conciliacao', 'fora_escopo'] },
     periodo: { type: 'string', enum: ['hoje', 'semana_atual', 'semana_passada', 'mes_atual', 'mes_passado', 'proximos_7_dias', 'ate_domingo', 'personalizado', 'nenhum'] },
     data_inicio: { type: ['string', 'null'], description: 'yyyy-mm-dd, só para personalizado' },
     data_fim: { type: ['string', 'null'], description: 'yyyy-mm-dd, só para personalizado' },
@@ -34,7 +34,7 @@ async function interpretar(pergunta: string, hoje: string, anterior: Filtros | n
   if (!apiKey) return null;
   const prompt = `Você converte perguntas financeiras em português sobre CONTAS A PAGAR da EVO Club em filtros JSON.
 Hoje é ${hoje} (fuso America/Recife). Semana = segunda a domingo.
-Intenções: abertas (contas não pagas/quanto falta pagar), pagas (pagamentos feitos/quanto pagamos), resumo (resumo financeiro, total de despesas), vencidas (atrasadas/pendentes de períodos anteriores, ex. "pendentes da semana passada"), fora_escopo (não é sobre contas a pagar).
+Intenções: abertas (contas não pagas/quanto falta pagar), pagas (pagamentos feitos/quanto pagamos), resumo (resumo financeiro, total de despesas), vencidas (atrasadas/pendentes de períodos anteriores, ex. "pendentes da semana passada"), nao_conciliadas (pagas mas sem transação bancária / não conciliadas), divergencias (divergências de conciliação), pago_banco (quanto pagamos segundo o banco), resumo_conciliacao (resumo de conciliação), fora_escopo (não é sobre contas a pagar).
 "Quanto falta pagar até o final do mês" = abertas, personalizado de hoje até o último dia do mês.
 "Pendentes da semana passada" = abertas, semana_passada.
 Se a pergunta for complementar ("e na semana passada?", "quais foram?", "e o total de todas as unidades?", "mostra os fornecedores"), herde os filtros anteriores e mude só o que foi pedido. "todas as unidades" => unidade null.
@@ -97,6 +97,47 @@ export function montarResposta(f: Filtros, contas: any[], unidades: { id: string
   const pendentesBotao: any[] = [];
   const intencao = f.intencao === 'vencidas' ? 'vencidas' : f.intencao;
 
+  if (['nao_conciliadas', 'divergencias', 'pago_banco', 'resumo_conciliacao'].includes(intencao)) {
+    const titulos: Record<string, string> = {
+      nao_conciliadas: 'PAGAS SEM TRANSAÇÃO BANCÁRIA', divergencias: 'DIVERGÊNCIAS DE CONCILIAÇÃO',
+      pago_banco: 'PAGO SEGUNDO O BANCO', resumo_conciliacao: 'RESUMO DE CONCILIAÇÃO',
+    };
+    out.push(`${titulos[intencao]} | ${rotulo}`, '');
+    let tot = 0, qtd = 0, totPend = 0, qtdPend = 0;
+    for (const x of porUnidade) {
+      const conc = x.pagas.filter((c: any) => c.conciliacao_status === 'conciliado');
+      const div = x.pagas.filter((c: any) => c.conciliacao_status === 'divergencia');
+      const sem = x.pagas.filter((c: any) => c.conciliacao_status !== 'conciliado' && c.conciliacao_status !== 'divergencia');
+      const debito = (c: any) => Number(c.valor_debitado ?? valorPago(c));
+      if (intencao === 'resumo_conciliacao') {
+        if (!x.pagas.length) continue;
+        out.push(`🏢 ${curtoU(x.u.nome)}`, `   Conciliadas: ${conc.length} — ${formatarValorBR(soma(conc, debito))}`,
+          `   Aguardando transação: ${sem.length} — ${formatarValorBR(soma(sem, valorPago))}`,
+          `   Divergências: ${div.length} — ${formatarValorBR(soma(div, valorPago))}`);
+        tot += soma(conc, debito); qtd += conc.length; totPend += soma([...sem, ...div], valorPago); qtdPend += sem.length + div.length;
+        continue;
+      }
+      if (intencao === 'pago_banco') {
+        if (!x.pagas.length) continue;
+        out.push(`🏦 ${curtoU(x.u.nome)}: ${formatarValorBR(soma(conc, debito))} (${conc.length} conciliadas)` +
+          (sem.length + div.length ? ` + ${sem.length + div.length} sem confirmação bancária (${formatarValorBR(soma([...sem, ...div], valorPago))})` : ''));
+        tot += soma(conc, debito); qtd += conc.length; totPend += soma([...sem, ...div], valorPago); qtdPend += sem.length + div.length;
+        continue;
+      }
+      const lista = intencao === 'divergencias' ? div : [...sem, ...div];
+      if (!lista.length) continue;
+      out.push(`🟡 ${nomeU(x.u.nome)}`, LINHA);
+      lista.forEach((c: any, i: number) => out.push(`${i + 1}. ${nomeConta(c)} — ${formatarValorBR(valorPago(c))} (pago ${curto(c.data_pagamento)})${c.conciliacao_status === 'divergencia' ? ' ⚠️ divergência' : ''}`));
+      out.push(`Subtotal ${curtoU(x.u.nome)}: ${formatarValorBR(soma(lista, valorPago))} (${lista.length})`, '');
+      tot += soma(lista, valorPago); qtd += lista.length;
+    }
+    out.push(LINHA);
+    if (intencao === 'pago_banco' || intencao === 'resumo_conciliacao') {
+      out.push(`TOTAL CONFIRMADO NO BANCO: ${formatarValorBR(tot)} (${qtd})`, `TOTAL AINDA SEM CONCILIAÇÃO: ${formatarValorBR(totPend)} (${qtdPend})`);
+    } else out.push(qtd ? `TOTAL EVO: ${formatarValorBR(tot)} (${qtd})` : 'Nada pendente de conciliação no período. ✅');
+    return { texto: out.join('\n'), pendentesBotao };
+  }
+
   if (intencao === 'resumo') {
     out.push(`RESUMO FINANCEIRO | ${rotulo}`, '');
     let tp = 0, ta = 0, tv = 0, np = 0, na = 0;
@@ -141,7 +182,7 @@ export function montarResposta(f: Filtros, contas: any[], unidades: { id: string
   return { texto: out.join('\n').trim(), pendentesBotao };
 }
 
-const GATILHO = /\b(conta|contas|pag|pago|pagos|pagamos|pagou|pagar|aberta|abertas|vence|vencem|vencid|pendente|resumo|financeiro|despesa|fornecedor|quanto|quais|total|semana|m[eê]s|hoje)\b/i;
+const GATILHO = /\b(concilia\w*|banco|extrato|diverg\w*|conta|contas|pag|pago|pagos|pagamos|pagou|pagar|aberta|abertas|vence|vencem|vencid|pendente|resumo|financeiro|despesa|fornecedor|quanto|quais|total|semana|m[eê]s|hoje)\b/i;
 
 /** Mensagem de texto no grupo de Contas a Pagar. Retorna true se tratou. */
 export async function receberPerguntaFinanceira(admin: any, update: any): Promise<boolean> {
@@ -206,7 +247,7 @@ export async function receberPerguntaFinanceira(admin: any, update: any): Promis
 
     const { inicio, fim } = intervalo(f.periodo, hoje, f.data_inicio, f.data_fim);
     // Busca só leitura; janela cobre pagos no período e pendentes até o fim (inclui vencidos anteriores).
-    const campos = 'id, unidade_id, descricao, fornecedor, valor, valor_pago, status, data_vencimento, data_pagamento_prevista, data_pagamento, forma_pagamento, linha_digitavel, codigo_barras, codigo_pix, chave_pix';
+    const campos = 'id, unidade_id, descricao, fornecedor, valor, valor_pago, status, data_vencimento, data_pagamento_prevista, data_pagamento, forma_pagamento, linha_digitavel, codigo_barras, codigo_pix, chave_pix, conciliacao_status, valor_debitado';
     const ids = unidades.map((u) => u.id);
     const [pend, pagas] = await Promise.all([
       admin.from('contas_pagar').select(campos).in('unidade_id', ids).eq('status', 'pendente').is('deleted_at', null).limit(3000),

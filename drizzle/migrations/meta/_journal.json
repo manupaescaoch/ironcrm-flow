@@ -71,6 +71,13 @@
       "when": 1792788261183,
       "tag": "0009_contas_pagar_assistente_consultas",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792788922901,
+      "tag": "0010_conciliacao_bancaria_evo_os",
+      "breakpoints": true
     }
   ]
 }
