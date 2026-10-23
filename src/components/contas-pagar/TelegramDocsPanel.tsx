@@ -58,7 +58,7 @@ export function TelegramDocsPanel() {
   const { data: aguardandoConferencia = 0 } = useQuery({
     queryKey: ['contas-pagar-aguardando-conferencia'],
     queryFn: async () => {
-      const { count } = await supabase.from('contas_pagar').select('id', { count: 'exact', head: true })
+      const { count } = await (supabase.from('contas_pagar') as any).select('id', { count: 'exact', head: true })
         .in('conferencia_status' as any, ['pendente_conferencia', 'conferida']).is('deleted_at', null);
       return count ?? 0;
     },
