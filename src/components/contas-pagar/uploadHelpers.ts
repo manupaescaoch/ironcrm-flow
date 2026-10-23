@@ -21,3 +21,11 @@ export async function getContaArquivoUrl(path: string): Promise<string | null> {
   if (error) return null;
   return data?.signedUrl ?? null;
 }
+
+/** Gera uma URL temporária que baixa o arquivo. */
+export async function getContaArquivoDownloadUrl(path: string): Promise<string | null> {
+  const nome = (path.split('/').pop() || 'documento').replace(/^\d+_/, '');
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 60 * 10, { download: nome });
+  if (error) return null;
+  return data?.signedUrl ?? null;
+}
