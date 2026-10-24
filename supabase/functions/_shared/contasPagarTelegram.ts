@@ -1,12 +1,21 @@
 // Recebimento de documentos no grupo "Contas a Pagar" do Telegram → lançamento em Contas a Pagar.
-// Nunca marca conta como paga nem aprovada. Idempotente por (chat, mensagem).
+// Nota/boleto lançam conta nova (pendente de conferência); comprovante de pagamento anexa e dá baixa.
+// Idempotente por (chat, mensagem).
 import { botToken, telegramApi, TELEGRAM_API } from './telegram.ts';
 import { extrairDocumentoConta, CATEGORIAS } from './extrairDocumentoConta.ts';
 import {
   acharCorrespondencia, identificarUnidade, msgAguardandoVencimento, msgConfirmarUnidade,
   msgDuplicado, msgProcessado, soDigitos, UnidadeCnpj,
 } from './contasPagarTelegramRegras.ts';
+import {
+  acharContaComprovante, CandidataComprovante, ContaComprovante, ehComprovante,
+  msgComprovanteEscolha, msgComprovanteJaPaga, msgComprovanteProcessado, msgComprovanteSemConta,
+  msgComprovanteSemDados, msgComprovanteSemPermissao,
+} from './contasPagarComprovanteRegras.ts';
+import { autorizar } from './contasPagarBotoes.ts';
+import { conciliarConta, textoConciliado } from './conciliacaoBancaria.ts';
 import { garantirFornecedor, tecladoConferencia } from './contasPagarConferenciaTelegram.ts';
+
 
 const BUCKET = 'contas-pagar-docs';
 const MAX_BYTES = 20 * 1024 * 1024;
