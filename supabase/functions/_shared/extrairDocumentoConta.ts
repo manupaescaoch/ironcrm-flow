@@ -47,7 +47,7 @@ const schema = {
   },
 };
 
-const PROMPT = `Você lê documentos fiscais brasileiros (nota fiscal, NF-e em XML, cupom fiscal, boleto) para cadastrar uma conta a pagar.
+const PROMPT = `Você lê documentos brasileiros (nota fiscal, NF-e em XML, cupom fiscal, boleto, comprovante de pagamento) para cadastrar uma conta a pagar ou registrar um pagamento.
 Extraia SOMENTE o que está escrito no documento. Se um dado não aparece, devolva null. Nunca invente nem estime.
 - comprovante_pagamento: true se o documento for COMPROVANTE/RECIBO de pagamento (comprovante Pix, transferência,
   depósito, recibo pago). false para nota fiscal, cupom, boleto, fatura ou cobrança a pagar. Em comprovante,
