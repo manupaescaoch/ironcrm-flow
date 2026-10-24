@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Conectar DDA do BTG ao Contas a Pagar por unidade — aguarda liberação de consulta DDA pelo banco e credenciais autorizadas.
+
 - [x] Corrigir visibilidade e controles da lista de FU de matriculados na Operação.
 
 - [x] Ajustar FU de matriculados e pendentes para dias úteis, com fins de semana transferidos para a semana seguinte sem duplicidade.
