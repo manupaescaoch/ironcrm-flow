@@ -1,4 +1,5 @@
 # Architecture Decisions
+- Keep BTG DDA consent state and encrypted OAuth tokens in server-only tables, scoped by unit CNPJ; request only read-only DDA scope and block synchronization until the official list operation and pagination are verified, so banking credentials and unverified imports never reach the browser or payables.
 - Apply the shared manager messaging policy before operational channel fallback and disable legacy manager WhatsApp summary handlers, so manager notifications cannot silently revert from Telegram to WhatsApp.
 
 - Keep `gestao_metas.meta_alunos_mes` as the backward-compatible minimum monthly target and store the optional stretch target in `supermeta_alunos_mes`, because existing reports and integrations depend on the legacy column.
