@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.evo-os-transacoes]
 verify_jwt = false
+
+[functions.painel-contas-pagar-baixa]
+verify_jwt = false
