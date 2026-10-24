@@ -860,6 +860,7 @@ export type Database = {
           storage_path: string | null
           telegram_chat_id: number
           telegram_message_id: number
+          telegram_user_id: number | null
           tentativas: number
           unidade_id: string | null
           unidade_metodo: string | null
@@ -883,6 +884,7 @@ export type Database = {
           storage_path?: string | null
           telegram_chat_id: number
           telegram_message_id: number
+          telegram_user_id?: number | null
           tentativas?: number
           unidade_id?: string | null
           unidade_metodo?: string | null
@@ -906,6 +908,7 @@ export type Database = {
           storage_path?: string | null
           telegram_chat_id?: number
           telegram_message_id?: number
+          telegram_user_id?: number | null
           tentativas?: number
           unidade_id?: string | null
           unidade_metodo?: string | null
