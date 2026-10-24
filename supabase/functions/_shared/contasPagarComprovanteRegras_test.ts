@@ -19,7 +19,7 @@ ok('boleto não é comprovante', ehComprovante({ comprovante_pagamento: false })
 ok('dado antigo sem flag não é comprovante', ehComprovante({}) === false);
 
 // 2. CNPJ + valor exato e únicos → baixa direta
-const r1 = acharContaComprovante({ comprovante_pagamento: true, cpf_cnpj: '12.345.678/0001-99', valor: 150 }, contas);
+const r1 = acharContaComprovante({ comprovante_pagamento: true, cpf_cnpj: '33.344.455/0001-66', valor: 150 }, contas);
 ok('CNPJ + valor exato único', r1.tipo === 'unica' && r1.conta!.id === 'd');
 
 // 3. Dois débitos iguais do mesmo fornecedor → pede escolha
