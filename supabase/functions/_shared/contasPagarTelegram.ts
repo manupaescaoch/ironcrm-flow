@@ -476,17 +476,17 @@ async function baixarComprovante(admin: any, doc: any, conta: any, dados: any, p
           extra = '\n\n⚠️ Encontrei diferença entre o comprovante e o extrato bancário. Confira em Contas a Pagar → detalhes da conta.';
         }
       } catch (e) { console.error('conciliacao pos-comprovante', e); }
-      await responder(chatId, msgId, msgComprovanteProcessado(conta, dados, user.nome, agoraBR()) + extra);
+      await responder(admin, chatId, msgId, msgComprovanteProcessado(conta, dados, user.nome, agoraBR()) + extra);
       return await fim('baixado', { conta_id: conta.id, resultado: 'Baixa com comprovante via Telegram' });
     }
     // Concorrente: já estava paga → anexa e avisa
     const { data: atual } = await admin.from('contas_pagar').select('id, status').eq('id', conta.id).maybeSingle();
     if (atual?.status === 'paga') {
       await admin.from('contas_pagar').update({ comprovante_url: path }).eq('id', conta.id).eq('status', 'paga');
-      await responder(chatId, msgId, msgComprovanteJaPaga(conta));
+      await responder(admin, chatId, msgId, msgComprovanteJaPaga(conta));
       return await fim('vinculado', { conta_id: conta.id, resultado: 'Conta já paga; comprovante anexado' });
     }
-    await responder(chatId, msgId, msgComprovanteSemConta(dados));
+    await responder(admin, chatId, msgId, msgComprovanteSemConta(dados));
     return await fim('sem_correspondencia');
   }
 
@@ -498,7 +498,7 @@ async function baixarComprovante(admin: any, doc: any, conta: any, dados: any, p
     valor_novo: `Comprovante "${doc.file_name}" anexado via Telegram por ${doc.remetente} — baixa pendente`,
     user_nome: doc.remetente,
   });
-  await responder(chatId, msgId, msgComprovanteSemPermissao(conta));
+  await responder(admin, chatId, msgId, msgComprovanteSemPermissao(conta));
   return await fim('anexado', { conta_id: conta.id, resultado: 'Comprovante anexado sem baixa (remetente sem permissão)' });
 }
 
