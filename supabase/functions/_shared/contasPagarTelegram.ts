@@ -93,6 +93,7 @@ export async function receberMensagemContasPagar(admin: any, update: any): Promi
     file_name: arquivo.file_name,
     mime_type: arquivo.mime,
     remetente: remetente(msg.from),
+    telegram_user_id: msg.from?.id ?? null,
     recebido_em: new Date((msg.date ?? Date.now() / 1000) * 1000).toISOString(),
   }).select('id').maybeSingle();
   if (error || !doc) return true; // já recebido (reenvio do Telegram)
