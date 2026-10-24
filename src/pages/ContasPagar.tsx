@@ -28,6 +28,8 @@ import { BaixaModal } from '@/components/contas-pagar/BaixaModal';
 import { ContaDetalhesDrawer } from '@/components/contas-pagar/ContaDetalhesDrawer';
 import { ContaPagar } from '@/components/contas-pagar/constants';
 import { TelegramDocsPanel } from '@/components/contas-pagar/TelegramDocsPanel';
+import { BtgDdaPanel } from '@/components/contas-pagar/BtgDdaPanel';
+import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { descreverErroConta } from '@/components/contas-pagar/erros';
 
@@ -50,6 +52,7 @@ function semanaRange(refISO: string): { from: string; to: string } {
 }
 
 export default function ContasPagar() {
+  const { isAdmin } = useAuth();
   const { toast } = useToast();
   const { unidades } = useUnidade();
   const hoje = getTodayInBrasilia();
@@ -193,11 +196,13 @@ export default function ContasPagar() {
             <TabsList>
               <TabsTrigger value="contas">Contas</TabsTrigger>
               <TabsTrigger value="telegram">Telegram</TabsTrigger>
+              {isAdmin && <TabsTrigger value="btg">DDA BTG</TabsTrigger>}
             </TabsList>
           )}
           <TabsContent value="telegram" className="mt-4">
             {canManage && <TelegramDocsPanel />}
           </TabsContent>
+          {isAdmin && <TabsContent value="btg" className="mt-4"><BtgDdaPanel /></TabsContent>}
           <TabsContent value="contas" className="mt-4 space-y-5">
         <ContasPagarKPIs {...kpis} onSelectStatus={(s) => setStatus(s)} />
 
