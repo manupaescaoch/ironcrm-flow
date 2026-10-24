@@ -92,6 +92,13 @@
       "when": 1792860714294,
       "tag": "0012_comprovante_telegram_user_id",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792878966582,
+      "tag": "0013_btg_dda_oauth",
+      "breakpoints": true
     }
   ]
 }

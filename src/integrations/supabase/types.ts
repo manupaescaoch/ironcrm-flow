@@ -344,6 +344,88 @@ export type Database = {
         }
         Relationships: []
       }
+      btg_dda_conexoes: {
+        Row: {
+          atualizado_por: string | null
+          cnpj: string
+          conectado_em: string | null
+          tokens_cifrados: string | null
+          ultima_consulta_em: string | null
+          ultimo_erro: string | null
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          atualizado_por?: string | null
+          cnpj: string
+          conectado_em?: string | null
+          tokens_cifrados?: string | null
+          ultima_consulta_em?: string | null
+          ultimo_erro?: string | null
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          atualizado_por?: string | null
+          cnpj?: string
+          conectado_em?: string | null
+          tokens_cifrados?: string | null
+          ultima_consulta_em?: string | null
+          ultimo_erro?: string | null
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "btg_dda_conexoes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: true
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      btg_dda_oauth_estados: {
+        Row: {
+          cnpj: string
+          consumido_em: string | null
+          created_at: string
+          expira_em: string
+          id: string
+          state_hash: string
+          unidade_id: string
+          user_id: string
+        }
+        Insert: {
+          cnpj: string
+          consumido_em?: string | null
+          created_at?: string
+          expira_em: string
+          id?: string
+          state_hash: string
+          unidade_id: string
+          user_id: string
+        }
+        Update: {
+          cnpj?: string
+          consumido_em?: string | null
+          created_at?: string
+          expira_em?: string
+          id?: string
+          state_hash?: string
+          unidade_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "btg_dda_oauth_estados_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cancelamento_observacoes: {
         Row: {
           created_at: string
@@ -474,6 +556,7 @@ export type Database = {
           baixado_por: string | null
           baixado_por_nome: string | null
           banco: string | null
+          btg_dda_id: string | null
           cancelado_em: string | null
           cancelado_por_nome: string | null
           categoria: string | null
@@ -546,6 +629,7 @@ export type Database = {
           baixado_por?: string | null
           baixado_por_nome?: string | null
           banco?: string | null
+          btg_dda_id?: string | null
           cancelado_em?: string | null
           cancelado_por_nome?: string | null
           categoria?: string | null
@@ -618,6 +702,7 @@ export type Database = {
           baixado_por?: string | null
           baixado_por_nome?: string | null
           banco?: string | null
+          btg_dda_id?: string | null
           cancelado_em?: string | null
           cancelado_por_nome?: string | null
           categoria?: string | null
