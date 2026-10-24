@@ -1,0 +1,1 @@
+ALTER TABLE public.contas_pagar_telegram_docs ADD COLUMN IF NOT EXISTS telegram_user_id bigint;

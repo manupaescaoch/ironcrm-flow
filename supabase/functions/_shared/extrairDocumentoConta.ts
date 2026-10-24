@@ -12,12 +12,13 @@ const schema = {
   type: "object",
   additionalProperties: false,
   required: [
-    "tipo_documento", "fornecedor", "cpf_cnpj", "pagador_nome", "pagador_cnpj", "descricao", "valor",
+    "tipo_documento", "comprovante_pagamento", "fornecedor", "cpf_cnpj", "pagador_nome", "pagador_cnpj", "descricao", "valor",
     "data_emissao", "data_vencimento", "competencia", "numero_documento", "chave_nfe", "linha_digitavel",
     "codigo_barras", "codigo_pix", "chave_pix", "categoria", "parcelas",
   ],
   properties: {
     tipo_documento: { type: ["string", "null"], enum: ["nota_fiscal", "cupom_fiscal", "boleto", "outro", null] },
+    comprovante_pagamento: { type: ["boolean", "null"] },
     fornecedor: ns,
     cpf_cnpj: ns,
     pagador_nome: ns,
@@ -46,8 +47,11 @@ const schema = {
   },
 };
 
-const PROMPT = `Você lê documentos fiscais brasileiros (nota fiscal, NF-e em XML, cupom fiscal, boleto) para cadastrar uma conta a pagar.
+const PROMPT = `Você lê documentos brasileiros (nota fiscal, NF-e em XML, cupom fiscal, boleto, comprovante de pagamento) para cadastrar uma conta a pagar ou registrar um pagamento.
 Extraia SOMENTE o que está escrito no documento. Se um dado não aparece, devolva null. Nunca invente nem estime.
+- comprovante_pagamento: true se o documento for COMPROVANTE/RECIBO de pagamento (comprovante Pix, transferência,
+  depósito, recibo pago). false para nota fiscal, cupom, boleto, fatura ou cobrança a pagar. Em comprovante,
+  fornecedor = quem RECEBEU o dinheiro e pagador = quem PAGOU; valor = valor pago; data_emissao = data do pagamento.
 - fornecedor: razão social/nome do emitente ou beneficiário (quem RECEBE o pagamento). cpf_cnpj: CPF/CNPJ desse fornecedor.
 - pagador_nome / pagador_cnpj: quem PAGA (pagador, sacado, tomador, destinatário). Nunca confunda com o fornecedor.
 - descricao: resumo curto do que foi comprado/cobrado (ex.: "ENERGIA OUTUBRO/2026").

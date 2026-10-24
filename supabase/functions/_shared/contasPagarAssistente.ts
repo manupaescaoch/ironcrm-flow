@@ -165,7 +165,7 @@ export function montarResposta(f: Filtros, contas: any[], unidades: { id: string
     out.push(`${pagas ? '🟢' : '🔴'} ${nomeU(x.u.nome)}`, LINHA);
     if (f.detalhar) {
       ordenada.forEach((c, i) => {
-        if (pagas) out.push(`${i + 1}. ${nomeConta(c)} — ${formatarValorBR(valorPago(c))} (pago ${curto(c.data_pagamento)})`);
+        if (pagas) out.push(`${i + 1}. ${nomeConta(c)} — ${formatarValorBR(valorPago(c))} (pago ${c.data_pagamento ? curto(c.data_pagamento) : '—'})`);
         else {
           out.push(`${i + 1}. ${nomeConta(c)}`, `    Vencimento: ${curto(c.data_vencimento)}`);
           if (c.data_pagamento_prevista) out.push(`    Pagamento previsto: ${curto(c.data_pagamento_prevista)} (reagendado)`);

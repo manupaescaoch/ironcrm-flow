@@ -85,6 +85,13 @@
       "when": 1792789472112,
       "tag": "0011_contas_pagar_telegram_conferencia",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792860714294,
+      "tag": "0012_comprovante_telegram_user_id",
+      "breakpoints": true
     }
   ]
 }
