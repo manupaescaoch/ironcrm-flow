@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Conectar DDA do BTG ao Contas a Pagar por unidade — acesso informado como liberado; especificação DDA recebida e confirma companyId=CNPJ e autorização Authorization Code com openid + brn:btg:empresas:banking:direct-debit; faltam confirmar os endpoints de consulta, o aplicativo BTG e suas instruções/credenciais de autorização via formulário seguro.
+- [ ] Conectar DDA do BTG ao Contas a Pagar por unidade — implementar cadastro/consentimento e consulta; concluir após credenciais do aplicativo BTG, autorização real e validação dos boletos importados.
 
 - [x] Corrigir visibilidade e controles da lista de FU de matriculados na Operação.
 
