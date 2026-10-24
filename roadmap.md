@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Conectar DDA do BTG ao Contas a Pagar por unidade — aguarda liberação de consulta DDA pelo banco e credenciais autorizadas.
+- [ ] Conectar DDA do BTG ao Contas a Pagar por unidade — acesso informado como liberado; aguarda documentação de consulta dos boletos recebidos, instruções de autorização do aplicativo e credenciais via formulário seguro.
 
 - [x] Corrigir visibilidade e controles da lista de FU de matriculados na Operação.
 
