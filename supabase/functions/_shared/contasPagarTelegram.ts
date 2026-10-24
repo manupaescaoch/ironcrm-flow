@@ -110,6 +110,7 @@ export async function receberMensagemContasPagar(admin: any, update: any): Promi
 /** Botão "Selecione a unidade" (callback_data = cpu:<docId>:<índice>). */
 export async function receberCallbackContasPagar(admin: any, cq: any): Promise<boolean> {
   const data: string = cq?.data ?? '';
+  if (data.startsWith('cpv:')) return await receberBotaoComprovante(admin, cq);
   if (!data.startsWith('cpu:')) return false;
   const [, docId, idxStr] = data.split(':');
   const chatId = Number(cq.message?.chat?.id);
