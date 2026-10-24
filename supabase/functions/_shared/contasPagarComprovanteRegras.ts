@@ -31,14 +31,14 @@ function tokens(s: string): string[] {
   return semAcento(s).split(/[^A-Z0-9]+/).filter((t) => t.length >= 3 && !palavrasIgnoradas.has(t));
 }
 
-/** Mesmo fornecedor pelo nome: pelo menos 2 palavras em comum (ou 1 quando a palavra tem 6+ letras). */
+/** Mesmo fornecedor pelo nome: 2 palavras em comum, ou uma palavra que é prefixo de outra (5+ letras). */
 export function nomeCasa(a: string | null, b: string | null): boolean {
   const ta = tokens(a);
   const tb = tokens(b);
   if (!ta.length || !tb.length) return false;
   const comuns = ta.filter((t) => tb.includes(t));
   if (comuns.length >= 2) return true;
-  return comuns.length === 1 && comuns[0].length >= 6;
+  return ta.some((t) => tb.some((s) => (s.startsWith(t) || t.startsWith(s)) && Math.min(s.length, t.length) >= 5));
 }
 
 /** É comprovante de pagamento? Só pela leitura da IA (flag); dado antigo sem a flag não é comprovante. */
