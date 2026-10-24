@@ -541,5 +541,3 @@ async function receberBotaoComprovante(admin: any, cq: any): Promise<boolean> {
   return true;
 }
 
-  }
-}
