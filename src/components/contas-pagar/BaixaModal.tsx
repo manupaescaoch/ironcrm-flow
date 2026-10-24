@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Upload, FileText, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { getTodayInBrasilia } from '@/lib/brasilia';
@@ -32,6 +32,13 @@ export function BaixaModal({ open, onOpenChange, conta, onConfirmar }: Props) {
   const [desconto, setDesconto] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const escolherArquivo = (f: File) => {
+    const ok = /\.(pdf|png|jpe?g|webp)$/i.test(f.name);
+    if (!ok) { toast({ title: 'Formato não aceito', description: 'Use PDF, JPG, PNG ou WEBP.', variant: 'destructive' }); return; }
+    if (f.size > 10 * 1024 * 1024) { toast({ title: 'Arquivo muito grande', description: 'O limite é 10 MB.', variant: 'destructive' }); return; }
+    setFile(f);
+  };
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -155,14 +162,47 @@ export function BaixaModal({ open, onOpenChange, conta, onConfirmar }: Props) {
                 className="mt-1"
               />
             </div>
-            <div>
+            <div className="sm:col-span-2">
               <Label>Comprovante de pagamento</Label>
-              <Input
-                type="file"
-                accept=".pdf,.png,.jpg,.jpeg,.webp"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                className="mt-1"
-              />
+              <label
+                onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragging(false);
+                  const f = e.dataTransfer.files?.[0];
+                  if (f) escolherArquivo(f);
+                }}
+                className={cn(
+                  'mt-1 flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-5 text-center cursor-pointer transition-colors',
+                  dragging ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40',
+                )}
+              >
+                <input
+                  type="file"
+                  accept=".pdf,.png,.jpg,.jpeg,.webp"
+                  className="sr-only"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) escolherArquivo(f); e.target.value = ''; }}
+                />
+                {file ? (
+                  <>
+                    <FileText className="w-6 h-6 text-primary" />
+                    <p className="text-sm font-medium break-all">{file.name}</p>
+                    <p className="text-xs text-muted-foreground">Clique ou arraste outro arquivo para trocar</p>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-6 h-6 text-muted-foreground" />
+                    <p className="text-sm font-medium">Arraste o comprovante aqui</p>
+                    <p className="text-xs text-muted-foreground">ou clique para escolher (PDF, JPG, PNG — até 10 MB)</p>
+                  </>
+                )}
+              </label>
+              {file && (
+                <Button type="button" variant="ghost" size="sm" className="mt-1 h-7 px-2" onClick={() => setFile(null)}>
+                  <X className="w-3 h-3 mr-1" /> Remover arquivo
+                </Button>
+              )}
             </div>
             <div className="sm:col-span-2">
               <Label>Observações</Label>
