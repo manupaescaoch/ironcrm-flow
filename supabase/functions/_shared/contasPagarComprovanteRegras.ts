@@ -27,8 +27,8 @@ const semAcento = (s: string) => String(s ?? '').normalize('NFD').replace(/[\u03
 
 const palavrasIgnoradas = new Set(['LTDA', 'ME', 'EIRELI', 'S.A.', 'SA', 'EPP', 'COM', 'DE', 'E']);
 
-function tokens(s: string): string[] {
-  return semAcento(s).split(/[^A-Z0-9]+/).filter((t) => t.length >= 3 && !palavrasIgnoradas.has(t));
+function tokens(s: string | null): string[] {
+  return semAcento(s ?? '').split(/[^A-Z0-9]+/).filter((t) => t.length >= 3 && !palavrasIgnoradas.has(t));
 }
 
 /** Mesmo fornecedor pelo nome: 2 palavras em comum, ou uma palavra que é prefixo de outra (5+ letras). */
