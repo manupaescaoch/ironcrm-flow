@@ -234,6 +234,12 @@ export async function processarDocumento(admin: any, docId: string): Promise<{ s
     const unidadeNome = unidade?.nome ?? '';
     const path = await moverParaUnidade(admin, doc, unidadeId);
 
+    // Comprovante de pagamento: anexa à conta correspondente e dá baixa. Nunca cria conta nova.
+    if (ehComprovante(dados)) {
+      return await processarComprovante(admin, doc, dados, unidadeId, path);
+    }
+
+
     // 4. Duplicidade / vínculo com lançamento existente
     const { data: contas } = await admin.from('contas_pagar')
       .select('id, valor, data_vencimento, linha_digitavel, codigo_barras, chave_nfe, numero_fatura, fornecedor_documento, status, documentos_fiscais, documento_url, conferencia_status, aprovado_em')
