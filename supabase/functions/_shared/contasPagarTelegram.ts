@@ -372,3 +372,174 @@ export async function processarDocumento(admin: any, docId: string): Promise<{ s
     return await fim('erro', { erro: erro.slice(0, 500) });
   }
 }
+
+// ===== Comprovante de pagamento: anexa à conta em aberto e dá baixa =====
+
+function hojeBRT(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+}
+function agoraBR(): string {
+  return new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).slice(0, 17);
+}
+
+async function processarComprovante(admin: any, doc: any, dados: any, unidadeId: string, path: string) {
+  const fim = async (status: string, patch: Record<string, unknown> = {}) => {
+    await admin.from('contas_pagar_telegram_docs').update({ status, ...patch }).eq('id', doc.id);
+    return { status, erro: patch.erro as string | undefined };
+  };
+  try {
+    if (!dados.valor || !dados.fornecedor) {
+      await responder(admin, doc.telegram_chat_id, doc.telegram_message_id, msgComprovanteSemDados());
+      return await fim('sem_dados', { resultado: 'Comprovante sem fornecedor/valor legível' });
+    }
+
+    const { data: contas, error: qErr } = await admin.from('contas_pagar')
+      .select('id, valor, fornecedor, fornecedor_documento, descricao, data_vencimento, status, comprovante_url, conferencia_status, forma_pagamento, aprovado_em')
+      .eq('unidade_id', unidadeId).is('deleted_at', null).neq('status', 'cancelada')
+      .order('created_at', { ascending: false }).limit(500);
+    if (qErr) throw new Error(qErr.message);
+
+    // Conta já escolhida por botão
+    const escolhida = dados.__escolhida;
+    if (escolhida) {
+      const c = (contas ?? []).find((x: any) => x.id === escolhida);
+      if (c) return await baixarComprovante(admin, doc, c, dados, path);
+    }
+
+    const r = acharContaComprovante(dados, contas ?? []);
+    if (r.tipo === 'unica') return await baixarComprovante(admin, doc, r.conta, dados, path);
+    if (r.tipo === 'candidatas') {
+      const lista = r.candidatas.slice(0, 4);
+      dados.__candidatas = lista.map((x) => x.conta.id);
+      await admin.from('contas_pagar_telegram_docs').update({ dados }).eq('id', doc.id);
+      const teclado = {
+        inline_keyboard: lista.map((x, i) => [{
+          text: `${String(x.conta.fornecedor || x.conta.descricao || 'conta').slice(0, 24)} — R$ ${Number(x.conta.valor).toFixed(2)}`.slice(0, 60),
+          callback_data: `cpv:${doc.id}:${i}`,
+        }]),
+      };
+      await responder(admin, doc.telegram_chat_id, doc.telegram_message_id, msgComprovanteEscolha(lista, dados), teclado);
+      return await fim('aguardando_botao', { resultado: 'Aguardando escolha da conta' });
+    }
+    await responder(admin, doc.telegram_chat_id, doc.telegram_message_id, msgComprovanteSemConta(dados));
+    return await fim('sem_correspondencia', { resultado: 'Nenhuma conta em aberto correspondente' });
+  } catch (e) {
+    const erro = e instanceof Error ? e.message : String(e);
+    console.error('comprovante telegram erro', doc.id, erro);
+    return await fim('erro', { erro: erro.slice(0, 500) });
+  }
+}
+
+async function baixarComprovante(admin: any, doc: any, conta: any, dados: any, path: string) {
+  const fim = async (status: string, patch: Record<string, unknown> = {}) => {
+    await admin.from('contas_pagar_telegram_docs').update({ status, ...patch }).eq('id', doc.id);
+    return { status };
+  };
+  const chatId = doc.telegram_chat_id;
+  const msgId = doc.telegram_message_id;
+  const user = await autorizar(admin, { id: doc.telegram_user_id });
+
+  if (user) {
+    const patch: Record<string, unknown> = {
+      comprovante_url: path,
+      status: 'paga',
+      valor_pago: dados.valor ?? conta.valor,
+      data_pagamento: dados.data_emissao ?? hojeBRT(),
+      forma_pagamento_baixa: conta.forma_pagamento ?? 'outro',
+      baixado_por: user.userId,
+      baixado_por_nome: user.nome,
+      baixado_em: new Date().toISOString(),
+      baixa_origem: 'telegram_comprovante',
+      baixa_observacoes: `Comprovante anexado via Telegram por ${doc.remetente}.`,
+    };
+    if (conta.conferencia_status === 'pendente_conferencia') {
+      patch.conferencia_status = 'conferida';
+      patch.conferido_por_nome = user.nome;
+      patch.conferido_em = new Date().toISOString();
+    }
+    // Guarda .eq('status','pendente'): conta paga concorrentemente não é baixada duas vezes
+    const { data: okRow, error } = await admin.from('contas_pagar')
+      .update(patch).eq('id', conta.id).eq('status', 'pendente').select('id').maybeSingle();
+    if (error) throw new Error(error.message);
+    if (okRow) {
+      await admin.from('contas_pagar_historico').insert({
+        conta_id: conta.id, acao: 'baixa', campo: 'status',
+        valor_anterior: 'pendente', valor_novo: 'paga (comprovante via Telegram)',
+        user_id: user.userId, user_nome: user.nome,
+      });
+      await admin.from('contas_pagar_telegram_docs').update({ conta_id: conta.id }).eq('id', doc.id);
+      let extra = '';
+      try {
+        const conc = await conciliarConta(admin, conta.id, { notificar: false });
+        if (conc?.status === 'conciliado') extra = '\n\n✅ Débito identificado no extrato bancário: conciliação automática concluída.';
+        else if (conc?.status === 'divergencia' || conc?.status === 'ambiguo') {
+          extra = '\n\n⚠️ Encontrei diferença entre o comprovante e o extrato bancário. Confira em Contas a Pagar → detalhes da conta.';
+        }
+      } catch (e) { console.error('conciliacao pos-comprovante', e); }
+      await responder(chatId, msgId, msgComprovanteProcessado(conta, dados, user.nome, agoraBR()) + extra);
+      return await fim('baixado', { conta_id: conta.id, resultado: 'Baixa com comprovante via Telegram' });
+    }
+    // Concorrente: já estava paga → anexa e avisa
+    const { data: atual } = await admin.from('contas_pagar').select('id, status').eq('id', conta.id).maybeSingle();
+    if (atual?.status === 'paga') {
+      await admin.from('contas_pagar').update({ comprovante_url: path }).eq('id', conta.id).eq('status', 'paga');
+      await responder(chatId, msgId, msgComprovanteJaPaga(conta));
+      return await fim('vinculado', { conta_id: conta.id, resultado: 'Conta já paga; comprovante anexado' });
+    }
+    await responder(chatId, msgId, msgComprovanteSemConta(dados));
+    return await fim('sem_correspondencia');
+  }
+
+  // Remetente sem vínculo autorizado: anexa o comprovante, mas NÃO dá baixa
+  const patch: Record<string, unknown> = { comprovante_url: path };
+  await admin.from('contas_pagar').update(patch).eq('id', conta.id);
+  await admin.from('contas_pagar_historico').insert({
+    conta_id: conta.id, acao: 'comprovante_telegram',
+    valor_novo: `Comprovante "${doc.file_name}" anexado via Telegram por ${doc.remetente} — baixa pendente`,
+    user_nome: doc.remetente,
+  });
+  await responder(chatId, msgId, msgComprovanteSemPermissao(conta));
+  return await fim('anexado', { conta_id: conta.id, resultado: 'Comprovante anexado sem baixa (remetente sem permissão)' });
+}
+
+/** Botão de escolha do comprovante (callback_data = cpv:<docId>:<índice>). */
+async function receberBotaoComprovante(admin: any, cq: any): Promise<boolean> {
+  const [, docId, idxStr] = cq.data.split(':');
+  const chatId = Number(cq.message?.chat?.id);
+  const grupos = await grupoContasPagarChatIds(admin);
+  if (!grupos.includes(chatId)) {
+    await telegramApi('answerCallbackQuery', { callback_query_id: cq.id });
+    return true;
+  }
+  const { data: doc } = await admin.from('contas_pagar_telegram_docs').select('*').eq('id', docId).maybeSingle();
+  const candidatas: string[] = doc?.dados?.__candidatas ?? [];
+  const contaId = candidatas[Number(idxStr)];
+  if (!doc || doc.status !== 'aguardando_botao' || !contaId) {
+    await telegramApi('answerCallbackQuery', { callback_query_id: cq.id, text: 'Este comprovante já foi processado.' });
+    return true;
+  }
+  const user = await autorizar(admin, cq.from);
+  if (!user) {
+    await telegramApi('answerCallbackQuery', {
+      callback_query_id: cq.id, show_alert: true,
+      text: 'Você não está vinculado ao CRM com acesso financeiro. Alguém autorizado deve dar a baixa.',
+    });
+    return true;
+  }
+  // Reserva: só um clique continua
+  const { data: reservado } = await admin.from('contas_pagar_telegram_docs')
+    .update({ status: 'processando' }).eq('id', docId).eq('status', 'aguardando_botao').select('id').maybeSingle();
+  if (!reservado) {
+    await telegramApi('answerCallbackQuery', { callback_query_id: cq.id, text: 'Já processado.' });
+    return true;
+  }
+  await telegramApi('editMessageReplyMarkup', { chat_id: chatId, message_id: cq.message.message_id, reply_markup: { inline_keyboard: [] } });
+  const dados = { ...doc.dados, __escolhida: contaId };
+  delete dados.__candidatas;
+  await admin.from('contas_pagar_telegram_docs').update({ dados, conta_id: contaId }).eq('id', docId);
+  await processarComprovante(admin, doc, dados, doc.unidade_id, doc.storage_path);
+  return true;
+}
+
+  }
+}
