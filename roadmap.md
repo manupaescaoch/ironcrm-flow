@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Conferir callback OAuth BTG real, publicação e uso do mesmo redirect_uri na autorização e troca do código; orientar cadastro no BTG sem expor endereços internos.
+
 - [ ] Conectar DDA do BTG ao Contas a Pagar por unidade — implementar cadastro/consentimento e consulta; concluir após credenciais do aplicativo BTG, autorização real e validação dos boletos importados.
 
 - [x] Corrigir visibilidade e controles da lista de FU de matriculados na Operação.
