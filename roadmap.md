@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Conferir callback OAuth BTG real, publicação e uso do mesmo redirect_uri na autorização e troca do código; orientar cadastro no BTG sem expor endereços internos.
+- [x] Conferir callback OAuth BTG real — função publicada respondeu 400 para pedido sem state; autorização e troca do código usam o mesmo retorno. URL disponível no botão Copiar retorno para o BTG; consentimento real ainda depende das credenciais e cadastro no banco.
 
 - [ ] Conectar DDA do BTG ao Contas a Pagar por unidade — implementar cadastro/consentimento e consulta; concluir após credenciais do aplicativo BTG, autorização real e validação dos boletos importados.
 
