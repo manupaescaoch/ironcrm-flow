@@ -45,3 +45,14 @@ ok('sem valor → nenhuma', r6.tipo === 'nenhuma');
 
 if (falhas) { console.error(`${falhas} teste(s) falharam`); Deno.exit(1); }
 console.log('Todos os testes passaram.');
+
+Deno.test('comprovante com mesma linha digitável casa mesmo com nome diferente; conta cancelada é sinalizada', () => {
+  const linha = '75696429320300002364200152726139516110001655723';
+  const base = { id: 'x', valor: 16557.23, fornecedor: 'SICOOB PA - OLINDA/PE', fornecedor_documento: null, descricao: null,
+    data_vencimento: '2026-10-26', linha_digitavel: '75696.42932 03000.023642 00152.726139 5 16110001655723' };
+  const dados = { comprovante_pagamento: true, fornecedor: 'COOPERATIVA DE CREDITO', cpf_cnpj: '03.732.359/0001-41', valor: 16557.23, linha_digitavel: linha };
+  const a = acharContaComprovante(dados, [{ ...base, status: 'pendente' }]);
+  if (a.tipo !== 'unica') throw new Error(a.tipo);
+  const b = acharContaComprovante(dados, [{ ...base, status: 'cancelada' }]);
+  if (b.tipo !== 'cancelada') throw new Error(b.tipo);
+});
