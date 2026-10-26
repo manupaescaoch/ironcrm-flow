@@ -120,19 +120,27 @@ export async function garantirFornecedor(admin: any, c: { fornecedor?: unknown; 
   return { erro: `Não consegui cadastrar o fornecedor: ${error?.message ?? 'erro'}` };
 }
 
+/** CONFIRMAR bloqueado: avisa e já abre a edição para a pessoa corrigir na hora. */
+async function bloqueado(admin: any, cq: any, c: any, motivo: string) {
+  await alerta(cq, motivo, true);
+  const ed = await abrirEdicao(admin, cq, c);
+  await editar(cq, resumo(c, ed?.rascunho ?? {}, await nomeUnidadeRascunho(admin, ed?.rascunho), 'EDITAR DOCUMENTO') +
+    `\n\n⚠️ ${motivo}\nQuer corrigir agora? Escolha o campo:`, tecladoCampos(c.id));
+}
+
 async function confirmar(admin: any, cq: any, contaId: string, user: { userId: string; nome: string }) {
   const c = await carregar(admin, contaId);
   if (!c) return alerta(cq, 'Lançamento não encontrado.', true);
   if (c.status === 'paga') return alerta(cq, 'Esta conta já está paga.', true);
   if (c.conferencia_status !== 'pendente_conferencia') return alerta(cq, 'Este documento já foi confirmado.', true);
   if (await edicaoAberta(admin, contaId)) return alerta(cq, 'Há uma edição em andamento. Confirme ou cancele as alterações primeiro.', true);
-  if (!c.valor || !c.data_vencimento) return alerta(cq, 'Faltam valor ou vencimento. Use EDITAR.', true);
+  if (!c.valor || !c.data_vencimento) return bloqueado(admin, cq, c, 'Faltam valor ou vencimento.');
 
   let fornecedorId = c.fornecedor_id ?? null;
   if (c.fornecedor_validar || !fornecedorId) {
     const r = await garantirFornecedor(admin, c);
     if ('erro' in r) {
-      if (c.fornecedor_validar) return alerta(cq, r.erro, true);
+      if (c.fornecedor_validar) return bloqueado(admin, cq, c, r.erro);
     } else fornecedorId = r.id;
   }
 
