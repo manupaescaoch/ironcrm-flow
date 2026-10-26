@@ -10,7 +10,7 @@ import {
 import {
   acharContaComprovante, CandidataComprovante, ContaComprovante, ehComprovante,
   msgComprovanteEscolha, msgComprovanteJaPaga, msgComprovanteProcessado, msgComprovanteSemConta,
-  msgComprovanteSemDados, msgComprovanteSemPermissao,
+  msgComprovanteSemDados, msgComprovanteSemPermissao, msgComprovanteCancelada,
 } from './contasPagarComprovanteRegras.ts';
 import { autorizar } from './contasPagarBotoes.ts';
 import { conciliarConta, textoConciliado } from './conciliacaoBancaria.ts';
@@ -394,20 +394,24 @@ async function processarComprovante(admin: any, doc: any, dados: any, unidadeId:
     }
 
     const { data: contas, error: qErr } = await admin.from('contas_pagar')
-      .select('id, valor, fornecedor, fornecedor_documento, descricao, data_vencimento, status, comprovante_url, conferencia_status, forma_pagamento, aprovado_em')
-      .eq('unidade_id', unidadeId).is('deleted_at', null).neq('status', 'cancelada')
+      .select('id, valor, fornecedor, fornecedor_documento, descricao, data_vencimento, status, comprovante_url, conferencia_status, forma_pagamento, aprovado_em, linha_digitavel, codigo_barras')
+      .eq('unidade_id', unidadeId).is('deleted_at', null)
       .order('created_at', { ascending: false }).limit(500);
     if (qErr) throw new Error(qErr.message);
 
     // Conta já escolhida por botão
     const escolhida = dados.__escolhida;
     if (escolhida) {
-      const c = (contas ?? []).find((x: any) => x.id === escolhida);
+      const c = (contas ?? []).find((x: any) => x.id === escolhida && x.status !== 'cancelada');
       if (c) return await baixarComprovante(admin, doc, c, dados, path);
     }
 
     const r = acharContaComprovante(dados, contas ?? []);
     if (r.tipo === 'unica') return await baixarComprovante(admin, doc, r.conta, dados, path);
+    if (r.tipo === 'cancelada') {
+      await responder(admin, doc.telegram_chat_id, doc.telegram_message_id, msgComprovanteCancelada(r.conta));
+      return await fim('sem_correspondencia', { conta_id: r.conta.id, resultado: 'Boleto de conta cancelada' });
+    }
     if (r.tipo === 'candidatas') {
       const lista = r.candidatas.slice(0, 4);
       dados.__candidatas = lista.map((x) => x.conta.id);
