@@ -110,52 +110,45 @@ const TIPO_LABEL: Record<string, string> = {
 };
 
 export function msgProcessado(d: any, unidadeNome: string, extra = ''): string {
+  const tipo = (TIPO_LABEL[d.tipo_documento] ?? 'Documento de cobrança').toLowerCase();
   return [
-    '*DOCUMENTO RECEBIDO*',
+    `📥 Recebi ${tipo.startsWith('nota') ? 'a' : 'o'} ${tipo} e já lancei no Contas a Pagar:`,
     '',
-    `Unidade: ${unidadeNome}`,
-    `Fornecedor: ${d.fornecedor ?? '—'}`,
-    `Valor: ${brl(d.valor)}`,
-    `Vencimento: ${dataBr(d.data_vencimento)}`,
-    `Documento: ${TIPO_LABEL[d.tipo_documento] ?? 'Documento de cobrança'}`,
-    'Status: Pendente de conferência',
+    `🏢 ${unidadeNome}`,
+    `👤 ${d.fornecedor ?? 'Fornecedor não identificado'}`,
+    `💰 ${brl(d.valor)} — vence ${dataBr(d.data_vencimento)}`,
     '',
-    'Documento anexado ao Contas a Pagar.' + (extra ? `\n${extra}` : ''),
+    'Ficou aguardando conferência. Dá uma olhada e toque em CONFIRMAR se estiver tudo certo, ou EDITAR para ajustar.' +
+      (extra ? `\n\n${extra}` : ''),
   ].join('\n');
 }
 
 export function msgConfirmarUnidade(d: any): string {
+  const comprovante = d?.comprovante_pagamento === true;
   return [
-    '*CONFIRMAÇÃO NECESSÁRIA*',
+    comprovante ? '🧾 Recebi o comprovante de pagamento.' : '📥 Recebi o documento.',
     '',
-    `Fornecedor: ${d?.fornecedor ?? '—'}`,
-    `Valor: ${brl(d?.valor)}`,
-    `Vencimento: ${dataBr(d?.data_vencimento)}`,
+    `👤 ${d?.fornecedor ?? 'Fornecedor não identificado'}`,
+    `💰 ${brl(d?.valor)}` + (comprovante ? ` — pago em ${dataBr(d?.data_emissao)}` : ` — vence ${dataBr(d?.data_vencimento)}`),
     '',
-    'Documento recebido. Não foi possível identificar a unidade responsável. Selecione a unidade para continuar.',
+    'Não consegui saber de qual unidade é. Qual delas?',
   ].join('\n');
 }
 
 export function msgDuplicado(vinculou: boolean): string {
-  return [
-    '*DOCUMENTO JÁ CADASTRADO*',
-    '',
-    'O sistema identificou uma despesa correspondente no Contas a Pagar.',
-    '',
-    vinculou ? 'O arquivo foi vinculado ao lançamento existente.' : 'Este arquivo já estava no lançamento.',
-    '',
-    'Nenhuma nova despesa foi criada.',
-  ].join('\n');
+  return vinculou
+    ? '📎 Essa conta já estava no Contas a Pagar, então só anexei o arquivo nela. Nada novo foi lançado.'
+    : '👍 Esse arquivo já está no Contas a Pagar. Não lancei de novo.';
 }
 
 export function msgAguardandoVencimento(d: any, unidadeNome: string): string {
   return [
-    '*NOTA FISCAL RECEBIDA*',
+    '🧾 Recebi a nota fiscal:',
     '',
-    `Unidade: ${unidadeNome}`,
-    `Fornecedor: ${d.fornecedor ?? '—'}`,
-    `Valor: ${brl(d.valor)}`,
+    `🏢 ${unidadeNome}`,
+    `👤 ${d.fornecedor ?? 'Fornecedor não identificado'}`,
+    `💰 ${brl(d.valor)}`,
     '',
-    'A nota não tem data de vencimento. Envie o boleto desta cobrança aqui no grupo para concluir o lançamento, ou cadastre o vencimento em Contas a Pagar → Telegram.',
+    'Ela não tem vencimento. Manda o boleto dela aqui que eu completo o lançamento.',
   ].join('\n');
 }
