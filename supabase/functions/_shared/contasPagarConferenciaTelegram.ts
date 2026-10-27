@@ -80,7 +80,7 @@ export function resumo(c: any, rascunho: Record<string, unknown> = {}, nomeUnida
     `Linha digitável: ${v.linha_digitavel ?? '—'}${mud('linha_digitavel')}`,
     `Status: ${c.status === 'paga' ? 'Paga' : STATUS_LABEL[c.conferencia_status] ?? 'Pendente'}`,
   ];
-  if (c.fornecedor_validar && !('fornecedor' in rascunho)) linhas.push('', 'Fornecedor sem CNPJ/CPF válido: corrija em EDITAR.');
+  if (c.fornecedor_validar && !ehImposto(v) && !('fornecedor' in rascunho)) linhas.push('', 'Fornecedor sem CNPJ/CPF válido: corrija em EDITAR.');
   return linhas.join('\n');
 }
 
@@ -92,8 +92,16 @@ async function editar(cq: any, text: string, reply_markup: unknown = { inline_ke
   if (!r.ok) console.warn('[conferencia] editMessageText', r.description);
 }
 
+/** Imposto/guia de arrecadação (DARF, GPS, DAS...): o órgão não precisa de CNPJ. */
+export function ehImposto(c: any): boolean {
+  const cat = nomeNormalizado(c?.categoria);
+  const linha = soDig(c?.linha_digitavel ?? c?.codigo_barras);
+  return /IMPOSTO|TRIBUTO|TAXA/.test(cat) || linha.startsWith('8') ||
+    /RECEITA FEDERAL|PGFN|SEFAZ|PREFEITURA|INSS|DARF|SIMPLES NACIONAL/.test(nomeNormalizado(c?.fornecedor));
+}
+
 /** Procura o fornecedor por CNPJ ou nome; cadastra se não existir. Nunca duplica. */
-export async function garantirFornecedor(admin: any, c: { fornecedor?: unknown; fornecedor_documento?: unknown }): Promise<{ id: string; criado?: boolean } | { erro: string }> {
+export async function garantirFornecedor(admin: any, c: { fornecedor?: unknown; fornecedor_documento?: unknown; categoria?: unknown; linha_digitavel?: unknown }): Promise<{ id: string; criado?: boolean } | { erro: string }> {
   const doc = soDig(c.fornecedor_documento);
   if (doc && !documentoFornecedorValido(doc)) return { erro: 'O CNPJ do fornecedor está inconsistente. Corrija em EDITAR.' };
   if (doc) {
@@ -107,6 +115,12 @@ export async function garantirFornecedor(admin: any, c: { fornecedor?: unknown; 
   if (mesmo) {
     if (doc && !mesmo.cnpj) await admin.from('fornecedores').update({ cnpj: doc }).eq('id', mesmo.id);
     return { id: mesmo.id };
+  }
+  if (!doc && ehImposto(c)) {
+    const { data: novo, error } = await admin.from('fornecedores')
+      .insert({ nome: String(c.fornecedor).toUpperCase(), cnpj: null, unidade_id: null, observacoes: 'Órgão de imposto cadastrado pelo Telegram (sem CNPJ)' })
+      .select('id').maybeSingle();
+    return novo ? { id: novo.id, criado: true } : { erro: `Não consegui cadastrar o fornecedor: ${error?.message ?? 'erro'}` };
   }
   if (!doc) return { erro: 'Fornecedor não cadastrado e sem CNPJ. Informe o CNPJ em EDITAR.' };
   const { data: novo, error } = await admin.from('fornecedores')
