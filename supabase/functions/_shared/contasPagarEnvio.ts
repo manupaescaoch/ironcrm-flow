@@ -1,7 +1,7 @@
 // Núcleo do envio de contas a pagar para o grupo financeiro no Telegram.
 // O token do bot é lido apenas no servidor (helpers de _shared/telegram.ts).
-import { sendTelegramGroupText, TelegramGrupoUnidade } from './telegram.ts';
-import { montarMensagemConta } from './contasPagarMensagem.ts';
+import { sendTelegramGroupText, sendTelegramMessage, TelegramGrupoUnidade } from './telegram.ts';
+import { montarMensagemConta, resolverDadoPagamento } from './contasPagarMensagem.ts';
 import { tecladoCobranca } from './contasPagarBotoes.ts';
 
 export type TipoEnvio = 'CADASTRO' | 'VENCIMENTO';
@@ -124,7 +124,12 @@ export async function processarEnvio(
   const mensagem = montarMensagemConta(conta, unidade?.nome ?? '');
 
   // 5. Envio
-  const resp = await sendTelegramGroupText(
+  // Se só o segundo envio falhou, reaproveita o aviso em vez de duplicá-lo.
+  const avisoAnterior = envio.tentativas > 1 && envio.erro_msg?.startsWith('Dados de pagamento:')
+    ? Number(envio.zapi_message_id) : 0;
+  const resp = avisoAnterior > 0
+    ? { ok: true, message_id: avisoAnterior }
+    : await sendTelegramGroupText(
     supabase,
     grupo,
     mensagem,
@@ -141,6 +146,41 @@ export async function processarEnvio(
       .eq('id', envio.id);
     await marcarFalha(supabase, envio.id, envio.tentativas, erro);
     return { ok: false, erro };
+  }
+
+  // Salva o aviso antes de enviar os dados, permitindo retentar só a parte faltante.
+  await supabase.from('contas_pagar_envios').update({
+    grupo_destino: destino,
+    zapi_message_id: messageId ? String(messageId) : null,
+    mensagem_enviada: mensagem,
+  }).eq('id', envio.id);
+
+  let dadoPagamento = resolverDadoPagamento(conta)?.dado;
+  if (!dadoPagamento && conta.forma_pagamento === 'boleto' && conta.documento_url) {
+    const { data, error } = await supabase.storage.from('contas-pagar-docs')
+      .createSignedUrl(conta.documento_url, 600);
+    if (error || !data?.signedUrl) {
+      await marcarFalha(supabase, envio.id, envio.tentativas, 'Dados de pagamento: não foi possível gerar o link do boleto');
+      return { ok: false, erro: 'Não foi possível gerar o link do boleto' };
+    }
+    dadoPagamento = data.signedUrl;
+  }
+  if (dadoPagamento) {
+    // HTML escapado preserva o conteúdo visível, inclusive caracteres do Pix/link.
+    const pagamentoResp = await sendTelegramMessage({
+      chat_id: grupo.telegram_chat_id,
+      text: dadoPagamento.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+      parse_mode: 'HTML',
+      recipient_type: 'grupo',
+      recipient_id: grupo.id,
+      message_type: `contas_pagar_${tipo.toLowerCase()}_pagamento`,
+      ...(messageId ? { reply_parameters: { message_id: Number(messageId) } } : {}),
+    }, supabase);
+    if (!pagamentoResp.ok) {
+      const erro = `Dados de pagamento: ${pagamentoResp.error ?? 'falha no Telegram'}`;
+      await marcarFalha(supabase, envio.id, envio.tentativas, erro);
+      return { ok: false, erro };
+    }
   }
 
   await supabase
