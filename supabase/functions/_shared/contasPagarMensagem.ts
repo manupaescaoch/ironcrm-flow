@@ -1,4 +1,4 @@
-// Montagem da mensagem de WhatsApp para o módulo Contas a Pagar.
+// Montagem do aviso de Telegram para o módulo Contas a Pagar.
 // Regras: nome da unidade dinâmico em negrito, descrição em caixa alta,
 // data dd/mm/aaaa, valor no padrão brasileiro, e o dado de pagamento
 // (Pix / linha digitável) copiado byte a byte, sem nenhuma alteração.
@@ -18,6 +18,7 @@ export interface ContaParaMensagem {
   conta_bancaria?: string | null;
   favorecido?: string | null;
   fornecedor?: string | null;
+  documento_url?: string | null;
 }
 
 export function formatarDataBR(iso: string): string {
@@ -59,11 +60,13 @@ export function resolverDadoPagamento(conta: ContaParaMensagem): { label: string
   }
 
   // Fallback: qualquer dado de pagamento preenchido, independente da forma.
-  if (conta.codigo_pix || conta.chave_pix) {
-    return { label: 'Pix', dado: (conta.codigo_pix || conta.chave_pix)! };
+  const pix = conta.codigo_pix || conta.chave_pix;
+  if (pix) {
+    return { label: 'Pix', dado: pix };
   }
-  if (conta.linha_digitavel || conta.codigo_barras) {
-    return { label: 'Boleto', dado: (conta.linha_digitavel || conta.codigo_barras)! };
+  const boleto = conta.linha_digitavel || conta.codigo_barras;
+  if (boleto) {
+    return { label: 'Boleto', dado: boleto };
   }
   if (conta.link_pagamento) {
     return { label: 'Link de pagamento', dado: conta.link_pagamento };
@@ -75,8 +78,8 @@ export function resolverDadoPagamento(conta: ContaParaMensagem): { label: string
 export function montarMensagemConta(conta: ContaParaMensagem, unidadeNome: string): string {
   const pagamento = resolverDadoPagamento(conta);
 
-  const blocoPagamento = pagamento
-    ? `${pagamento.label}:\n\n${pagamento.dado}`
+  const blocoPagamento = pagamento || (conta.forma_pagamento === 'boleto' && conta.documento_url)
+    ? `${pagamento?.label ?? 'Boleto'}: enviado em mensagem separada.`
     : 'Forma de pagamento: Outro\nDados para pagamento não informados.';
 
   return [

@@ -55,6 +55,7 @@ export interface SendParams {
   recipient_type?: 'usuario' | 'grupo';
   recipient_id?: string | null;
   message_type?: string;
+  reply_parameters?: { message_id: number };
 }
 
 /** Envia mensagem (privada ou em grupo) e registra o log de envio. */
@@ -74,6 +75,7 @@ export async function sendTelegramMessage(
       text,
       parse_mode,
       ...(reply_markup ? { reply_markup } : {}),
+      ...(params.reply_parameters ? { reply_parameters: params.reply_parameters } : {}),
     });
     ok = r.ok;
     if (ok) messageId = r.result?.message_id;

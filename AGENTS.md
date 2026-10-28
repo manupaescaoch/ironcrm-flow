@@ -1,4 +1,5 @@
 # Architecture Decisions
+- Send Telegram payables payment data as a separate reply to its reminder and persist the reminder ID before sending the payment data, so copying excludes the summary and retries do not repeat a successful reminder.
 - Keep BTG DDA consent state and encrypted OAuth tokens in server-only tables, scoped by unit CNPJ; request only read-only DDA scope and block synchronization until the official list operation and pagination are verified, so banking credentials and unverified imports never reach the browser or payables.
 - Apply the shared manager messaging policy before operational channel fallback and disable legacy manager WhatsApp summary handlers, so manager notifications cannot silently revert from Telegram to WhatsApp.
 
