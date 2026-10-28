@@ -125,7 +125,8 @@ export async function processarEnvio(
 
   // 5. Envio
   // Se só o segundo envio falhou, reaproveita o aviso em vez de duplicá-lo.
-  const avisoAnterior = Number(envio.zapi_message_id);
+  const avisoAnterior = envio.tentativas > 1 && envio.erro_msg?.startsWith('Dados de pagamento:')
+    ? Number(envio.zapi_message_id) : 0;
   const resp = avisoAnterior > 0
     ? { ok: true, message_id: avisoAnterior }
     : await sendTelegramGroupText(
@@ -159,7 +160,7 @@ export async function processarEnvio(
     const { data, error } = await supabase.storage.from('contas-pagar-docs')
       .createSignedUrl(conta.documento_url, 600);
     if (error || !data?.signedUrl) {
-      await marcarFalha(supabase, envio.id, envio.tentativas, 'Não foi possível gerar o link do boleto');
+      await marcarFalha(supabase, envio.id, envio.tentativas, 'Dados de pagamento: não foi possível gerar o link do boleto');
       return { ok: false, erro: 'Não foi possível gerar o link do boleto' };
     }
     dadoPagamento = data.signedUrl;
@@ -176,7 +177,7 @@ export async function processarEnvio(
       ...(messageId ? { reply_parameters: { message_id: Number(messageId) } } : {}),
     }, supabase);
     if (!pagamentoResp.ok) {
-      const erro = `Telegram: ${pagamentoResp.error ?? 'falha ao enviar dados de pagamento'}`;
+      const erro = `Dados de pagamento: ${pagamentoResp.error ?? 'falha no Telegram'}`;
       await marcarFalha(supabase, envio.id, envio.tentativas, erro);
       return { ok: false, erro };
     }
