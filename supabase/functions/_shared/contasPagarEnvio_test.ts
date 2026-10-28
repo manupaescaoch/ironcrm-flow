@@ -12,7 +12,7 @@ Deno.test('cobrança envia linha isolada como resposta ao aviso e retenta só os
   const mensagens: any[] = [];
   let falharPagamento = true;
   globalThis.fetch = async (_url, init) => {
-    const body = JSON.parse(String(init?.body));
+    const body = JSON.parse(String(init && 'body' in init ? init.body : ''));
     mensagens.push(body);
     if (body.text === linha && falharPagamento) {
       return new Response(JSON.stringify({ ok: false, description: 'temporary failure' }), { status: 500 });
