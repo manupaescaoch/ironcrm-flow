@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Separar os dados de pagamento dos avisos de cobrança no Telegram para facilitar copiar e colar.
+
 - [x] Conferir callback OAuth BTG real — função publicada respondeu 400 para pedido sem state; autorização e troca do código usam o mesmo retorno. URL disponível no botão Copiar retorno para o BTG; consentimento real ainda depende das credenciais e cadastro no banco.
 
 - [ ] Conectar DDA do BTG ao Contas a Pagar por unidade — implementar cadastro/consentimento e consulta; concluir após credenciais do aplicativo BTG, autorização real e validação dos boletos importados.
