@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Lock, Wallet, Users, Settings2, History, Receipt, BarChart3, FileUp, FileDown } from "lucide-react";
@@ -385,6 +386,8 @@ const vazio = { nome: "", cpf: "", tipo: "ESTAGIARIO", funcao: "", turno: "", tu
 function Colaboradores({ podeEditar, podePessoais, colabs, unidadeId, regras, onChange, erro }: { podeEditar: boolean; podePessoais: boolean; colabs: ColabRow[]; unidadeId?: string; regras: RegrasFolha; onChange: () => void; erro: (e: any) => void }) {
   const [edit, setEdit] = useState<any | null>(null);
   const [busca, setBusca] = useState("");
+  const [excluir, setExcluir] = useState<ColabRow | null>(null);
+  const { toast } = useToast();
   const lista = colabs.filter((c) => !busca || c.nome.includes(busca.toUpperCase()) || (c.cpf || "").includes(busca));
   async function salvar() {
     const n = (v: any) => (v === "" || v == null ? null : num(String(v)));
@@ -401,6 +404,11 @@ function Colaboradores({ podeEditar, podePessoais, colabs, unidadeId, regras, on
     setEdit(null); onChange();
   }
   async function alternar(c: ColabRow) { try { await chamarFolha({ acao: "inativar_colaborador", unidade_id: unidadeId, colaborador_id: c.id }); onChange(); } catch (e) { erro(e); } }
+  async function excluirVinculo() {
+    if (!excluir) return;
+    try { await chamarFolha({ acao: "excluir_colaborador", unidade_id: unidadeId, colaborador_id: excluir.id }); toast({ title: `${excluir.nome} excluído` }); setExcluir(null); onChange(); }
+    catch (e) { erro(e); }
+  }
   const f = (k: string, label: string, props: any = {}) => <div><Label className="text-xs">{label}</Label><Input value={edit?.[k] ?? ""} onChange={(e) => setEdit({ ...edit, [k]: e.target.value })} {...props} /></div>;
   return (
     <Card><CardContent className="p-4 space-y-3">
@@ -409,7 +417,7 @@ function Colaboradores({ podeEditar, podePessoais, colabs, unidadeId, regras, on
       {lista.map((c) => (
         <div key={c.id} className="flex flex-wrap items-center justify-between gap-2 border rounded-md p-3">
           <div><p className="font-medium">{c.nome} {!c.ativo && <Badge variant="outline">Inativo</Badge>}</p><p className="text-xs text-muted-foreground">{c.tipo === "CLT" ? "CLT" : c.tipo === "SEM_CONTRATO" ? "Sem contrato — cálculo pendente" : "Estagiário"}{c.funcao ? ` · ${c.funcao}` : ""}{(c as any).funcao_remuneratoria ? ` · ${FUNCOES_REMUNERATORIAS[(c as any).funcao_remuneratoria as keyof typeof FUNCOES_REMUNERATORIAS] ?? (c as any).funcao_remuneratoria} (formado)` : ""} · base {brl(c.base)}</p><p className="text-xs text-muted-foreground">Vínculo {c.id} · Pessoa {(c as any).pessoa_id}</p></div>
-          {podeEditar && <div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => setEdit({ ...c, _pixOriginal: c.pix ?? null })}>Editar</Button><Button size="sm" variant="ghost" onClick={() => alternar(c)}>{c.ativo ? "Inativar" : "Reativar"}</Button></div>}
+          {podeEditar && <div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => setEdit({ ...c, _pixOriginal: c.pix ?? null })}>Editar</Button><Button size="sm" variant="ghost" onClick={() => alternar(c)}>{c.ativo ? "Inativar" : "Reativar"}</Button><Button size="sm" variant="ghost" onClick={() => setExcluir(c)}>Excluir</Button></div>}
         </div>
       ))}
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
@@ -433,6 +441,18 @@ function Colaboradores({ podeEditar, podePessoais, colabs, unidadeId, regras, on
           <DialogFooter><Button onClick={salvar}>Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={!!excluir} onOpenChange={(o) => !o && setExcluir(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {excluir?.nome}</AlertDialogTitle>
+            <AlertDialogDescription>Exclui o cadastro definitivamente. Só funciona quando o vínculo nunca teve folha gravada; se houver histórico, use Inativar.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={excluirVinculo}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </CardContent></Card>
   );
 }
