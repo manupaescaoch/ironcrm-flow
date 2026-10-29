@@ -21,9 +21,10 @@
 - [ ] Usuário cria bot no BotFather e fornece token; salvar como TELEGRAM_BOT_TOKEN e testar conexão na página Telegram
 
 ## Folha – experiência mensal (pedido 29/10)
-- [ ] Seletor de ano + meses Jan–Dez, status aberta/fechada, rolagem no celular
-- [ ] Abrir em aba Folha no mês atual, tabela de conferência (PC) e cartões (celular)
-- [ ] "Preparar folha de [mês]": revisar ativos, criar só lançamentos ausentes, sem copiar variáveis
-- [ ] Fluxo destacado: preparar → lançar → conferir → fechar → Clara
-- [ ] Aviso de edições não salvas ao trocar mês/ano/unidade
-- [ ] Validar com dados fictícios fora da produção; NÃO publicar até aprovação
+- [x] Seletor de ano + meses Jan–Dez, status aberta/fechada, rolagem no celular
+- [x] Abrir em aba Folha no mês atual, tabela de conferência (PC) e cartões (celular)
+- [x] "Preparar folha de [mês]": revisar ativos, criar só lançamentos ausentes, sem copiar variáveis
+- [x] Fluxo destacado: preparar → lançar → conferir → fechar → Clara
+- [x] Aviso de edições não salvas ao trocar mês/ano/unidade
+- [x] Validar com dados fictícios simulados
+- [ ] Publicar — aguardando aprovação da interface

@@ -90,7 +90,7 @@ export function TabelaConferencia({ linhas, aberta, selecionado, onSelecionar, r
         <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
           <tr className="text-left">
             <th className="p-2">Colaborador</th><th className="p-2 text-right">Líquido / Bolsa</th><th className="p-2 text-right">Fim de semana</th>
-            <th className="p-2 text-right">Adicionais</th><th className="p-2 text-right">Comissão</th><th className="p-2 text-right">Descontos</th>
+            <th className="p-2 text-right">Adicionais e passagem</th><th className="p-2 text-right">Comissão</th><th className="p-2 text-right">Descontos</th>
             <th className="p-2 text-right">Total a receber</th><th className="p-2 text-right">Ajuda (1ª · 2ª)</th><th className="p-2">Situação</th>
           </tr>
         </thead>
@@ -99,7 +99,7 @@ export function TabelaConferencia({ linhas, aberta, selecionado, onSelecionar, r
             const est = c.tipo === "ESTAGIARIO";
             const pend = pendencias(c, l, r, erro, aberta);
             const v = r?.valores;
-            const adicionais = r ? r.lider + r.extras + (v ? v.d + v.df + v.dn + v.h + v.x : 0) : 0;
+            const adicionais = r ? r.passagem + r.lider + r.extras + (v ? v.d + v.df + v.dn + v.h + v.x : 0) : 0;
             const dias = l?.dados?.datas_fds?.length ?? 0;
             const [p1, p2] = dividirAjuda(r?.ajudaCusto?.total ?? 0);
             return (
