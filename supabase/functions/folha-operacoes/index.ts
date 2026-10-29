@@ -187,9 +187,7 @@ Deno.serve(async (req) => {
       if (comHistorico > 0) return json({ error: "Vínculo tem histórico de folha gravada; use Inativar em vez de excluir" }, 409);
       const { error: edel } = await admin.from("folha_colaboradores").delete().eq("id", id).eq("unidade_id", unidade);
       if (edel) return json({ error: edel.message }, 400);
-      // A tabela não tem gatilho de exclusão: registra a auditoria aqui.
-      const { error: eaud } = await admin.from("folha_auditoria").insert({ tabela: "folha_colaboradores", registro_id: id, unidade_id: unidade, competencia: null, acao: "DELETE", antes: atual, user_id: usuario });
-      if (eaud) console.error("[folha-operacoes] auditoria de exclusão falhou:", eaud.message);
+      // Auditoria fica por conta do gatilho trg_folha_aud_colab (grava DELETE com o retrato anterior).
       return json({ ok: true, id });
     }
     if (acao === "fechar") {
