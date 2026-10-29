@@ -117,7 +117,7 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
   const financeiroVisible = useMemo(
     () => [
       { href: '/contas-pagar', label: 'Contas a Pagar', icon: Wallet, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
-      ...(veFolha ? [{ href: '/folha', label: 'Folha e Pagamentos', icon: Users, roles: ['admin', 'gerente'], masterOnly: false, isNew: true }] : []),
+      ...(veFolha ? [{ href: '/folha', label: 'Folha de Pagamentos', icon: Users, roles: ['admin', 'gerente'], masterOnly: false, isNew: true }] : []),
     ].filter(canSee),
     [userRole, user?.email, veFolha]
   );

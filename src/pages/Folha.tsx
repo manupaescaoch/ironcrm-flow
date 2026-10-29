@@ -126,7 +126,7 @@ export default function Folha() {
   }
 
   if (authLoading || pode == null) return <Layout><div className="p-6 text-muted-foreground" role="status">Verificando acesso…</div></Layout>;
-  if (pode === false) return <Layout><div className="p-6"><Card><CardContent className="p-6 text-muted-foreground">Você não tem acesso à Folha e Pagamentos.</CardContent></Card></div></Layout>;
+  if (pode === false) return <Layout><div className="p-6"><Card><CardContent className="p-6 text-muted-foreground">Você não tem acesso à Folha de Pagamentos.</CardContent></Card></div></Layout>;
 
   if (falhaCalculo) return <Layout><div className="p-6"><Card><CardContent className="p-6 space-y-3" role="alert"><p className="font-semibold text-destructive">Cálculo indisponível — prévia e exportação interrompidas</p><p className="text-sm text-muted-foreground">{falhaCalculo}. Nenhum total é exibido até que a leitura complete sem erro.</p><Button variant="outline" onClick={() => { setFalhaCalculo(null); carregar().catch((e) => setFalhaCalculo(e?.message || "Falha ao carregar a folha")); }}>Tentar novamente</Button></CardContent></Card></div></Layout>;
 
@@ -137,7 +137,7 @@ export default function Folha() {
       <div className="p-4 md:p-6 space-y-4 max-w-full overflow-x-hidden">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2"><Wallet className="w-6 h-6 text-primary" /> Folha e Pagamentos</h1>
+            <h1 className="text-2xl font-bold flex items-center gap-2"><Wallet className="w-6 h-6 text-primary" /> Folha de Pagamentos</h1>
             <p className="text-sm text-muted-foreground">Unidade {unidadeAtual?.nome}</p>
           </div>
           <div className="flex items-end gap-2">
