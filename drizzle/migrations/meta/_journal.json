@@ -141,6 +141,13 @@
       "when": 1793272173903,
       "tag": "0019_evo_folha_folha_corrigir_contracheque_item",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793272194494,
+      "tag": "0020_evo_folha_folha_correcao_sem_alteracao_recusada",
+      "breakpoints": true
     }
   ]
 }
