@@ -6086,6 +6086,10 @@ export type Database = {
         Args: { p_id: string; p_usuario: string }
         Returns: Json
       }
+      folha_chamador_pode_consultar: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       folha_corrigir_contracheque_item: {
         Args: {
           p_item: string
@@ -6098,6 +6102,19 @@ export type Database = {
       folha_hash_entrada: {
         Args: { p_comp: string; p_unidade: string }
         Returns: string
+      }
+      folha_lote_clara: {
+        Args: {
+          p_comp: string
+          p_exportar?: boolean
+          p_hash?: string
+          p_ids?: string[]
+          p_opcoes?: Json
+          p_reexportar?: boolean
+          p_unidade: string
+          p_usuario: string
+        }
+        Returns: Json
       }
       folha_minhas_permissoes: {
         Args: { _unidade_id: string }
@@ -6176,6 +6193,7 @@ export type Database = {
         }
         Returns: Json
       }
+      folha_upload_permitido: { Args: { _name: string }; Returns: boolean }
       fu_add_business_days: {
         Args: { p_date: string; p_days: number }
         Returns: string

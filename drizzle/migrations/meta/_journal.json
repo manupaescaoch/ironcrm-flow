@@ -190,6 +190,27 @@
       "when": 1793272310252,
       "tag": "0026_evo_folha_revogar_execucao_publica",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1793272344633,
+      "tag": "0027_evo_folha_lote_clara_auditoria",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1793272347940,
+      "tag": "0028_evo_folha_acesso_admin_gerente",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1793272358646,
+      "tag": "0029_evo_folha_correcoes_conferencia_final",
+      "breakpoints": true
     }
   ]
 }
