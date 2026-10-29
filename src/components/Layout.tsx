@@ -50,6 +50,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useVeFolha } from '@/hooks/useVeFolha';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { UserPhoneDialog } from '@/components/profile/UserPhoneDialog';
 
@@ -144,7 +145,7 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
 
   const renderNavItem = (item: (typeof allNavItems)[number]) => {
     const Icon = item.icon;
-    const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/');
+    const isActive = location.pathname === item.href;
     const isAdminOnly = item.roles.length === 1 && item.roles[0] === 'admin';
     return (
       <Link
@@ -180,6 +181,36 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
       </Link>
     );
   };
+
+  const FinanceiroGroup = () => (
+    <div className="mb-0.5">
+      <button
+        type="button"
+        onClick={() => setFinanceiroOpen((v) => !v)}
+        aria-expanded={financeiroOpen}
+        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors text-sidebar-foreground/85 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+      >
+        <Wallet className="w-4 h-4 shrink-0 text-sidebar-foreground/70" />
+        <span className="flex-1 truncate text-left">Financeiro</span>
+        <ChevronDown
+          className={cn(
+            'w-3.5 h-3.5 shrink-0 text-sidebar-foreground/60 transition-transform duration-200',
+            financeiroOpen && 'rotate-180'
+          )}
+        />
+      </button>
+      <div
+        className={cn(
+          'overflow-hidden transition-all duration-200',
+          financeiroOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+        )}
+      >
+        <div className="pl-4 mt-0.5 space-y-0.5 border-l border-sidebar-border/50 ml-4">
+          {financeiroVisible.map((sub) => renderNavItem(sub as any))}
+        </div>
+      </div>
+    </div>
+  );
 
   const GerencialGroup = () => (
     <div className="mb-0.5">
@@ -296,7 +327,9 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
         {navItems.map((item) => (
           <div key={item.href}>
             {gerencialVisible.length > 0 && gerencialAnchor === item.href && <GerencialGroup />}
-            {renderNavItem(item)}
+            {(item as any).isGroup
+              ? financeiroVisible.length > 0 && <FinanceiroGroup />
+              : renderNavItem(item)}
           </div>
         ))}
         {gerencialVisible.length > 0 && !gerencialAnchor && <GerencialGroup />}
