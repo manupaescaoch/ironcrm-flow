@@ -148,6 +148,13 @@
       "when": 1793272194494,
       "tag": "0020_evo_folha_folha_correcao_sem_alteracao_recusada",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793272208029,
+      "tag": "0021_evo_folha_folha_importacao_tentativas_seguras",
+      "breakpoints": true
     }
   ]
 }

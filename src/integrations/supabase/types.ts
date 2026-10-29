@@ -2216,6 +2216,44 @@ export type Database = {
           },
         ]
       }
+      folha_importacao_tentativas: {
+        Row: {
+          arquivo_path: string
+          competencia: string
+          created_at: string
+          estado: string
+          id: string
+          unidade_id: string
+          usuario_id: string
+        }
+        Insert: {
+          arquivo_path: string
+          competencia: string
+          created_at?: string
+          estado?: string
+          id?: string
+          unidade_id: string
+          usuario_id: string
+        }
+        Update: {
+          arquivo_path?: string
+          competencia?: string
+          created_at?: string
+          estado?: string
+          id?: string
+          unidade_id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folha_importacao_tentativas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       folha_lancamentos: {
         Row: {
           colaborador_id: string
