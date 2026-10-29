@@ -64,7 +64,7 @@ const allNavItems = [
   { href: '/operacao', label: 'Operação', icon: ClipboardList, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false, isNew: true },
   { href: '/crm', label: 'CRM', icon: Users, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
   { href: '/indicacoes', label: 'Indicações', icon: Gift, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
-  { href: '/financeiro', label: 'Financeiro', icon: Wallet, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false, isNew: true },
+  { href: '/financeiro', label: 'Financeiro', icon: Wallet, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false, isGroup: true },
   { href: '/dashboard-executivo', label: 'Executivo', icon: BarChart3, roles: ['admin', 'coordenador', 'gerente'], masterOnly: false },
   { href: '/gestao-operacional', label: 'Gestão da Rede', icon: Building2, roles: ['admin', 'coordenador', 'gerente'], masterOnly: false },
   { href: '/backups', label: 'Backups', icon: Database, roles: ['admin'], masterOnly: false },
@@ -112,6 +112,21 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
 
   const navItems = useMemo(() => allNavItems.filter(canSee), [userRole, user?.email]);
   const gerencialVisible = useMemo(() => gerencialItems.filter(canSee), [userRole, user?.email]);
+  const { veFolha } = useVeFolha();
+  const financeiroVisible = useMemo(
+    () => [
+      { href: '/contas-pagar', label: 'Contas a Pagar', icon: Wallet, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
+      ...(veFolha ? [{ href: '/folha', label: 'Folha e Pagamentos', icon: Users, roles: ['admin', 'gerente'], masterOnly: false, isNew: true }] : []),
+    ].filter(canSee),
+    [userRole, user?.email, veFolha]
+  );
+  const isFinanceiroRoute = ['/contas-pagar', '/folha', '/financeiro'].some(
+    (h) => location.pathname === h || location.pathname.startsWith(h + '/')
+  );
+  const [financeiroOpen, setFinanceiroOpen] = useState(isFinanceiroRoute);
+  useEffect(() => {
+    if (isFinanceiroRoute) setFinanceiroOpen(true);
+  }, [isFinanceiroRoute]);
 
   const isGerencialRoute = gerencialItems.some(
     (item) => location.pathname === item.href || location.pathname.startsWith(item.href + '/')
@@ -129,7 +144,7 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
 
   const renderNavItem = (item: (typeof allNavItems)[number]) => {
     const Icon = item.icon;
-    const isActive = location.pathname === item.href || (item.href === '/financeiro' && ['/folha', '/contas-pagar'].includes(location.pathname));
+    const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/');
     const isAdminOnly = item.roles.length === 1 && item.roles[0] === 'admin';
     return (
       <Link
