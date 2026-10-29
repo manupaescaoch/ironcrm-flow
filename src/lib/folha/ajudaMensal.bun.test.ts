@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { calcularAjudaMensal } from "./motor";
+import { calcularAjudaMensal } from "./ajudaMensal";
 
 describe("ajuda de custo mensal", () => {
   test("R$ 720 com passagem adicional manual de 90", () => {
