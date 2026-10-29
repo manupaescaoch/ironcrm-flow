@@ -1888,6 +1888,607 @@ export type Database = {
           },
         ]
       }
+      folha_ajuda_parcelas: {
+        Row: {
+          colaborador_id: string
+          competencia: string
+          composicao: Json
+          created_at: string
+          criado_por: string
+          data_prevista: string | null
+          id: string
+          parcela: number
+          status: string
+          unidade_id: string
+          valor: number
+        }
+        Insert: {
+          colaborador_id: string
+          competencia: string
+          composicao: Json
+          created_at?: string
+          criado_por: string
+          data_prevista?: string | null
+          id?: string
+          parcela: number
+          status?: string
+          unidade_id: string
+          valor: number
+        }
+        Update: {
+          colaborador_id?: string
+          competencia?: string
+          composicao?: Json
+          created_at?: string
+          criado_por?: string
+          data_prevista?: string | null
+          id?: string
+          parcela?: number
+          status?: string
+          unidade_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folha_ajuda_parcelas_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "folha_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folha_ajuda_parcelas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folha_auditoria: {
+        Row: {
+          acao: string
+          antes: Json | null
+          competencia: string | null
+          created_at: string
+          depois: Json | null
+          id: number
+          registro_id: string | null
+          tabela: string
+          unidade_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          acao: string
+          antes?: Json | null
+          competencia?: string | null
+          created_at?: string
+          depois?: Json | null
+          id?: number
+          registro_id?: string | null
+          tabela: string
+          unidade_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          acao?: string
+          antes?: Json | null
+          competencia?: string | null
+          created_at?: string
+          depois?: Json | null
+          id?: number
+          registro_id?: string | null
+          tabela?: string
+          unidade_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      folha_colaboradores: {
+        Row: {
+          ativo: boolean
+          base: number
+          cpf: string | null
+          created_at: string
+          created_by: string | null
+          funcao: string | null
+          funcao_remuneratoria: string | null
+          id: string
+          lider: boolean
+          lider_valor: number | null
+          nome: string
+          passagem: number
+          pessoa_id: string | null
+          pix: string | null
+          tipo: string
+          turno: string | null
+          turno2: string | null
+          unidade_id: string
+          updated_at: string
+          valor_fds: number | null
+          valor_feriado: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          base?: number
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          funcao?: string | null
+          funcao_remuneratoria?: string | null
+          id?: string
+          lider?: boolean
+          lider_valor?: number | null
+          nome: string
+          passagem?: number
+          pessoa_id?: string | null
+          pix?: string | null
+          tipo: string
+          turno?: string | null
+          turno2?: string | null
+          unidade_id: string
+          updated_at?: string
+          valor_fds?: number | null
+          valor_feriado?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          base?: number
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          funcao?: string | null
+          funcao_remuneratoria?: string | null
+          id?: string
+          lider?: boolean
+          lider_valor?: number | null
+          nome?: string
+          passagem?: number
+          pessoa_id?: string | null
+          pix?: string | null
+          tipo?: string
+          turno?: string | null
+          turno2?: string | null
+          unidade_id?: string
+          updated_at?: string
+          valor_fds?: number | null
+          valor_feriado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folha_colaboradores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "folha_pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folha_colaboradores_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folha_competencias: {
+        Row: {
+          competencia: string
+          created_at: string
+          fechada_em: string | null
+          fechada_por: string | null
+          hash_entrada: string | null
+          id: string
+          regras: Json | null
+          snapshot: Json | null
+          status: string
+          total: number | null
+          unidade_id: string
+          versao_calculo: string | null
+        }
+        Insert: {
+          competencia: string
+          created_at?: string
+          fechada_em?: string | null
+          fechada_por?: string | null
+          hash_entrada?: string | null
+          id?: string
+          regras?: Json | null
+          snapshot?: Json | null
+          status?: string
+          total?: number | null
+          unidade_id: string
+          versao_calculo?: string | null
+        }
+        Update: {
+          competencia?: string
+          created_at?: string
+          fechada_em?: string | null
+          fechada_por?: string | null
+          hash_entrada?: string | null
+          id?: string
+          regras?: Json | null
+          snapshot?: Json | null
+          status?: string
+          total?: number | null
+          unidade_id?: string
+          versao_calculo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folha_competencias_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folha_config: {
+        Row: {
+          id: number
+          regras: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: number
+          regras?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: number
+          regras?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      folha_contracheque_itens: {
+        Row: {
+          ativo: boolean
+          bruto: number
+          colaborador_id: string
+          competencia: string
+          contracheque_id: string
+          corrigido_em: string | null
+          corrigido_por: string | null
+          created_at: string
+          funcao: string | null
+          id: string
+          liquido: number
+          liquido_original: number | null
+          motivo_correcao: string | null
+          nome_lido: string | null
+          pagina: number | null
+          unidade_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          bruto?: number
+          colaborador_id: string
+          competencia: string
+          contracheque_id: string
+          corrigido_em?: string | null
+          corrigido_por?: string | null
+          created_at?: string
+          funcao?: string | null
+          id?: string
+          liquido: number
+          liquido_original?: number | null
+          motivo_correcao?: string | null
+          nome_lido?: string | null
+          pagina?: number | null
+          unidade_id: string
+        }
+        Update: {
+          ativo?: boolean
+          bruto?: number
+          colaborador_id?: string
+          competencia?: string
+          contracheque_id?: string
+          corrigido_em?: string | null
+          corrigido_por?: string | null
+          created_at?: string
+          funcao?: string | null
+          id?: string
+          liquido?: number
+          liquido_original?: number | null
+          motivo_correcao?: string | null
+          nome_lido?: string | null
+          pagina?: number | null
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folha_contracheque_itens_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "folha_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folha_contracheque_itens_contracheque_id_fkey"
+            columns: ["contracheque_id"]
+            isOneToOne: false
+            referencedRelation: "folha_contracheques"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folha_contracheque_itens_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folha_contracheques: {
+        Row: {
+          apagado_em: string | null
+          apagado_por: string | null
+          arquivo_hash: string
+          arquivo_nome: string
+          arquivo_path: string
+          competencia: string
+          created_at: string
+          criado_por: string
+          extracao: string
+          formato: string
+          id: string
+          referencia_detectada: string | null
+          status: string
+          total_liquido: number
+          unidade_id: string
+        }
+        Insert: {
+          apagado_em?: string | null
+          apagado_por?: string | null
+          arquivo_hash: string
+          arquivo_nome: string
+          arquivo_path: string
+          competencia: string
+          created_at?: string
+          criado_por: string
+          extracao: string
+          formato: string
+          id?: string
+          referencia_detectada?: string | null
+          status?: string
+          total_liquido?: number
+          unidade_id: string
+        }
+        Update: {
+          apagado_em?: string | null
+          apagado_por?: string | null
+          arquivo_hash?: string
+          arquivo_nome?: string
+          arquivo_path?: string
+          competencia?: string
+          created_at?: string
+          criado_por?: string
+          extracao?: string
+          formato?: string
+          id?: string
+          referencia_detectada?: string | null
+          status?: string
+          total_liquido?: number
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folha_contracheques_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folha_importacao_tentativas: {
+        Row: {
+          arquivo_path: string
+          competencia: string
+          created_at: string
+          estado: string
+          id: string
+          unidade_id: string
+          usuario_id: string
+        }
+        Insert: {
+          arquivo_path: string
+          competencia: string
+          created_at?: string
+          estado?: string
+          id?: string
+          unidade_id: string
+          usuario_id: string
+        }
+        Update: {
+          arquivo_path?: string
+          competencia?: string
+          created_at?: string
+          estado?: string
+          id?: string
+          unidade_id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folha_importacao_tentativas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folha_lancamentos: {
+        Row: {
+          colaborador_id: string
+          competencia: string
+          dados: Json
+          id: string
+          liquido_importado: number | null
+          unidade_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          colaborador_id: string
+          competencia: string
+          dados?: Json
+          id?: string
+          liquido_importado?: number | null
+          unidade_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          colaborador_id?: string
+          competencia?: string
+          dados?: Json
+          id?: string
+          liquido_importado?: number | null
+          unidade_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folha_lancamentos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "folha_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folha_lancamentos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folha_pagamentos: {
+        Row: {
+          colaborador_id: string
+          colaborador_nome: string | null
+          competencia: string
+          confirmado_em: string | null
+          confirmado_por: string | null
+          created_at: string
+          desfeito_em: string | null
+          desfeito_por: string | null
+          id: string
+          motivo_desfazer: string | null
+          observacao: string | null
+          pix: string | null
+          status: string
+          unidade_id: string
+          updated_at: string
+          valor: number
+          valor_confirmado: number | null
+          versao_calculo: string | null
+        }
+        Insert: {
+          colaborador_id: string
+          colaborador_nome?: string | null
+          competencia: string
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          created_at?: string
+          desfeito_em?: string | null
+          desfeito_por?: string | null
+          id?: string
+          motivo_desfazer?: string | null
+          observacao?: string | null
+          pix?: string | null
+          status?: string
+          unidade_id: string
+          updated_at?: string
+          valor?: number
+          valor_confirmado?: number | null
+          versao_calculo?: string | null
+        }
+        Update: {
+          colaborador_id?: string
+          colaborador_nome?: string | null
+          competencia?: string
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          created_at?: string
+          desfeito_em?: string | null
+          desfeito_por?: string | null
+          id?: string
+          motivo_desfazer?: string | null
+          observacao?: string | null
+          pix?: string | null
+          status?: string
+          unidade_id?: string
+          updated_at?: string
+          valor?: number
+          valor_confirmado?: number | null
+          versao_calculo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folha_pagamentos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "folha_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folha_pagamentos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folha_permissoes: {
+        Row: {
+          acao: string
+          concedido_por: string | null
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          acao: string
+          concedido_por?: string | null
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          acao?: string
+          concedido_por?: string | null
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      folha_pessoas: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
       follow_ups: {
         Row: {
           cancelado_motivo: string | null
@@ -5541,6 +6142,132 @@ export type Database = {
         Args: { p_coordenador: string; p_data: string; p_unidade_id: string }
         Returns: string
       }
+      folha_apagar_contracheque: {
+        Args: { p_id: string; p_usuario: string }
+        Returns: Json
+      }
+      folha_chamador_pode_consultar: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
+      folha_corrigir_contracheque_item: {
+        Args: {
+          p_item: string
+          p_liquido: number
+          p_motivo: string
+          p_usuario: string
+        }
+        Returns: Json
+      }
+      folha_hash_entrada: {
+        Args: { p_comp: string; p_unidade: string }
+        Returns: string
+      }
+      folha_lote_ajuda: {
+        Args: {
+          p_comp: string
+          p_exportar?: boolean
+          p_hash?: string
+          p_ids?: string[]
+          p_opcoes?: Json
+          p_parcela: number
+          p_reexportar?: boolean
+          p_unidade: string
+          p_usuario: string
+        }
+        Returns: Json
+      }
+      folha_lote_clara: {
+        Args: {
+          p_comp: string
+          p_exportar?: boolean
+          p_hash?: string
+          p_ids?: string[]
+          p_opcoes?: Json
+          p_reexportar?: boolean
+          p_unidade: string
+          p_usuario: string
+        }
+        Returns: Json
+      }
+      folha_minhas_permissoes: {
+        Args: { _unidade_id: string }
+        Returns: string[]
+      }
+      folha_pode: {
+        Args: { _acao: string; _unidade_id: string; _user_id: string }
+        Returns: boolean
+      }
+      folha_pode_acessar: {
+        Args: { _unidade_id: string; _user_id: string }
+        Returns: boolean
+      }
+      folha_pode_global: {
+        Args: { _acao: string; _user_id: string }
+        Returns: boolean
+      }
+      folha_registrar_contracheque: {
+        Args: {
+          p_comp: string
+          p_extracao: string
+          p_formato: string
+          p_hash: string
+          p_itens: Json
+          p_nome: string
+          p_path: string
+          p_ref: string
+          p_unidade: string
+          p_usuario: string
+        }
+        Returns: Json
+      }
+      folha_registrar_fechamento: {
+        Args: {
+          p_comp: string
+          p_hash: string
+          p_pagamentos: Json
+          p_regras: Json
+          p_snapshot: Json
+          p_total: number
+          p_unidade: string
+          p_usuario: string
+          p_versao: string
+        }
+        Returns: Json
+      }
+      folha_registrar_pagamento: {
+        Args: {
+          p_acao: string
+          p_pagamento: string
+          p_usuario: string
+          p_valor: number
+        }
+        Returns: Json
+      }
+      folha_registrar_pagamento_interno: {
+        Args: {
+          p_acao: string
+          p_motivo?: string
+          p_pagamento: string
+          p_usuario: string
+          p_valor: number
+        }
+        Returns: Json
+      }
+      folha_registrar_reabertura: {
+        Args: { p_competencia: string; p_usuario: string }
+        Returns: Json
+      }
+      folha_salvar_vinculo: {
+        Args: {
+          p_dados: Json
+          p_id: string
+          p_unidade: string
+          p_usuario: string
+        }
+        Returns: Json
+      }
+      folha_upload_permitido: { Args: { _name: string }; Returns: boolean }
       fu_add_business_days: {
         Args: { p_date: string; p_days: number }
         Returns: string

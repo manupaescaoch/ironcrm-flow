@@ -28,5 +28,8 @@
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "src/**/*.bun.test.ts"
   ]
 }

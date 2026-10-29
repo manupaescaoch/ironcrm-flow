@@ -64,7 +64,7 @@ const allNavItems = [
   { href: '/operacao', label: 'Operação', icon: ClipboardList, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false, isNew: true },
   { href: '/crm', label: 'CRM', icon: Users, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
   { href: '/indicacoes', label: 'Indicações', icon: Gift, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
-  { href: '/contas-pagar', label: 'Contas a Pagar', icon: Wallet, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false, isNew: true },
+  { href: '/financeiro', label: 'Financeiro', icon: Wallet, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false, isNew: true },
   { href: '/dashboard-executivo', label: 'Executivo', icon: BarChart3, roles: ['admin', 'coordenador', 'gerente'], masterOnly: false },
   { href: '/gestao-operacional', label: 'Gestão da Rede', icon: Building2, roles: ['admin', 'coordenador', 'gerente'], masterOnly: false },
   { href: '/backups', label: 'Backups', icon: Database, roles: ['admin'], masterOnly: false },
@@ -129,7 +129,7 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
 
   const renderNavItem = (item: (typeof allNavItems)[number]) => {
     const Icon = item.icon;
-    const isActive = location.pathname === item.href;
+    const isActive = location.pathname === item.href || (item.href === '/financeiro' && ['/folha', '/contas-pagar'].includes(location.pathname));
     const isAdminOnly = item.roles.length === 1 && item.roles[0] === 'admin';
     return (
       <Link
@@ -336,7 +336,7 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
         <div className="fixed top-0 left-0 right-0 z-50 bg-sidebar border-b border-sidebar-border px-4 py-3 flex items-center gap-3">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-sidebar-foreground">
+              <Button variant="ghost" size="icon" aria-label="Abrir menu" className="text-sidebar-foreground">
                 <Menu className="w-5 h-5" />
               </Button>
             </SheetTrigger>

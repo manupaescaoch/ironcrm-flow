@@ -34,6 +34,8 @@ import Operacional from "./pages/Operacional";
 import Equipe from "./pages/Equipe";
 
 import ContasPagar from "./pages/ContasPagar";
+import Folha from "./pages/Folha";
+import Financeiro from "./pages/Financeiro";
 import AnamneseExperimental from "./pages/AnamneseExperimental";
 import Anamneses from "./pages/Anamneses";
 
@@ -425,6 +427,14 @@ const AppRoutes = () => (
       }
     />
 
+    <Route
+      path="/financeiro"
+      element={<ProtectedRoute><Financeiro /></ProtectedRoute>}
+    />
+    <Route
+      path="/folha"
+      element={<ProtectedRoute><Folha /></ProtectedRoute>}
+    />
     <Route
       path="/contas-pagar"
       element={

@@ -99,6 +99,139 @@
       "when": 1792878966582,
       "tag": "0013_btg_dda_oauth",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793272001508,
+      "tag": "0014_evo_folha_folha_pagamentos_evo",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1793272070358,
+      "tag": "0015_evo_folha_folha_permissoes_servidor",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793272091768,
+      "tag": "0016_evo_folha_folha_permissoes_so_gerente",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793272134817,
+      "tag": "0017_evo_folha_folha_contracheques_documentos",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793272158679,
+      "tag": "0018_evo_folha_folha_fechamento_conflito_sem_repeticao",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793272173903,
+      "tag": "0019_evo_folha_folha_corrigir_contracheque_item",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793272194494,
+      "tag": "0020_evo_folha_folha_correcao_sem_alteracao_recusada",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793272208029,
+      "tag": "0021_evo_folha_folha_importacao_tentativas_seguras",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793272239205,
+      "tag": "0022_evo_folha_pagamento_interno",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793272257470,
+      "tag": "0023_evo_folha_identidade_privacidade",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793272299234,
+      "tag": "0024_evo_folha_vinculo_seguro_identidade",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793272306671,
+      "tag": "0025_evo_folha_auditoria_privacidade",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793272310252,
+      "tag": "0026_evo_folha_revogar_execucao_publica",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1793272344633,
+      "tag": "0027_evo_folha_lote_clara_auditoria",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1793272347940,
+      "tag": "0028_evo_folha_acesso_admin_gerente",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1793272358646,
+      "tag": "0029_evo_folha_correcoes_conferencia_final",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1793272387826,
+      "tag": "0030_evo_folha_definicoes_aprovadas",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1793272423507,
+      "tag": "0031_evo_folha_parcelas_ajuda_dias_fds",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793272454834,
+      "tag": "0032_evo_folha_funcao_remuneratoria_formado",
+      "breakpoints": true
     }
   ]
 }

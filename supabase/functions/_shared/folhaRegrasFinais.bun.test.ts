@@ -1,0 +1,17 @@
+import { it,expect } from "bun:test";
+import { calcularFolha, dividirAjuda, mesclarRegras, type Colaborador } from "./folhaMotor";
+const est: Colaborador={id:"TESTE",nome:"TESTE EST",tipo:"ESTAGIARIO",base:0,passagem:0,turno:"MANHÃ"};
+const prof: Colaborador={...est,tipo:"CLT",funcao:"QUALQUER TEXTO",funcao_remuneratoria:"COORDENADOR_TURNO"};
+const r=mesclarRegras({fds:50,clt_fds_professor:100});
+it("estagiário um dia 6h recebe 50",()=>expect(calcularFolha(est,{datas_fds:["2031-02-01"]},r).total).toBe(50));
+it("estagiário sábado e domingo recebe 100",()=>expect(calcularFolha(est,{datas_fds:["2031-02-01","2031-02-02"]},r).total).toBe(100));
+it("professor formado um dia recebe 100",()=>expect(calcularFolha(prof,{datas_fds:["2031-02-01"]},r).total).toBe(100));
+it("professor formado sábado e domingo recebe 200",()=>expect(calcularFolha(prof,{datas_fds:["2031-02-01","2031-02-02"]},r).total).toBe(200));
+it("mais de dois dias estagiário sem limite recebe 200 por quatro",()=>expect(calcularFolha(est,{datas_fds:["2031-02-01","2031-02-02","2031-02-08","2031-02-09"]},r).total).toBe(200));
+it("mais de dois dias professor recebe 400 por quatro",()=>expect(calcularFolha(prof,{datas_fds:["2031-02-01","2031-02-02","2031-02-08","2031-02-09"]},r).total).toBe(400));
+it("dois turnos não duplicam o mesmo dia",()=>expect(calcularFolha({...est,turno2:"TARDE"},{datas_fds:["2031-02-01","2031-02-01"]},r).valores.f).toBe(50));
+it("ajuda centavo ímpar 750.01 divide 375.01 e 375",()=>expect(dividirAjuda(750.01)).toEqual([375.01,375]));
+it("falta valor explicitamente usado interrompe cálculo",()=>expect(()=>calcularFolha(est,{datas_fds:["2031-02-01"]},mesclarRegras({}))).toThrow("configuração explícita"));
+it("zero explicitamente configurado é válido",()=>expect(calcularFolha(est,{datas_fds:["2031-02-01"]},mesclarRegras({fds:0})).total).toBe(0));
+it("feriados sem valor não são deduzidos de FDS",()=>expect(()=>calcularFolha(prof,{h:1},r)).toThrow("valor_feriado"));
+it("v3 histórico conserva comissão manual e ajuda sem nova regra FDS",()=>{const x=calcularFolha(prof,{comissao_manual:150,ajuda_custo:{passagem:432,alimentacao:288,ajustes:[]}},mesclarRegras({},"evo-comissao-manual-ajuda-separada-v3"),1234.56,"evo-comissao-manual-ajuda-separada-v3");expect(x.total).toBe(1234.56);expect(x.comissao).toBe(150);expect(x.ajudaCusto?.total).toBe(720);});
