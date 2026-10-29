@@ -211,6 +211,13 @@
       "when": 1793272358646,
       "tag": "0029_evo_folha_correcoes_conferencia_final",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1793272387826,
+      "tag": "0030_evo_folha_definicoes_aprovadas",
+      "breakpoints": true
     }
   ]
 }
