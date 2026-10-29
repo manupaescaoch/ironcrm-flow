@@ -120,6 +120,13 @@
       "when": 1793272091768,
       "tag": "0016_evo_folha_folha_permissoes_so_gerente",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793272134817,
+      "tag": "0017_evo_folha_folha_contracheques_documentos",
+      "breakpoints": true
     }
   ]
 }

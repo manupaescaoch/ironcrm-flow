@@ -2075,6 +2075,135 @@ export type Database = {
         }
         Relationships: []
       }
+      folha_contracheque_itens: {
+        Row: {
+          ativo: boolean
+          bruto: number
+          colaborador_id: string
+          competencia: string
+          contracheque_id: string
+          created_at: string
+          funcao: string | null
+          id: string
+          liquido: number
+          nome_lido: string | null
+          pagina: number | null
+          unidade_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          bruto?: number
+          colaborador_id: string
+          competencia: string
+          contracheque_id: string
+          created_at?: string
+          funcao?: string | null
+          id?: string
+          liquido: number
+          nome_lido?: string | null
+          pagina?: number | null
+          unidade_id: string
+        }
+        Update: {
+          ativo?: boolean
+          bruto?: number
+          colaborador_id?: string
+          competencia?: string
+          contracheque_id?: string
+          created_at?: string
+          funcao?: string | null
+          id?: string
+          liquido?: number
+          nome_lido?: string | null
+          pagina?: number | null
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folha_contracheque_itens_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "folha_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folha_contracheque_itens_contracheque_id_fkey"
+            columns: ["contracheque_id"]
+            isOneToOne: false
+            referencedRelation: "folha_contracheques"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folha_contracheque_itens_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folha_contracheques: {
+        Row: {
+          apagado_em: string | null
+          apagado_por: string | null
+          arquivo_hash: string
+          arquivo_nome: string
+          arquivo_path: string
+          competencia: string
+          created_at: string
+          criado_por: string
+          extracao: string
+          formato: string
+          id: string
+          referencia_detectada: string | null
+          status: string
+          total_liquido: number
+          unidade_id: string
+        }
+        Insert: {
+          apagado_em?: string | null
+          apagado_por?: string | null
+          arquivo_hash: string
+          arquivo_nome: string
+          arquivo_path: string
+          competencia: string
+          created_at?: string
+          criado_por: string
+          extracao: string
+          formato: string
+          id?: string
+          referencia_detectada?: string | null
+          status?: string
+          total_liquido?: number
+          unidade_id: string
+        }
+        Update: {
+          apagado_em?: string | null
+          apagado_por?: string | null
+          arquivo_hash?: string
+          arquivo_nome?: string
+          arquivo_path?: string
+          competencia?: string
+          created_at?: string
+          criado_por?: string
+          extracao?: string
+          formato?: string
+          id?: string
+          referencia_detectada?: string | null
+          status?: string
+          total_liquido?: number
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folha_contracheques_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       folha_lancamentos: {
         Row: {
           colaborador_id: string
@@ -5872,6 +6001,10 @@ export type Database = {
         Args: { p_coordenador: string; p_data: string; p_unidade_id: string }
         Returns: string
       }
+      folha_apagar_contracheque: {
+        Args: { p_id: string; p_usuario: string }
+        Returns: Json
+      }
       folha_hash_entrada: {
         Args: { p_comp: string; p_unidade: string }
         Returns: string
@@ -5891,6 +6024,21 @@ export type Database = {
       folha_pode_global: {
         Args: { _acao: string; _user_id: string }
         Returns: boolean
+      }
+      folha_registrar_contracheque: {
+        Args: {
+          p_comp: string
+          p_extracao: string
+          p_formato: string
+          p_hash: string
+          p_itens: Json
+          p_nome: string
+          p_path: string
+          p_ref: string
+          p_unidade: string
+          p_usuario: string
+        }
+        Returns: Json
       }
       folha_registrar_fechamento: {
         Args: {
