@@ -69,19 +69,21 @@ export default function Folha() {
 
   const carregar = useCallback(async () => {
     if (!unidadeId || !pode) return;
-    const [cfg, tela, l] = await Promise.all([
-      db.from("folha_config").select("regras").eq("id", 1).maybeSingle(),
+    const cfg = await db.from("folha_config").select("regras").eq("id", 1).maybeSingle();
+    if (cfg.error || !cfg.data?.regras) { setFalhaCalculo(cfg.error ? "Falha ao ler as regras da folha" : "Configuração da folha ausente"); return; }
+    // Regras carregadas antes do cálculo, para que a configuração continue editável se faltar algum valor.
+    setRegrasAtuais(mesclarRegras(cfg.data.regras));
+    const [tela, l] = await Promise.all([
       chamarFolha({ acao: "dados_tela", unidade_id: unidadeId, competencia: comp }),
       db.from("folha_lancamentos").select("*").eq("unidade_id", unidadeId).eq("competencia", comp),
     ]);
-    if (cfg.error || !cfg.data?.regras) { setFalhaCalculo(cfg.error ? "Falha ao ler as regras da folha" : "Configuração da folha ausente"); return; }
     if (l.error) { setFalhaCalculo("Falha ao ler os lançamentos do mês"); return; }
     setFalhaCalculo(null);
     setRegrasAtuais(mesclarRegras(cfg.data.regras));
     setColabs((tela.colaboradores || []).map((r: any) => ({ ...r, base: Number(r.base), passagem: Number(r.passagem) })));
     setLancs(l.data || []); setPags(tela.pagamentos || []); setCompRow(tela.competencia || null); setAud(tela.auditoria || []); setVersao((v) => v + 1);
   }, [unidadeId, pode, comp]);
-  useEffect(() => { carregar().catch((e) => { setFalhaCalculo(e?.message || "Falha ao carregar a folha"); toast({ title: "Não foi possível carregar a folha", description: e.message, variant: "destructive" }); }); }, [carregar]);
+  useEffect(() => { carregar().catch((e) => { setFalhaCalculo(e?.message || "Falha ao carregar a folha"); if (!String(e?.message).startsWith("Cálculo indisponível")) toast({ title: "Não foi possível carregar a folha", description: e.message, variant: "destructive" }); }); }, [carregar]);
 
   const fechada = compRow?.status === "fechada";
   const regras = fechada && compRow?.regras ? mesclarRegras(compRow.regras, compRow.versao_calculo ?? "historica") : regrasAtuais;
@@ -128,7 +130,7 @@ export default function Folha() {
   if (authLoading || pode == null) return <Layout><div className="p-6 text-muted-foreground" role="status">Verificando acesso…</div></Layout>;
   if (pode === false) return <Layout><div className="p-6"><Card><CardContent className="p-6 text-muted-foreground">Você não tem acesso à Folha de Pagamentos.</CardContent></Card></div></Layout>;
 
-  if (falhaCalculo) return <Layout><div className="p-6"><Card><CardContent className="p-6 space-y-3" role="alert"><p className="font-semibold text-destructive">Cálculo indisponível — prévia e exportação interrompidas</p><p className="text-sm text-muted-foreground">{falhaCalculo}. Nenhum total é exibido até que a leitura complete sem erro.</p><Button variant="outline" onClick={() => { setFalhaCalculo(null); carregar().catch((e) => setFalhaCalculo(e?.message || "Falha ao carregar a folha")); }}>Tentar novamente</Button></CardContent></Card></div></Layout>;
+  if (falhaCalculo) return <Layout><div className="p-6 space-y-4"><Card><CardContent className="p-6 space-y-3" role="alert"><p className="font-semibold text-destructive">Cálculo indisponível — prévia e exportação interrompidas</p><p className="text-sm text-muted-foreground">{falhaCalculo}. Nenhum total é exibido até que a leitura complete sem erro.</p><Button variant="outline" onClick={() => { setFalhaCalculo(null); carregar().catch((e) => setFalhaCalculo(e?.message || "Falha ao carregar a folha")); }}>Tentar novamente</Button></CardContent></Card>{falhaCalculo.startsWith("Cálculo indisponível") && (tem("regras") ? <Configuracoes regras={regrasAtuais} podeEditar onSalvo={() => { setFalhaCalculo(null); carregar().catch((e) => setFalhaCalculo(e?.message || "Falha ao carregar a folha")); }} erro={erro} /> : <p className="text-sm text-muted-foreground">Peça a um administrador para completar as configurações da folha.</p>)}</div></Layout>;
 
   const nomeColab = (id: string) => colabsMes.find((c) => c.id === id)?.nome || colabs.find((c) => c.id === id)?.nome || "—";
 
