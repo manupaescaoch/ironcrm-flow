@@ -1,0 +1,87 @@
+diff --git a/supabase/functions/folha-operacoes/index.ts b/supabase/functions/folha-operacoes/index.ts
+index c12620e8..ed78e30e 100644
+--- a/supabase/functions/folha-operacoes/index.ts
++++ b/supabase/functions/folha-operacoes/index.ts
+@@ -2,7 +2,7 @@
+ // Valores são SEMPRE recalculados aqui com o motor compartilhado, a partir do que está gravado.
+ // Confirmar é só um registro interno: nunca executa PIX, transferência ou integração externa.
+ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+-import { calcularFolha, linhasCompetencia, mesclarRegras, VERSAO_CALCULO, FUNCOES_FORMADO } from "../_shared/folhaMotor.ts";
++import { calcularFolha, linhasCompetencia, mesclarRegras, VERSAO_CALCULO, FUNCOES_FORMADO, calcularAjudaMensal } from "../_shared/folhaMotor.ts";
+ import { contextoImportacaoValido, podeLimparTentativa } from "../_shared/folhaImportacaoRegras.ts";
+ import { linhaClara, totalClara, normalizarPix, type EscolhaClara, type FonteClara } from "../_shared/folhaClara.ts";
+ 
+@@ -89,6 +89,73 @@ Deno.serve(async (req) => {
+   };
+ 
+   try {
++    /* ---------- Ajuda de Custo mensal: fonte única folha_ajuda_lancamentos ---------- */
++    if (acao.startsWith("ajuda_")) {
++      const unidade = String(body.unidade_id || ""), comp = String(body.competencia || "");
++      if (!UUID.test(unidade) || !COMP.test(comp)) return json({ error: "Parâmetros inválidos" }, 400);
++      const datasOk = (d: any) => !d || (Array.isArray(d) && d.length === 2 && d.every((x: any) => x === "" || /^\d{4}-\d{2}-\d{2}$/.test(x)));
++      if (acao === "ajuda_dados") {
++        if (!(await pode(unidade, "ver"))) return json({ error: "Sem acesso à ajuda desta unidade" }, 403);
++        const [cs, ls, ks, ps] = await Promise.all([
++          admin.from("folha_colaboradores").select("id,nome,funcao,tipo,passagem,ativo,pix").eq("unidade_id", unidade).eq("tipo", "CLT").order("nome"),
++          admin.from("folha_ajuda_lancamentos").select("*").eq("unidade_id", unidade).eq("competencia", comp),
++          admin.from("folha_ajuda_competencias").select("*").eq("unidade_id", unidade).eq("competencia", comp).maybeSingle(),
++          admin.from("folha_ajuda_parcelas").select("id,colaborador_id,parcela,valor,data_prevista,status").eq("unidade_id", unidade).eq("competencia", comp),
++        ]);
++        if (cs.error || ls.error || ks.error || ps.error) throw cs.error || ls.error || ks.error || ps.error;
++        const legado = !ks.data && (ps.data || []).length > 0;
++        const r = { colaboradores: cs.data, lancamentos: ls.data, competencia: ks.data, parcelas: ps.data, legado };
++        return json(await pode(unidade, "dados_pessoais") ? r : semDadosPessoais(r));
++      }
++      const { data: kc } = await admin.from("folha_ajuda_competencias").select("status").eq("unidade_id", unidade).eq("competencia", comp).maybeSingle();
++      if (["ajuda_preparar", "ajuda_salvar"].includes(acao)) {
++        if (!(await pode(unidade, "lancar"))) return json({ error: "Sem permissão para lançar a ajuda desta unidade" }, 403);
++        if (kc?.status === "fechada") return json({ error: "Ajuda de custo fechada nesta competência" }, 409);
++      }
++      if (acao === "ajuda_preparar") {
++        const ids = Array.isArray(body.colaborador_ids) ? body.colaborador_ids.map(String) : [];
++        if (!ids.length || ids.length > 300 || !ids.every((i: string) => UUID.test(i))) return json({ error: "Seleção inválida" }, 400);
++        const { data: cs, error } = await admin.from("folha_colaboradores").select("id,passagem,tipo,ativo").eq("unidade_id", unidade).in("id", ids);
++        if (error) throw error;
++        if ((cs || []).length !== ids.length || cs!.some((c: any) => c.tipo !== "CLT" || !c.ativo)) return json({ error: "Somente colaboradores CLT ativos desta unidade" }, 400);
++        // Idempotente: cria só o que falta. Do cadastro vem apenas a passagem diária, para revisão.
++        const rows = cs!.map((c: any) => ({ unidade_id: unidade, colaborador_id: c.id, competencia: comp, dados: { passagem_dia: Number(c.passagem) || 0 }, created_by: usuario, updated_by: usuario }));
++        const { data: ins, error: ei } = await admin.from("folha_ajuda_lancamentos").upsert(rows, { onConflict: "unidade_id,colaborador_id,competencia", ignoreDuplicates: true }).select("id");
++        if (ei) throw ei;
++        await admin.from("folha_auditoria").insert({ tabela: "folha_ajuda_lancamentos", unidade_id: unidade, competencia: comp, acao: "PREPARAR_AJUDA", user_id: usuario, depois: { criados: (ins || []).length, selecionados: ids.length } });
++        return json({ ok: true, criados: (ins || []).length });
++      }
++      if (acao === "ajuda_salvar") {
++        const id = String(body.lancamento_id || ""), dados = body.dados;
++        if (!UUID.test(id) || !dados || typeof dados !== "object" || Array.isArray(dados) || !datasOk(dados.datas)) return json({ error: "Dados inválidos" }, 400);
++        try { calcularAjudaMensal(dados); } catch (e) { return json({ error: (e as Error).message }, 400); }
++        const { data: atual } = await admin.from("folha_ajuda_lancamentos").select("*").eq("id", id).eq("unidade_id", unidade).eq("competencia", comp).maybeSingle();
++        if (!atual) return json({ error: "Lançamento fora desta unidade/competência" }, 404);
++        const { error } = await admin.from("folha_ajuda_lancamentos").update({ dados, updated_by: usuario }).eq("id", id);
++        if (error) throw error;
++        await admin.from("folha_auditoria").insert({ tabela: "folha_ajuda_lancamentos", registro_id: id, unidade_id: unidade, competencia: comp, acao: "SALVAR_AJUDA", user_id: usuario, antes: atual.dados, depois: dados });
++        return json({ ok: true, calculo: calcularAjudaMensal(dados) });
++      }
++      if (acao === "ajuda_fechar") {
++        if (!(await pode(unidade, "fechar"))) return json({ error: "Sem permissão para fechar a ajuda desta unidade" }, 403);
++        const { data: ls, error } = await admin.from("folha_ajuda_lancamentos").select("colaborador_id,dados").eq("unidade_id", unidade).eq("competencia", comp);
++        if (error) throw error;
++        if (!ls?.length) return json({ error: "Nenhum colaborador preparado" }, 400);
++        let linhas;
++        try { linhas = ls.map((l: any) => { const r = calcularAjudaMensal(l.dados); return { colaborador_id: l.colaborador_id, ...r, datas: l.dados?.datas ?? ["", ""] }; }); }
++        catch (e) { return json({ error: (e as Error).message }, 400); }
++        const { data, error: ef } = await admin.rpc("folha_ajuda_fechar", { p_usuario: usuario, p_unidade: unidade, p_comp: comp, p_linhas: linhas });
++        if (ef) return json({ error: ef.message }, 400);
++        return json(data);
++      }
++      if (acao === "ajuda_reabrir") {
++        const { data, error } = await admin.rpc("folha_ajuda_reabrir", { p_usuario: usuario, p_unidade: unidade, p_comp: comp, p_motivo: String(body.motivo || "") });
++        if (error) return json({ error: error.message }, 400);
++        return json(data);
++      }
++      return json({ error: "Ação inválida" }, 400);
++    }
++
+     if (["previa_clara", "exportar_clara", "previa_ajuda_clara", "exportar_ajuda_clara"].includes(acao)) {
+       const unidade = String(body.unidade_id || ""), comp = String(body.competencia || "");
+       if (!UUID.test(unidade) || !COMP.test(comp)) return json({ error: "Parâmetros inválidos" }, 400);

@@ -28,3 +28,7 @@
 - [x] Aviso de edições não salvas ao trocar mês/ano/unidade
 - [x] Validar com dados fictícios simulados
 - [ ] Publicar — aguardando aprovação da interface
+
+## Ajuda de Custo (pedido 29/10)
+- [x] Página, menu, cálculo, preparar, fechar próprio, lotes por parcela (preview + pacote pendente)
+- [ ] Aplicar banco/função e publicar — aguardando aprovação de Emanuel

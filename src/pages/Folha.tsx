@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { Layout } from "@/components/Layout";
@@ -352,7 +353,10 @@ function LinhaFolha({ colab, lanc, res, regras, versaoCalculo, bloqueada, onSalv
           {regrasExplicitas(versaoCalculo) && <div className="space-y-2 max-w-md"><Label>Comissão manual da competência</Label><Input aria-label="Comissão manual da competência" type="number" min={0} step="0.01" disabled={bloqueada} value={d.comissao_manual ?? 0} onChange={e => editar({ ...d, comissao_manual: num(e.target.value) })} />
             {liq != null && <p className="text-sm text-muted-foreground">Comissão informada para conferência; não somada ao líquido importado, pois pode já estar incluída.</p>}
           </div>}
-          {!est && regrasExplicitas(versaoCalculo) && <AjudaCusto valor={d.ajuda_custo} bloqueada={bloqueada} total={previa.ajudaCusto?.total ?? 0} onChange={ajuda_custo => editar({ ...d, ajuda_custo })} />}
+          {!est && regrasExplicitas(versaoCalculo) && (d.ajuda_custo
+            // Registro antigo: mantido como histórico, somente leitura. A ajuda nova tem fonte única na página Ajuda de Custo.
+            ? <AjudaCusto valor={d.ajuda_custo} bloqueada total={previa.ajudaCusto?.total ?? 0} onChange={() => {}} />
+            : <p className="text-sm text-muted-foreground">Ajuda de custo: preencha em <Link className="text-primary underline" to="/ajuda-custo">Financeiro → Ajuda de Custo</Link>. Ela não entra no salário.</p>)}
           <div className="space-y-2">
             <h3 className="text-sm font-medium">Adicionais e descontos identificados</h3>
             {liq != null && <p className="text-sm text-muted-foreground">Líquido importado substitui o cálculo completo. Estes ajustes não são somados novamente.</p>}

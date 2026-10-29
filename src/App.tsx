@@ -36,6 +36,7 @@ import Equipe from "./pages/Equipe";
 import ContasPagar from "./pages/ContasPagar";
 import Folha from "./pages/Folha";
 import Financeiro from "./pages/Financeiro";
+import AjudaCusto from "./pages/AjudaCusto";
 import AnamneseExperimental from "./pages/AnamneseExperimental";
 import Anamneses from "./pages/Anamneses";
 
@@ -430,6 +431,10 @@ const AppRoutes = () => (
     <Route
       path="/financeiro"
       element={<ProtectedRoute><Financeiro /></ProtectedRoute>}
+    />
+    <Route
+      path="/ajuda-custo"
+      element={<ProtectedRoute><AjudaCusto /></ProtectedRoute>}
     />
     <Route
       path="/folha"
