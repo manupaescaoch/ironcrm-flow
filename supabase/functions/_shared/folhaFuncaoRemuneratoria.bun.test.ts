@@ -1,0 +1,20 @@
+import { expect, it } from "bun:test";
+import { calcularFolha, isFormado, mesclarRegras, type Colaborador } from "./folhaMotor";
+const V4 = "evo-dias-fds-parcelas-config-explicita-v4";
+const clt: Colaborador = { id: "T", nome: "TESTE", tipo: "CLT", base: 0, passagem: 0, valor_fds: 30 };
+const r = mesclarRegras({ fds: 50, clt_fds_professor: 100 });
+const r4 = mesclarRegras({ fds: 50, clt_fds_professor: 100 }, V4);
+const sab = ["2031-02-01"];
+it("Coordenador de Turno recebe 100 por dia FDS", () => expect(calcularFolha({ ...clt, funcao_remuneratoria: "COORDENADOR_TURNO" }, { datas_fds: sab }, r).total).toBe(100));
+it("Coordenador Geral recebe 100 por dia FDS", () => expect(calcularFolha({ ...clt, funcao_remuneratoria: "COORDENADOR_GERAL" }, { datas_fds: sab }, r).total).toBe(100));
+it("texto PROFESSOR sem identificador não é formado na v5", () => expect(calcularFolha({ ...clt, funcao: "PROFESSOR" }, { datas_fds: sab }, r).total).toBe(30));
+it("texto COORDENADOR sem identificador não é formado", () => expect(calcularFolha({ ...clt, funcao: "COORDENADOR DE TURNO" }, { datas_fds: sab }, r).total).toBe(30));
+it("Preparador físico e Treinador sem identificador usam valor do colaborador", () => {
+  expect(calcularFolha({ ...clt, funcao: "PREPARADOR FÍSICO" }, { datas_fds: sab }, r).total).toBe(30);
+  expect(calcularFolha({ ...clt, funcao: "TREINADOR" }, { datas_fds: sab }, r).total).toBe(30);
+});
+it("estagiário com identificador não vira formado", () => expect(isFormado({ ...clt, tipo: "ESTAGIARIO", funcao_remuneratoria: "COORDENADOR_GERAL" })).toBe(false));
+it("dois dias do Coordenador Geral somam 200", () => expect(calcularFolha({ ...clt, funcao_remuneratoria: "COORDENADOR_GERAL" }, { datas_fds: ["2031-02-01", "2031-02-02"] }, r).total).toBe(200));
+it("retrato fechado v4 mantém regra histórica PROFESSOR = 100", () => expect(calcularFolha({ ...clt, funcao: "PROFESSOR" }, { datas_fds: sab }, r4, null, V4).total).toBe(100));
+it("retrato fechado v4 ignora identificador novo", () => expect(calcularFolha({ ...clt, funcao_remuneratoria: "COORDENADOR_TURNO" }, { datas_fds: sab }, r4, null, V4).total).toBe(30));
+it("formado sem valor configurado bloqueia o cálculo", () => expect(() => calcularFolha({ ...clt, funcao_remuneratoria: "COORDENADOR_TURNO" }, { datas_fds: sab }, mesclarRegras({ fds: 50 }))).toThrow(/professor formado/));
