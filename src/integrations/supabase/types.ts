@@ -1940,6 +1940,7 @@ export type Database = {
           lider_valor: number | null
           nome: string
           passagem: number
+          pessoa_id: string | null
           pix: string | null
           tipo: string
           turno: string | null
@@ -1961,6 +1962,7 @@ export type Database = {
           lider_valor?: number | null
           nome: string
           passagem?: number
+          pessoa_id?: string | null
           pix?: string | null
           tipo: string
           turno?: string | null
@@ -1982,6 +1984,7 @@ export type Database = {
           lider_valor?: number | null
           nome?: string
           passagem?: number
+          pessoa_id?: string | null
           pix?: string | null
           tipo?: string
           turno?: string | null
@@ -1992,6 +1995,13 @@ export type Database = {
           valor_feriado?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "folha_colaboradores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "folha_pessoas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "folha_colaboradores_unidade_id_fkey"
             columns: ["unidade_id"]
@@ -2313,6 +2323,7 @@ export type Database = {
           desfeito_em: string | null
           desfeito_por: string | null
           id: string
+          motivo_desfazer: string | null
           observacao: string | null
           pix: string | null
           status: string
@@ -2332,6 +2343,7 @@ export type Database = {
           desfeito_em?: string | null
           desfeito_por?: string | null
           id?: string
+          motivo_desfazer?: string | null
           observacao?: string | null
           pix?: string | null
           status?: string
@@ -2351,6 +2363,7 @@ export type Database = {
           desfeito_em?: string | null
           desfeito_por?: string | null
           id?: string
+          motivo_desfazer?: string | null
           observacao?: string | null
           pix?: string | null
           status?: string
@@ -2395,6 +2408,24 @@ export type Database = {
           concedido_por?: string | null
           created_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      folha_pessoas: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
         }
         Relationships: []
       }
@@ -6116,6 +6147,16 @@ export type Database = {
       folha_registrar_pagamento: {
         Args: {
           p_acao: string
+          p_pagamento: string
+          p_usuario: string
+          p_valor: number
+        }
+        Returns: Json
+      }
+      folha_registrar_pagamento_interno: {
+        Args: {
+          p_acao: string
+          p_motivo?: string
           p_pagamento: string
           p_usuario: string
           p_valor: number

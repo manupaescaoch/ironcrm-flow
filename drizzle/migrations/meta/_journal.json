@@ -155,6 +155,20 @@
       "when": 1793272208029,
       "tag": "0021_evo_folha_folha_importacao_tentativas_seguras",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793272239205,
+      "tag": "0022_evo_folha_pagamento_interno",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793272257470,
+      "tag": "0023_evo_folha_identidade_privacidade",
+      "breakpoints": true
     }
   ]
 }
