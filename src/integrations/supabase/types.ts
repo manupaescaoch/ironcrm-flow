@@ -1888,6 +1888,63 @@ export type Database = {
           },
         ]
       }
+      folha_ajuda_parcelas: {
+        Row: {
+          colaborador_id: string
+          competencia: string
+          composicao: Json
+          created_at: string
+          criado_por: string
+          data_prevista: string | null
+          id: string
+          parcela: number
+          status: string
+          unidade_id: string
+          valor: number
+        }
+        Insert: {
+          colaborador_id: string
+          competencia: string
+          composicao: Json
+          created_at?: string
+          criado_por: string
+          data_prevista?: string | null
+          id?: string
+          parcela: number
+          status?: string
+          unidade_id: string
+          valor: number
+        }
+        Update: {
+          colaborador_id?: string
+          competencia?: string
+          composicao?: Json
+          created_at?: string
+          criado_por?: string
+          data_prevista?: string | null
+          id?: string
+          parcela?: number
+          status?: string
+          unidade_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folha_ajuda_parcelas_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "folha_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folha_ajuda_parcelas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       folha_auditoria: {
         Row: {
           acao: string
@@ -6102,6 +6159,20 @@ export type Database = {
       folha_hash_entrada: {
         Args: { p_comp: string; p_unidade: string }
         Returns: string
+      }
+      folha_lote_ajuda: {
+        Args: {
+          p_comp: string
+          p_exportar?: boolean
+          p_hash?: string
+          p_ids?: string[]
+          p_opcoes?: Json
+          p_parcela: number
+          p_reexportar?: boolean
+          p_unidade: string
+          p_usuario: string
+        }
+        Returns: Json
       }
       folha_lote_clara: {
         Args: {
