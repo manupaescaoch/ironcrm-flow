@@ -2007,33 +2007,42 @@ export type Database = {
           created_at: string
           fechada_em: string | null
           fechada_por: string | null
+          hash_entrada: string | null
           id: string
           regras: Json | null
           snapshot: Json | null
           status: string
+          total: number | null
           unidade_id: string
+          versao_calculo: string | null
         }
         Insert: {
           competencia: string
           created_at?: string
           fechada_em?: string | null
           fechada_por?: string | null
+          hash_entrada?: string | null
           id?: string
           regras?: Json | null
           snapshot?: Json | null
           status?: string
+          total?: number | null
           unidade_id: string
+          versao_calculo?: string | null
         }
         Update: {
           competencia?: string
           created_at?: string
           fechada_em?: string | null
           fechada_por?: string | null
+          hash_entrada?: string | null
           id?: string
           regras?: Json | null
           snapshot?: Json | null
           status?: string
+          total?: number | null
           unidade_id?: string
+          versao_calculo?: string | null
         }
         Relationships: [
           {
@@ -2117,42 +2126,60 @@ export type Database = {
       folha_pagamentos: {
         Row: {
           colaborador_id: string
+          colaborador_nome: string | null
           competencia: string
           confirmado_em: string | null
           confirmado_por: string | null
           created_at: string
+          desfeito_em: string | null
+          desfeito_por: string | null
           id: string
           observacao: string | null
+          pix: string | null
           status: string
           unidade_id: string
           updated_at: string
           valor: number
+          valor_confirmado: number | null
+          versao_calculo: string | null
         }
         Insert: {
           colaborador_id: string
+          colaborador_nome?: string | null
           competencia: string
           confirmado_em?: string | null
           confirmado_por?: string | null
           created_at?: string
+          desfeito_em?: string | null
+          desfeito_por?: string | null
           id?: string
           observacao?: string | null
+          pix?: string | null
           status?: string
           unidade_id: string
           updated_at?: string
           valor?: number
+          valor_confirmado?: number | null
+          versao_calculo?: string | null
         }
         Update: {
           colaborador_id?: string
+          colaborador_nome?: string | null
           competencia?: string
           confirmado_em?: string | null
           confirmado_por?: string | null
           created_at?: string
+          desfeito_em?: string | null
+          desfeito_por?: string | null
           id?: string
           observacao?: string | null
+          pix?: string | null
           status?: string
           unidade_id?: string
           updated_at?: string
           valor?: number
+          valor_confirmado?: number | null
+          versao_calculo?: string | null
         }
         Relationships: [
           {
@@ -2170,6 +2197,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      folha_permissoes: {
+        Row: {
+          acao: string
+          concedido_por: string | null
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          acao: string
+          concedido_por?: string | null
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          acao?: string
+          concedido_por?: string | null
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       follow_ups: {
         Row: {
@@ -5824,9 +5872,52 @@ export type Database = {
         Args: { p_coordenador: string; p_data: string; p_unidade_id: string }
         Returns: string
       }
+      folha_hash_entrada: {
+        Args: { p_comp: string; p_unidade: string }
+        Returns: string
+      }
+      folha_minhas_permissoes: {
+        Args: { _unidade_id: string }
+        Returns: string[]
+      }
+      folha_pode: {
+        Args: { _acao: string; _unidade_id: string; _user_id: string }
+        Returns: boolean
+      }
       folha_pode_acessar: {
         Args: { _unidade_id: string; _user_id: string }
         Returns: boolean
+      }
+      folha_pode_global: {
+        Args: { _acao: string; _user_id: string }
+        Returns: boolean
+      }
+      folha_registrar_fechamento: {
+        Args: {
+          p_comp: string
+          p_hash: string
+          p_pagamentos: Json
+          p_regras: Json
+          p_snapshot: Json
+          p_total: number
+          p_unidade: string
+          p_usuario: string
+          p_versao: string
+        }
+        Returns: Json
+      }
+      folha_registrar_pagamento: {
+        Args: {
+          p_acao: string
+          p_pagamento: string
+          p_usuario: string
+          p_valor: number
+        }
+        Returns: Json
+      }
+      folha_registrar_reabertura: {
+        Args: { p_competencia: string; p_usuario: string }
+        Returns: Json
       }
       fu_add_business_days: {
         Args: { p_date: string; p_days: number }
