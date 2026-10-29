@@ -31,7 +31,8 @@ import {
   Zap,
   Wallet,
   Briefcase,
-  ChevronDown
+  ChevronDown,
+  HandCoins
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getUnidadeSigla } from '@/lib/unidadeSigla';
@@ -117,11 +118,11 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
   const financeiroVisible = useMemo(
     () => [
       { href: '/contas-pagar', label: 'Contas a Pagar', icon: Wallet, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
-      ...(veFolha ? [{ href: '/folha', label: 'Folha de Pagamentos', icon: Users, roles: ['admin', 'gerente'], masterOnly: false, isNew: true }] : []),
+      ...(veFolha ? [{ href: '/folha', label: 'Folha de Pagamentos', icon: Users, roles: ['admin', 'gerente'], masterOnly: false, isNew: true }, { href: '/ajuda-custo', label: 'Ajuda de Custo', icon: HandCoins, roles: ['admin', 'gerente'], masterOnly: false, isNew: true }] : []),
     ].filter(canSee),
     [userRole, user?.email, veFolha]
   );
-  const isFinanceiroRoute = ['/contas-pagar', '/folha', '/financeiro'].some(
+  const isFinanceiroRoute = ['/contas-pagar', '/folha', '/ajuda-custo', '/financeiro'].some(
     (h) => location.pathname === h || location.pathname.startsWith(h + '/')
   );
   const [financeiroOpen, setFinanceiroOpen] = useState(isFinanceiroRoute);
