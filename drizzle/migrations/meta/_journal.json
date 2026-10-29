@@ -225,6 +225,13 @@
       "when": 1793272423507,
       "tag": "0031_evo_folha_parcelas_ajuda_dias_fds",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793272454834,
+      "tag": "0032_evo_folha_funcao_remuneratoria_formado",
+      "breakpoints": true
     }
   ]
 }

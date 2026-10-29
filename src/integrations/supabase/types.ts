@@ -1992,6 +1992,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           funcao: string | null
+          funcao_remuneratoria: string | null
           id: string
           lider: boolean
           lider_valor: number | null
@@ -2014,6 +2015,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           funcao?: string | null
+          funcao_remuneratoria?: string | null
           id?: string
           lider?: boolean
           lider_valor?: number | null
@@ -2036,6 +2038,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           funcao?: string | null
+          funcao_remuneratoria?: string | null
           id?: string
           lider?: boolean
           lider_valor?: number | null
