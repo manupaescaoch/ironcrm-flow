@@ -2082,10 +2082,14 @@ export type Database = {
           colaborador_id: string
           competencia: string
           contracheque_id: string
+          corrigido_em: string | null
+          corrigido_por: string | null
           created_at: string
           funcao: string | null
           id: string
           liquido: number
+          liquido_original: number | null
+          motivo_correcao: string | null
           nome_lido: string | null
           pagina: number | null
           unidade_id: string
@@ -2096,10 +2100,14 @@ export type Database = {
           colaborador_id: string
           competencia: string
           contracheque_id: string
+          corrigido_em?: string | null
+          corrigido_por?: string | null
           created_at?: string
           funcao?: string | null
           id?: string
           liquido: number
+          liquido_original?: number | null
+          motivo_correcao?: string | null
           nome_lido?: string | null
           pagina?: number | null
           unidade_id: string
@@ -2110,10 +2118,14 @@ export type Database = {
           colaborador_id?: string
           competencia?: string
           contracheque_id?: string
+          corrigido_em?: string | null
+          corrigido_por?: string | null
           created_at?: string
           funcao?: string | null
           id?: string
           liquido?: number
+          liquido_original?: number | null
+          motivo_correcao?: string | null
           nome_lido?: string | null
           pagina?: number | null
           unidade_id?: string
@@ -6003,6 +6015,15 @@ export type Database = {
       }
       folha_apagar_contracheque: {
         Args: { p_id: string; p_usuario: string }
+        Returns: Json
+      }
+      folha_corrigir_contracheque_item: {
+        Args: {
+          p_item: string
+          p_liquido: number
+          p_motivo: string
+          p_usuario: string
+        }
         Returns: Json
       }
       folha_hash_entrada: {

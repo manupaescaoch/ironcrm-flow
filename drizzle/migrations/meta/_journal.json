@@ -134,6 +134,13 @@
       "when": 1793272158679,
       "tag": "0018_evo_folha_folha_fechamento_conflito_sem_repeticao",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793272173903,
+      "tag": "0019_evo_folha_folha_corrigir_contracheque_item",
+      "breakpoints": true
     }
   ]
 }
