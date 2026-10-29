@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -212,7 +212,8 @@ function Preparar({ comp, faltam, temLancs, onConfirmar }: { comp: string; falta
 }
 
 function Num({ label, value, onChange, disabled, decimal }: { label: string; value?: number; onChange: (v?: number) => void; disabled: boolean; decimal?: boolean }) {
-  return <div><Label className="text-xs">{label}</Label><Input type="number" inputMode={decimal ? "decimal" : "numeric"} min={0} step={decimal ? "0.01" : "1"} disabled={disabled} placeholder="A preencher" value={value ?? ""} onChange={(e) => onChange(decimal ? dec(e.target.value) : int(e.target.value))} /></div>;
+  const id = useId();
+  return <div><Label htmlFor={id} className="text-xs">{label}</Label><Input id={id} type="number" inputMode={decimal ? "decimal" : "numeric"} min={0} step={decimal ? "0.01" : "1"} disabled={disabled} placeholder="A preencher" value={value ?? ""} onChange={(e) => onChange(decimal ? dec(e.target.value) : int(e.target.value))} /></div>;
 }
 
 function EditorAjuda({ comp, colab, lanc, total, parcelas, pend, aberto, onAbrir, bloqueada, onSalvar, onSujo }: {
@@ -248,7 +249,7 @@ function EditorAjuda({ comp, colab, lanc, total, parcelas, pend, aberto, onAbrir
             <p className="text-xs text-muted-foreground">O valor manual <b>substitui</b> passagem/dia × dias adicionais; não soma de novo.</p>
             <div className="grid grid-cols-1 md:grid-cols-[160px_1fr] gap-2">
               <Num decimal label="Valor manual" value={d.passagem_adicional_manual!.valor} onChange={(v) => ed({ ...d, passagem_adicional_manual: { ...d.passagem_adicional_manual!, valor: v ?? 0 } })} disabled={bloqueada} />
-              <div><Label className="text-xs">Motivo (obrigatório)</Label><Input disabled={bloqueada} value={d.passagem_adicional_manual!.motivo} onChange={(e) => ed({ ...d, passagem_adicional_manual: { ...d.passagem_adicional_manual!, motivo: e.target.value.toUpperCase() } })} /></div>
+              <div><Label className="text-xs">Motivo (obrigatório)</Label><Input aria-label="Motivo (obrigatório)" disabled={bloqueada} value={d.passagem_adicional_manual!.motivo} onChange={(e) => ed({ ...d, passagem_adicional_manual: { ...d.passagem_adicional_manual!, motivo: e.target.value.toUpperCase() } })} /></div>
             </div></>}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -268,7 +269,7 @@ function EditorAjuda({ comp, colab, lanc, total, parcelas, pend, aberto, onAbrir
           {!bloqueada && <Button variant="outline" onClick={() => ed({ ...d, ajustes: [...(d.ajustes || []), { id: crypto.randomUUID(), descricao: "", tipo: "adicional", valor: 0, origem: "" }] })}>Adicionar ajuste</Button>}
         </div>
         <div className="grid grid-cols-2 gap-2 max-w-md">{([0, 1] as const).map((i) => <div key={i}><Label className="text-xs">Data da {i + 1}ª parcela · {r ? brl(r.parcelas[i]) : "—"}</Label>
-          <Input type="date" disabled={bloqueada} value={d.datas?.[i] || ""} onChange={(e) => { const ds: [string, string] = [...(d.datas ?? ["", ""])] as [string, string]; ds[i] = e.target.value; ed({ ...d, datas: ds }); }} /></div>)}</div>
+          <Input aria-label={`Data da ${i + 1}ª parcela`} type="date" disabled={bloqueada} value={d.datas?.[i] || ""} onChange={(e) => { const ds: [string, string] = [...(d.datas ?? ["", ""])] as [string, string]; ds[i] = e.target.value; ed({ ...d, datas: ds }); }} /></div>)}</div>
         {erro ? <p role="alert" className="text-destructive">{erro}</p> : r && <div className="text-sm grid grid-cols-2 md:grid-cols-5 gap-1 bg-muted/40 rounded-md p-3">
           <span>Passagem úteis: {brl(r.passagemUteis)}</span><span>Passagem adicional: {brl(r.passagemAdicional)}</span><span>Alimentação: {brl(r.alimentacao)}</span><span>Ajustes: {brl(r.ajustes)}</span><span className="font-bold">Total: {brl(r.total)}</span></div>}
         {!bloqueada && <Button disabled={!!erro} onClick={async () => { if (await onSalvar(d)) { setSujoL(false); onSujo(false); } }}>Salvar ajuda</Button>}
