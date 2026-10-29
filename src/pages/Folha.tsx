@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Lock, Wallet, Users, Settings2, History, Receipt, BarChart3, FileUp, FileDown } from "lucide-react";
 import { PainelFolha, ImportarContracheques, ExportarFolha } from "@/components/folha/FolhaExtras";
@@ -19,6 +20,7 @@ import { LoteClara } from "@/components/folha/LoteClara";
 import { AjudaCusto } from "@/components/folha/AjudaCusto";
 import { perfilFolhaPermitido } from "@/lib/folha/acesso";
 import { chamarFolha } from "@/components/folha/FolhaExtras";
+import { SeletorCompetencia, FluxoMes, TabelaConferencia, PrepararMes, pendencias, lerRascunho, gravarRascunho, nomeMes, type LinhaConferencia } from "@/components/folha/ConferenciaMensal";
 import {
   calcularFolha, mesclarRegras, temSegundoTurno, VERSAO_CALCULO, regrasExplicitas, FUNCOES_REMUNERATORIAS,
   type Colaborador, type Lancamento, type RegrasFolha, type LancTurno,
@@ -96,6 +98,33 @@ export default function Folha() {
     .map((c) => ({ c, l: lancPor[c.id], r: calcularFolha(c, lancPor[c.id]?.dados, regras, lancPor[c.id]?.liquido_importado ?? null, fechada ? compRow?.versao_calculo ?? "historica" : VERSAO_CALCULO) })), erro: null }; } catch(e) { return {linhas:[],erro:(e as Error).message}; } },
   [colabsMes, lancPor, regras, fechada, compRow?.versao_calculo]);
   const linhas: { c: ColabRow; l: LancRow; r: ReturnType<typeof calcularFolha> }[] = calculo.linhas;
+  // Conferência linha a linha: uma pendência de configuração aparece na própria linha, sem esconder as demais.
+  const versaoMes = fechada ? compRow?.versao_calculo ?? "historica" : VERSAO_CALCULO;
+  const linhasConf: LinhaConferencia[] = useMemo(() => colabsMes
+    .filter((c) => c.tipo !== "SEM_CONTRATO" && (lancPor[c.id] || (!fechada && c.ativo)))
+    .map((c) => { const l = lancPor[c.id]; try { return { c, l, r: calcularFolha(c, l?.dados, regras, l?.liquido_importado ?? null, versaoMes), erro: null }; } catch (e) { return { c, l, r: null, erro: (e as Error).message }; } }),
+  [colabsMes, lancPor, regras, fechada, versaoMes]);
+  const preparados = useMemo(() => new Set(lancs.map((l) => l.colaborador_id)), [lancs]);
+  const ativosUnidade = useMemo(() => colabs.filter((c) => c.ativo && c.tipo !== "SEM_CONTRATO"), [colabs]);
+  const comPendencia = linhasConf.filter((x) => pendencias(x.c, x.l, x.r, x.erro, !fechada).length).length;
+  const [aba, setAba] = useState("folha");
+  const [selecionado, setSelecionado] = useState<string | null>(null);
+  const [rascunhos, setRascunhos] = useState<Set<string>>(new Set());
+  const marcarRascunho = useCallback((id: string, tem: boolean) => setRascunhos((r) => { const n = new Set(r); tem ? n.add(id) : n.delete(id); return n; }), []);
+  useEffect(() => { setSelecionado(null); setRascunhos(new Set()); }, [comp, unidadeId]);
+  function trocarComp(c: string) {
+    if (rascunhos.size) toast({ title: "Edições não salvas guardadas", description: `${rascunhos.size} lançamento(s) de ${nomeMes(comp)} continuam como rascunho neste navegador. Volte ao mês para salvar.` });
+    setComp(c);
+  }
+  async function prepararMes(ids: string[]) {
+    // Idempotente: lançamentos existentes não são tocados; só valores fixos do cadastro entram no cálculo.
+    const rows = ids.filter((id) => !preparados.has(id)).map((id) => ({ unidade_id: unidadeId, colaborador_id: id, competencia: comp, dados: {}, updated_by: user?.id }));
+    if (!rows.length) return;
+    const { error } = await db.from("folha_lancamentos").upsert(rows, { onConflict: "colaborador_id,competencia", ignoreDuplicates: true });
+    if (error) { erro(error); return; }
+    toast({ title: `Folha de ${nomeMes(comp)} preparada`, description: `${rows.length} lançamento(s) criados. Preencha os valores variáveis do mês.` });
+    await carregar();
+  }
   const totais = useMemo(() => linhas.reduce<{clt:number;est:number;total:number}>((a, x) => ({
     clt: a.clt + (x.c.tipo === "CLT" ? x.r.total : 0), est: a.est + (x.c.tipo === "ESTAGIARIO" ? x.r.total : 0), total: a.total + x.r.total,
   }), { clt: 0, est: 0, total: 0 }), [linhas]);
@@ -142,11 +171,15 @@ export default function Folha() {
             <h1 className="text-2xl font-bold flex items-center gap-2"><Wallet className="w-6 h-6 text-primary" /> Folha de Pagamentos</h1>
             <p className="text-sm text-muted-foreground">Unidade {unidadeAtual?.nome}</p>
           </div>
-          <div className="flex items-end gap-2">
-            <div><Label htmlFor="comp">Competência</Label><Input id="comp" type="month" value={comp} onChange={(e) => e.target.value && setComp(e.target.value)} className="w-40" /></div>
-            {fechada ? <Badge variant="secondary" className="gap-1 h-9"><Lock className="w-3 h-3" /> Fechada</Badge> : <Badge variant="outline" className="h-9">Aberta</Badge>}
-          </div>
         </div>
+        <SeletorCompetencia comp={comp} onChange={trocarComp} status={fechada ? "fechada" : compRow || lancs.length ? "aberta" : "sem_folha"} />
+        <FluxoMes etapas={[
+          { label: "Preparar mês", feito: fechada || (lancs.length > 0 && ativosUnidade.every((c) => preparados.has(c.id))), atual: !fechada && !lancs.length },
+          { label: "Preencher lançamentos", feito: fechada || (lancs.length > 0 && comPendencia === 0), atual: !fechada && lancs.length > 0 && comPendencia > 0 },
+          { label: "Conferir totais", feito: fechada, atual: !fechada && lancs.length > 0 && comPendencia === 0 },
+          { label: "Fechar competência", feito: fechada },
+          { label: "Exportar Clara", feito: false, atual: fechada },
+        ]} />
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Card><CardContent className="p-4"><p className="text-xs uppercase text-muted-foreground">CLT</p><p className="text-xl font-bold">{calculo.erro ? "—" : brl(totais.clt)}</p></CardContent></Card>
@@ -154,10 +187,10 @@ export default function Folha() {
           <Card><CardContent className="p-4"><p className="text-xs uppercase text-muted-foreground">Total da folha</p><p className="text-xl font-bold">{calculo.erro ? "—" : brl(totais.total)}</p></CardContent></Card>
         </div>
 
-        <Tabs defaultValue="painel">
+        <Tabs value={aba} onValueChange={setAba}>
           <TabsList className="flex flex-wrap h-auto">
-            <TabsTrigger value="painel"><BarChart3 className="w-4 h-4 mr-1" />Painel</TabsTrigger>
             <TabsTrigger value="folha"><Receipt className="w-4 h-4 mr-1" />Folha</TabsTrigger>
+            <TabsTrigger value="painel"><BarChart3 className="w-4 h-4 mr-1" />Painel</TabsTrigger>
             <TabsTrigger value="pagamentos"><Wallet className="w-4 h-4 mr-1" />Pagamentos</TabsTrigger>
             {(tem("importar") || tem("documentos")) && <TabsTrigger value="contracheques"><FileUp className="w-4 h-4 mr-1" />Contracheques</TabsTrigger>}
             {tem("documentos") && <TabsTrigger value="exportar"><FileDown className="w-4 h-4 mr-1" />Exportar</TabsTrigger>}
@@ -168,15 +201,24 @@ export default function Folha() {
           </TabsList>
 
           <TabsContent value="folha" forceMount className="space-y-3 data-[state=inactive]:hidden">
-            <div className="flex flex-wrap gap-2">
-              {!fechada && tem("fechar") && <Button onClick={fecharCompetencia} disabled={!linhas.length || !!calculo.erro}>Fechar competência</Button>}
+            <div className="flex flex-wrap gap-2 items-center">
+              {!fechada && tem("lancar") && <PrepararMes comp={comp} ativos={ativosUnidade} jaPreparados={preparados} onConfirmar={prepararMes} />}
+              {!fechada && tem("fechar") && <Button onClick={fecharCompetencia} disabled={!linhas.length || !!calculo.erro || rascunhos.size > 0 || ativosUnidade.some((c) => !preparados.has(c.id))}>Fechar competência</Button>}
+              {fechada && <Button variant="outline" onClick={() => setAba("pagamentos")}>Ir para pagamentos e lote Clara</Button>}
+              {!fechada && rascunhos.size > 0 && <p className="text-sm text-primary">{rascunhos.size} lançamento(s) com edição não salva.</p>}
+              {!fechada && comPendencia > 0 && <p className="text-sm text-muted-foreground">{comPendencia} colaborador(es) com pendência.</p>}
               {fechada && tem("reabrir") && !pags.some((p) => p.status === "pago") && <Button variant="outline" onClick={reabrir}>Reabrir competência</Button>}
               {fechada && <p className="text-sm text-muted-foreground self-center">Fechada em {compRow?.fechada_em ? new Date(compRow.fechada_em).toLocaleString("pt-BR") : "—"}. Regras e valores congelados.</p>}
             </div>
-            {calculo.erro && <p role="alert" className="text-destructive">{calculo.erro}</p>}
-            {linhas.length === 0 && <Card><CardContent className="p-6 text-muted-foreground">Nenhum colaborador nesta competência.</CardContent></Card>}
-            {linhas.map(({ c, l, r }) => (
-              <LinhaFolha key={`${comp}-${c.id}`} colab={c as ColabRow} lanc={l} res={r} regras={regras} versaoCalculo={fechada ? compRow?.versao_calculo ?? "historica" : VERSAO_CALCULO} bloqueada={fechada || !tem("lancar")} onSalvar={salvarLanc} />
+            {calculo.erro && <p role="alert" className="text-destructive">{calculo.erro}. Totais e fechamento ficam bloqueados até completar as Configurações.</p>}
+            {linhasConf.length === 0 && <Card><CardContent className="p-6 text-muted-foreground">Nenhum colaborador nesta competência.</CardContent></Card>}
+            {linhasConf.length > 0 && <TabelaConferencia linhas={linhasConf} aberta={!fechada} selecionado={selecionado} onSelecionar={(id) => setSelecionado(id === selecionado ? null : id)} rascunhos={rascunhos} />}
+            {linhasConf.map(({ c, l, r, erro: e }) => (
+              <div key={`${unidadeId}-${comp}-${c.id}`} className={cn(selecionado === c.id ? "" : "md:hidden")}>
+                {r ? <LinhaFolha colab={c as ColabRow} lanc={l as LancRow} res={r} regras={regras} versaoCalculo={versaoMes} bloqueada={fechada || !tem("lancar")} onSalvar={salvarLanc}
+                    unidadeId={unidadeId!} comp={comp} pend={pendencias(c, l, r, e, !fechada)} abertoInicial={selecionado === c.id} onRascunho={marcarRascunho} />
+                  : <Card><CardContent className="p-4"><p className="font-semibold">{c.nome}</p><p className="text-sm text-destructive">{pendencias(c, l, r, e, !fechada).join(" · ")}</p></CardContent></Card>}
+              </div>
             ))}
           </TabsContent>
 
@@ -268,14 +310,18 @@ function CamposTurno({ t, set, est, disabled, historico }: { t: LancTurno; set: 
   );
 }
 
-function LinhaFolha({ colab, lanc, res, regras, versaoCalculo, bloqueada, onSalvar }: { colab: ColabRow; lanc?: LancRow; res: ReturnType<typeof calcularFolha>; regras: RegrasFolha; versaoCalculo: string; bloqueada: boolean; onSalvar: (c: ColabRow, d: Lancamento, liq: number | null) => Promise<boolean> }) {
-  const [aberto, setAberto] = useState(false);
-  const [d, setD] = useState<Lancamento>(lanc?.dados || {});
+function LinhaFolha({ colab, lanc, res, regras, versaoCalculo, bloqueada, onSalvar, unidadeId, comp, pend, abertoInicial, onRascunho }: { colab: ColabRow; lanc?: LancRow; res: ReturnType<typeof calcularFolha>; regras: RegrasFolha; versaoCalculo: string; bloqueada: boolean; onSalvar: (c: ColabRow, d: Lancamento, liq: number | null) => Promise<boolean>; unidadeId: string; comp: string; pend: string[]; abertoInicial: boolean; onRascunho: (id: string, tem: boolean) => void }) {
+  const [aberto, setAberto] = useState(abertoInicial);
+  useEffect(() => { if (abertoInicial) setAberto(true); }, [abertoInicial]);
+  // Rascunho guardado neste navegador sobrevive à troca de mês, ano ou unidade.
+  const rascunho = bloqueada ? null : lerRascunho(unidadeId, comp, colab.id);
+  const [d, setD] = useState<Lancamento>(rascunho || lanc?.dados || {});
   const [liq, setLiq] = useState<number | null>(lanc?.liquido_importado ?? null);
   // Edição pendente não é sobrescrita por recargas; só sincroniza quando não há alteração local.
-  const [sujo, setSujo] = useState(false);
+  const [sujo, setSujo] = useState(!!rascunho);
+  useEffect(() => { onRascunho(colab.id, sujo); }, [sujo]);
   useEffect(() => { setLiq(lanc?.liquido_importado ?? null); if (!sujo) setD(lanc?.dados || {}); }, [lanc?.dados, lanc?.liquido_importado, (lanc as any)?.updated_at]);
-  const editar = (n: Lancamento) => { setSujo(true); setD(n); };
+  const editar = (n: Lancamento) => { setSujo(true); setD(n); gravarRascunho(unidadeId, comp, colab.id, n); };
   const est = colab.tipo === "ESTAGIARIO";
   let falhaPrevia: string | null = null;
   let previa = res;
@@ -286,7 +332,7 @@ function LinhaFolha({ colab, lanc, res, regras, versaoCalculo, bloqueada, onSalv
   return (
     <Card>
       <button className="w-full text-left p-4 flex flex-wrap items-center justify-between gap-2" onClick={() => setAberto(!aberto)}>
-        <div><p className="font-semibold">{colab.nome}</p><p className="text-xs text-muted-foreground">{est ? "Estagiário" : "CLT"}{colab.funcao ? ` · ${colab.funcao}` : ""}{colab.turno ? ` · ${colab.turno}` : ""}{res.contrachequeImportado ? " · contracheque importado" : ""}</p></div>
+        <div><p className="font-semibold">{colab.nome}{sujo && <Badge variant="outline" className="ml-2 border-primary text-primary">Não salvo</Badge>}</p><p className="text-xs text-muted-foreground">{est ? "Estagiário" : "CLT"}{colab.funcao ? ` · ${colab.funcao}` : ""}{colab.turno ? ` · ${colab.turno}` : ""}{res.contrachequeImportado ? " · contracheque importado" : ""}</p>{pend.length > 0 && <p className="text-xs text-destructive">{pend.join(" · ")}</p>}</div>
         <div className="text-right"><p className="font-bold">{brl(res.total)}</p>{res.desconto > 0 && <p className="text-xs text-muted-foreground">desconto {brl(res.desconto)}</p>}</div>
       </button>
       {aberto && (
@@ -323,7 +369,7 @@ function LinhaFolha({ colab, lanc, res, regras, versaoCalculo, bloqueada, onSalv
             <span>Diárias: {brl(previa.valores.d + previa.valores.df + previa.valores.dn)}</span><span>Fins de semana: {brl(previa.valores.f)}</span><span>Feriados: {brl(previa.valores.h)}</span><span>Experimentais: {brl(previa.valores.x)}</span>
             <span>Bruto: {brl(previa.bruto)}</span><span>Descontos: {brl(previa.desconto)}</span><span className="font-bold">Total: {brl(previa.total)}</span>
           </div>}
-          {!bloqueada && <Button onClick={async () => { if (await onSalvar(colab, d, liq)) setSujo(false); }}>Salvar lançamento</Button>}
+          {!bloqueada && <Button onClick={async () => { if (await onSalvar(colab, d, liq)) { setSujo(false); gravarRascunho(unidadeId, comp, colab.id, null); } }}>Salvar lançamento</Button>}
         </CardContent>
       )}
     </Card>
