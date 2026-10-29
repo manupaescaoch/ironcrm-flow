@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,6 +28,9 @@ export const contarRascunhos = (u: string, c: string) => {
 export function SeletorCompetencia({ comp, onChange, status }: { comp: string; onChange: (c: string) => void; status: "aberta" | "fechada" | "sem_folha" }) {
   const [ano, mes] = comp.split("-").map(Number);
   const ir = (a: number, m: number) => onChange(`${a}-${String(m).padStart(2, "0")}`);
+  const linha = useRef<HTMLDivElement>(null);
+  // No celular, mantém o mês selecionado visível sem rolar a página para o lado.
+  useEffect(() => { const el = linha.current?.querySelector<HTMLElement>("[aria-selected=true]"); const box = linha.current; if (el && box) box.scrollLeft = el.offsetLeft - box.clientWidth / 2 + el.clientWidth / 2; }, [mes]);
   return (
     <div className="space-y-2 min-w-0 w-full">
       <div className="flex items-center gap-2">
@@ -38,7 +41,7 @@ export function SeletorCompetencia({ comp, onChange, status }: { comp: string; o
           ? <Badge variant="secondary" className="gap-1 ml-2"><Lock className="w-3 h-3" />Competência fechada</Badge>
           : <Badge variant="outline" className="ml-2">{status === "aberta" ? "Competência aberta" : "Sem folha preparada"}</Badge>}
       </div>
-      <div className="overflow-x-auto -mx-1 px-1 pb-1" role="tablist" aria-label="Meses">
+      <div ref={linha} className="overflow-x-auto -mx-1 px-1 pb-1 relative" role="tablist" aria-label="Meses">
         <div className="flex gap-1.5 w-max">
           {MESES.map((m, i) => (
             <Button key={m} role="tab" aria-selected={mes === i + 1} size="sm" variant={mes === i + 1 ? "default" : "outline"} className="w-12 shrink-0" onClick={() => ir(ano, i + 1)}>{m}</Button>

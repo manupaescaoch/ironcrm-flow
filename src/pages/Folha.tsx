@@ -203,7 +203,7 @@ export default function Folha() {
           <TabsContent value="folha" forceMount className="space-y-3 data-[state=inactive]:hidden">
             <div className="flex flex-wrap gap-2 items-center">
               {!fechada && tem("lancar") && <PrepararMes comp={comp} ativos={ativosUnidade} jaPreparados={preparados} onConfirmar={prepararMes} />}
-              {!fechada && tem("fechar") && <Button onClick={fecharCompetencia} disabled={!linhas.length || !!calculo.erro || rascunhos.size > 0 || ativosUnidade.some((c) => !preparados.has(c.id))}>Fechar competência</Button>}
+              {!fechada && tem("fechar") && linhasConf.length > 0 && <Button onClick={fecharCompetencia} disabled={!linhas.length || !!calculo.erro || rascunhos.size > 0 || ativosUnidade.some((c) => !preparados.has(c.id))}>Fechar competência</Button>}
               {fechada && <Button variant="outline" onClick={() => setAba("pagamentos")}>Ir para pagamentos e lote Clara</Button>}
               {!fechada && rascunhos.size > 0 && <p className="text-sm text-primary">{rascunhos.size} lançamento(s) com edição não salva.</p>}
               {!fechada && comPendencia > 0 && <p className="text-sm text-muted-foreground">{comPendencia} colaborador(es) com pendência.</p>}
