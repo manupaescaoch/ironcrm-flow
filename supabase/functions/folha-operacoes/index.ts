@@ -169,6 +169,27 @@ Deno.serve(async (req) => {
       if (error) return json({ error: error.message }, 400);
       return json(data);
     }
+    // Excluir vínculo: só sem qualquer histórico de folha; com histórico, o caminho é inativar.
+    if (acao === "excluir_colaborador") {
+      const unidade = String(body.unidade_id || ""), id = String(body.colaborador_id || "");
+      if (!UUID.test(unidade) || !UUID.test(id)) return json({ error: "Parâmetros inválidos" }, 400);
+      if (!(await pode(unidade, "ver")) || !(await pode(unidade, "colaboradores"))) return json({ error: "Sem permissão nesta unidade" }, 403);
+      const { data: atual } = await admin.from("folha_colaboradores").select("*").eq("id", id).eq("unidade_id", unidade).maybeSingle();
+      if (!atual) return json({ error: "Vínculo não encontrado nesta unidade" }, 404);
+      const [lan, pag, itens, aj] = await Promise.all([
+        admin.from("folha_lancamentos").select("id", { count: "exact", head: true }).eq("colaborador_id", id),
+        admin.from("folha_pagamentos").select("id", { count: "exact", head: true }).eq("colaborador_id", id),
+        admin.from("folha_contracheque_itens").select("id", { count: "exact", head: true }).eq("colaborador_id", id),
+        admin.from("folha_ajuda_parcelas").select("id", { count: "exact", head: true }).eq("colaborador_id", id),
+      ]);
+      if (lan.error || pag.error || itens.error || aj.error) return json({ error: (lan.error || pag.error || itens.error || aj.error)!.message }, 500);
+      const comHistorico = (lan.count || 0) + (pag.count || 0) + (itens.count || 0) + (aj.count || 0);
+      if (comHistorico > 0) return json({ error: "Vínculo tem histórico de folha gravada; use Inativar em vez de excluir" }, 409);
+      const { error: edel } = await admin.from("folha_colaboradores").delete().eq("id", id).eq("unidade_id", unidade);
+      if (edel) return json({ error: edel.message }, 400);
+      // Auditoria fica por conta do gatilho trg_folha_aud_colab (grava DELETE com o retrato anterior).
+      return json({ ok: true, id });
+    }
     if (acao === "fechar") {
       const unidade = String(body.unidade_id || ""), comp = String(body.competencia || "");
       if (!/^[0-9a-f-]{36}$/.test(unidade) || !/^\d{4}-(0[1-9]|1[0-2])$/.test(comp)) return json({ error: "Parâmetros inválidos" }, 400);
