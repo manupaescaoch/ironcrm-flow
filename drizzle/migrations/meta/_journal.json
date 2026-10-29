@@ -169,6 +169,27 @@
       "when": 1793272257470,
       "tag": "0023_evo_folha_identidade_privacidade",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793272299234,
+      "tag": "0024_evo_folha_vinculo_seguro_identidade",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793272306671,
+      "tag": "0025_evo_folha_auditoria_privacidade",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793272310252,
+      "tag": "0026_evo_folha_revogar_execucao_publica",
+      "breakpoints": true
     }
   ]
 }

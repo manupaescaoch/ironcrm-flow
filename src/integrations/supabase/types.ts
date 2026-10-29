@@ -6167,6 +6167,15 @@ export type Database = {
         Args: { p_competencia: string; p_usuario: string }
         Returns: Json
       }
+      folha_salvar_vinculo: {
+        Args: {
+          p_dados: Json
+          p_id: string
+          p_unidade: string
+          p_usuario: string
+        }
+        Returns: Json
+      }
       fu_add_business_days: {
         Args: { p_date: string; p_days: number }
         Returns: string
