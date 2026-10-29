@@ -1,0 +1,44 @@
+== migração 0033
+APLICADA
+T1 preparar 2x => linhas|2|18
+T2 gerente fecha BV (deve recusar)
+ERROR:  Sem permissão para fechar a ajuda desta unidade
+CONTEXT:  PL/pgSQL function folha_ajuda_fechar(uuid,uuid,text,jsonb) line 4 at RAISE
+T3 linha de outra unidade (deve recusar)
+ERROR:  Linha fora da ajuda preparada nesta unidade
+CONTEXT:  PL/pgSQL function folha_ajuda_fechar(uuid,uuid,text,jsonb) line 16 at RAISE
+T4 fecha ajuda com salário aberto|{"ok": true, "total": 1149.01}
+T4b parcelas|1|375.01|2026-11-15
+T4b parcelas|2|375.00|2026-11-30
+T4b parcelas|1|199.50|
+T4b parcelas|2|199.50|
+T4c salário|0
+T5 editar fechada (deve recusar)
+ERROR:  Ajuda de custo fechada nesta competência
+CONTEXT:  PL/pgSQL function folha_ajuda_bloquear_fechada() line 5 at RAISE
+T6 previa p1|574.51|ana@t.com
+T6b PIX do retrato (ANA)|ana@t.com
+T6c BV não vê Setúbal (gerente)
+ERROR:  Sem acesso à ajuda nesta unidade
+CONTEXT:  PL/pgSQL function folha_lote_ajuda(uuid,uuid,text,integer,uuid[],boolean,boolean,text,jsonb) line 4 at RAISE
+T7 exportar parcela sem data (deve recusar)
+ERROR:  Informe as datas das parcelas antes de exportar
+CONTEXT:  PL/pgSQL function folha_lote_ajuda(uuid,uuid,text,integer,uuid[],boolean,boolean,text,jsonb) line 18 at RAISE
+SQL statement "SELECT folha_lote_ajuda('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','11111111-1111-1111-1111-111111111111','2026-11',2,ids,true,false,h)"
+PL/pgSQL function inline_code_block line 1 at PERFORM
+NOTICE:  T8 export1 2
+NOTICE:  T9 export de novo sem confirmar: true
+NOTICE:  T10 reexport confirmado auditoria 3
+T11 parcelas continuam pendentes|0
+T12 reabrir após exportar (deve recusar)
+ERROR:  Parcela já exportada ou paga; reabertura bloqueada
+CONTEXT:  PL/pgSQL function folha_ajuda_reabrir(uuid,uuid,text,text) line 11 at RAISE
+T13 gerente reabrir (deve recusar)
+ERROR:  Somente administrador reabre a ajuda
+CONTEXT:  PL/pgSQL function folha_ajuda_reabrir(uuid,uuid,text,text) line 4 at RAISE
+T14 legado preservado (BV out)|2
+T15 ajuda própria em mês com legado (deve recusar)
+ERROR:  Esta competência já tem parcelas de ajuda geradas pelo fechamento da folha salarial
+CONTEXT:  PL/pgSQL function folha_ajuda_fechar(uuid,uuid,text,jsonb) line 11 at RAISE
+T16 auditoria|EXPORT_AJUDA_CLARA|2
+T16 auditoria|FECHAR_AJUDA|1
