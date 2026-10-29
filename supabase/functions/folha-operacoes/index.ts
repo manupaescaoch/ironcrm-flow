@@ -89,6 +89,8 @@ Deno.serve(async (req) => {
   };
 
   try {
+    // Ajuda de Custo aguarda autorização de implantação: responde com aviso claro em vez de "Ação inválida".
+    if (acao.startsWith("ajuda_")) return json({ error: "Ajuda de Custo ainda não está ativada neste ambiente", nao_implantada: true }, 503);
     if (["previa_clara", "exportar_clara", "previa_ajuda_clara", "exportar_ajuda_clara"].includes(acao)) {
       const unidade = String(body.unidade_id || ""), comp = String(body.competencia || "");
       if (!UUID.test(unidade) || !COMP.test(comp)) return json({ error: "Parâmetros inválidos" }, 400);
