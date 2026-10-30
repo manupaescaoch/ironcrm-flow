@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Bloquear temporariamente Folha de Pagamentos e Ajuda de Custo para todos exceto administradores, sem alterar dados financeiros.
+- [x] Bloquear temporariamente Folha de Pagamentos e Ajuda de Custo para todos exceto administradores, sem alterar dados financeiros.
 
 - [x] Separar os dados de pagamento dos avisos de cobrança no Telegram para facilitar copiar e colar.
 
