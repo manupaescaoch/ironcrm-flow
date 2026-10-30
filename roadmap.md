@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Bloquear temporariamente Folha de Pagamentos e Ajuda de Custo para todos exceto administradores, sem alterar dados financeiros.
+
 - [x] Separar os dados de pagamento dos avisos de cobrança no Telegram para facilitar copiar e colar.
 
 - [x] Conferir callback OAuth BTG real — função publicada respondeu 400 para pedido sem state; autorização e troca do código usam o mesmo retorno. URL disponível no botão Copiar retorno para o BTG; consentimento real ainda depende das credenciais e cadastro no banco.
