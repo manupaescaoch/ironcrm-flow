@@ -232,6 +232,13 @@
       "when": 1793272454834,
       "tag": "0032_evo_folha_funcao_remuneratoria_formado",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793366512234,
+      "tag": "0033_folha_acesso_temporario_somente_admin",
+      "breakpoints": true
     }
   ]
 }
