@@ -78,6 +78,7 @@ export default function AjudaCusto() {
   const carregar = useCallback(async () => {
     if (!unidadeId || !pode) return;
     const r = await chamarFolha({ acao: "ajuda_dados", unidade_id: unidadeId, competencia: comp });
+    if (r.nao_implantada) { setFalha(r.aviso || "Ajuda de Custo ainda não está ativada neste ambiente"); return; }
     setFalha(null);
     setColabs((r.colaboradores || []).map((c: any) => ({ ...c, passagem: Number(c.passagem) })));
     setLancs(r.lancamentos || []); setFechadaRow(r.competencia || null); setParcelas(r.parcelas || []); setLegado(!!r.legado);
