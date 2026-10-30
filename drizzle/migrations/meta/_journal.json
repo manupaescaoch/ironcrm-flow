@@ -239,6 +239,13 @@
       "when": 1793366512234,
       "tag": "0033_folha_acesso_temporario_somente_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793366589328,
+      "tag": "0034_verificar_folha_bloqueio_admin",
+      "breakpoints": true
     }
   ]
 }
