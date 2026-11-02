@@ -5322,6 +5322,14 @@ export type Database = {
           created_at: string
           created_by: string | null
           descricao: string | null
+          fu_tecnico_envio_dia: string | null
+          fu_tecnico_envio_erro: string | null
+          fu_tecnico_envio_status: string | null
+          fu_tecnico_etapa: string | null
+          fu_tecnico_lead_id: string | null
+          fu_tecnico_matricula_id: string | null
+          fu_tecnico_registro: Json | null
+          fu_tecnico_status: string | null
           hora_prazo: string | null
           id: string
           notificado_24h: boolean | null
@@ -5343,6 +5351,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          fu_tecnico_envio_dia?: string | null
+          fu_tecnico_envio_erro?: string | null
+          fu_tecnico_envio_status?: string | null
+          fu_tecnico_etapa?: string | null
+          fu_tecnico_lead_id?: string | null
+          fu_tecnico_matricula_id?: string | null
+          fu_tecnico_registro?: Json | null
+          fu_tecnico_status?: string | null
           hora_prazo?: string | null
           id?: string
           notificado_24h?: boolean | null
@@ -5364,6 +5380,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          fu_tecnico_envio_dia?: string | null
+          fu_tecnico_envio_erro?: string | null
+          fu_tecnico_envio_status?: string | null
+          fu_tecnico_etapa?: string | null
+          fu_tecnico_lead_id?: string | null
+          fu_tecnico_matricula_id?: string | null
+          fu_tecnico_registro?: Json | null
+          fu_tecnico_status?: string | null
           hora_prazo?: string | null
           id?: string
           notificado_24h?: boolean | null
@@ -5380,6 +5404,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_fu_tecnico_lead_id_fkey"
+            columns: ["fu_tecnico_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_fu_tecnico_matricula_id_fkey"
+            columns: ["fu_tecnico_matricula_id"]
+            isOneToOne: false
+            referencedRelation: "interacoes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_unidade_id_fkey"
             columns: ["unidade_id"]
@@ -6355,6 +6393,10 @@ export type Database = {
         Returns: string
       }
       fu_next_weekday: { Args: { p_date: string }; Returns: string }
+      fu_tecnico_claim: {
+        Args: { p_dia: string; p_task: string }
+        Returns: boolean
+      }
       generate_follow_ups_for_lead: {
         Args: { p_lead_id: string }
         Returns: undefined

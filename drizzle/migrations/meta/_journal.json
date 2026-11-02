@@ -246,6 +246,13 @@
       "when": 1793366589328,
       "tag": "0034_verificar_folha_bloqueio_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1793615964232,
+      "tag": "0035_fu_tecnico_coordenador_fase1",
+      "breakpoints": true
     }
   ]
 }
