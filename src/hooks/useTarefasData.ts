@@ -3,6 +3,7 @@ import { addDays, addMonths, nextDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useToast } from '@/hooks/use-toast';
+import type { EtapaTecnica, StatusTecnico, RegistroTecnico } from '@/lib/fuTecnico';
 
 export interface Task {
   id: string;
@@ -24,6 +25,12 @@ export interface Task {
   recorrencia_fim: string | null;
   notificado_24h: boolean;
   notificado_prazo: boolean;
+  fu_tecnico_lead_id?: string | null;
+  fu_tecnico_matricula_id?: string | null;
+  fu_tecnico_etapa?: EtapaTecnica | null;
+  fu_tecnico_status?: StatusTecnico | null;
+  fu_tecnico_registro?: RegistroTecnico | null;
+  fu_tecnico_envio_erro?: string | null;
 }
 
 export type TaskInsert = Omit<Task, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'concluida_em' | 'arquivada' | 'notificado_24h' | 'notificado_prazo'> & { setor?: string };

@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
 import { resolveGrupoUnidade, sendTelegramMessage } from '../_shared/telegram.ts';
 import { sendManagerFuDigest } from '../_shared/fuGerenteDigest.ts';
+import { sendTechnicalFu } from '../_shared/fuTecnicoDigest.ts';
 import { z } from 'npm:zod@3';
 
 const corsHeaders = {
@@ -183,6 +184,12 @@ Deno.serve(async (req) => {
     if (parsed.data.mode === 'fu_gerente_only') {
       if (!managerFu) return Response.json({ error: 'Cron only' }, { status: 403, headers: corsHeaders });
       return Response.json(managerFu, { headers: corsHeaders, status: managerFu.success ? 200 : 502 });
+    }
+
+    if (__auth.method === 'cron') {
+      // Isolated failure must never interrupt the existing operational or manager summaries.
+      try { await sendTechnicalFu(supabase, parsed.data.dry_run === true); }
+      catch (error) { console.error('FU técnico: falha no processamento', error instanceof Error ? error.message : 'erro desconhecido'); }
     }
 
     const zn = await getStats(supabase, ZN_ID);

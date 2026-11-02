@@ -48,6 +48,9 @@ import { useUnidadeUsers } from '@/hooks/useUnidadeUsers';
 import { TaskComments } from './TaskComments';
 import { TaskSubtasks } from './TaskSubtasks';
 import { TaskHistory } from './TaskHistory';
+import { FuTecnicoForm } from './FuTecnicoForm';
+import { registroTecnicoValido, type RegistroTecnico, type StatusTecnico } from '@/lib/fuTecnico';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   titulo: z.string().min(1, 'Título é obrigatório'),
@@ -98,7 +101,13 @@ export function TarefaModal({
 }: TarefaModalProps) {
   const { unidadeAtual } = useUnidade();
   const { users, loading: usersLoading } = useUnidadeUsers();
-  const { isAdmin } = useAuth();
+  const { isAdmin, role } = useAuth();
+  const { toast } = useToast();
+  const [tecnicoStatus, setTecnicoStatus] = useState<StatusTecnico>('pendente');
+  const [tecnicoRegistro, setTecnicoRegistro] = useState<RegistroTecnico>({ data: '', coordenador: '', canal: 'presencial', observacoes: '', dificuldades: '', ajustes: '', encaminhamentos: '' });
+  const tecnico = !!task?.fu_tecnico_etapa;
+  const tecnicoEncerrado = ['concluido', 'dispensado', 'cancelado'].includes(task?.fu_tecnico_status ?? '');
+  const podeTecnico = ['admin', 'gerente', 'coordenador'].includes(role ?? '') && !tecnicoEncerrado;
   const isEditing = !!task;
   const [activeTab, setActiveTab] = useState('detalhes');
   const [selectedStatus, setSelectedStatus] = useState<Task['status']>('a_fazer');
@@ -120,19 +129,21 @@ export function TarefaModal({
 
   useEffect(() => {
     if (task) {
+      setTecnicoStatus(task.fu_tecnico_status ?? 'pendente');
+      setTecnicoRegistro(task.fu_tecnico_registro ?? { data: '', coordenador: '', canal: 'presencial', observacoes: '', dificuldades: '', ajustes: '', encaminhamentos: '' });
       form.reset({
         titulo: task.titulo,
         descricao: task.descricao || '',
         responsavel: task.responsavel,
         prioridade: task.prioridade,
-        prazo: task.prazo ? (() => { const [y, m, d] = task.prazo!.split('-').map(Number); return new Date(y, m - 1, d); })() : null,
+        prazo: task.prazo ? (() => { const [y, m, d] = task.prazo.split('-').map(Number); return new Date(y, m - 1, d); })() : null,
         hora_prazo: task.hora_prazo || null,
       });
       setSelectedStatus(task.status);
       const parsed = parseRecorrencia(task.recorrencia);
       setRecorrenciaTipo(parsed.tipo);
       setRecorrenciaDias(parsed.dias);
-      setRecorrenciaFim(task.recorrencia_fim ? (() => { const [y, m, d] = task.recorrencia_fim!.split('-').map(Number); return new Date(y, m - 1, d); })() : null);
+      setRecorrenciaFim(task.recorrencia_fim ? (() => { const [y, m, d] = task.recorrencia_fim.split('-').map(Number); return new Date(y, m - 1, d); })() : null);
     } else {
       form.reset({
         titulo: '',
@@ -152,12 +163,16 @@ export function TarefaModal({
 
   const handleSubmit = async (data: FormData) => {
     if (!unidadeAtual) return;
+    if (tecnico && !registroTecnicoValido(tecnicoStatus, tecnicoRegistro)) {
+      toast({ title: 'Registro incompleto', description: 'Preencha data, coordenador, canal e observações para encerrar o acompanhamento.', variant: 'destructive' });
+      return;
+    }
 
     const taskData: TaskInsert = {
       titulo: data.titulo,
       descricao: data.descricao || null,
       responsavel: data.responsavel,
-      setor: '',
+      setor: tecnico ? task?.setor ?? 'TECNICO' : '',
       prioridade: data.prioridade,
       status: selectedStatus,
       prazo: data.prazo ? format(data.prazo, 'yyyy-MM-dd') : null,
@@ -165,6 +180,7 @@ export function TarefaModal({
       unidade_id: unidadeAtual.id,
       recorrencia: buildRecorrencia(recorrenciaTipo, recorrenciaDias),
       recorrencia_fim: recorrenciaFim ? format(recorrenciaFim, 'yyyy-MM-dd') : null,
+      ...(tecnico ? { fu_tecnico_status: tecnicoStatus, fu_tecnico_registro: tecnicoRegistro } : {}),
     };
 
     await onSave(taskData);
@@ -239,6 +255,8 @@ export function TarefaModal({
                 />
               </div>
 
+              {tecnico && task && <FuTecnicoForm task={task} status={tecnicoStatus} registro={tecnicoRegistro} onStatus={setTecnicoStatus} onRegistro={setTecnicoRegistro} />}
+
               <div className="space-y-2">
                 <Label>Responsável *</Label>
                 {usersLoading ? (
@@ -307,7 +325,7 @@ export function TarefaModal({
                 </Select>
               </div>
 
-              {isEditing && (
+              {isEditing && !tecnico && (
                 <div className="space-y-2">
                   <Label>Status</Label>
                   <Select
@@ -345,7 +363,7 @@ export function TarefaModal({
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {form.watch('prazo')
-                          ? format(form.watch('prazo')!, 'dd/MM/yyyy')
+                          ? format(form.watch('prazo') ?? new Date(), 'dd/MM/yyyy')
                           : 'Selecionar data'}
                       </Button>
                     </PopoverTrigger>
@@ -375,7 +393,7 @@ export function TarefaModal({
               </div>
 
               {/* Recorrência */}
-              <div className="space-y-3 rounded-lg border p-3">
+              <div className={cn('space-y-3 rounded-lg border p-3', tecnico && 'hidden')}>
                 <div className="flex items-center gap-2">
                   <Repeat className="w-4 h-4 text-muted-foreground" />
                   <Label className="mb-0">Recorrência</Label>
@@ -458,7 +476,7 @@ export function TarefaModal({
               </div>
 
               <div className="flex justify-between pt-4">
-                {isEditing && isAdmin && onDelete ? (
+                {isEditing && isAdmin && onDelete && !tecnico ? (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
@@ -501,7 +519,7 @@ export function TarefaModal({
                   >
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={isLoading}>
+                  <Button type="submit" disabled={isLoading || (tecnico && !podeTecnico)}>
                     {isLoading ? 'Salvando...' : 'Salvar'}
                   </Button>
                 </div>

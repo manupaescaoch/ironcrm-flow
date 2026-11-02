@@ -75,6 +75,15 @@ export function FollowUpHistoryTimeline({ leadId, lead }: Props) {
         .order('created_at', { ascending: true });
 
       const list: TimelineEvent[] = [];
+      const { data: tecnicos } = await supabase.from('tasks')
+        .select('id,fu_tecnico_etapa,fu_tecnico_status,fu_tecnico_registro,updated_at,responsavel')
+        .eq('fu_tecnico_lead_id', leadId).order('created_at');
+      for (const t of tecnicos ?? []) {
+        const registro = t.fu_tecnico_registro as { coordenador?: string; canal?: string; observacoes?: string; dificuldades?: string; ajustes?: string; encaminhamentos?: string } | null;
+        list.push({ id: t.id, data: new Date(t.updated_at), tipo: `Acompanhamento técnico ${t.fu_tecnico_etapa}`,
+          status: t.fu_tecnico_status ?? 'pendente', responsavel: registro?.coordenador ?? t.responsavel,
+          isAuto: !registro, motivo: registro ? [registro.canal, registro.observacoes, registro.dificuldades, registro.ajustes, registro.encaminhamentos].filter(Boolean).join(' · ') : null });
+      }
 
       (fus || []).forEach((f: any) => {
         // Always show the scheduled event
