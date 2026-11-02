@@ -1,5 +1,10 @@
 # Roadmap
 
+## FU Matriculados — boas-vindas Comercial
+- [ ] Reutilizar matrícula, tarefas e Telegram existentes com geração única e sem retroativos/renovações.
+- [ ] Avisar Comercial por unidade e confirmar envio manual com autorização, histórico e edição original.
+- [ ] Validar geração, destino, idempotência e callbacks sem disparos de teste à produção.
+
 ## FU gerencial M+30 — experiência do aluno
 - [x] Adaptar estrutura existente sem duplicar acompanhamento e preservar outros FUs.
 - [x] Integrar avisos individuais GERENTE e confirmação Abrir/Enviado com autorização por unidade.
