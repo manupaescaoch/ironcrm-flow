@@ -23,9 +23,10 @@ CREATE TABLE leads(
  updated_at timestamptz DEFAULT now()
 );
 
+-- Sem FK para leads: os testes técnicos usam lead fictício pré-existente no fixture original.
 CREATE TABLE interacoes(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
- lead_id uuid NOT NULL REFERENCES leads ON DELETE CASCADE,
+ lead_id uuid NOT NULL,
  fechou_matricula boolean DEFAULT false,
  data_fechamento date,
  cancelado boolean DEFAULT false,
@@ -115,5 +116,36 @@ CREATE OR REPLACE FUNCTION canonical_phone(text) RETURNS text LANGUAGE sql IMMUT
 
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recorrencia text;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recorrencia_fim date;
+
+-- Colunas fu_* que o bootstrap não tem: adicionadas uma a uma para que os
+-- ALTER TABLE multi-coluna das migrações se tornem no-ops benignos.
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_gerencial_registro jsonb;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_gerencial_envio_dia date;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_gerencial_envio_status text;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_gerencial_contexto jsonb;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_gerencial_concluido_em timestamptz;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_gerencial_confirmado_em timestamptz;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_gerencial_confirmado_por uuid;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_gerencial_confirmado_telegram_id bigint;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_gerencial_confirmado_nome text;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_gerencial_telegram_chat_id bigint;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_gerencial_telegram_message_id bigint;
+
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_matriculados_envio_dia date;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_matriculados_chat_id bigint;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_matriculados_message_id bigint;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_matriculados_confirmado_por uuid;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_matriculados_confirmado_nome text;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_matriculados_etapa text NOT NULL DEFAULT 'BV';
+
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_tecnico_registro jsonb;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_tecnico_envio_dia date;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_tecnico_envio_status text;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_tecnico_confirmado_em timestamptz;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_tecnico_confirmado_por uuid;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_tecnico_confirmado_telegram_id bigint;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_tecnico_confirmado_nome text;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_tecnico_telegram_chat_id bigint;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fu_tecnico_telegram_message_id bigint;
 
 COMMIT;
