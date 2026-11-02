@@ -1,0 +1,28 @@
+-- Isolated fixtures only. Never run against production.
+CREATE FUNCTION public.test_assert(v boolean,msg text) RETURNS void LANGUAGE plpgsql AS $$ BEGIN IF v IS DISTINCT FROM true THEN RAISE EXCEPTION '%',msg; END IF; END $$;
+INSERT INTO unidades VALUES('00000000-0000-0000-0000-000000000010','TESTE');
+INSERT INTO leads(id,nome,unidade_id,ativo,is_matriculado,status_funil,telefone) VALUES('00000000-0000-0000-0000-000000000020','ALUNO TESTE','00000000-0000-0000-0000-000000000010',true,true,'matriculado','81996392285');
+INSERT INTO interacoes(id,lead_id,unidade_id,tipo,fechou_matricula,data_fechamento,created_at) VALUES('00000000-0000-0000-0000-000000000030','00000000-0000-0000-0000-000000000020','00000000-0000-0000-0000-000000000010','Presencial',true,current_date,now());
+SELECT test_assert((SELECT count(*)=1 FROM tasks),'New enrollment creates exactly one task');
+UPDATE interacoes SET fechou_matricula=true WHERE id='00000000-0000-0000-0000-000000000030';
+SELECT test_assert((SELECT count(*)=1 FROM tasks),'Repeated enrollment update does not duplicate');
+INSERT INTO interacoes(id,lead_id,unidade_id,tipo,fechou_matricula,data_fechamento,created_at) VALUES('00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000020','00000000-0000-0000-0000-000000000010','Presencial',true,current_date,now());
+SELECT test_assert((SELECT count(*)=1 FROM tasks),'Renewal of active enrollment creates no welcome');
+INSERT INTO leads(id,nome,unidade_id,ativo,is_matriculado,status_funil) VALUES('00000000-0000-0000-0000-000000000021','ANTIGO','00000000-0000-0000-0000-000000000010',true,true,'matriculado');
+INSERT INTO interacoes(id,lead_id,unidade_id,fechou_matricula,data_fechamento,created_at) VALUES('00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000021','00000000-0000-0000-0000-000000000010',true,current_date,'2026-11-01');
+SELECT test_assert((SELECT count(*)=1 FROM tasks),'No retroactive enrollment welcome');
+SELECT test_assert(fu_matriculados_claim((SELECT id FROM tasks LIMIT 1),(now() AT TIME ZONE 'America/Recife')::date),'First claim succeeds');
+SELECT test_assert(NOT fu_matriculados_claim((SELECT id FROM tasks LIMIT 1),(now() AT TIME ZONE 'America/Recife')::date),'Same day concurrent/repeated claim is refused');
+INSERT INTO user_roles VALUES('00000000-0000-0000-0000-000000000040','user');
+INSERT INTO test_units VALUES('00000000-0000-0000-0000-000000000040','00000000-0000-0000-0000-000000000010');
+INSERT INTO telegram_users VALUES('00000000-0000-0000-0000-000000000040',111,'conectado','COMERCIAL','TESTE');
+INSERT INTO telegram_groups VALUES('00000000-0000-0000-0000-000000000010','comercial','conectado',-111);
+UPDATE tasks SET fu_matriculados_chat_id=-111,fu_matriculados_message_id=100;
+SELECT test_assert((fu_matriculados_confirmar_envio((SELECT id FROM tasks LIMIT 1),999,-111,100)->>'ok')::boolean=false,'Unlinked user refused');
+SELECT test_assert((fu_matriculados_confirmar_envio((SELECT id FROM tasks LIMIT 1),111,-222,100)->>'ok')::boolean=false,'Wrong unit/chat refused');
+SELECT test_assert((fu_matriculados_confirmar_envio((SELECT id FROM tasks LIMIT 1),111,-111,99)->>'ok')::boolean=false,'Wrong original message refused');
+SELECT test_assert((fu_matriculados_confirmar_envio((SELECT id FROM tasks LIMIT 1),111,-111,100)->>'ok')::boolean,'Authorized confirmation succeeds');
+SELECT test_assert((SELECT status='a_fazer' AND fu_matriculados_confirmado_em IS NOT NULL FROM tasks LIMIT 1),'Sending confirmation does not conclude accompaniment');
+SELECT test_assert((fu_matriculados_confirmar_envio((SELECT id FROM tasks LIMIT 1),111,-111,100)->>'duplicado')::boolean,'Duplicate confirmation is idempotent');
+SELECT test_assert((SELECT count(*)=1 FROM task_history),'Only one contact history entry');
+SELECT test_assert(NOT fu_matriculados_claim((SELECT id FROM tasks LIMIT 1),(now() AT TIME ZONE 'America/Recife')::date),'Confirmed welcome is never sent again');
