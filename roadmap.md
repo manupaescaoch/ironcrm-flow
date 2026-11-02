@@ -1,6 +1,8 @@
 # Roadmap
 
 ## FU técnico do Coordenador Geral — Fase 1
+- [ ] Atualizar textos, botões Abrir/Enviado e confirmação manual separada da conclusão, com histórico e bloqueio de lembretes confirmados.
+- [ ] Validar callbacks, duplicidade, permissões e edição da mensagem sem disparos indevidos na produção.
 - [x] Analisar matrícula efetiva, tarefas/histórico, grupos e agendador existentes.
 - [x] Implementar geração idempotente M+7/M+21 e registro técnico nas tarefas existentes.
 - [x] Integrar avisos individuais no Telegram da unidade e links WhatsApp manuais.
