@@ -41,7 +41,7 @@ BEGIN
  IF t.fu_tecnico_status IN ('concluido','dispensado','cancelado') OR l.ativo IS DISTINCT FROM true OR l.is_matriculado IS DISTINCT FROM true OR l.unidade_id IS DISTINCT FROM t.unidade_id OR l.status_funil='perdido' OR
  NOT EXISTS(SELECT 1 FROM public.interacoes WHERE id=t.fu_tecnico_matricula_id AND fechou_matricula=true AND cancelado IS DISTINCT FROM true) THEN
  RETURN jsonb_build_object('ok',false,'erro','Acompanhamento encerrado ou matrícula inativa.'); END IF;
- SELECT nome INTO v_nome FROM public.user_profiles WHERE user_id=v_user;
+ SELECT nome INTO v_nome FROM public.cronograma_funcionarios WHERE user_id=v_user AND unidade_id=t.unidade_id AND ativo=true ORDER BY id LIMIT 1;
  v_nome:=coalesce(nullif(trim(v_nome),''),(SELECT nullif(trim(concat_ws(' ',telegram_first_name,telegram_last_name)),'') FROM public.telegram_users WHERE user_id=v_user),'COORDENADOR');
  SELECT nome INTO v_unit FROM public.unidades WHERE id=t.unidade_id;
  IF t.fu_tecnico_confirmado_em IS NOT NULL THEN
