@@ -1,0 +1,34 @@
+SELECT set_config('test.role','service_role',false);
+DO $$
+DECLARE u uuid;actor uuid:=gen_random_uuid();l uuid;i uuid;c uuid;legacy uuid;enrollment uuid;before_count integer;u2 uuid:=gen_random_uuid();
+BEGIN
+ SELECT unidade_id INTO u FROM experimental_ciclos_config LIMIT 1;
+ INSERT INTO user_unidades VALUES(actor,u);
+ INSERT INTO leads(unidade_id,hora_aula_experimental) VALUES(u,'09:00') RETURNING id INTO l;
+ INSERT INTO interacoes(lead_id,unidade_id,agendou_experimental,data_experimental,hora_experimental) VALUES(l,u,true,current_date+1,'09:00') RETURNING id INTO legacy;
+ INSERT INTO interacoes(lead_id,unidade_id,agendou_experimental,data_experimental,hora_experimental) VALUES(l,u,true,current_date+1,'09:00') RETURNING id INTO i;
+ c:=experimental_novo_ciclo(i,current_date+1,'09:00',actor,'crm_manual','inverse-create');
+ UPDATE leads SET hora_aula_experimental='10:00' WHERE id=l;
+ PERFORM fixture_assert((SELECT hora_experimental='10:00' FROM interacoes WHERE id=legacy),'inverse lead trigger still updates untracked legacy interaction');
+ PERFORM fixture_assert((SELECT hora_experimental='09:00' FROM interacoes WHERE id=i),'inverse lead trigger leaves tracked original time untouched');
+ PERFORM fixture_assert((SELECT hora_aula='09:00' AND versao=0 FROM experimental_ciclos WHERE id=c),'inverse synchronization never rewrites cycle evidence');
+ INSERT INTO interacoes(lead_id,unidade_id,fechou_matricula,data_fechamento,tipo) VALUES(l,u,true,current_date,'Matrícula') RETURNING id INTO enrollment;
+ PERFORM fixture_assert((SELECT is_matriculado AND status_funil='convertido' FROM leads WHERE id=l),'enrollment interaction still projects conversion to lead');
+ PERFORM fixture_assert((SELECT count(*)=2 FROM tasks WHERE fu_tecnico_matricula_id=enrollment),'enrollment still creates two technical tasks');
+ PERFORM fixture_assert((SELECT count(*)=1 FROM tasks WHERE fu_gerencial_matricula_id=enrollment),'enrollment still creates one managerial task');
+ PERFORM fixture_assert((SELECT count(*)=1 FROM tasks WHERE fu_matriculados_matricula_id=enrollment),'enrollment still creates one welcome task');
+ SELECT count(*) INTO before_count FROM tasks WHERE fu_tecnico_matricula_id=enrollment OR fu_gerencial_matricula_id=enrollment OR fu_matriculados_matricula_id=enrollment;
+ UPDATE interacoes SET descricao='metadata' WHERE id=enrollment;
+ PERFORM fixture_assert((SELECT count(*)=before_count FROM tasks WHERE fu_tecnico_matricula_id=enrollment OR fu_gerencial_matricula_id=enrollment OR fu_matriculados_matricula_id=enrollment),'metadata does not restart enrollment tasks');
+ BEGIN INSERT INTO interacoes(lead_id,unidade_id,fechou_matricula,data_fechamento) VALUES(l,u,true,current_date);RAISE EXCEPTION 'expected duplicate';EXCEPTION WHEN OTHERS THEN IF SQLERRM='expected duplicate' THEN RAISE;END IF;END;
+ PERFORM fixture_assert((SELECT count(*)=1 FROM interacoes WHERE lead_id=l AND fechou_matricula),'duplicate enrollment remains blocked');
+ INSERT INTO unidades(id,nome) VALUES(u2,'INVERSE TRANSFER');
+ UPDATE leads SET unidade_id=u2 WHERE id=l;
+ PERFORM fixture_assert((SELECT bool_and(unidade_id=u2) FROM tasks WHERE fu_tecnico_matricula_id=enrollment OR fu_gerencial_matricula_id=enrollment OR fu_matriculados_matricula_id=enrollment),'lead transfer preserves downstream task unit synchronization');
+ PERFORM fixture_assert((SELECT unidade_id=u FROM experimental_ciclos WHERE id=c),'lead transfer preserves original experimental unit evidence');
+ UPDATE leads SET ativo=false WHERE id=l;
+ PERFORM fixture_assert((SELECT bool_and(fu_tecnico_status='cancelado') FROM tasks WHERE fu_tecnico_matricula_id=enrollment),'lead inactivation still cancels technical tasks');
+ PERFORM fixture_assert((SELECT bool_and(fu_gerencial_status='cancelado') FROM tasks WHERE fu_gerencial_matricula_id=enrollment),'lead inactivation still cancels managerial tasks');
+ UPDATE leads SET ativo=true WHERE id=l;
+ PERFORM fixture_assert((SELECT bool_and(fu_tecnico_status='cancelado') FROM tasks WHERE fu_tecnico_matricula_id=enrollment),'reactivation does not silently restart canceled technical follow ups');
+END $$;

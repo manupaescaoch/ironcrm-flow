@@ -10,7 +10,9 @@ psql -h "$socket" -p "$port" -U "$user" -d fc2a1_test -v ON_ERROR_STOP=1 \
  -f docs/fc2a1/installed-triggers.fixture.sql \
  -f docs/fc2a1/migration-candidate.sql \
  -f docs/fc2a1/operations-candidate.sql \
+ -f docs/fc2a1/inverse.fixture.sql \
  -f docs/fc2a1/cycles.tests.sql \
  -f docs/fc2a1/atomicity.tests.sql \
- -f docs/fc2a1/operations.tests.sql
+ -f docs/fc2a1/operations.tests.sql \
+ -f docs/fc2a1/inverse.tests.sql
 python3 docs/fc2a1/concurrency.tests.py "$socket" "$port" "$user"
