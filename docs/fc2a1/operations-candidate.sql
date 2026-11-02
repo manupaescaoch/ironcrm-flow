@@ -22,7 +22,7 @@ ALTER TABLE public.experimental_comandos ENABLE ROW LEVEL SECURITY;
 CREATE FUNCTION public.experimental_operar(p_usuario uuid,p_comando jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
 DECLARE op text:=p_comando->>'operacao';u uuid:=(p_comando->>'unidade_id')::uuid;k text:=p_comando->>'chave';
  l public.leads;i public.interacoes;c public.experimental_ciclos;prev public.experimental_comandos;
- id uuid;result jsonb;v integer;d date;h time;
+ target_id uuid;result jsonb;v integer;d date;h time;
 BEGIN
  IF auth.role() IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Serviço obrigatório';END IF;
  IF p_usuario IS NULL OR NOT(public.has_role(p_usuario,'admin') OR u IN(SELECT public.get_user_unidades(p_usuario))) THEN RAISE EXCEPTION 'Sem acesso à unidade';END IF;
@@ -44,7 +44,7 @@ BEGIN
   UPDATE public.leads SET data_aula_experimental=(d+h) AT TIME ZONE 'America/Recife',hora_aula_experimental=h WHERE id=l.id;
   INSERT INTO public.interacoes(lead_id,unidade_id,created_by,agendou_experimental,data_experimental,hora_experimental,compareceu,descricao)
   VALUES(l.id,u,p_usuario,true,d,h,NULL,p_comando->>'descricao') RETURNING * INTO i;
-  id:=public.experimental_novo_ciclo(i.id,d,h,p_usuario,'crm_manual',k||':ciclo');
+  target_id:=public.experimental_novo_ciclo(i.id,d,h,p_usuario,'crm_manual',k||':ciclo');
  ELSE
   SELECT * INTO c FROM public.experimental_ciclos WHERE id=(p_comando->>'ciclo_id')::uuid;
   IF NOT FOUND OR c.unidade_id<>u THEN RAISE EXCEPTION 'Ciclo de outra unidade';END IF;
@@ -54,7 +54,7 @@ BEGIN
   SELECT * INTO c FROM public.experimental_ciclos WHERE id=c.id FOR UPDATE;
   v:=(p_comando->>'versao')::integer;
   IF v IS NULL OR v<>c.versao OR c.situacao<>'ativo' OR i.experimental_ciclo_atual_id IS DISTINCT FROM c.id THEN RAISE EXCEPTION 'Estado desatualizado';END IF;
-  id:=c.id;
+  target_id:=c.id;
   IF op='editar' THEN
    IF p_comando-ARRAY['operacao','unidade_id','chave','ciclo_id','versao','descricao','treinador']<>'{}'::jsonb OR NOT(p_comando?'descricao' OR p_comando?'treinador') THEN RAISE EXCEPTION 'Campos inválidos';END IF;
    UPDATE public.interacoes SET descricao=CASE WHEN p_comando?'descricao' THEN p_comando->>'descricao' ELSE descricao END,
@@ -75,11 +75,11 @@ BEGIN
     IF d IS NULL OR h IS NULL THEN RAISE EXCEPTION 'Novo slot obrigatório';END IF;
     UPDATE public.leads SET data_aula_experimental=(d+h) AT TIME ZONE 'America/Recife',hora_aula_experimental=h WHERE id=l.id;
    END IF;
-   id:=public.experimental_encerrar(c.id,p_usuario,'crm_manual',k||':encerrar',p_comando->>'motivo',d,h);
+   target_id:=public.experimental_encerrar(c.id,p_usuario,'crm_manual',k||':encerrar',p_comando->>'motivo',d,h);
   END IF;
  END IF;
- SELECT versao INTO v FROM public.experimental_ciclos WHERE experimental_ciclos.id=id;
- result:=jsonb_build_object('ok',true,'ciclo_id',id,'interacao_id',i.id,'versao',v,'repetido',false);
+ SELECT versao INTO v FROM public.experimental_ciclos WHERE experimental_ciclos.id=target_id;
+ result:=jsonb_build_object('ok',true,'ciclo_id',target_id,'interacao_id',i.id,'versao',v,'repetido',false);
  INSERT INTO public.experimental_comandos(chave,usuario_id,unidade_id,comando,resposta) VALUES(k,p_usuario,u,p_comando,result);
  RETURN result;
 END $$;
