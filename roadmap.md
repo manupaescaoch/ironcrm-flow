@@ -1,5 +1,9 @@
 # Roadmap
 
+## Auditoria de consistência do funil comercial — somente leitura
+- [ ] Conciliar outubro e novembro entre função publicada e consultas independentes; auditar histórico, unidades, origens, datas e segurança.
+- [ ] Entregar diagnóstico, evidências, limitações e correções recomendadas, sem implementar alterações.
+
 ## Datas de conversão/perda e resumo comercial
 - [x] Adicionar trigger independente sem backfill e exigir motivo de perda na lista atual.
 - [x] Implementar funil-comercial-resumo com token existente e somente agregados; testar e implantar (12 testes + SQL isolado; endpoint real 200/400/401).
