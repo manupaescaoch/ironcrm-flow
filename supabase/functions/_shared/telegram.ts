@@ -2,6 +2,7 @@
 // O TELEGRAM_BOT_TOKEN só é lido aqui, no servidor, e nunca é retornado ao cliente.
 
 import { createClient, SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import {telegramRequest} from './telegramRequest.ts';
 
 export const TELEGRAM_API = 'https://api.telegram.org';
 
@@ -35,16 +36,7 @@ export function safeEqual(a: string | null, b: string): boolean {
 }
 
 export async function telegramApi(method: string, body: unknown): Promise<{ ok: boolean; result?: any; description?: string }> {
-  const res = await fetch(`${TELEGRAM_API}/bot${botToken()}/${method}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body ?? {}),
-  });
-  const parsed = await res.json().catch(() => ({}));
-  if (!res.ok || parsed?.ok !== true) {
-    return { ok: false, description: String(parsed?.description ?? `HTTP ${res.status}`) };
-  }
-  return { ok: true, result: parsed.result };
+  return telegramRequest(`${TELEGRAM_API}/bot${botToken()}/${method}`,body);
 }
 
 export interface SendParams {

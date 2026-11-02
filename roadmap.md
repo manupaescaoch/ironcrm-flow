@@ -1,5 +1,14 @@
 # Roadmap
 
+## Falha de tempo excedido na página Telegram
+- [x] Limitar chamadas externas sem repetir envios e tratar falhas de carregamento na tela.
+- [x] Quatro testes passaram; página autenticada permanece visível sob 504 simulado e conexão real confirmou Conectado sem erros; implantados health/admin/send.
+
+## FC-2A — experimentais operacionais somente analíticos
+- [x] Validar fontes e ciclos; false histórico é padrão, falta conclusiva exige resposta por slot e ambiguidades ficam em revisão.
+- [x] Adicionar objeto operacional independente com contagens, revisão, pendências e taxa conservadora; preservar os 13 campos antigos.
+- [x] Executar 58 testes e SQL independente de outubro/novembro, analisar os 71 pendentes antigos, implantar somente resumo e entregar relatório; 13 campos idênticos, taxa indisponível por revisão.
+
 ## FC-1 — segurança e clareza do resumo comercial
 - [x] Proteger motivos livres somente na resposta e preservar todos os cálculos existentes.
 - [x] Validar marco técnico e fechamentos explícitos; adicionar metadados/indicador separado, sem mudanças de dados.

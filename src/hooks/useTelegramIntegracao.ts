@@ -86,7 +86,7 @@ export function useTelegramIntegracao() {
   const loadHealth = useCallback(async (): Promise<TelegramHealth | null> => {
     setChecking(true);
     try {
-      const { data, error } = await supabase.functions.invoke<TelegramHealth>('telegram-health');
+      const { data, error } = await supabase.functions.invoke<TelegramHealth>('telegram-health', { timeout: 20000 });
       if (error) throw error;
       setHealth(data ?? null);
       const { data: row } = await supabase
@@ -97,7 +97,7 @@ export function useTelegramIntegracao() {
       setConnectedAt(row?.connected_at ?? null);
       return data ?? null;
     } catch {
-      setHealth((prev) => prev ?? { status: 'erro', configured: false, checkedAt: new Date().toISOString(), bot: null });
+      setHealth((prev) => ({ status: 'erro', configured: prev?.configured ?? false, checkedAt: new Date().toISOString(), bot: prev?.bot ?? null, detail: 'Não foi possível verificar o Telegram. Tente novamente.' }));
       return null;
     } finally {
       setChecking(false);
@@ -114,7 +114,7 @@ export function useTelegramIntegracao() {
         usersRes, linksRes, groupsRes, detectedRes, unidadesRes, unidadesUserRes, logsRes,
         perfisRes, funcionariosRes, funcLinksRes,
       ] = await Promise.all([
-        supabase.functions.invoke('list-users', headers ? { headers } : undefined),
+        supabase.functions.invoke('list-users', { timeout: 20000, ...(headers ? { headers } : {}) }),
         supabase.from('telegram_users').select('*'),
         supabase.from('telegram_groups').select('*').order('name'),
         supabase.from('telegram_detected_chats').select('*').order('last_seen_at', { ascending: false }),
@@ -211,6 +211,8 @@ export function useTelegramIntegracao() {
       })) as TelegramGroupRow[]);
       setDetected((detectedRes.data ?? []) as DetectedChat[]);
       setFalhas24h(logsRes.count ?? 0);
+    } catch {
+      // Preserve loaded rows and settle loading even when an invocation rejects.
     } finally {
       setLoading(false);
     }
@@ -219,10 +221,14 @@ export function useTelegramIntegracao() {
   const callAdmin = useCallback(async (payload: Record<string, unknown>) => {
     const headers = await authHeaders();
     const { data, error } = await supabase.functions.invoke('telegram-admin', {
+      timeout: 30000,
       body: payload,
       ...(headers ? { headers } : {}),
     });
     if (error) {
+      if (/504|timeout|timed out|abort/i.test(error.message)) {
+        throw new Error('O Telegram demorou para responder. Confira se a ação foi realizada antes de tentar novamente.');
+      }
       let details = error.message;
       try {
         const ctx = (error as any).context;

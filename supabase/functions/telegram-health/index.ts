@@ -2,6 +2,7 @@
 // Restrito a admins. O TELEGRAM_BOT_TOKEN nunca é retornado ao cliente.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {telegramRequest} from '../_shared/telegramRequest.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -52,13 +53,12 @@ Deno.serve(async (req) => {
     let bot: { id?: number; first_name?: string; username?: string } = {};
     let detail = '';
     try {
-      const res = await fetch(`https://api.telegram.org/bot${token}/getMe`);
-      const body = await res.json().catch(() => ({}));
-      ok = res.ok && body?.ok === true;
+      const body = await telegramRequest(`https://api.telegram.org/bot${token}/getMe`,{});
+      ok = body.ok === true;
       if (ok) bot = body.result ?? {};
-      else detail = String(body?.description ?? res.status);
+      else detail = body.description ?? 'Telegram indisponível temporariamente';
     } catch (e) {
-      detail = e instanceof Error ? e.message : 'falha de rede';
+      detail = 'Telegram indisponível temporariamente';
     }
 
     const now = new Date().toISOString();
