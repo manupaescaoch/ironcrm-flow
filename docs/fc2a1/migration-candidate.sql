@@ -58,6 +58,7 @@ CREATE TABLE public.experimental_ciclo_avisos (
 );
 GRANT ALL ON public.experimental_ciclo_avisos TO service_role;
 ALTER TABLE public.experimental_ciclo_avisos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ops_notificacoes ADD COLUMN experimental_ciclo_id uuid REFERENCES public.experimental_ciclos(id);
 
 -- Server-private context: PID/transaction are not secrets; privileges are the boundary.
 CREATE TABLE public.experimental_ciclo_contexto (
@@ -192,7 +193,7 @@ BEGIN
   SELECT * INTO cfg FROM public.experimental_ciclos_config WHERE unidade_id=c.unidade_id;
   IF cfg.avisos_ativos AND cfg.recepcao_usuario_id IS NOT NULL AND EXISTS(SELECT 1 FROM public.user_unidades WHERE user_id=cfg.recepcao_usuario_id AND unidade_id=c.unidade_id) AND EXISTS(SELECT 1 FROM public.cronograma_funcionarios WHERE user_id=cfg.recepcao_usuario_id AND unidade_id=c.unidade_id AND ativo AND lower(setor) IN ('recepcao','recepção')) THEN
    SELECT notificacao_id INTO n FROM public.experimental_ciclo_avisos WHERE ciclo_id=c.id FOR UPDATE;
-   IF n IS NULL THEN INSERT INTO public.ops_notificacoes(usuario_id,tipo,titulo,mensagem) VALUES(cfg.recepcao_usuario_id,'experimental_reagendamento','Experimental: reagendamento necessário','Não comparecimento explicitamente confirmado. Consulte o agendamento da sua unidade.') RETURNING id INTO n;
+   IF n IS NULL THEN INSERT INTO public.ops_notificacoes(usuario_id,tipo,titulo,mensagem,experimental_ciclo_id) VALUES(cfg.recepcao_usuario_id,'experimental_reagendamento','Experimental: reagendamento necessário','Não comparecimento explicitamente confirmado. Aula '||to_char(c.data_aula,'DD/MM/YYYY')||' às '||to_char(c.hora_aula,'HH24:MI')||'. Consulte o agendamento da sua unidade.',c.id) RETURNING id INTO n;
     UPDATE public.experimental_ciclo_avisos SET usuario_id=cfg.recepcao_usuario_id,notificacao_id=n,estado='registrado' WHERE ciclo_id=c.id;
    END IF;
   END IF;
