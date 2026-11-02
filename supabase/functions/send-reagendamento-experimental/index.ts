@@ -25,7 +25,7 @@ export async function handleReagendamento(req: Request) {
     else query = query.eq('lead_id', lead.id).eq('unidade_id', lead.unidade_id).eq('agendou_experimental', true)
       .eq('data_experimental', lead.data_aula_experimental ?? '').eq('hora_experimental', lead.hora_aula_experimental ?? '').order('created_at', { ascending: false }).limit(1);
     const { data: interaction, error: interactionError } = await query.maybeSingle();
-    if (interactionError) throw new FollowUpError(404, 'Experimental indisponível');
+    if (interactionError || !interaction) throw new FollowUpError(404, 'Experimental indisponível');
     const key = validateExperimental(lead, interaction, scope);
     const { data: unit, error: unitError } = await admin.from('unidades').select('nome').eq('id', lead.unidade_id).maybeSingle();
     if (unitError || !unit?.nome) throw new FollowUpError(404, 'Unidade indisponível');

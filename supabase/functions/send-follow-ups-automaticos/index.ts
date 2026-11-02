@@ -89,18 +89,10 @@ Se quiser, já posso te ajudar a agendar sua avaliação por aqui.`,
 
 const FUNC = 'send-follow-ups-automaticos';
 
-Deno.serve(async (req) => {
+export async function handleFollowUps(req: Request) {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const creds = getZapiCreds('comercial');
-    if (!creds) {
-      return new Response(
-        JSON.stringify({ error: 'ZAPI credentials not configured' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
-    }
-
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -111,6 +103,15 @@ Deno.serve(async (req) => {
     if (!parsed.success) throw new FollowUpError(400, 'Solicitação inválida');
     const body = parsed.data;
     const scope = await authorizeFollowUp(req, 'send', body.unidade_id);
+    const creds = getZapiCreds('comercial');
+    if (!creds) {
+      return new Response(
+        JSON.stringify({ error: 'ZAPI credentials not configured' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
+
     const dryRun = body.dry_run === true;
     const force = body.force === true;
     const manual = !scope.automatic;
@@ -285,7 +286,8 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: err instanceof FollowUpError ? err.status : err instanceof SyntaxError ? 400 : 500 }
     );
   }
-});
+}
+if (import.meta.main) Deno.serve(handleFollowUps);
 
 interface ProcessOptions {
   dryRun: boolean;

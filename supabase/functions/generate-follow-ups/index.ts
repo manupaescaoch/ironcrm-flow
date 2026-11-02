@@ -16,7 +16,7 @@ const BodySchema = z
   .strict();
 
 
-Deno.serve(async (req) => {
+export async function handleGenerateFollowUps(req: Request) {
   // Handle CORS preflight requests (no auth on OPTIONS)
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -179,4 +179,5 @@ Deno.serve(async (req) => {
       }
     );
   }
-});
+}
+if (import.meta.main) Deno.serve(handleGenerateFollowUps);
