@@ -9,7 +9,7 @@ ALTER TABLE public.tasks
  ADD COLUMN fu_matriculados_confirmado_por uuid,
  ADD COLUMN fu_matriculados_confirmado_nome text;
 CREATE UNIQUE INDEX tasks_fu_matriculados_ciclo ON public.tasks(fu_matriculados_matricula_id) WHERE fu_matriculados_matricula_id IS NOT NULL;
-CREATE FUNCTION public.fu_matriculados_inicio() RETURNS timestamptz LANGUAGE sql IMMUTABLE AS $$ SELECT '2026-11-02T11:20:00Z'::timestamptz $$;
+CREATE FUNCTION public.fu_matriculados_inicio() RETURNS timestamptz LANGUAGE sql IMMUTABLE AS $$ SELECT '2026-11-02T11:18:39Z'::timestamptz $$;
 REVOKE ALL ON FUNCTION public.fu_matriculados_inicio() FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.fu_matriculados_inicio() TO authenticated,service_role;
 CREATE FUNCTION public.fu_matriculados_proteger() RETURNS trigger LANGUAGE plpgsql SET search_path=public,pg_temp AS $$
