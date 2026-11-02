@@ -5322,6 +5322,22 @@ export type Database = {
           created_at: string
           created_by: string | null
           descricao: string | null
+          fu_gerencial_concluido_em: string | null
+          fu_gerencial_confirmado_em: string | null
+          fu_gerencial_confirmado_nome: string | null
+          fu_gerencial_confirmado_por: string | null
+          fu_gerencial_confirmado_telegram_id: number | null
+          fu_gerencial_contexto: Json | null
+          fu_gerencial_envio_dia: string | null
+          fu_gerencial_envio_erro: string | null
+          fu_gerencial_envio_status: string | null
+          fu_gerencial_etapa: string | null
+          fu_gerencial_lead_id: string | null
+          fu_gerencial_matricula_id: string | null
+          fu_gerencial_registro: Json | null
+          fu_gerencial_status: string | null
+          fu_gerencial_telegram_chat_id: number | null
+          fu_gerencial_telegram_message_id: number | null
           fu_tecnico_confirmado_em: string | null
           fu_tecnico_confirmado_nome: string | null
           fu_tecnico_confirmado_por: string | null
@@ -5357,6 +5373,22 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          fu_gerencial_concluido_em?: string | null
+          fu_gerencial_confirmado_em?: string | null
+          fu_gerencial_confirmado_nome?: string | null
+          fu_gerencial_confirmado_por?: string | null
+          fu_gerencial_confirmado_telegram_id?: number | null
+          fu_gerencial_contexto?: Json | null
+          fu_gerencial_envio_dia?: string | null
+          fu_gerencial_envio_erro?: string | null
+          fu_gerencial_envio_status?: string | null
+          fu_gerencial_etapa?: string | null
+          fu_gerencial_lead_id?: string | null
+          fu_gerencial_matricula_id?: string | null
+          fu_gerencial_registro?: Json | null
+          fu_gerencial_status?: string | null
+          fu_gerencial_telegram_chat_id?: number | null
+          fu_gerencial_telegram_message_id?: number | null
           fu_tecnico_confirmado_em?: string | null
           fu_tecnico_confirmado_nome?: string | null
           fu_tecnico_confirmado_por?: string | null
@@ -5392,6 +5424,22 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          fu_gerencial_concluido_em?: string | null
+          fu_gerencial_confirmado_em?: string | null
+          fu_gerencial_confirmado_nome?: string | null
+          fu_gerencial_confirmado_por?: string | null
+          fu_gerencial_confirmado_telegram_id?: number | null
+          fu_gerencial_contexto?: Json | null
+          fu_gerencial_envio_dia?: string | null
+          fu_gerencial_envio_erro?: string | null
+          fu_gerencial_envio_status?: string | null
+          fu_gerencial_etapa?: string | null
+          fu_gerencial_lead_id?: string | null
+          fu_gerencial_matricula_id?: string | null
+          fu_gerencial_registro?: Json | null
+          fu_gerencial_status?: string | null
+          fu_gerencial_telegram_chat_id?: number | null
+          fu_gerencial_telegram_message_id?: number | null
           fu_tecnico_confirmado_em?: string | null
           fu_tecnico_confirmado_nome?: string | null
           fu_tecnico_confirmado_por?: string | null
@@ -5422,6 +5470,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_fu_gerencial_lead_id_fkey"
+            columns: ["fu_gerencial_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_fu_gerencial_matricula_id_fkey"
+            columns: ["fu_gerencial_matricula_id"]
+            isOneToOne: false
+            referencedRelation: "interacoes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_fu_tecnico_lead_id_fkey"
             columns: ["fu_tecnico_lead_id"]
@@ -6410,6 +6472,24 @@ export type Database = {
         Args: { p_date: string; p_days: number }
         Returns: string
       }
+      fu_gerencial_claim: {
+        Args: { p_dia: string; p_task: string }
+        Returns: boolean
+      }
+      fu_gerencial_confirmar_envio: {
+        Args: {
+          p_chat: number
+          p_message: number
+          p_task: string
+          p_telegram_user: number
+        }
+        Returns: Json
+      }
+      fu_gerencial_contexto: {
+        Args: { p_agora?: string; p_task: string }
+        Returns: Json
+      }
+      fu_gerencial_inicio: { Args: never; Returns: string }
       fu_next_weekday: { Args: { p_date: string }; Returns: string }
       fu_tecnico_claim: {
         Args: { p_dia: string; p_task: string }
