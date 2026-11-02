@@ -58,7 +58,7 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
   const [confirmDoneModalOpen, setConfirmDoneModalOpen] = useState(false);
   const [notInterestedModalOpen, setNotInterestedModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<EventoItem | null>(null);
-  const [selectedReason, setSelectedReason] = useState('preco');
+  const [selectedReason, setSelectedReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [completedFollowUps, setCompletedFollowUps] = useState<CompletedFollowUp[]>([]);
@@ -196,12 +196,13 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
 
   const handleNotInterested = (item: EventoItem) => {
     setSelectedItem(item);
-    setSelectedReason('preco');
+    setSelectedReason('');
     setNotInterestedModalOpen(true);
   };
 
   const handleConfirmNotInterested = async () => {
-    if (!selectedItem) return;
+    const reasonLabel = NOT_INTERESTED_REASONS.find(r => r.value === selectedReason)?.label;
+    if (!selectedItem || !reasonLabel) return;
     
     setLoading(true);
     try {
@@ -210,13 +211,13 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
         .from('leads')
         .update({
           status_funil: 'perdido',
+          motivo_perda: reasonLabel,
         })
         .eq('id', selectedItem.lead.id);
 
       if (leadError) throw leadError;
 
       // Create interaction record
-      const reasonLabel = NOT_INTERESTED_REASONS.find(r => r.value === selectedReason)?.label || 'Outro';
       const { error: interacaoError } = await supabase
         .from('interacoes')
         .insert({
@@ -526,7 +527,7 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-muted-foreground mb-4">
-              Selecione o motivo (opcional):
+              Selecione o motivo:
             </p>
             <RadioGroup value={selectedReason} onValueChange={setSelectedReason}>
               {NOT_INTERESTED_REASONS.map((reason) => (
@@ -544,7 +545,7 @@ export function FollowUpCard({ items, onRefresh }: FollowUpCardProps) {
             <Button 
               variant="destructive" 
               onClick={handleConfirmNotInterested} 
-              disabled={loading}
+              disabled={loading || !selectedReason}
             >
               Confirmar
             </Button>

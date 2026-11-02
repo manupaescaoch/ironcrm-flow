@@ -98,7 +98,7 @@ export function AutoFollowUpCard({ items, onRefresh, tipoFilter, onClearFilter }
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [notInterestedModalOpen, setNotInterestedModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<FollowUpAutoItem | null>(null);
-  const [selectedReason, setSelectedReason] = useState('preco');
+  const [selectedReason, setSelectedReason] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Filter items by tipo if filter is set
@@ -185,19 +185,20 @@ export function AutoFollowUpCard({ items, onRefresh, tipoFilter, onClearFilter }
 
   const handleNotInterested = (item: FollowUpAutoItem) => {
     setSelectedItem(item);
-    setSelectedReason('preco');
+    setSelectedReason('');
     setNotInterestedModalOpen(true);
   };
 
   const handleConfirmNotInterested = async () => {
-    if (!selectedItem) return;
+    const reasonLabel = NOT_INTERESTED_REASONS.find(r => r.value === selectedReason)?.label;
+    if (!selectedItem || !reasonLabel) return;
     
     setLoading(true);
     try {
       // Atualizar status do lead
       const { error: leadError } = await supabase
         .from('leads')
-        .update({ status_funil: 'perdido' })
+        .update({ status_funil: 'perdido', motivo_perda: reasonLabel })
         .eq('id', selectedItem.lead_id);
 
       if (leadError) throw leadError;
@@ -210,7 +211,6 @@ export function AutoFollowUpCard({ items, onRefresh, tipoFilter, onClearFilter }
         .eq('status', 'pendente');
 
       // Criar interação de encerramento
-      const reasonLabel = NOT_INTERESTED_REASONS.find(r => r.value === selectedReason)?.label || 'Outro';
       await supabase
         .from('interacoes')
         .insert({
@@ -473,7 +473,7 @@ export function AutoFollowUpCard({ items, onRefresh, tipoFilter, onClearFilter }
             <Button 
               variant="destructive" 
               onClick={handleConfirmNotInterested} 
-              disabled={loading}
+              disabled={loading || !selectedReason}
             >
               Confirmar
             </Button>

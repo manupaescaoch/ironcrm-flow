@@ -76,7 +76,7 @@ export function UnifiedFollowUpCard({ items, onRefresh, tipoFilter, onClearFilte
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [notInterestedModalOpen, setNotInterestedModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<FollowUpAutoItem | null>(null);
-  const [selectedReason, setSelectedReason] = useState('preco');
+  const [selectedReason, setSelectedReason] = useState('');
   const [loading, setLoading] = useState(false);
 
   const filteredItems = tipoFilter 
@@ -178,18 +178,19 @@ export function UnifiedFollowUpCard({ items, onRefresh, tipoFilter, onClearFilte
 
   const handleNotInterested = (item: FollowUpAutoItem) => {
     setSelectedItem(item);
-    setSelectedReason('preco');
+    setSelectedReason('');
     setNotInterestedModalOpen(true);
   };
 
   const handleConfirmNotInterested = async () => {
-    if (!selectedItem) return;
+    const reasonLabel = NOT_INTERESTED_REASONS.find(r => r.value === selectedReason)?.label;
+    if (!selectedItem || !reasonLabel) return;
     
     setLoading(true);
     try {
       const { error: leadError } = await supabase
         .from('leads')
-        .update({ status_funil: 'perdido' })
+        .update({ status_funil: 'perdido', motivo_perda: reasonLabel })
         .eq('id', selectedItem.lead_id);
 
       if (leadError) throw leadError;
@@ -200,7 +201,6 @@ export function UnifiedFollowUpCard({ items, onRefresh, tipoFilter, onClearFilte
         .eq('lead_id', selectedItem.lead_id)
         .eq('status', 'pendente');
 
-      const reasonLabel = NOT_INTERESTED_REASONS.find(r => r.value === selectedReason)?.label || 'Outro';
       await supabase
         .from('interacoes')
         .insert({
@@ -467,7 +467,7 @@ export function UnifiedFollowUpCard({ items, onRefresh, tipoFilter, onClearFilte
             <Button 
               variant="destructive" 
               onClick={handleConfirmNotInterested} 
-              disabled={loading}
+              disabled={loading || !selectedReason}
             >
               Confirmar
             </Button>
