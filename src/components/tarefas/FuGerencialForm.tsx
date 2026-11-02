@@ -35,7 +35,7 @@ export function FuGerencialForm({ task, status, registro, onStatus, onRegistro }
       setAluno(leadResult.data);
       
       setAnteriores((historyResult.data ?? []).map(t => ({ titulo: t.titulo, status: t.fu_gerencial_status, registro: t.fu_gerencial_registro })));
-      if (leadResult.data) setMensagem(mensagemGerencial(leadResult.data.nome, unidadeAtual.nome, task.responsavel));
+      if (leadResult.data) setMensagem(mensagemGerencial(leadResult.data.nome, unidadeAtual.nome, task.responsavel, task.fu_gerencial_etapa ?? 'M+30'));
     })();
     return () => { alive = false; };
   }, [task.id, task.fu_gerencial_lead_id, task.fu_gerencial_matricula_id, task.fu_gerencial_etapa, task.responsavel, unidadeAtual]);
