@@ -160,20 +160,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.fu_gerencial_confirmar_envio(uuid,bigint,bigint,bigint) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.fu_gerencial_confirmar_envio(uuid,bigint,bigint,bigint) TO service_role;
 
-CREATE OR REPLACE FUNCTION public.fu_gerencial_claim(p_task uuid,p_dia date) RETURNS boolean
-LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
-DECLARE c jsonb;
-BEGIN
- PERFORM 1 FROM public.tasks WHERE id=p_task FOR UPDATE;
- c:=public.fu_gerencial_contexto(p_task,(p_dia+time '08:00') AT TIME ZONE 'America/Recife');
- IF (c->>'elegivel')::boolean IS DISTINCT FROM true OR (c->>'objetivo_realizado')::boolean OR (c->>'adiar_ate')::date>p_dia THEN RETURN false; END IF;
- UPDATE public.tasks t SET fu_gerencial_envio_dia=p_dia,fu_gerencial_envio_status='reservado',fu_gerencial_envio_erro=NULL
- WHERE t.id=p_task AND t.fu_gerencial_confirmado_em IS NULL AND t.fu_gerencial_status IN ('pendente','em_andamento') AND t.prazo<=p_dia AND extract(isodow FROM p_dia)<6 AND (t.fu_gerencial_envio_dia IS NULL OR t.fu_gerencial_envio_dia<p_dia)
- AND EXISTS (SELECT 1 FROM public.leads l JOIN public.interacoes i ON i.id=t.fu_gerencial_matricula_id WHERE l.id=t.fu_gerencial_lead_id AND l.unidade_id=t.unidade_id AND l.ativo=true AND l.is_matriculado=true AND l.status_funil<>'perdido' AND i.fechou_matricula=true AND i.cancelado IS DISTINCT FROM true);
- RETURN FOUND;
-END $$;
-REVOKE ALL ON FUNCTION public.fu_gerencial_claim(uuid,date) FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.fu_gerencial_claim(uuid,date) TO service_role;
 REVOKE ALL ON FUNCTION public.fu_gerencial_validar_tarefa(),public.fu_gerencial_nova_matricula(),public.fu_gerencial_sincronizar_aluno() FROM PUBLIC,anon,authenticated;
 
 CREATE FUNCTION public.fu_gerencial_contexto(p_task uuid,p_agora timestamptz DEFAULT now()) RETURNS jsonb
@@ -216,3 +202,17 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.fu_gerencial_contexto(uuid,timestamptz) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.fu_gerencial_contexto(uuid,timestamptz) TO service_role;
+CREATE OR REPLACE FUNCTION public.fu_gerencial_claim(p_task uuid,p_dia date) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE c jsonb;
+BEGIN
+ PERFORM 1 FROM public.tasks WHERE id=p_task FOR UPDATE;
+ c:=public.fu_gerencial_contexto(p_task,(p_dia+time '08:00') AT TIME ZONE 'America/Recife');
+ IF (c->>'elegivel')::boolean IS DISTINCT FROM true OR (c->>'objetivo_realizado')::boolean OR (c->>'adiar_ate')::date>p_dia THEN RETURN false; END IF;
+ UPDATE public.tasks t SET fu_gerencial_envio_dia=p_dia,fu_gerencial_envio_status='reservado',fu_gerencial_envio_erro=NULL
+ WHERE t.id=p_task AND t.fu_gerencial_confirmado_em IS NULL AND t.fu_gerencial_status IN ('pendente','em_andamento') AND t.prazo<=p_dia AND extract(isodow FROM p_dia)<6 AND (t.fu_gerencial_envio_dia IS NULL OR t.fu_gerencial_envio_dia<p_dia)
+ AND EXISTS (SELECT 1 FROM public.leads l JOIN public.interacoes i ON i.id=t.fu_gerencial_matricula_id WHERE l.id=t.fu_gerencial_lead_id AND l.unidade_id=t.unidade_id AND l.ativo=true AND l.is_matriculado=true AND l.status_funil<>'perdido' AND i.fechou_matricula=true AND i.cancelado IS DISTINCT FROM true);
+ RETURN FOUND;
+END $$;
+REVOKE ALL ON FUNCTION public.fu_gerencial_claim(uuid,date) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.fu_gerencial_claim(uuid,date) TO service_role;
