@@ -29,6 +29,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Lead, Interacao, StatusFunil, PlanoEscolhido, StatusAvaliacao, StatusTaxaExperimental } from '@/types/database';
 import { StatusTaxaSelect } from '@/components/lead/StatusTaxaExperimental';
@@ -308,12 +309,12 @@ export default function LeadDetail() {
     } as Record<string, any>;
 
 
-    const changedFields: Record<string, any> = {};
+    const changedFields: Database['public']['Tables']['leads']['Update'] = {};
     if (originalLead) {
       for (const key of Object.keys(candidateFields)) {
         const oldVal = (originalLead as any)[key] ?? null;
         const newVal = candidateFields[key] ?? null;
-        if (oldVal !== newVal) changedFields[key] = candidateFields[key];
+        if (oldVal !== newVal) Object.assign(changedFields, { [key]: candidateFields[key] });
       }
     } else {
       Object.assign(changedFields, candidateFields);
@@ -512,7 +513,7 @@ export default function LeadDetail() {
     // pois o trigger sync_hora_experimental_from_lead puxa o horário do lead e sobrescreveria
     // o valor da interação caso o lead esteja desatualizado.
     if (agendouExperimental && (formData.data_experimental || formData.hora_experimental)) {
-      const leadSyncPayload: Record<string, any> = {};
+      const leadSyncPayload: Database['public']['Tables']['leads']['Update'] = {};
       if (formData.data_experimental && formData.data_experimental !== lead?.data_aula_experimental) {
         leadSyncPayload.data_aula_experimental = formData.data_experimental;
       }
