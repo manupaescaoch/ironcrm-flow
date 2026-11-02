@@ -23,3 +23,6 @@
 
 - Follow-up send/generation/rebooking endpoints use operation-specific server roles and unit scopes independently of body flags; only verified cron secrets or the exact server service credential select automation, preserving legitimate schedulers without user bypass.
 - REAG preserves the legacy lead/type unique constraint and stores an append-only experimental-slot event ledger on the existing follow-up; service-only atomic reservation/result RPCs gate sending and keep ambiguous attempts blocked without altering D+/M+/G+ callers.
+
+- Central contact control uses a minimal execution ledger while reading legacy interactions/FU confirmations in place; stable lead UUID owns spacing across transfers and enrollment UUID scopes objectives, so phones never merge people and original unit evidence remains intact.
+- Central policy defaults to observation per flow/unit and requires explicit approved service-side activation; automatic provider sends reserve atomically by lead, manual confirmations are captured transactionally, and Telegram reminders only observe candidates, so internal notices never masquerade as student contacts.
