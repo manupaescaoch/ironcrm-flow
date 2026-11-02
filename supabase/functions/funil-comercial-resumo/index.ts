@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders as sdkCorsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { aggregateExperimentals,countGroups,recifeDay,recifeStart,validDay,type SummaryLead } from './regras.ts';
+import { safeLossGroups,countRecordedClosings,coverage,indicatorDefinitions,unitCriterion } from './apresentacao.ts';
 
 const headers={...sdkCorsHeaders,'Access-Control-Allow-Headers':`${sdkCorsHeaders['Access-Control-Allow-Headers']}, x-funil-token`,'Access-Control-Allow-Methods':'POST, OPTIONS'};
 const response=(body:unknown,status=200)=>Response.json(body,{status,headers});
@@ -23,16 +24,17 @@ export async function handleResumo(req:Request,admin:any,now=new Date()) {
    for(let offset=0;;offset+=1000){const {data,error}=await build().order('id').range(offset,offset+999);if(error)throw error;rows.push(...(data??[]));if((data?.length??0)<1000)break;}
    return rows;
   }
-  const [experimental,registered,losses,conversions,unitResult]=await Promise.all([
+  const [experimental,registered,losses,conversions,unitResult,closings]=await Promise.all([
    load(()=>admin.from('leads').select('id,telefone_normalizado,status_funil,data_aula_experimental,unidade_id').gte('data_aula_experimental',start).lt('data_aula_experimental',end)),
    load(()=>admin.from('leads').select('id,origem').gte('created_at',start).lt('created_at',end)),
    load(()=>admin.from('leads').select('id,motivo_perda').gte('data_perda',start).lt('data_perda',end)),
    admin.from('leads').select('id',{count:'exact',head:true}).gte('convertido_em_aluno_at',start).lt('convertido_em_aluno_at',end),
    admin.from('unidades').select('id,nome'),
+   load(()=>admin.from('interacoes').select('id,lead_id').eq('fechou_matricula',true).gte('data_fechamento',inicio).lt('data_fechamento',fim)),
   ]);
   if(conversions.error||unitResult.error)throw new Error('Consulta falhou');
   const units=new Map<string,string>((unitResult.data??[]).map((u:any)=>[u.id,u.nome]));
-  return response({periodo:{inicio,fim},leads_cadastrados:registered.length,...aggregateExperimentals(experimental as SummaryLead[],units,recifeDay(now.toISOString())),matriculas_por_data_conversao:conversions.count??0,por_origem:countGroups(registered,'origem','NÃO INFORMADO').map(([origem,leads_cadastrados])=>({origem,leads_cadastrados})),perdas_por_motivo:countGroups(losses,'motivo_perda','NÃO INFORMADO').map(([motivo,qtd])=>({motivo,qtd}))});
+  return response({periodo:{inicio,fim},leads_cadastrados:registered.length,...aggregateExperimentals(experimental as SummaryLead[],units,recifeDay(now.toISOString())),matriculas_por_data_conversao:conversions.count??0,por_origem:countGroups(registered,'origem','NÃO INFORMADO').map(([origem,leads_cadastrados])=>({origem,leads_cadastrados})),perdas_por_motivo:safeLossGroups(losses),fechamentos_registrados_no_periodo:countRecordedClosings(closings),cobertura_matriculas:coverage,definicoes_indicadores:indicatorDefinitions,criterio_unidades:unitCriterion});
  }catch{return response({error:'Não foi possível obter o resumo'},500);}
 }
 if(import.meta.main) {
