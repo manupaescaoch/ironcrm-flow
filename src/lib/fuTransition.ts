@@ -4,7 +4,7 @@ export interface RosterCandidate {lead_id:string;etapa:string;ciclo_id:string;}
 export async function transitionExclusions(unit: string, family: 'R01'|'G02', candidates: RosterCandidate[]) {
   const exclusions = new Set<string>();
   for(let start=0;start<candidates.length;start+=100) {
-    const {data,error} = await supabase.rpc('fu_transicao_filtrar',{p_unidade:unit,p_familia:family,p_candidatos:candidates.slice(start,start+100)});
+    const {data,error} = await supabase.rpc('fu_transicao_filtrar',{p_unidade:unit,p_familia:family,p_candidatos:candidates.slice(start,start+100).map(c=>({lead_id:c.lead_id,etapa:c.etapa,ciclo_id:c.ciclo_id}))});
     if(error) throw error;
     if(Array.isArray(data)) for(const row of data) {
       if(row && typeof row==='object' && !Array.isArray(row) && typeof row.lead_id==='string' && typeof row.etapa==='string') exclusions.add(`${row.lead_id}|${row.etapa}`);

@@ -188,3 +188,7 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.fu_transicao_geracao_legada() FROM PUBLIC,anon,authenticated;
 CREATE TRIGGER fu_transicao_geracao_legada BEFORE INSERT ON public.follow_ups FOR EACH ROW EXECUTE FUNCTION public.fu_transicao_geracao_legada();
+
+-- Remove any environment-specific inherited/default browser privileges explicitly.
+REVOKE ALL ON public.fu_transicao_config,public.fu_transicao_homologacoes,public.fu_transicao_config_historico,public.fu_transicao_eventos FROM anon,authenticated;
+GRANT SELECT ON public.fu_transicao_eventos TO authenticated;
