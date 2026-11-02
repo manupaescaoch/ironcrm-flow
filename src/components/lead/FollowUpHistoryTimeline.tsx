@@ -181,8 +181,9 @@ export function FollowUpHistoryTimeline({ leadId, lead }: Props) {
       const transitionUnitIds=[...new Set((transitions??[]).map(t=>t.unidade_id))];
       const {data:transitionUnits}=transitionUnitIds.length ? await supabase.from('unidades').select('id,nome').in('id',transitionUnitIds) : {data:[]};
       for(const t of transitions??[]) {
+        const context=t.contexto && typeof t.contexto==='object' && !Array.isArray(t.contexto) ? t.contexto : {};
         list.push({id:`transicao-${t.id}`,data:new Date(t.created_at),tipo:`Legado ${t.familia} ${t.etapa} · ${transitionUnits?.find(u=>u.id===t.unidade_id)?.nome??'Unidade não identificada'}`,status:t.estado,responsavel:'Sistema',isAuto:true,
-          motivo:[t.modo,t.motivo,t.ciclo_id?`Ciclo: ${t.ciclo_id}`:null].filter(Boolean).join(' · ')});
+          motivo:[t.modo,t.motivo,Array.isArray(context.objetivos)?`Objetivos: ${context.objetivos.join(', ')}`:null,context.data_confirmacao?`Matrícula: ${context.data_confirmacao}`:null,t.ciclo_id?`Ciclo: ${t.ciclo_id}`:null].filter(Boolean).join(' · ')});
       }
       list.sort((a, b) => a.data.getTime() - b.data.getTime());
 

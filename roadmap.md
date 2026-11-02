@@ -1,10 +1,10 @@
 # Roadmap
 
 ## FU Fase 2.2B — preparação da transição pós-matrícula
-- [ ] Inventariar legados e matriz de substituição sem mudar Operação ou mensagens.
-- [ ] Implementar configuração de serviço por unidade/família e homologação obrigatória, inicialmente em observação.
-- [ ] Integrar decisão por ciclo e histórico, preservando conversão comercial e registros anteriores.
-- [ ] Testar LEGADO/OBSERVAÇÃO e NOVO isolado, regressões sem envios reais; entregar relatório com limites.
+- [x] Inventariar legados e matriz de substituição sem mudar Operação ou mensagens.
+- [x] Implementar configuração de serviço por unidade/família e homologação obrigatória, inicialmente em observação.
+- [x] Integrar decisão por ciclo e histórico, preservando conversão comercial e registros anteriores.
+- [x] Testar LEGADO/OBSERVAÇÃO e NOVO isolado, regressões sem envios reais; entregar relatório com limites.
 - [ ] Ativar NOVO — depende de homologação e aprovação explícita; fora desta etapa.
 
 ## FU Fase 2.2A — controle de contatos em observação
