@@ -33,7 +33,7 @@ BEGIN
   IF TG_OP='INSERT' THEN RAISE EXCEPTION 'FU gerencial é criado pela matrícula.'; END IF;
   IF NOT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id=auth.uid() AND role::text IN ('admin','gerente')) OR
    NOT (public.has_role(auth.uid(),'admin') OR NEW.unidade_id IN (SELECT public.get_user_unidades(auth.uid()))) THEN
-   RAISE EXCEPTION 'Somente a coordenação ou gestão da unidade pode registrar o FU gerencial.';
+   RAISE EXCEPTION 'Somente o gerente ou administrador da unidade pode registrar o FU gerencial.';
   END IF;
   IF NEW.unidade_id IS DISTINCT FROM OLD.unidade_id OR NEW.fu_gerencial_envio_dia IS DISTINCT FROM OLD.fu_gerencial_envio_dia OR NEW.fu_gerencial_envio_status IS DISTINCT FROM OLD.fu_gerencial_envio_status OR NEW.fu_gerencial_envio_erro IS DISTINCT FROM OLD.fu_gerencial_envio_erro OR NEW.fu_gerencial_contexto IS DISTINCT FROM OLD.fu_gerencial_contexto THEN
    RAISE EXCEPTION 'Unidade e envio são controlados pelo sistema.';
@@ -60,7 +60,7 @@ BEGIN
  IF TG_OP='UPDATE' AND (NEW.fu_gerencial_status IS DISTINCT FROM OLD.fu_gerencial_status OR NEW.fu_gerencial_registro IS DISTINCT FROM OLD.fu_gerencial_registro OR NEW.unidade_id IS DISTINCT FROM OLD.unidade_id) THEN
   v_user:=coalesce(NEW.fu_gerencial_registro->>'gerente','SISTEMA');
   INSERT INTO public.task_history(task_id,user_id,user_name,campo,valor_anterior,valor_novo)
-   VALUES(NEW.id,auth.uid(),coalesce(v_user,'SISTEMA'),'acompanhamento_tecnico',jsonb_build_object('status',OLD.fu_gerencial_status,'registro',OLD.fu_gerencial_registro,'unidade',OLD.unidade_id)::text,jsonb_build_object('status',NEW.fu_gerencial_status,'registro',NEW.fu_gerencial_registro,'unidade',NEW.unidade_id)::text);
+   VALUES(NEW.id,auth.uid(),coalesce(v_user,'SISTEMA'),'acompanhamento_gerencial',jsonb_build_object('status',OLD.fu_gerencial_status,'registro',OLD.fu_gerencial_registro,'unidade',OLD.unidade_id)::text,jsonb_build_object('status',NEW.fu_gerencial_status,'registro',NEW.fu_gerencial_registro,'unidade',NEW.unidade_id)::text);
  END IF;
  RETURN NEW;
 END $$;
@@ -74,7 +74,7 @@ BEGIN
   UPDATE public.tasks SET fu_gerencial_status='cancelado',fu_gerencial_envio_erro='Matrícula cancelada' WHERE fu_gerencial_matricula_id=NEW.id AND fu_gerencial_status IN ('pendente','em_andamento');
  END IF;
  IF NEW.fechou_matricula IS DISTINCT FROM true OR NEW.data_fechamento IS NULL OR NEW.cancelado=true OR NEW.created_at < public.fu_gerencial_inicio() OR NEW.data_fechamento < (public.fu_gerencial_inicio() AT TIME ZONE 'America/Recife')::date THEN RETURN NEW; END IF;
- IF TG_OP='UPDATE' AND OLD.fechou_matricula=true THEN RETURN NEW; END IF;
+ IF TG_OP='UPDATE' AND OLD.fechou_matricula=true AND OLD.data_fechamento IS NOT NULL THEN RETURN NEW; END IF;
  SELECT * INTO l FROM public.leads WHERE id=NEW.lead_id;
  IF l.ativo IS DISTINCT FROM true OR l.unidade_id IS NULL THEN RETURN NEW; END IF;
  UPDATE public.tasks SET fu_gerencial_status='cancelado',fu_gerencial_envio_erro='Novo ciclo de matrícula' WHERE fu_gerencial_lead_id=l.id AND fu_gerencial_matricula_id<>NEW.id AND fu_gerencial_status IN ('pendente','em_andamento');
@@ -89,7 +89,7 @@ BEGIN
  RETURN NEW;
 END $$;
 -- Trigger-generated inserts bypass only the technical INSERT prohibition via trigger depth.
-CREATE TRIGGER fu_gerencial_matricula AFTER INSERT OR UPDATE OF fechou_matricula,cancelado ON public.interacoes FOR EACH ROW EXECUTE FUNCTION public.fu_gerencial_nova_matricula();
+CREATE TRIGGER fu_gerencial_matricula AFTER INSERT OR UPDATE OF fechou_matricula,cancelado,data_fechamento ON public.interacoes FOR EACH ROW EXECUTE FUNCTION public.fu_gerencial_nova_matricula();
 
 CREATE OR REPLACE FUNCTION public.fu_gerencial_sincronizar_aluno() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
@@ -168,3 +168,45 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.fu_gerencial_claim(uuid,date) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.fu_gerencial_claim(uuid,date) TO service_role;
+REVOKE ALL ON FUNCTION public.fu_gerencial_validar_tarefa(),public.fu_gerencial_nova_matricula(),public.fu_gerencial_sincronizar_aluno() FROM PUBLIC,anon,authenticated;
+
+CREATE FUNCTION public.fu_gerencial_contexto(p_task uuid,p_agora timestamptz DEFAULT now()) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE t public.tasks; l public.leads; i public.interacoes; v_unit text; v_last timestamptz; v_until timestamptz;
+ v_day date:=(p_agora AT TIME ZONE 'America/Recife')::date; v_avisos text[]:=ARRAY[]::text[]; v_motivo text; v_done boolean;
+BEGIN
+ SELECT * INTO t FROM public.tasks WHERE id=p_task;
+ SELECT * INTO l FROM public.leads WHERE id=t.fu_gerencial_lead_id;
+ SELECT * INTO i FROM public.interacoes WHERE id=t.fu_gerencial_matricula_id;
+ IF t.fu_gerencial_etapa IS NULL OR l.ativo IS DISTINCT FROM true OR l.is_matriculado IS DISTINCT FROM true OR l.unidade_id IS DISTINCT FROM t.unidade_id OR l.status_funil='perdido' OR i.fechou_matricula IS DISTINCT FROM true OR i.cancelado=true OR t.fu_gerencial_status NOT IN ('pendente','em_andamento') THEN RETURN jsonb_build_object('elegivel',false); END IF;
+ SELECT nome INTO v_unit FROM public.unidades WHERE id=t.unidade_id;
+ SELECT EXISTS(SELECT 1 FROM public.follow_ups WHERE lead_id=l.id AND unidade_id=t.unidade_id AND tipo='G+30' AND status='concluido' AND (data_referencia AT TIME ZONE 'America/Recife')::date>=i.data_fechamento) INTO v_done;
+ IF v_done THEN v_avisos:=array_append(v_avisos,'Objetivo já realizado no FU gerencial anterior: conferir o histórico e dispensar este acompanhamento.'); END IF;
+ SELECT max(at) INTO v_last FROM (
+  SELECT created_at AS at FROM public.whatsapp_envios_log WHERE unidade_id=t.unidade_id AND tipo_destino='lead' AND sucesso=true AND public.canonical_phone(destino)=public.canonical_phone(l.telefone)
+  UNION ALL SELECT received_at FROM public.whatsapp_messages WHERE lead_id=l.id AND unidade_id=t.unidade_id AND direction IN ('outbound','out','sent')
+  UNION ALL SELECT concluido_em FROM public.follow_ups WHERE lead_id=l.id AND unidade_id=t.unidade_id AND status='concluido'
+  UNION ALL SELECT greatest(fu_tecnico_confirmado_em, CASE WHEN fu_tecnico_status='concluido' THEN ((fu_tecnico_registro->>'data')::date + time '23:59') AT TIME ZONE 'America/Recife' END) FROM public.tasks WHERE fu_tecnico_lead_id=l.id AND unidade_id=t.unidade_id
+  UNION ALL SELECT greatest(fu_gerencial_confirmado_em,fu_gerencial_concluido_em) FROM public.tasks WHERE fu_gerencial_lead_id=l.id AND unidade_id=t.unidade_id AND id<>t.id AND fu_gerencial_status<>'cancelado'
+  UNION ALL SELECT created_at FROM public.nps_respostas WHERE lead_id=l.id AND unidade_id=t.unidade_id
+ ) contacts WHERE at<=p_agora;
+ IF v_last > p_agora - interval '72 hours' THEN
+  v_until:=v_last + interval '72 hours'; v_motivo:='Contato ou resposta recente: respeitar intervalo mínimo de 72 horas e não repetir perguntas.';
+  v_avisos:=array_append(v_avisos,v_motivo);
+ END IF;
+ IF EXISTS(SELECT 1 FROM public.follow_ups WHERE lead_id=l.id AND unidade_id=t.unidade_id AND status='pendente' AND tipo NOT IN ('G+7','G+30') AND (data_prevista AT TIME ZONE 'America/Recife')::date=v_day)
+ OR EXISTS(SELECT 1 FROM public.tasks WHERE fu_tecnico_lead_id=l.id AND unidade_id=t.unidade_id AND fu_tecnico_status IN ('pendente','em_andamento') AND fu_tecnico_confirmado_em IS NULL AND prazo=v_day) THEN
+  v_until:=greatest(v_until,p_agora + interval '24 hours'); v_motivo:='Outro contato programado no mesmo dia: reagendar somente o FU gerencial.';
+  v_avisos:=array_append(v_avisos,v_motivo);
+ END IF;
+ IF EXISTS(SELECT 1 FROM public.whatsapp_conversations WHERE lead_id=l.id AND unidade_id=t.unidade_id AND status_conversa NOT IN ('concluida','resolvida','fechada','closed')) THEN
+  v_avisos:=array_append(v_avisos,'Conversa em andamento: consultar mensagens antes de iniciar um novo contato.');
+ END IF;
+ IF EXISTS(SELECT 1 FROM public.nps_respostas WHERE lead_id=l.id AND unidade_id=t.unidade_id AND nota_nps<=6 AND status NOT IN ('resolvido','concluido','encerrado')) THEN
+  v_avisos:=array_append(v_avisos,'PRIORIDADE: reclamação ou insatisfação NPS aberta. Tratar a pendência sem repetir perguntas.');
+ END IF;
+ -- Day-only historical contact records are conservatively held until the next weekday after expiry.
+ RETURN jsonb_build_object('elegivel',true,'aluno',l.nome,'telefone',l.telefone,'unidade',v_unit,'objetivo_realizado',v_done,'avisos',to_jsonb(v_avisos),'ultimo_contato',v_last,'motivo',v_motivo,'adiar_ate',CASE WHEN v_until IS NOT NULL THEN public.fu_next_weekday((v_until AT TIME ZONE 'America/Recife')::date+1)::text END);
+END $$;
+REVOKE ALL ON FUNCTION public.fu_gerencial_contexto(uuid,timestamptz) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.fu_gerencial_contexto(uuid,timestamptz) TO service_role;
