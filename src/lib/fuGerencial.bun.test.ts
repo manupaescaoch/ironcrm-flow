@@ -1,4 +1,4 @@
-import { test, expect } from 'bun:test';
+import { mensagemGerencial, test, expect } from 'bun:test';
 import { prazoGerencial, elegivelGerencial, registroGerencialValido, registroGerencialVazio, linkGerencial } from './fuGerencial';
 test('M+30 uses 30 calendar days after enrollment', () => expect(prazoGerencial('2026-11-02')).toBe('2026-12-02'));
 test('Saturday M+30 belongs to following Monday', () => expect(prazoGerencial('2026-10-08')).toBe('2026-11-09'));
@@ -8,4 +8,5 @@ test('cannot generate before 30 days', () => expect(elegivelGerencial('2026-11-0
 test('WhatsApp opening uses CRM phone and encoded editable message', () => expect(linkGerencial('(81) 99999-0000','Oi, Manu!')).toBe('https://wa.me/5581999990000?text=Oi%2C%20Manu!'));
 test('invalid phone has no link', () => expect(linkGerencial('123','Oi')).toBe(null));
 test('completion requires manager and perception', () => expect(registroGerencialValido('concluido',registroGerencialVazio)).toBe(false));
-test('presential completion is independent from WhatsApp confirmation', () => expect(registroGerencialValido('concluido',{...registroGerencialVazio,data:'2026-11-02',gerente:'MANU',percepcao:'ATENDIMENTO PRESENCIAL'})).toBe(true));
+test('presential completion is independent from WhatsApp confirmation', () => expect(registroGerencialValido('concluido',{...registroGerencialVazio,data:'2026-11-02',gerente:'MANU',percepcao:'ATENDIMENTO PRESENCIAL'})).toBe(true));test('M+15 uses approved initial-experience text', () => { const m = mensagemGerencial('ANA SILVA', 'EVO SETÚBAL', 'JOÃO', 'M+15'); expect(m).toContain('primeiras semanas com a gente'); expect(m).toContain('Aqui é João, gerente da EVO Setúbal'); });
+test('M+30 uses approved first-month text by default', () => expect(mensagemGerencial('ANA', 'EVO SETÚBAL')).toContain('estão atendendo às suas expectativas'));
