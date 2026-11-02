@@ -139,3 +139,19 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.fu_transicao_avaliar(jsonb,boolean) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.fu_transicao_avaliar(jsonb,boolean) TO service_role;
+
+-- Read-only frontend gate: never accepts mode/approval or writes observations.
+CREATE FUNCTION public.fu_transicao_filtrar(p_unidade uuid,p_familia text,p_candidatos jsonb) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE c jsonb; d jsonb; output jsonb:='[]';
+BEGIN
+ IF auth.uid() IS NULL OR NOT(public.has_role(auth.uid(),'admin') OR p_unidade IN(SELECT public.get_user_unidades(auth.uid()))) THEN RAISE EXCEPTION 'Unidade não autorizada'; END IF;
+ IF p_familia NOT IN('R01','G02') OR jsonb_typeof(p_candidatos)<>'array' OR jsonb_array_length(p_candidatos)>500 THEN RAISE EXCEPTION 'Lista inválida'; END IF;
+ FOR c IN SELECT value FROM jsonb_array_elements(p_candidatos) LOOP
+  d:=public.fu_transicao_avaliar(jsonb_build_object('familia',p_familia,'etapa',c->>'etapa','lead_id',c->>'lead_id','unidade_id',p_unidade,'ciclo_id',c->>'ciclo_id'),false);
+  IF d->>'suprimir'='true' THEN output:=output||jsonb_build_array(jsonb_build_object('lead_id',c->>'lead_id','etapa',c->>'etapa')); END IF;
+ END LOOP;
+ RETURN output;
+END $$;
+REVOKE ALL ON FUNCTION public.fu_transicao_filtrar(uuid,text,jsonb) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.fu_transicao_filtrar(uuid,text,jsonb) TO authenticated;
