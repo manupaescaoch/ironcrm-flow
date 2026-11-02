@@ -29,8 +29,10 @@ BEGIN
   RAISE EXCEPTION 'Identidade do acompanhamento não pode ser alterada.';
  END IF;
  IF NEW.fu_gerencial_etapa IS NULL THEN RETURN NEW; END IF;
+ IF NEW.fu_tecnico_etapa IS NOT NULL THEN RAISE EXCEPTION 'FU técnico e gerencial têm identidades distintas.'; END IF;
  IF auth.uid() IS NOT NULL AND pg_trigger_depth()=1 THEN
   IF TG_OP='INSERT' THEN RAISE EXCEPTION 'FU gerencial é criado pela matrícula.'; END IF;
+  IF OLD.fu_gerencial_etapa IS NULL THEN RAISE EXCEPTION 'FU gerencial é criado pela matrícula.'; END IF;
   IF NOT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id=auth.uid() AND role::text IN ('admin','gerente')) OR
    NOT (public.has_role(auth.uid(),'admin') OR NEW.unidade_id IN (SELECT public.get_user_unidades(auth.uid()))) THEN
    RAISE EXCEPTION 'Somente o gerente ou administrador da unidade pode registrar o FU gerencial.';
@@ -160,7 +162,11 @@ GRANT EXECUTE ON FUNCTION public.fu_gerencial_confirmar_envio(uuid,bigint,bigint
 
 CREATE OR REPLACE FUNCTION public.fu_gerencial_claim(p_task uuid,p_dia date) RETURNS boolean
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE c jsonb;
 BEGIN
+ PERFORM 1 FROM public.tasks WHERE id=p_task FOR UPDATE;
+ c:=public.fu_gerencial_contexto(p_task,(p_dia+time '08:00') AT TIME ZONE 'America/Recife');
+ IF (c->>'elegivel')::boolean IS DISTINCT FROM true OR (c->>'objetivo_realizado')::boolean OR (c->>'adiar_ate')::date>p_dia THEN RETURN false; END IF;
  UPDATE public.tasks t SET fu_gerencial_envio_dia=p_dia,fu_gerencial_envio_status='reservado',fu_gerencial_envio_erro=NULL
  WHERE t.id=p_task AND t.fu_gerencial_confirmado_em IS NULL AND t.fu_gerencial_status IN ('pendente','em_andamento') AND t.prazo<=p_dia AND extract(isodow FROM p_dia)<6 AND (t.fu_gerencial_envio_dia IS NULL OR t.fu_gerencial_envio_dia<p_dia)
  AND EXISTS (SELECT 1 FROM public.leads l JOIN public.interacoes i ON i.id=t.fu_gerencial_matricula_id WHERE l.id=t.fu_gerencial_lead_id AND l.unidade_id=t.unidade_id AND l.ativo=true AND l.is_matriculado=true AND l.status_funil<>'perdido' AND i.fechou_matricula=true AND i.cancelado IS DISTINCT FROM true);
