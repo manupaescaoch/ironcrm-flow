@@ -1,5 +1,10 @@
 # Roadmap
 
+## FU Fase 2.1 — P01 e P02
+- [ ] Restringir os três endpoints por identidade, perfil e unidade, preservando chamadas legítimas do agendador.
+- [ ] Registrar REAG por experimental antes do envio, com reserva atômica, estado rastreável e bloqueio de tentativas ambíguas.
+- [ ] Validar segurança, banco e regressões isoladas sem mensagens reais; aplicar correções e entregar relatório.
+
 ## FU Matriculados — boas-vindas Comercial
 - [x] Reutilizar matrícula, tarefas e Telegram existentes com geração única e sem retroativos/renovações.
 - [x] Avisar Comercial por unidade e confirmar envio manual com autorização, histórico e edição original.
