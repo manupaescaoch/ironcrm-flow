@@ -1,8 +1,8 @@
 # Roadmap
 
 ## Datas de conversão/perda e resumo comercial
-- [ ] Adicionar trigger independente sem backfill e exigir motivo de perda na lista atual.
-- [ ] Implementar funil-comercial-resumo com token existente e somente agregados; testar e implantar.
+- [x] Adicionar trigger independente sem backfill e exigir motivo de perda na lista atual.
+- [x] Implementar funil-comercial-resumo com token existente e somente agregados; testar e implantar (12 testes + SQL isolado; endpoint real 200/400/401).
 
 ## FU Fase 2.2B — preparação da transição pós-matrícula
 - [x] Inventariar legados e matriz de substituição sem mudar Operação ou mensagens.
