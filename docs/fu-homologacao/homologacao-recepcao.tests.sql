@@ -1,6 +1,11 @@
 -- Homologação final RECEPÇÃO M+3/M+32 e D+30 desativado. Somente banco descartável; nunca produção.
--- Reusa o fixture de docs/fu-matriculados-tests.sql (unidade ...0010, grupo comercial -111, usuário 111).
--- test_assert já existe (criado por fu-matriculados-tests.sql).
+-- Autossuficiente: cria o próprio fixture (unidade ...0010, grupo comercial -111, usuário 111).
+CREATE OR REPLACE FUNCTION public.test_assert(v boolean,msg text) RETURNS void LANGUAGE plpgsql AS $$ BEGIN IF v IS DISTINCT FROM true THEN RAISE EXCEPTION '%',msg; END IF; END $$;
+INSERT INTO unidades VALUES('00000000-0000-0000-0000-000000000010','TESTE');
+INSERT INTO user_roles VALUES('00000000-0000-0000-0000-000000000040','user');
+INSERT INTO test_units VALUES('00000000-0000-0000-0000-000000000040','00000000-0000-0000-0000-000000000010');
+INSERT INTO telegram_users VALUES('00000000-0000-0000-0000-000000000040',111,'conectado','COMERCIAL','TESTE');
+INSERT INTO telegram_groups VALUES('00000000-0000-0000-0000-000000000010','comercial','conectado',-111);
 
 -- 1. Matrícula nova após o corte da Recepção cria BV + M+3 + M+32.
 INSERT INTO leads(id,nome,unidade_id,ativo,is_matriculado,status_funil,telefone) VALUES('00000000-0000-0000-0000-000000000201','ALUNA RECEPCAO','00000000-0000-0000-0000-000000000010',true,true,'matriculado','81997111001');
