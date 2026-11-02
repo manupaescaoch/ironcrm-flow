@@ -14,7 +14,7 @@ export async function sendManagerExperienceFu(admin: SupabaseClient, dryRun = fa
     if (error) throw error;
     for (const task of data ?? []) {
       if (!dryRun) {
-        try { await observeManualCandidate(admin, { lead_id: task.fu_gerencial_lead_id, unidade_id: task.unidade_id, ciclo_id: task.fu_gerencial_matricula_id, chave: 'candidato:fu_gerencial:' + task.id, fluxo: 'fu_gerencial', objetivo: 'experiencia', setor: 'gerente', canal: 'whatsapp', prioridade: 3, nao_urgente: true, prazo_original: task.prazo ? task.prazo + 'T08:00:00-03:00' : null }); }
+        try { const decision = await observeManualCandidate(admin, { lead_id: task.fu_gerencial_lead_id, unidade_id: task.unidade_id, ciclo_id: task.fu_gerencial_matricula_id, chave: 'candidato:fu_gerencial:' + task.id, fluxo: 'fu_gerencial', objetivo: 'experiencia', setor: 'gerente', canal: 'whatsapp', prioridade: 3, nao_urgente: true, prazo_original: task.prazo ? task.prazo + 'T08:00:00-03:00' : null }); if (decision?.modo === 'ativo' && !decision.permitido) { results.push({ task: task.id, status: 'adiado' }); continue; } }
         catch { console.warn('[contato] observação de candidato indisponível; notificação interna preservada'); }
       }
       const { data: context, error: contextError } = await admin.rpc('fu_gerencial_contexto', { p_task: task.id, p_agora: now.toISOString() });

@@ -19,7 +19,7 @@ export async function sendTechnicalFu(admin: SupabaseClient, dryRun = false, now
       if (enrollmentError) throw enrollmentError;
       if (!enrollment?.fechou_matricula || enrollment.cancelado) continue;
       if (!dryRun) {
-        try { await observeManualCandidate(admin, { lead_id: task.fu_tecnico_lead_id, unidade_id: task.unidade_id, ciclo_id: task.fu_tecnico_matricula_id, chave: 'candidato:fu_tecnico:' + task.id, fluxo: 'fu_tecnico', objetivo: 'tecnico', setor: 'coordenador', canal: 'whatsapp', prioridade: 2, nao_urgente: true, prazo_original: task.prazo ? task.prazo + 'T08:00:00-03:00' : null }); }
+        try { const decision = await observeManualCandidate(admin, { lead_id: task.fu_tecnico_lead_id, unidade_id: task.unidade_id, ciclo_id: task.fu_tecnico_matricula_id, chave: 'candidato:fu_tecnico:' + task.id, fluxo: 'fu_tecnico', objetivo: 'tecnico', setor: 'coordenador', canal: 'whatsapp', prioridade: 2, nao_urgente: true, prazo_original: task.prazo ? task.prazo + 'T08:00:00-03:00' : null }); if (decision?.modo === 'ativo' && !decision.permitido) { results.push({ task: task.id, status: 'adiado' }); continue; } }
         catch { console.warn('[contato] observação de candidato indisponível; notificação interna preservada'); }
       }
       const grupo = await resolveGrupoUnidade(admin, task.unidade_id, ['coordenadores']);

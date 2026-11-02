@@ -49,4 +49,6 @@ BEGIN
 END $$;
 -- Independent fixture for concurrency and uncertainty: no prior confirmed contacts.
 UPDATE app_config SET valor='{"fluxos":{"race":{"00000000-0000-4000-8000-000000000001":"ativo"}}}' WHERE chave='contato_central_config';
-CREATE FUNCTION race_intent(k text) RETURNS jsonb LANGUAGE sql AS $$ SELECT test_intent(k,'race',2,false)||'{"lead_id":"00000000-0000-4000-8000-000000000011"}'::jsonb $$;
+CREATE FUNCTION race_intent(k text) RETURNS jsonb LANGUAGE sql AS $$ SELECT test_intent(k,'race',2,false)||'{"lead_id":"00000000-0000-4000-8000-000000000011"}'::jsonb $$;-- Essential flags produce exempt evidence without interfering with proactive policy.
+UPDATE leads SET confirmacao_24h_enviada_em=now(),confirmacao_2h_enviada_em=now() WHERE id='00000000-0000-4000-8000-000000000010';
+DO $$ BEGIN ASSERT (SELECT count(*)=2 FROM contato_execucoes WHERE fluxo='experimental_essencial' AND excecao='confirmacao_essencial'),'24h and 2h exempt'; END $$;
