@@ -316,6 +316,13 @@
       "when": 1793621869570,
       "tag": "0044_fu_transicao_grants_exclusivos_servico",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1793622227046,
+      "tag": "0045_leads_datas_conversao_perda_transicao",
+      "breakpoints": true
     }
   ]
 }
