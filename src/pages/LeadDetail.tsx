@@ -482,6 +482,10 @@ export default function LeadDetail() {
 
     const interacaoData = {
       tipo: formData.tipo.trim(),
+      unidade_id: lead?.unidade_id,
+      ...(!isEditing && !agendouExperimental && !formData.fechou_matricula && ['WhatsApp','Presencial','Ligação','Follow Up'].includes(formData.tipo) && formData.descricao.trim() ? {
+        contato_meta: { estado: 'enviado', objetivo: formData.tipo === 'Follow Up' ? 'acompanhamento' : 'contato_manual', canal: formData.tipo === 'Presencial' ? 'presencial' : formData.tipo === 'Ligação' ? 'telefone' : 'whatsapp', setor: 'atendimento', resultado: formData.descricao.trim() },
+      } : {}),
       descricao: formData.descricao.trim() || null,
       atendido_por: formData.atendido_por || null,
       atendido_por_tipo: formData.atendido_por_tipo,

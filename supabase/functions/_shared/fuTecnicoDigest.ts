@@ -1,3 +1,4 @@
+import { observeManualCandidate } from './contactControl.ts';
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { resolveGrupoUnidade, sendTelegramMessage } from './telegram.ts';
 import { tecladoFuTecnico, notificacaoFuTecnico, recifeTecnicoDia } from './fuTecnicoRules.ts';
@@ -7,7 +8,7 @@ export async function sendTechnicalFu(admin: SupabaseClient, dryRun = false, now
   const today = recifeTecnicoDia(now);
   const results: { task: string; status: string }[] = [];
   for (let offset = 0; ; offset += 200) {
-    const { data, error } = await admin.from('tasks').select('id,unidade_id,responsavel,fu_tecnico_etapa,fu_tecnico_lead_id,fu_tecnico_matricula_id')
+    const { data, error } = await admin.from('tasks').select('id,unidade_id,prazo,responsavel,fu_tecnico_etapa,fu_tecnico_lead_id,fu_tecnico_matricula_id')
       .in('fu_tecnico_status', ['pendente', 'em_andamento']).is('fu_tecnico_confirmado_em', null).lte('prazo', today).order('id').range(offset, offset + 199);
     if (error) throw error;
     for (const task of data ?? []) {
@@ -17,6 +18,10 @@ export async function sendTechnicalFu(admin: SupabaseClient, dryRun = false, now
       const { data: enrollment, error: enrollmentError } = await admin.from('interacoes').select('fechou_matricula,cancelado,treinador_responsavel').eq('id', task.fu_tecnico_matricula_id).single();
       if (enrollmentError) throw enrollmentError;
       if (!enrollment?.fechou_matricula || enrollment.cancelado) continue;
+      if (!dryRun) {
+        try { await observeManualCandidate(admin, { lead_id: task.fu_tecnico_lead_id, unidade_id: task.unidade_id, ciclo_id: task.fu_tecnico_matricula_id, chave: 'candidato:fu_tecnico:' + task.id, fluxo: 'fu_tecnico', objetivo: 'tecnico', setor: 'coordenador', canal: 'whatsapp', prioridade: 2, nao_urgente: true, prazo_original: task.prazo ? task.prazo + 'T08:00:00-03:00' : null }); }
+        catch { console.warn('[contato] observação de candidato indisponível; notificação interna preservada'); }
+      }
       const grupo = await resolveGrupoUnidade(admin, task.unidade_id, ['coordenadores']);
       if (!grupo) {
         if (!dryRun) {

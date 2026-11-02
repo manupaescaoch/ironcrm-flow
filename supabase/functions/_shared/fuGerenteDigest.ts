@@ -1,3 +1,4 @@
+import { observeManualCandidate } from './contactControl.ts';
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { resolveGrupoUnidade, sendTelegramMessage } from './telegram.ts';
 import { isManagerFuWeekday, managerFuStage, recifeDay, suppressManagerFu } from './fuGerenteRules.ts';
@@ -62,6 +63,10 @@ export async function sendManagerFuDigest(admin: SupabaseClient, dryRun = false,
     if (!pending.length) {
       results.push({ unidade: unit.nome, status: 'sem_pendencias', total: 0 });
       continue;
+    }
+    if (!dryRun) for (const item of pending) {
+      try { await observeManualCandidate(admin, { lead_id: item.lead.id, unidade_id: unit.id, ciclo_id: latest.get(item.lead.id)?.id, chave: `candidato:gerente_legado:${latest.get(item.lead.id)?.id}:${item.tipo}`, fluxo: 'gerente_legado', objetivo: 'experiencia', tipo_fu: item.tipo, setor: 'gerente', canal: 'whatsapp', prioridade: 3, nao_urgente: true }); }
+      catch { console.warn('[contato] observação indisponível; lista interna preservada'); }
     }
     const lines = pending.map((item, i) => `${i + 1}. <b>${escapeHtml(item.lead.nome)}</b>\n• FU ${item.tipo === 'G+7' ? 'D+7' : 'D+30'} — ${item.atraso ? `${item.atraso} dia(s) atrasado` : 'hoje'}\n• WhatsApp: ${escapeHtml(item.lead.telefone || 'Não informado')}`);
     // Chunk by whole entries so Telegram's 4096-character limit never truncates a student.

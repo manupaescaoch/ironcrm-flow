@@ -1,3 +1,4 @@
+import { observeManualCandidate } from './contactControl.ts';
 import { resolveGrupoUnidade, sendTelegramMessage } from './telegram.ts';
 import { notificacaoFuMatriculados, tecladoFuMatriculados, recifeTecnicoDia } from './fuMatriculadosRules.ts';
 export async function sendEnrollmentWelcomeFu(admin: any, dryRun = false, taskId?: string, now = new Date(), deps = { resolve: resolveGrupoUnidade, send: sendTelegramMessage }) {
@@ -5,13 +6,17 @@ export async function sendEnrollmentWelcomeFu(admin: any, dryRun = false, taskId
   const results: {task: string; status: string}[] = [];
   if ([0,6].includes(new Date(`${day}T12:00:00Z`).getUTCDay())) return {success:true,results,skipped:'fim_de_semana'};
   for (let offset=0; ; offset+=200) {
-    let query = admin.from('tasks').select('id,unidade_id,fu_matriculados_lead_id').not('fu_matriculados_matricula_id','is',null).is('fu_matriculados_confirmado_em',null).neq('status','concluida').lte('prazo',day).order('id').range(offset,offset+199);
+    let query = admin.from('tasks').select('id,unidade_id,prazo,fu_matriculados_lead_id,fu_matriculados_matricula_id').not('fu_matriculados_matricula_id','is',null).is('fu_matriculados_confirmado_em',null).neq('status','concluida').lte('prazo',day).order('id').range(offset,offset+199);
     if (taskId) query=query.eq('id',taskId);
     const {data,error}=await query; if(error) throw error;
     for (const task of data ?? []) {
       const {data:lead,error:le}=await admin.from('leads').select('nome,telefone,ativo,is_matriculado,pausado_fu,origem').eq('id',task.fu_matriculados_lead_id).eq('unidade_id',task.unidade_id).maybeSingle();
       if(le) throw le;
       if(!lead?.ativo || !lead.is_matriculado || lead.pausado_fu) continue;
+      if (!dryRun) {
+        try { await observeManualCandidate(admin, { lead_id: task.fu_matriculados_lead_id, unidade_id: task.unidade_id, ciclo_id: task.fu_matriculados_matricula_id, chave: 'candidato:fu_matriculados:' + task.id, fluxo: 'fu_matriculados', objetivo: 'boas_vindas', setor: 'comercial', canal: 'whatsapp', prioridade: 4, nao_urgente: true, prazo_original: task.prazo ? task.prazo + 'T08:00:00-03:00' : null, excecao: 'transicao_matricula' }); }
+        catch { console.warn('[contato] observação de candidato indisponível; notificação interna preservada'); }
+      }
       const group=await deps.resolve(admin,task.unidade_id,['comercial']);
       if(!group) {
         if(!dryRun) { const {error:e}=await admin.from('tasks').update({fu_matriculados_envio_erro:'Grupo COMERCIAL não conectado nesta unidade'}).eq('id',task.id); if(e) throw e; }

@@ -1,3 +1,4 @@
+import { observeManualCandidate } from './contactControl.ts';
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { resolveGrupoUnidade, sendTelegramMessage } from './telegram.ts';
 import { isManagerFuWeekday } from './fuGerenteRules.ts';
@@ -8,10 +9,14 @@ export async function sendManagerExperienceFu(admin: SupabaseClient, dryRun = fa
   if (!isManagerFuWeekday(now)) return { success: true, results, skipped: 'fim_de_semana' };
   const day = recifeTecnicoDia(now);
   for (let offset = 0; ; offset += 200) {
-    const { data, error } = await admin.from('tasks').select('id,unidade_id,responsavel,fu_gerencial_lead_id,fu_gerencial_matricula_id')
+    const { data, error } = await admin.from('tasks').select('id,unidade_id,prazo,responsavel,fu_gerencial_lead_id,fu_gerencial_matricula_id')
       .in('fu_gerencial_status', ['pendente','em_andamento']).is('fu_gerencial_confirmado_em',null).lte('prazo',day).order('id').range(offset,offset+199);
     if (error) throw error;
     for (const task of data ?? []) {
+      if (!dryRun) {
+        try { await observeManualCandidate(admin, { lead_id: task.fu_gerencial_lead_id, unidade_id: task.unidade_id, ciclo_id: task.fu_gerencial_matricula_id, chave: 'candidato:fu_gerencial:' + task.id, fluxo: 'fu_gerencial', objetivo: 'experiencia', setor: 'gerente', canal: 'whatsapp', prioridade: 3, nao_urgente: true, prazo_original: task.prazo ? task.prazo + 'T08:00:00-03:00' : null }); }
+        catch { console.warn('[contato] observação de candidato indisponível; notificação interna preservada'); }
+      }
       const { data: context, error: contextError } = await admin.rpc('fu_gerencial_contexto', { p_task: task.id, p_agora: now.toISOString() });
       if (contextError) throw contextError;
       if (!context?.elegivel) { results.push({ task: task.id, status: 'inelegivel' }); continue; }

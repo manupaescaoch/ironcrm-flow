@@ -1,3 +1,4 @@
+import { controlledSend } from '../_shared/contactControl.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
 import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, logEnvio, sendTextIdempotent } from '../_shared/zapi.ts';
@@ -222,7 +223,10 @@ Deno.serve(async (req) => {
 
       try {
         const chave = buildIdempotencyKey([FUNC, inter.id, lead.id, inter.data_experimental, inter.hora_experimental, phone]);
-        const r = await sendTextIdempotent(supabase, creds!, phone, message, { chave, funcao: FUNC });
+        if (!creds) throw new Error('Canal comercial indisponível');
+        const sendCreds = creds;
+        const r = await controlledSend(supabase, { lead_id: lead.id, unidade_id: lead.unidade_id, ciclo_id: inter.id, chave, fluxo: 'feedback', objetivo: 'conversao', tipo_fu: 'FEEDBACK', setor: 'comercial', canal: 'whatsapp', prioridade: 4, nao_urgente: true, responsavel: 'SISTEMA', prazo_original: inter.compareceu_em }, () => sendTextIdempotent(supabase, sendCreds, phone, message, { chave, funcao: FUNC }));
+        if (r.deferred) { results.push({ lead:lead.nome,status:'adiado',motivo:r.body.motivo }); continue; }
         if (r.skipped) {
           await supabase.from('interacoes').update({ feedback_pos_aula_enviado_em: new Date().toISOString() }).eq('id', inter.id);
           results.push({ lead: lead.nome, status: 'duplicate' });
