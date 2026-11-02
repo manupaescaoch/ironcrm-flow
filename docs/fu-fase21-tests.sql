@@ -17,7 +17,7 @@ BEGIN
  ASSERT (SELECT unidade_id='00000000-0000-4000-8000-000000000001' AND lead_id='00000000-0000-4000-8000-000000000010' FROM interacoes WHERE tipo='whatsapp'), 'history unit and lead';
  UPDATE leads SET hora_aula_experimental='11:00' WHERE id='00000000-0000-4000-8000-000000000010';
  UPDATE interacoes SET hora_experimental='11:00' WHERE id='00000000-0000-4000-8000-000000000020';
- key:=replace(key,'10:00','11:00');
+ key:=left(key,length(key)-5)||'11:00';
  r:=fu_reag_reservar('00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000020',key,'EQUIPE');
  ASSERT (r->>'claimed')::boolean, 'new slot eligible';
  ASSERT (SELECT count(*)=1 FROM follow_ups WHERE tipo='REAG'), 'one legacy follow-up with separate events';
