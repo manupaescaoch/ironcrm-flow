@@ -34,4 +34,10 @@ Deno.test('Individual messages only to Commercial in current unit; daily claim s
 });
 Deno.test('Missing Commercial group never falls back or sends',async()=>{
  let sends=0;const r=await sendEnrollmentWelcomeFu(fakeAdmin([{id,unidade_id:'unit'}]),false,undefined,new Date('2026-11-02T11:00:00Z'),{resolve:async()=>null,send:async()=>{sends++;return {ok:true};}});assert(sends===0&&r.results[0].status==='sem_grupo');
+});Deno.test('Recepção M+3 and M+32 use approved texts and identify the stage',()=>{
+ const m3=notificacaoFuMatriculados('ANA SILVA','EVO SETÚBAL','81996392285','M+3');
+ const m32=notificacaoFuMatriculados('ANA SILVA','EVO SETÚBAL','81996392285','M+32');
+ assert(m3.mensagem.includes('primeiros dias na EVO')&&m3.text.includes('FU | RECEPÇÃO | M+3'));
+ assert(m32.mensagem.includes('primeiro mês com a gente')&&m32.text.includes('FU | RECEPÇÃO | M+32'));
+ assert(notificacaoFuMatriculados('ANA','EVO SETÚBAL',null).text.includes('FU | MATRICULADOS'));
 });

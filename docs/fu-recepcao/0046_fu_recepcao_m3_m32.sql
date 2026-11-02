@@ -61,3 +61,12 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.fu_matriculados_confirmar_envio(uuid,bigint,bigint,bigint),public.fu_matriculados_nova_matricula() FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.fu_matriculados_confirmar_envio(uuid,bigint,bigint,bigint) TO service_role;
+
+-- D+30 automático desativado: novos registros D+30 não são criados; histórico preservado.
+CREATE OR REPLACE FUNCTION public.fu_d30_desativado() RETURNS trigger LANGUAGE plpgsql SET search_path=public,pg_temp AS $$
+BEGIN
+ IF NEW.tipo='D+30' THEN RETURN NULL; END IF;
+ RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.fu_d30_desativado() FROM PUBLIC,anon,authenticated;
+CREATE TRIGGER aaa_fu_d30_desativado BEFORE INSERT ON public.follow_ups FOR EACH ROW EXECUTE FUNCTION public.fu_d30_desativado();
