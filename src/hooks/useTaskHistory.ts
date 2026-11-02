@@ -20,6 +20,8 @@ const CAMPO_LABELS: Record<string, string> = {
   titulo: 'Título',
   setor: 'Setor',
   acompanhamento_tecnico: 'Acompanhamento técnico',
+  acompanhamento_gerencial: 'Acompanhamento gerencial',
+  fu_gerencial_envio_aluno: 'Envio manual gerencial ao aluno',
   fu_tecnico_envio_aluno: 'Envio manual ao aluno',
 };
 

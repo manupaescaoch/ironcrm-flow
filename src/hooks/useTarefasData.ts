@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useToast } from '@/hooks/use-toast';
 import type { EtapaTecnica, StatusTecnico, RegistroTecnico } from '@/lib/fuTecnico';
+import type { RegistroGerencial, StatusGerencial } from '@/lib/fuGerencial';
 
 export interface Task {
   id: string;
@@ -34,6 +35,16 @@ export interface Task {
   fu_tecnico_confirmado_em?: string | null;
   fu_tecnico_confirmado_nome?: string | null;
   fu_tecnico_confirmado_telegram_id?: number | null;
+  fu_gerencial_lead_id?: string | null;
+  fu_gerencial_matricula_id?: string | null;
+  fu_gerencial_etapa?: 'M+30' | null;
+  fu_gerencial_status?: StatusGerencial | null;
+  fu_gerencial_registro?: RegistroGerencial | null;
+  fu_gerencial_envio_erro?: string | null;
+  fu_gerencial_confirmado_em?: string | null;
+  fu_gerencial_confirmado_nome?: string | null;
+  fu_gerencial_concluido_em?: string | null;
+  fu_gerencial_contexto?: { avisos?: string[]; motivo?: string } | null;
 }
 
 export type TaskInsert = Omit<Task, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'concluida_em' | 'arquivada' | 'notificado_24h' | 'notificado_prazo'> & { setor?: string };

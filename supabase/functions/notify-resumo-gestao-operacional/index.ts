@@ -3,6 +3,7 @@ import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
 import { resolveGrupoUnidade, sendTelegramMessage } from '../_shared/telegram.ts';
 import { sendManagerFuDigest } from '../_shared/fuGerenteDigest.ts';
 import { sendTechnicalFu } from '../_shared/fuTecnicoDigest.ts';
+import { sendManagerExperienceFu } from '../_shared/fuGerencialDigest.ts';
 import { z } from 'npm:zod@3';
 
 const corsHeaders = {
@@ -181,6 +182,10 @@ Deno.serve(async (req) => {
     const managerFu = __auth.method === 'cron'
       ? await sendManagerFuDigest(supabase, parsed.data.dry_run === true)
       : null;
+    if (__auth.method === 'cron') {
+      try { await sendManagerExperienceFu(supabase, parsed.data.dry_run === true); }
+      catch (error) { console.error('FU gerencial: falha no processamento', error instanceof Error ? error.message : 'erro desconhecido'); }
+    }
     if (parsed.data.mode === 'fu_gerente_only') {
       if (!managerFu) return Response.json({ error: 'Cron only' }, { status: 403, headers: corsHeaders });
       return Response.json(managerFu, { headers: corsHeaders, status: managerFu.success ? 200 : 502 });

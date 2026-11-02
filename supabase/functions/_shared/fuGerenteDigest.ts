@@ -51,6 +51,14 @@ export async function sendManagerFuDigest(admin: SupabaseClient, dryRun = false,
       if (fuDay(addFuBusinessDays(fuDate(row.data_fechamento), Number(stage.tipo.slice(2)))) > today) return [];
       return [{ ...stage, lead: row.lead }];
     }).sort((a, b) => b.atraso - a.atraso);
+    // New manager M+30 tasks own this enrollment's first-month responsibility.
+    // Keep older G+30 and G+7 unchanged, never create a second roster for the same cycle.
+    const { data: managed, error: managedError } = await admin.from('tasks').select('fu_gerencial_matricula_id').eq('unidade_id',unit.id).not('fu_gerencial_etapa','is',null);
+    if (managedError) throw managedError;
+    const managedIds = new Set((managed ?? []).map(t => t.fu_gerencial_matricula_id));
+    for (let index = pending.length - 1; index >= 0; index--) {
+      if (pending[index].tipo === 'G+30' && managedIds.has(latest.get(pending[index].lead.id)?.id)) pending.splice(index,1);
+    }
     if (!pending.length) {
       results.push({ unidade: unit.nome, status: 'sem_pendencias', total: 0 });
       continue;
