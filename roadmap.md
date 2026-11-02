@@ -1,5 +1,10 @@
 # Roadmap
 
+## FC-2A.1 — diagnóstico e proposta, sem implementação
+- [ ] Mapear todos os caminhos de escrita, consumidores, permissões e triggers de experimental/presença/reagendamento.
+- [ ] Entregar relatório técnico e plano de schema, compatibilidade, implantação, rollback e testes.
+- [ ] Implementar rastreabilidade — aguarda aprovação explícita do plano; nenhuma mudança operacional nesta execução.
+
 ## Falha de tempo excedido na página Telegram
 - [x] Limitar chamadas externas sem repetir envios e tratar falhas de carregamento na tela.
 - [x] Quatro testes passaram; página autenticada permanece visível sob 504 simulado e conexão real confirmou Conectado sem erros; implantados health/admin/send.
