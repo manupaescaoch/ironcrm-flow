@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { z } from 'npm:zod@3.23.8';
 
-import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { authorizeFollowUp, FollowUpError } from '../_shared/followUpAuthorization.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
@@ -13,52 +13,25 @@ const BodySchema = z
     unidade_id: z.string().uuid().nullish(),
   })
   .partial()
-  .passthrough();
+  .strict();
 
 
-Deno.serve(async (req) => {
+export async function handleGenerateFollowUps(req: Request) {
   // Handle CORS preflight requests (no auth on OPTIONS)
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // SECURITY: require cron secret header OR valid Supabase JWT for any non-OPTIONS request.
-  {
-    const __auth = await authorizeCronOrJwt(req);
-    if (!__auth.ok) {
-      return new Response(
-        JSON.stringify({ error: __auth.error || 'Unauthorized' }),
-        { status: __auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
-  }
-
   try {
+    const raw = await req.text();
+    const parsed = BodySchema.safeParse(raw ? JSON.parse(raw) : {});
+    if (!parsed.success) throw new FollowUpError(400, 'Solicitação inválida');
+    const unidadeId = parsed.data.unidade_id ?? null;
+    const scope = await authorizeFollowUp(req, 'generate', unidadeId);
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Get optional unidade_id from request body (validado por schema)
-    let unidadeId: string | null = null;
-    {
-      let rawBody: unknown = null;
-      try {
-        rawBody = await req.json();
-      } catch {
-        rawBody = null; // No body or invalid JSON, proceed with all unidades
-      }
-      if (rawBody && typeof rawBody === 'object') {
-        const parsed = BodySchema.safeParse(rawBody);
-        if (!parsed.success) {
-          return new Response(JSON.stringify({ error: 'unidade_id inválido' }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-        unidadeId = parsed.data.unidade_id ?? null;
-      }
-    }
 
 
 
@@ -74,6 +47,7 @@ Deno.serve(async (req) => {
         unidade_id,
         leads!inner (
           id,
+          unidade_id,
           nome,
           status_funil,
           is_matriculado,
@@ -83,9 +57,7 @@ Deno.serve(async (req) => {
       .eq('compareceu', true)
       .not('data_experimental', 'is', null);
 
-    if (unidadeId) {
-      interacoesQuery = interacoesQuery.eq('unidade_id', unidadeId);
-    }
+    if (scope.units) interacoesQuery = interacoesQuery.in('unidade_id', scope.units).in('leads.unidade_id', scope.units);
 
     const { data: interacoes, error: interacoesError } = await interacoesQuery;
 
@@ -99,7 +71,7 @@ Deno.serve(async (req) => {
     // Filter to eligible leads only
     const eligibleInteracoes = interacoes?.filter((i: any) => {
       const lead = i.leads;
-      if (!lead) return false;
+      if (!lead || lead.unidade_id !== i.unidade_id) return false;
       if (lead.ativo === false) return false;
       if (lead.is_matriculado === true) return false;
       if (lead.status_funil === 'perdido' || lead.status_funil === 'convertido') return false;
@@ -199,13 +171,14 @@ Deno.serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error('Error in generate-follow-ups function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof FollowUpError ? error.message : 'Falha interna';
     return new Response(
       JSON.stringify({ success: false, error: errorMessage }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
+        status: error instanceof FollowUpError ? error.status : error instanceof SyntaxError ? 400 : 500 
       }
     );
   }
-});
+}
+if (import.meta.main) Deno.serve(handleGenerateFollowUps);

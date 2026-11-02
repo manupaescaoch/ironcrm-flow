@@ -1,214 +1,68 @@
-// Dispara o ciclo "FU Reagendamento" quando o lead é marcado como Não Compareceu:
-// 1) Envia mensagem automática ao lead pelo chip COMERCIAL
-// 2) Cria registro em follow_ups (tipo REAG) marcado como concluído
-// 3) Loga uma interação para aparecer no histórico/timeline
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
-import {
-  buildIdempotencyKey,
-  checkZapiStatus,
-  getZapiCreds,
-  logEnvio,
-  phoneExists,
-  sendTextIdempotent,
-} from '../_shared/zapi.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
-};
+import { createClient } from 'npm:@supabase/supabase-js@2';
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { z } from 'npm:zod@3.23.8';
+import { authorizeFollowUp, FollowUpError, assertUnit } from '../_shared/followUpAuthorization.ts';
+import { validateExperimental, runReagendamento } from '../_shared/reagendamentoFlow.ts';
+import { checkZapiStatus, getZapiCreds, phoneExists, sendTextIdempotent } from '../_shared/zapi.ts';
 
 const FUNC = 'send-reagendamento-experimental';
-
-function normalizePhone(phone: string): string {
-  let n = (phone || '').replace(/\D/g, '');
-  if (!n) return '';
-  if (!n.startsWith('55')) n = '55' + n;
-  return n;
-}
-
-function firstName(full: string): string {
-  return (full || '').trim().split(/\s+/)[0] || full;
-}
-
-function buildMessage(nome: string) {
-  return `Olá, ${nome}! Tudo bem? 💙
-
-Vi aqui que você não conseguiu comparecer à sua aula experimental na Iron.
-
-Sem problema, acontece.
-
-A experiência é a melhor forma de conhecer nossa estrutura, entender como funciona o treino com acompanhamento e sentir de perto a proposta da Iron.
-
-Quer que eu veja um novo horário para você reagendar?`;
-}
-
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
-
+const BodySchema = z.object({ lead_id: z.string().uuid(), interacao_id: z.string().uuid().optional(), responsavel_nome: z.string().max(200).optional() }).strict();
+export async function handleReagendamento(req: Request) {
+  const headers = { ...corsHeaders, 'Access-Control-Allow-Headers': `${corsHeaders['Access-Control-Allow-Headers']}, x-cron-secret`, 'Content-Type': 'application/json' };
+  if (req.method === 'OPTIONS') return new Response(null, { headers });
   try {
-    // Autentica: usuário logado (painel) OU segredo de automação (callback do Telegram)
-    const auth = await authorizeCronOrJwt(req);
-    if (!auth.ok) {
-      return new Response(JSON.stringify({ error: auth.error || 'Unauthorized' }), {
-        status: auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    );
-
-    const body = await req.json().catch(() => ({}));
-    const leadId: string | undefined = body?.lead_id;
-    const interacaoId: string | undefined = body?.interacao_id;
-    const responsavelNome: string = (body?.responsavel_nome || (auth.method === 'cron' ? 'TELEGRAM' : 'RECEPÇÃO')).toString();
-
-    if (!leadId) {
-      return new Response(JSON.stringify({ error: 'lead_id obrigatório' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const { data: lead, error: leadErr } = await supabase
-      .from('leads')
-      .select('id, nome, telefone, unidade_id, ativo, data_aula_experimental')
-      .eq('id', leadId)
-      .single();
-
-    if (leadErr || !lead) {
-      return new Response(JSON.stringify({ error: 'Lead não encontrado' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const creds = getZapiCreds('comercial');
-    const nowIso = new Date().toISOString();
-    const today = nowIso.slice(0, 10);
-
-    // 1) Cria follow_up REAG (mesmo se falhar o envio — para histórico)
-    let followUpId: string | null = null;
-    const { data: fuInsert } = await supabase
-      .from('follow_ups')
-      .insert({
-        lead_id: lead.id,
-        unidade_id: lead.unidade_id,
-        tipo: 'REAG',
-        data_referencia: today,
-        data_prevista: today,
-        status: 'pendente',
-      })
-      .select('id')
-      .single();
-    followUpId = fuInsert?.id ?? null;
-
-    // Validações iniciais
-    if (!creds) {
-      await logEnvio(supabase, { funcao: FUNC, sucesso: false, motivo_skip: 'credenciais_ausentes', unidade_id: lead.unidade_id, canal: 'comercial' });
-      await supabase.from('interacoes').insert({
-        lead_id: lead.id, unidade_id: lead.unidade_id,
-        tipo: 'whatsapp', descricao: 'FU Reagendamento: falha — número comercial não configurado',
-        data_interacao: nowIso, atendido_por: 'SISTEMA',
-      });
-      return new Response(JSON.stringify({ error: 'Número comercial não configurado', followUpId }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    if (!lead.telefone) {
-      await logEnvio(supabase, { funcao: FUNC, sucesso: false, motivo_skip: 'sem_telefone', unidade_id: lead.unidade_id, canal: 'comercial' });
-      await supabase.from('interacoes').insert({
-        lead_id: lead.id, unidade_id: lead.unidade_id,
-        tipo: 'whatsapp', descricao: 'FU Reagendamento iniciado — falha: lead sem telefone',
-        data_interacao: nowIso, atendido_por: 'SISTEMA',
-      });
-      return new Response(JSON.stringify({ error: 'Lead sem telefone', followUpId }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const phone = normalizePhone(lead.telefone);
-    const message = buildMessage(firstName(lead.nome));
-
-    // 2) Verifica chip
-    const st = await checkZapiStatus(creds);
-    if (!st.connected) {
-      await logEnvio(supabase, { funcao: FUNC, sucesso: false, motivo_skip: 'zapi_offline', erro_msg: JSON.stringify(st.raw).slice(0, 300), unidade_id: lead.unidade_id, canal: 'comercial' });
-      await supabase.from('interacoes').insert({
-        lead_id: lead.id, unidade_id: lead.unidade_id,
-        tipo: 'whatsapp', descricao: 'FU Reagendamento: falha — chip comercial offline',
-        data_interacao: nowIso, atendido_por: 'SISTEMA',
-      });
-      return new Response(JSON.stringify({ error: 'Chip comercial offline', followUpId }), {
-        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // 3) Verifica WhatsApp
-    const exists = await phoneExists(creds, phone);
-    if (exists === false) {
-      await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, motivo_skip: 'phone_nao_existe', unidade_id: lead.unidade_id, canal: 'comercial' });
-      await supabase.from('interacoes').insert({
-        lead_id: lead.id, unidade_id: lead.unidade_id,
-        tipo: 'whatsapp', descricao: `FU Reagendamento: telefone ${phone} sem WhatsApp`,
-        data_interacao: nowIso, atendido_por: 'SISTEMA',
-      });
-      return new Response(JSON.stringify({ error: 'Telefone sem WhatsApp', followUpId }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // 4) Envia (com idempotência: 1 mensagem de reagendamento por lead/dia da aula)
-    const chaveReag = buildIdempotencyKey([
-      FUNC, lead.id, String(lead.data_aula_experimental ?? '').slice(0, 10) || 'sem_data',
-    ]);
-    const r = await sendTextIdempotent(supabase, creds, phone, message, { chave: chaveReag, funcao: FUNC });
-    if (r.skipped) {
-      await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, motivo_skip: 'idempotencia_duplicado', unidade_id: lead.unidade_id, canal: 'comercial' });
-      return new Response(JSON.stringify({ ok: true, skipped: 'duplicado', followUpId }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    if (!r.ok) {
-      await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: false, zapi_status_code: r.status, erro_msg: JSON.stringify(r.body).slice(0, 300), unidade_id: lead.unidade_id, canal: 'comercial' });
-      await supabase.from('interacoes').insert({
-        lead_id: lead.id, unidade_id: lead.unidade_id,
-        tipo: 'whatsapp', descricao: `FU Reagendamento: falha no envio (status ${r.status})`,
-        data_interacao: nowIso, atendido_por: 'SISTEMA',
-      });
-      return new Response(JSON.stringify({ error: 'Falha no envio Z-API', followUpId }), {
-        status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // 5) Sucesso — marca FU concluído e registra interação
-    if (followUpId) {
-      await supabase.from('follow_ups').update({
-        status: 'concluido',
-        concluido_em: nowIso,
-        concluido_por: responsavelNome,
-        updated_at: nowIso,
-      }).eq('id', followUpId);
-    }
-
-    await supabase.from('interacoes').insert({
-      lead_id: lead.id,
-      unidade_id: lead.unidade_id,
-      tipo: 'whatsapp',
-      descricao: 'FU Reagendamento enviado automaticamente ao lead via WhatsApp',
-      data_interacao: nowIso,
-      atendido_por: responsavelNome,
+    const scope = await authorizeFollowUp(req, 'reagendar');
+    const parsed = BodySchema.safeParse(await req.json());
+    if (!parsed.success) throw new FollowUpError(400, 'Solicitação inválida');
+    const body = parsed.data;
+    const admin = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
+    const { data: lead, error: leadError } = await admin.from('leads')
+      .select('id,nome,telefone,unidade_id,ativo,is_matriculado,pausado_fu,status_funil,data_aula_experimental,hora_aula_experimental').eq('id', body.lead_id).maybeSingle();
+    if (leadError || !lead) throw new FollowUpError(404, 'Lead indisponível');
+    assertUnit(scope, lead.unidade_id);
+    let query = admin.from('interacoes').select('id,lead_id,unidade_id,agendou_experimental,data_experimental,hora_experimental,compareceu,cancelado');
+    if (body.interacao_id) query = query.eq('id', body.interacao_id);
+    else query = query.eq('lead_id', lead.id).eq('unidade_id', lead.unidade_id).eq('agendou_experimental', true)
+      .eq('data_experimental', lead.data_aula_experimental ?? '').eq('hora_experimental', lead.hora_aula_experimental ?? '').order('created_at', { ascending: false }).limit(1);
+    const { data: interaction, error: interactionError } = await query.maybeSingle();
+    if (interactionError || !interaction) throw new FollowUpError(404, 'Experimental indisponível');
+    const key = validateExperimental(lead, interaction, scope);
+    const { data: unit, error: unitError } = await admin.from('unidades').select('nome').eq('id', lead.unidade_id).maybeSingle();
+    if (unitError || !unit?.nome) throw new FollowUpError(404, 'Unidade indisponível');
+    const responsible = scope.automatic ? body.responsavel_nome ?? 'SISTEMA' : scope.caller;
+    const result = await runReagendamento({
+      reserve: async () => {
+        const { data, error } = await admin.rpc('fu_reag_reservar', { p_lead: lead.id, p_interacao: interaction.id, p_chave: key, p_responsavel: responsible });
+        if (error) throw new FollowUpError(error.message.includes('elegível') ? 409 : 500, 'Não foi possível reservar o reagendamento');
+        return data;
+      },
+      send: async () => {
+        const creds = getZapiCreds('comercial');
+        if (!creds) throw new FollowUpError(503, 'WhatsApp comercial não configurado');
+        if (!lead.telefone) throw new FollowUpError(409, 'Lead sem telefone');
+        let phone = lead.telefone.replace(/\D/g, '');
+        if (!phone.startsWith('55')) phone = `55${phone}`;
+        if (!(await checkZapiStatus(creds)).connected) throw new FollowUpError(503, 'WhatsApp comercial desconectado');
+        if (await phoneExists(creds, phone) !== true) throw new FollowUpError(409, 'Telefone WhatsApp não confirmado');
+        // Honor the old day-key as well: previously sent legacy events must never be sent again.
+        const legacyKey = `${FUNC}:${lead.id}:${String(lead.data_aula_experimental).slice(0, 10)}`;
+        const { data: old, error } = await admin.from('whatsapp_idempotencia').select('id').eq('chave', legacyKey).limit(1);
+        if (error) throw new FollowUpError(500, 'Não foi possível conferir histórico de envio');
+        if (old?.length) return { ok: false, skipped: true, status: 0 };
+        const name = lead.nome.trim().split(/\s+/)[0];
+        const unitName = unit.nome.replace(/^(EVO|IRON)(\s+CLUB)?\s*/i, '').trim();
+        const message = `Oi, ${name}! Tudo bem?\n\nVi que você não conseguiu comparecer à sua aula experimental na EVO ${unitName}.\n\nGostaria de reagendar para outro dia?\n\nPosso verificar os horários disponíveis para você.`;
+        return await sendTextIdempotent(admin, creds, phone, message, { chave: key, funcao: FUNC });
+      },
+      finish: async (reservation, state, status) => {
+        const { error } = await admin.rpc('fu_reag_finalizar', { p_id: reservation.id, p_chave: key, p_estado: state, p_status: status });
+        if (error) throw new FollowUpError(500, 'Resultado pendente de reconciliação; não repetir o envio');
+      },
     });
-
-    await logEnvio(supabase, { funcao: FUNC, destino: phone, tipo_destino: 'lead', sucesso: true, zapi_status_code: r.status, unidade_id: lead.unidade_id, canal: 'comercial' });
-
-    return new Response(JSON.stringify({ success: true, followUpId, interacaoId: interacaoId ?? null }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  } catch (err: any) {
-    return new Response(JSON.stringify({ error: err?.message ?? 'Internal error' }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(JSON.stringify(result), { headers });
+  } catch (error) {
+    const status = error instanceof FollowUpError ? error.status : error instanceof SyntaxError ? 400 : 500;
+    return new Response(JSON.stringify({ error: error instanceof FollowUpError ? error.message : 'Solicitação não concluída' }), { headers, status });
   }
-});
+}
+if (import.meta.main) Deno.serve(handleReagendamento);

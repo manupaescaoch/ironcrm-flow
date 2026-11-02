@@ -2581,6 +2581,7 @@ export type Database = {
           data_referencia: string
           id: string
           lead_id: string
+          reag_eventos: Json
           status: string
           tipo: string
           unidade_id: string
@@ -2595,6 +2596,7 @@ export type Database = {
           data_referencia: string
           id?: string
           lead_id: string
+          reag_eventos?: Json
           status?: string
           tipo: string
           unidade_id?: string
@@ -2609,6 +2611,7 @@ export type Database = {
           data_referencia?: string
           id?: string
           lead_id?: string
+          reag_eventos?: Json
           status?: string
           tipo?: string
           unidade_id?: string
@@ -6546,6 +6549,24 @@ export type Database = {
       }
       fu_matriculados_inicio: { Args: never; Returns: string }
       fu_next_weekday: { Args: { p_date: string }; Returns: string }
+      fu_reag_finalizar: {
+        Args: {
+          p_chave: string
+          p_estado: string
+          p_id: string
+          p_status: number
+        }
+        Returns: undefined
+      }
+      fu_reag_reservar: {
+        Args: {
+          p_chave: string
+          p_interacao: string
+          p_lead: string
+          p_responsavel: string
+        }
+        Returns: Json
+      }
       fu_tecnico_claim: {
         Args: { p_dia: string; p_task: string }
         Returns: boolean

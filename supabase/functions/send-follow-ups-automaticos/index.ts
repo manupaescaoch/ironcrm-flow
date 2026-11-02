@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { authorizeFollowUp, FollowUpError } from '../_shared/followUpAuthorization.ts';
+import { z } from 'npm:zod@3.23.8';
 import {
   RATE_LIMIT_MS,
   checkZapiStatus,
@@ -88,21 +89,21 @@ Se quiser, já posso te ajudar a agendar sua avaliação por aqui.`,
 
 const FUNC = 'send-follow-ups-automaticos';
 
-Deno.serve(async (req) => {
+export async function handleFollowUps(req: Request) {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
-    // SECURITY: require cron secret header OR valid Supabase JWT.
-    {
-      const __auth = await authorizeCronOrJwt(req);
-      if (!__auth.ok) {
-        return new Response(
-          JSON.stringify({ error: __auth.error || 'Unauthorized' }),
-          { status: __auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-    }
-
   try {
+    const raw = await req.text();
+    const parsed = z.object({ unidade_id: z.string().uuid().nullish(), dry_run: z.boolean().optional(), force: z.boolean().optional(), manual: z.boolean().optional(), min_delay_ms: z.number().optional(), max_delay_ms: z.number().optional(), auto_retry: z.boolean().optional() }).strict().safeParse(raw ? JSON.parse(raw) : {});
+    if (!parsed.success) throw new FollowUpError(400, 'Solicitação inválida');
+    const body = parsed.data;
+    const scope = await authorizeFollowUp(req, 'send', body.unidade_id);
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+
     const creds = getZapiCreds('comercial');
     if (!creds) {
       return new Response(
@@ -111,16 +112,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
 
-    let body: any = {};
-    try { body = await req.json(); } catch { /* sem body */ }
-    const dryRun = body?.dry_run === true;
-    const force = body?.force === true;
-    const manual = body?.manual === true;
+    const dryRun = body.dry_run === true;
+    const force = body.force === true;
+    const manual = !scope.automatic;
 
     // Delay aleatório entre envios (modo manual). Defaults: 20s–36s.
     // Validado entre 5s e 120s para evitar rajada ou espera absurda.
@@ -145,35 +140,7 @@ Deno.serve(async (req) => {
     // Modo manual: valida permissão (admin ou comercial) via JWT do usuário
     let manualCallerName = 'MANUAL';
     if (manual) {
-      const authHeader = req.headers.get('Authorization') || '';
-      const jwt = authHeader.replace(/^Bearer\s+/i, '');
-      if (!jwt) {
-        return new Response(
-          JSON.stringify({ error: 'Modo manual requer autenticação de usuário' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      const { data: userData, error: uErr } = await supabase.auth.getUser(jwt);
-      if (uErr || !userData?.user) {
-        return new Response(
-          JSON.stringify({ error: 'JWT inválido' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      const uid = userData.user.id;
-      manualCallerName = (userData.user.email || 'MANUAL').split('@')[0].toUpperCase();
-      const { data: rolesData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', uid);
-      const roles = (rolesData || []).map((r: any) => r.role);
-      // 'user' = comercial (ver AuthContext)
-      if (!roles.includes('admin') && !roles.includes('user')) {
-        return new Response(
-          JSON.stringify({ error: 'Permissão negada. Requer admin ou comercial.' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      manualCallerName = scope.caller;
 
       // Lock anti-concorrência: só uma execução manual por vez (janela de 5 min)
       const lockSince = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -198,21 +165,23 @@ Deno.serve(async (req) => {
       if (!st.connected) {
         await logEnvio(supabase, { funcao: FUNC, sucesso: false, motivo_skip: 'zapi_offline', erro_msg: JSON.stringify(st.raw).slice(0, 500), canal: 'comercial' });
         return new Response(
-          JSON.stringify({ error: 'Z-API desconectado', zapi: st.raw }),
+          JSON.stringify({ error: 'WhatsApp comercial desconectado' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 }
         );
       }
     }
 
-    const { data: followUps, error: fuErr } = await supabase
+    let followUpsQuery = supabase
       .from('follow_ups')
       .select(`
         id, lead_id, tipo, data_prevista, data_referencia, unidade_id,
-        leads (id, nome, telefone, ativo, status_funil, is_matriculado, pausado_fu, data_aula_experimental)
+        leads (id, nome, telefone, unidade_id, ativo, status_funil, is_matriculado, pausado_fu, data_aula_experimental)
       `)
       .eq('status', 'pendente')
       .lte('data_prevista', `${todayStr}T23:59:59-03:00`)
       .in('tipo', ['D+1', 'D+7', 'D+15', 'D+30', 'M+7', 'M+30']);
+    if (scope.units) followUpsQuery = followUpsQuery.in('unidade_id', scope.units).in('leads.unidade_id', scope.units);
+    const { data: followUps, error: fuErr } = await followUpsQuery;
 
     if (fuErr) {
       return new Response(
@@ -314,11 +283,12 @@ Deno.serve(async (req) => {
     );
   } catch (err: any) {
     return new Response(
-      JSON.stringify({ error: err?.message ?? 'Internal error' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ error: err instanceof FollowUpError ? err.message : 'Falha interna' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: err instanceof FollowUpError ? err.status : err instanceof SyntaxError ? 400 : 500 }
     );
   }
-});
+}
+if (import.meta.main) Deno.serve(handleFollowUps);
 
 interface ProcessOptions {
   dryRun: boolean;
@@ -351,6 +321,7 @@ async function processFollowUps(
 
   for (const fu of followUps) {
     const lead = fu.leads;
+    if (lead && lead.unidade_id !== fu.unidade_id) continue;
     if (!lead) {
       await supabase.from('follow_ups')
         .update({ status: 'cancelado', cancelado_motivo: 'lead_inexistente', updated_at: new Date().toISOString() })
