@@ -30,7 +30,7 @@ function fixture() {
   const state={table,select:'',filters:[] as unknown[][],offset:undefined as number|undefined};queries.push(state);
   const q:any={select(s:string){state.select=s;return q;},eq(k:string,v:unknown){state.filters.push([k,'eq',v]);return q;},gte(k:string,v:unknown){state.filters.push([k,'gte',v]);return q;},lt(k:string,v:unknown){state.filters.push([k,'lt',v]);return q;},order(){return q;},range(a:number){state.offset=a;return q;},maybeSingle(){return Promise.resolve({data:{valor:'fixture-token'},error:null});},then(fn:any){
    let data:any[]=[];
-   if(table==='interacoes')data=state.offset===0?Array.from({length:1000},()=>({id:'interaction',lead_id:'same-lead'})):[{id:'last',lead_id:'other-lead'}];
+   if(table==='interacoes'&&state.select==='id,lead_id')data=state.offset===0?Array.from({length:1000},()=>({id:'interaction',lead_id:'same-lead'})):[{id:'last',lead_id:'other-lead'}];
    if(state.select==='id,motivo_perda')data=[{id:'private-id',motivo_perda:'Outro: PESSOA TESTE teste@example.invalid 81999999999'},{id:'another-private-id',motivo_perda:'Outro: outra nota'}];
    return Promise.resolve({data,count:0,error:null}).then(fn);
   }};return q;
@@ -46,7 +46,7 @@ Deno.test('FC-1 full handler adds fields without dropping legacy contract or lea
 });
 Deno.test('FC-1 closing query requires explicit flag and actual date, with paginated dedup',async()=>{
  const {admin,queries}=fixture();const result=await (await handleResumo(req(),admin)).json();
- const closings=queries.filter(q=>q.table==='interacoes');assert(closings.length===2&&result.fechamentos_registrados_no_periodo===2);
+ const closings=queries.filter(q=>q.table==='interacoes'&&q.select==='id,lead_id');assert(closings.length===2&&result.fechamentos_registrados_no_periodo===2);
  for(const q of closings){assert(q.filters.some(f=>f[0]==='fechou_matricula'&&f[2]===true));assert(q.filters.some(f=>f[0]==='data_fechamento'&&f[1]==='gte'&&f[2]==='2026-10-01'));assert(q.filters.some(f=>f[0]==='data_fechamento'&&f[1]==='lt'&&f[2]==='2026-11-01'));assert(!q.filters.some(f=>f[0]==='created_at'));}
 });
 Deno.test('FC-1 unverified external period usage does not introduce 366-day breaking cap',async()=>assert((await handleResumo(req('2024-01-01','2026-01-01'),fixture().admin)).status===200));

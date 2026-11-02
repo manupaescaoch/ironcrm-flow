@@ -1,0 +1,47 @@
+import {aggregateOperational,type ExperimentalEvent,type AttendanceEvidence} from './operacionais.ts';
+import {handleResumo} from './index.ts';
+const assert=(v:boolean)=>{if(!v)throw new Error('Assertion failed');};
+const now=new Date('2026-11-02T17:30:00Z');const units=new Map([['a','A'],['b','B']]);
+const event=(patch:Partial<ExperimentalEvent>={}):ExperimentalEvent=>({id:'e',lead_id:'l',unidade_id:'a',agendou_experimental:true,data_experimental:'2026-11-02',hora_experimental:'13:00:00',compareceu:null,cancelado:false,reagendou:false,...patch});
+const proof=(patch:Partial<AttendanceEvidence>={}):AttendanceEvidence=>({id:'p',interacao_id:'e',lead_id:'l',unidade_id:'a',data_aula:'2026-11-02',hora_aula:'13:00',status:'respondido',resultado:'nao_compareceu',respondido_em:'2026-11-02T17:00:00Z',...patch});
+const run=(events:ExperimentalEvent[],evidence:AttendanceEvidence[]=[],inicio='2026-11-01',fim='2026-12-01')=>aggregateOperational(events,evidence,units,inicio,fim,now);
+Deno.test('FC-2A agendamento sem resultado transcorrido é pendente',()=>assert(run([event()]).pendentes_confirmacao===1));
+Deno.test('FC-2A presença explícita dá resultado conclusivo',()=>{const r=run([event({compareceu:true})]);assert(r.comparecimentos_registrados===1&&r.comparecimentos_conclusivos===1&&r.taxa_comparecimento===100);});
+Deno.test('FC-2A falta exige evidência vinculada ao slot',()=>{const r=run([event({compareceu:false})],[proof()]);assert(r.faltas_registradas===1&&r.faltas_conclusivas===1&&r.pendentes_confirmacao===0&&r.taxa_comparecimento===0);});
+Deno.test('FC-2A false histórico isolado não confirma falta',()=>{const r=run([event({compareceu:false})]);assert(r.faltas_registradas===0&&r.marcacoes_falta_sem_evidencia===1&&r.revisao_necessaria===1);});
+Deno.test('FC-2A cancelamento não é falta nem pendência',()=>{const r=run([event({cancelado:true})]);assert(r.cancelamentos_registrados===1&&r.cancelamentos_conclusivos===1&&r.pendentes_confirmacao===0);});
+Deno.test('FC-2A reagendamento sem ciclo anterior fica revisão',()=>{const r=run([event({reagendou:true})]);assert(r.reagendamentos_registrados===1&&r.revisao_necessaria===1);});
+Deno.test('FC-2A falta seguida de reagendamento não inventa sequência',()=>assert(run([event({compareceu:false,reagendou:true})],[proof()]).revisao_necessaria===1));
+Deno.test('FC-2A reagendamento seguido de presença não inventa ciclo anterior',()=>assert(run([event({compareceu:true,reagendou:true})]).revisao_necessaria===1));
+Deno.test('FC-2A presença e falta contraditórias ficam revisão',()=>{const r=run([event({compareceu:true})],[proof()]);assert(r.revisao_necessaria===1&&r.taxa_comparecimento===null);});
+Deno.test('FC-2A duas experimentais da mesma pessoa são dois slots',()=>assert(run([event(),event({id:'e2',hora_experimental:'12:00'})]).agendamentos_registrados===2&&run([event(),event({id:'e2',hora_experimental:'12:00'})]).ciclos_analisados===2));
+Deno.test('FC-2A duas unidades preservam eventos locais',()=>assert(run([event(),event({id:'e2',unidade_id:'b'})]).por_unidade.length===2));
+Deno.test('FC-2A futuro não é pendente',()=>{const r=run([event({hora_experimental:'16:00'})]);assert(r.pendentes_confirmacao===0&&r.futuros_sem_resultado===1);});
+Deno.test('FC-2A Recife às 14h30 considera 14h00 transcorrido',()=>assert(run([event({hora_experimental:'14:00'})]).pendentes_confirmacao===1));
+Deno.test('FC-2A sem horário não inventa hora',()=>{const r=run([event({hora_experimental:null})]);assert(r.pendentes_sem_horario_verificavel===1&&r.pendentes_confirmacao===0);});
+Deno.test('FC-2A sem hora com data futura não é pendente',()=>assert(run([event({hora_experimental:null,data_experimental:'2026-11-03'})]).futuros_sem_resultado===1));
+Deno.test('FC-2A data do lead divergente exige revisão',()=>assert(run([event({compareceu:true,leads:{data_aula_experimental:'2026-11-03T03:00:00Z'}})]).revisao_necessaria===1));
+Deno.test('FC-2A repetição da mesma origem não infla paginação',()=>assert(run([event(),event()]).agendamentos_registrados===1));
+Deno.test('FC-2A origens diferentes no mesmo ciclo não são resolvidas por UUID',()=>{const r=run([event({compareceu:true}),event({id:'e2',compareceu:false})]);assert(r.agendamentos_registrados===2&&r.revisao_necessaria===1&&r.base_taxa_comparecimento===0);});
+Deno.test('FC-2A histórico editável não é apresentado como imutável',()=>assert(run([]).metadados.historico_imutavel===false));
+Deno.test('FC-2A mudança de mês preserva fim exclusivo',()=>assert(run([event({data_experimental:'2026-10-31'}),event({id:'e2',data_experimental:'2026-11-01'})],[],'2026-10-01','2026-11-01').agendamentos_registrados===1));
+Deno.test('FC-2A período vazio retorna null e base zero',()=>{const r=run([]);assert(r.agendamentos_registrados===0&&r.taxa_comparecimento===null&&r.base_taxa_comparecimento===0);});
+Deno.test('FC-2A cancelamento com presença sem cronologia exige revisão',()=>assert(run([event({cancelado:true,compareceu:true})]).revisao_necessaria===1));
+Deno.test('FC-2A evidência de outro horário não confirma falta',()=>assert(run([event({compareceu:false})],[proof({hora_aula:'12:00'})]).faltas_registradas===0));
+Deno.test('FC-2A unidade desconhecida não usa unidade do lead',()=>assert(run([event({unidade_id:null})]).por_unidade[0].unidade==='unidade_nao_identificada'));
+Deno.test('FC-2A agendou=false não conta como agendamento',()=>assert(run([event({agendou_experimental:false})]).agendamentos_registrados===0));
+Deno.test('FC-2A taxa usa somente ciclos conclusivos',()=>{const r=run([event({compareceu:true}),event({id:'e2',lead_id:'l2',compareceu:false})],[proof({interacao_id:'e2',lead_id:'l2'})]);assert(r.base_taxa_comparecimento===2&&r.taxa_comparecimento===50);});
+Deno.test('FC-2A pendências não entram na taxa',()=>{const r=run([event({compareceu:true}),event({id:'e2',lead_id:'l2'})]);assert(r.base_taxa_comparecimento===1&&r.taxa_comparecimento===100);});
+Deno.test('FC-2A resposta não inclui IDs ou dados pessoais',()=>{const r=run([event({id:'private-interaction',lead_id:'private-lead'})]);assert(!JSON.stringify(r).includes('private-interaction')&&!JSON.stringify(r).includes('private-lead'));});
+Deno.test('FC-2A handler pagina mais de mil eventos e preserva contrato anterior',async()=>{
+ const offsets:number[]=[];
+ const admin={from(table:string){let select='';let offset=0;const q:any={select(s:string){select=s;return q;},eq(){return q;},gte(){return q;},lt(){return q;},order(){return q;},range(n:number){offset=n;return q;},maybeSingle(){return Promise.resolve({data:{valor:'token'},error:null});},then(fn:any){
+ let data:any[]=[];
+ if(table==='interacoes'&&select.includes('agendou_experimental')){offsets.push(offset);data=Array.from({length:offset===0?1000:1},(_,i)=>event({id:`e${offset+i}`,lead_id:`l${offset+i}`}));}
+ if(table==='unidades')data=[{id:'a',nome:'A'}];
+ return Promise.resolve({data,count:0,error:null}).then(fn);
+ }};return q;}};
+ const res=await handleResumo(new Request('http://local',{method:'POST',headers:{'x-funil-token':'token'},body:JSON.stringify({inicio:'2026-11-01',fim:'2026-12-01'})}),admin,now);const r=await res.json();
+ assert(res.status===200&&offsets.join(',')==='0,1000'&&r.experimentais_operacionais.agendamentos_registrados===1001);
+ for(const key of ['periodo','leads_cadastrados','experimentais','por_status','pendentes_atualizacao','matriculas_por_data_conversao','por_unidade','por_origem','perdas_por_motivo','cobertura_matriculas','fechamentos_registrados_no_periodo','definicoes_indicadores','criterio_unidades'])assert(key in r);
+});
