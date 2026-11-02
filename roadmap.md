@@ -1,5 +1,9 @@
 # Roadmap
 
+## Falha de tempo excedido na página Telegram
+- [ ] Limitar chamadas externas sem repetir envios e tratar falhas de carregamento na tela.
+- [ ] Testar conexão/corpo sem resposta e página autenticada sob erro 504; implantar somente funções Telegram necessárias.
+
 ## FC-2A — experimentais operacionais somente analíticos
 - [x] Validar fontes e ciclos; false histórico é padrão, falta conclusiva exige resposta por slot e ambiguidades ficam em revisão.
 - [x] Adicionar objeto operacional independente com contagens, revisão, pendências e taxa conservadora; preservar os 13 campos antigos.

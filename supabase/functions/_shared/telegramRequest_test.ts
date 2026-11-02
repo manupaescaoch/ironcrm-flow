@@ -1,0 +1,6 @@
+import {telegramRequest} from './telegramRequest.ts';
+const assert=(v:boolean)=>{if(!v)throw new Error('Assertion failed');};
+Deno.test('Telegram stalled connection ends before gateway idle timeout without retries',async()=>{let calls=0;const f=((_u:any,_o:any)=>{calls++;return new Promise(()=>{});}) as typeof fetch;const r=await telegramRequest('https://example.invalid/private-token',{},f,5);assert(!r.ok&&calls===1&&!JSON.stringify(r).includes('private-token'));});
+Deno.test('Telegram stalled response body also respects deadline',async()=>{const f=(async()=>({ok:true,json:()=>new Promise(()=>{})})) as unknown as typeof fetch;assert(!(await telegramRequest('https://example.invalid',{},f,5)).ok);});
+Deno.test('Telegram valid response retains result',async()=>{const f=(async()=>Response.json({ok:true,result:{message_id:7}})) as typeof fetch;const r=await telegramRequest('https://example.invalid',{},f,100);assert(r.ok&&r.result.message_id===7);});
+Deno.test('Telegram transport and upstream errors never disclose request URL',async()=>{const f=(async()=>{throw new Error('https://example.invalid/private-token');}) as typeof fetch;assert(!(await telegramRequest('https://example.invalid',{},f,100)).description?.includes('private-token'));});
