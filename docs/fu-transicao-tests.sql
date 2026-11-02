@@ -52,7 +52,7 @@ SELECT test_assert((SELECT count(*) FROM fu_transicao_config_historico)>0,'confi
 UPDATE leads SET unidade_id='00000000-0000-0000-0000-000000000001';
 UPDATE tasks SET unidade_id='00000000-0000-0000-0000-000000000001';
 INSERT INTO fu_transicao_config(unidade_id,familia,modo,ciclos_desde,aprovado_em,aprovacao) VALUES('00000000-0000-0000-0000-000000000001','R02','NOVO','2026-11-02',now(),'ISOLATED ONLY');
-INSERT INTO follow_ups VALUES('30000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001','M+30','pendente','2026-11-02');
+INSERT INTO follow_ups VALUES('30000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001','M+30','pendente','2026-11-02T03:00:00Z');
 SELECT test_assert(NOT EXISTS(SELECT 1 FROM follow_ups WHERE tipo='M+30'),'eligible new legacy generation suppressed');
 SELECT test_assert((SELECT status FROM follow_ups WHERE tipo='M+7')='pendente','existing rows not cancelled');
 SELECT test_assert((fu_transicao_avaliar(test_candidate('R02','M+7')||'{"legado_id":"30000000-0000-0000-0000-000000000002"}')->>'suprimir')::boolean,'persisted eligible contact suppressed before send');
