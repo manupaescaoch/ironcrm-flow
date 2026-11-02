@@ -9,10 +9,13 @@
 
 ## Telegram
 - Grupos `coordenadores` conectados identificados nas quatro unidades: Boa Viagem, Madalena, Setúbal e Santa Cruz do Capibaribe. Nenhum ID presumido, nenhum fallback para outro tipo de grupo.
-- Uma mensagem individual por tarefa elegível, contendo nome, unidade, telefone normalizado, texto e link oculto atrás de “Falar com o aluno”. Pendências persistentes recebem novo lembrete no dia seguinte.
+- Uma mensagem individual por tarefa elegível, com os textos curtos aprovados na atualização e botões inline “💬 Abrir” (URL) e “✅ Enviado” (callback). Confirmação de envio manual é separada da entrega da notificação pelo bot e da conclusão técnica.
+- Callback verifica usuário Telegram vinculado, papel admin/gerente/coordenador, unidade, grupo conectado, matrícula ativa e ID da mensagem atual. Registra data/hora, usuário CRM/Telegram e nome, com bloqueio de cliques simultâneos.
+- Após confirmar, edita a mensagem original em HTML e remove os botões, sem segunda mensagem de confirmação. Falha de edição pode ser recuperada repetindo o clique, sem repetir registro ou auditoria.
+- Envios confirmados não recebem novos lembretes. Acompanhamento técnico segue aberto; clicar Abrir não altera status. Avisos antigos substituídos não confirmam a tarefa.
 - Reserva atômica por tarefa/dia de Recife evita duplicação concorrente. Falhas ficam registradas na tarefa e no log existente. Após resultado incerto de rede não há repetição no mesmo dia; tentativa no próximo dia evita duplicar mensagem possivelmente recebida.
 - Grupo ausente fica sinalizado, sem envio alternativo. Nome do coordenador usa responsável definido na tarefa ou único funcionário ativo com usuário vinculado de papel coordenador; ausência/ambiguidade mantém `[COORDENADOR]` para edição.
-- Não foi feito envio real de teste aos grupos de produção. Recebimento real permanece não homologado.
+- Exemplo demonstrativo anterior enviado ao grupo Boa Viagem mediante pedido explícito, com confirmação da API Telegram. Esse exemplo não tinha os novos botões, portanto não homologa o fluxo atualizado. Nenhum novo disparo de teste realizado nesta atualização.
 
 ## WhatsApp
 - Telefone brasileiro normalizado e validado; texto codificado no link. Telefone inválido mantém tarefa, mas sem link.
@@ -27,7 +30,8 @@
 
 ## Evidências e limites
 - 8 testes Bun aprovados: dias M+7/M+21, não elegíveis, telefone/link e registro presencial.
-- 10 testes Deno aprovados: 4 novos de telefone/link/Recife e 6 existentes de FU gerencial e dias úteis.
+- 15 testes Deno aprovados: 9 de regras técnicas/callback/edição e 6 existentes de FU gerencial/dias úteis. API Telegram simulada; não são testes de botão real no grupo.
+- Novo ensaio PostgreSQL local: identidade vinculada, grupo errado e mensagem antiga recusados; confirmação grava data/hora/usuários; status técnico permanece pendente; auditoria única; lembretes confirmados bloqueados; cancelado recusado. Duas conexões concorrentes: exatamente uma confirmação nova e uma resposta duplicada.
 - Ensaio PostgreSQL local vazio com dados fictícios: sem backfill, duas etapas, idempotência, conclusão obrigatória, presencial, proteção contra exclusão, outra unidade recusada, reserva diária, transferência/histórico, inativação e novo ciclo/cancelamento.
 - Permissões no ensaio usam auth/roles fictícios; não equivalem a login real de coordenador em produção.
 - Tarefas abriu com login real de admin, sem erro de página.
@@ -38,6 +42,6 @@
 ## Preservação e publicação
 - Nenhum gerador/template de FU Comercial, Recepção ou Gerência modificado; callback existente apenas chama rotina técnica adicional, com falha isolada. Testes existentes acima passaram, mas não foram disparados os outros FUs em produção para revalidar envio real.
 - Nenhum KPI ou seção adicionada à Operação.
-- Nenhuma mensagem automática enviada aos alunos e nenhum teste disparado em grupo real.
+- Nenhuma mensagem automática enviada aos alunos e nenhum novo teste disparado em grupo real nesta atualização.
 - Banco alterado e função existente atualizada no projeto. Interface está no preview; publicação do site não solicitada nem executada nesta fase.
 - Pendências: homologação real no Telegram e conclusão por coordenador, confirmação de responsável por unidade quando ambíguo, avaliação externa do link no aplicativo WhatsApp.
