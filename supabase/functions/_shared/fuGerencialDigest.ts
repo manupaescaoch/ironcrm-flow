@@ -15,6 +15,13 @@ export async function sendManagerExperienceFu(admin: SupabaseClient, dryRun = fa
       const { data: context, error: contextError } = await admin.rpc('fu_gerencial_contexto', { p_task: task.id, p_agora: now.toISOString() });
       if (contextError) throw contextError;
       if (!context?.elegivel) { results.push({ task: task.id, status: 'inelegivel' }); continue; }
+      if (context.objetivo_realizado) {
+        if (!dryRun) {
+          const { error: saveError } = await admin.from('tasks').update({fu_gerencial_contexto:context,fu_gerencial_envio_erro:'Objetivo já realizado: conferir histórico e dispensar acompanhamento.'}).eq('id',task.id);
+          if (saveError) throw saveError;
+        }
+        results.push({task:task.id,status:'objetivo_realizado'}); continue;
+      }
       if (context.adiar_ate && context.adiar_ate.slice(0,10) > day) {
         if (!dryRun) {
           const { error: saveError } = await admin.from('tasks').update({ prazo: context.adiar_ate.slice(0,10), fu_gerencial_contexto: context, fu_gerencial_envio_erro: context.motivo }).eq('id',task.id);

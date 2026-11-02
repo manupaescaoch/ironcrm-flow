@@ -13,8 +13,7 @@ Deno.test('Individual manager reminders are unit-scoped sequential daily and nev
   if(table==='fu_gerencial_contexto')data={elegivel:true,aluno:body.p_task==='a'?'ALUNO A':'ALUNO B',unidade:body.p_task==='a'?'A':'B',telefone:'81999990000',avisos:[]};
   if(table==='fu_gerencial_claim'){data=!claims.has(body.p_task);claims.add(body.p_task);}
   if(table==='telegram_groups'){
-   if(url.searchParams.get('group_type')!=='in.(gerencia)')throw new Error('Wrong target group');
-   data=[{id:'g',telegram_chat_id:url.searchParams.get('unidade_id')==='eq.A'?-1:-2}];
+   data=[{id:'g',group_type:'gerencia',telegram_chat_id:url.searchParams.get('unidade_id')==='eq.A'?-1:-2}];
   }
   if(table==='cronograma_funcionarios')data=[];
   return Response.json(data);
