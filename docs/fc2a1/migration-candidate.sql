@@ -152,6 +152,7 @@ BEGIN
  SELECT * INTO e FROM public.experimental_ciclo_eventos WHERE chave=p_chave;
  IF FOUND THEN IF e.interacao_id<>i.id OR e.tipo<>'criado' OR e.data_aula<>p_data OR e.hora_aula<>p_hora THEN RAISE EXCEPTION 'Chave reutilizada'; END IF; RETURN e.ciclo_id; END IF;
  IF EXISTS(SELECT 1 FROM public.experimental_ciclos WHERE interacao_id=i.id AND situacao='ativo') THEN RAISE EXCEPTION 'Ciclo ativo existente'; END IF;
+ IF p_anterior IS NULL AND i.created_at<(SELECT aprovado_em FROM public.experimental_ciclos_config WHERE unidade_id=i.unidade_id) THEN RAISE EXCEPTION 'Interação histórica: não converter nem reconstruir ciclos'; END IF;
  IF p_anterior IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.experimental_ciclos WHERE id=p_anterior AND interacao_id=i.id AND lead_id=i.lead_id AND unidade_id=i.unidade_id AND situacao='substituido') THEN RAISE EXCEPTION 'Predecessor inválido'; END IF;
  INSERT INTO public.experimental_ciclo_contexto VALUES(pg_backend_pid(),txid_current(),i.id) ON CONFLICT DO NOTHING;
  INSERT INTO public.experimental_ciclos(interacao_id,lead_id,unidade_id,data_aula,hora_aula,criado_por,origem_criacao,ciclo_anterior_id) VALUES(i.id,i.lead_id,i.unidade_id,p_data,p_hora,p_usuario,p_origem,p_anterior) RETURNING id INTO c;
