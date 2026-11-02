@@ -5,12 +5,12 @@ const time=z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 const base={unidade_id:uuid,chave:z.string().min(1).max(190)};
 export const operationSchema=z.discriminatedUnion('operacao',[
  z.object({...base,operacao:z.literal('criar'),lead_id:uuid,data:day,hora:time,descricao:z.string().max(4000).optional()}).strict(),
- z.object({...base,operacao:z.literal('editar'),ciclo_id:uuid,versao:z.number().int().nonnegative(),descricao:z.string().max(4000).optional(),treinador:z.string().min(1).max(200).optional()}).strict().refine(v=>v.descricao!==undefined||v.treinador!==undefined),
+ z.object({...base,operacao:z.literal('editar'),ciclo_id:uuid,versao:z.number().int().nonnegative(),descricao:z.string().max(4000).optional(),treinador:z.string().min(1).max(200).optional()}).strict(),
  z.object({...base,operacao:z.literal('confirmar'),ciclo_id:uuid,versao:z.number().int().nonnegative(),resultado:z.enum(['compareceu','nao_compareceu']),motivo:z.string().min(1).max(1000).optional(),treinador:z.string().min(1).max(200).optional()}).strict(),
  z.object({...base,operacao:z.literal('cancelar'),ciclo_id:uuid,versao:z.number().int().nonnegative(),motivo:z.string().min(1).max(1000)}).strict(),
  z.object({...base,operacao:z.literal('inativar'),ciclo_id:uuid,versao:z.number().int().nonnegative(),motivo:z.string().min(1).max(1000)}).strict(),
  z.object({...base,operacao:z.literal('reagendar'),ciclo_id:uuid,versao:z.number().int().nonnegative(),motivo:z.string().min(1).max(1000),data:day,hora:time}).strict(),
-]);
+]).refine(v=>v.operacao!=='editar'||v.descricao!==undefined||v.treinador!==undefined);
 export type CycleCommand=z.infer<typeof operationSchema>;
 export interface OperationsDeps {
  authenticate:(jwt:string)=>Promise<{id:string}|null>;
