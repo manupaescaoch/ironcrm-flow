@@ -30,8 +30,8 @@ export function mensagemTecnica(etapa: EtapaTecnica, nome: string, unidade: stri
   const local = nomeProprio(unidade.replace(/^EVO\s+/i, '').trim());
   const responsavel = coordenador?.trim() && coordenador !== '[COORDENADOR]' ? nomeProprio(coordenador.trim()) : '[COORDENADOR]';
   return etapa === 'M+7'
-    ? `Oi, ${primeiro}! Aqui é ${responsavel}, da EVO ${local}.\n\nComo está sua adaptação aos treinos? Alguma dificuldade com os exercícios?`
-    : `Oi, ${primeiro}! Aqui é ${responsavel}, da EVO ${local}.\n\nComo estão os treinos? Já percebe alguma evolução ou tem algo que podemos ajustar?`;
+    ? `Oi, ${primeiro}! Tudo bem?\n\nAqui é ${responsavel}, coordenador da EVO ${local}.\n\nQueria saber como foram seus primeiros treinos.\n\nEstá sentindo alguma dificuldade com os exercícios ou tem algum movimento em que gostaria de receber mais orientação?\n\nPode contar com a gente!`
+    : `Oi, ${primeiro}! Tudo bem?\n\nAqui é ${responsavel}, da EVO ${local}.\n\nJá estamos chegando ao seu primeiro mês de treinos!\n\nQueria saber como você está percebendo sua evolução até aqui. Está se sentindo mais seguro nos exercícios e percebendo alguma melhora no condicionamento ou nas cargas?\n\nSe tiver alguma dificuldade, me conta por aqui.`;
 }
 export function linkTecnico(telefone: string | null | undefined, mensagem: string): string | null {
   const numero = telefoneTecnico(telefone);

@@ -9,7 +9,7 @@ export async function receberBotaoFuMatriculados(admin: any, cq: any, api = tele
   }
   const { data, error } = await admin.rpc('fu_matriculados_confirmar_envio', { p_task: id, p_telegram_user: cq.from.id, p_chat: chat, p_message: message });
   if (error || !data?.ok) { await answer(data?.erro ?? 'Não consegui registrar agora. Tente novamente.', true); return true; }
-  const edited = await api('editMessageText', { chat_id: chat, message_id: message, parse_mode: 'HTML', text: textoConfirmadoFuMatriculados(data.unidade, data.aluno, data.confirmado_em, data.responsavel), reply_markup: { inline_keyboard: [] } });
+  const edited = await api('editMessageText', { chat_id: chat, message_id: message, parse_mode: 'HTML', text: textoConfirmadoFuMatriculados(data.unidade, data.aluno, data.confirmado_em, data.responsavel, data.etapa ?? 'BV'), reply_markup: { inline_keyboard: [] } });
   await answer(!edited.ok && !edited.description?.includes('message is not modified') ? 'Registrado. Clique novamente para atualizar o aviso.' : data.duplicado ? 'Envio já confirmado.' : 'Envio confirmado. Acompanhamento permanece no CRM.');
   return true;
 }

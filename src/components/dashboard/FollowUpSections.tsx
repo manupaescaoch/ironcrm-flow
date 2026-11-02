@@ -67,30 +67,26 @@ const NOT_INTERESTED_REASONS = [
 ];
 
 const FOLLOW_UP_MESSAGES: Record<string, (nome: string) => string> = {
-  'D+1': (nome) => `Oi, ${nome}! Como foi o corpo hoje depois do treino de ontem?
+  'D+1': (nome) => `Oi, ${nome}! Tudo bem?
 
-Primeira sessão sempre dá aquela sensação de que o músculo acordou.
+Como você está se sentindo depois da sua aula experimental?
 
-Se quiser continuar treinando com estrutura e acompanhamento, me fala. Te explico como funciona aqui na EVO em 2 minutos.`,
-  'D+7': (nome) => `${nome}, faz uma semana desde sua experimental aqui na EVO.
+Ficou alguma dúvida sobre os planos ou sobre como funciona o acompanhamento na EVO?`,
+  'D+7': (nome) => `Oi, ${nome}! Tudo bem?
 
-Voltou a treinar? Em outro lugar ou parou por enquanto?
+Passando pra saber se você ainda tem interesse em começar a treinar na EVO.
 
-Pergunto porque dependendo da sua situação, posso te mostrar uma opção que faz mais sentido pro seu momento agora.`,
-  'D+15': (nome) => `${nome}, passando de forma direta:
+Se quiser, posso verificar os horários disponíveis e te ajudar com a matrícula por aqui.`,
+  'D+15': (nome) => `Oi, ${nome}! Tudo bem?
 
-Você veio, treinou, sentiu na prática como é a estrutura da EVO.
+Vou encerrar nosso acompanhamento por enquanto, mas deixo o contato aberto caso queira retomar.
 
-Esse mês ainda tem condição de entrada diferenciada. Se você tiver considerando, agora é o momento certo pra bater o martelo.
+Se tiver alguma dúvida ou quiser começar a treinar na EVO, é só me chamar! 💙`,
+  'D+30': (nome) => `Oi, ${nome}!
 
-Quer saber os valores?`,
-  'D+30': (nome) => `${nome}, último contato da minha parte.
+Passando pra deixar o contato aberto. Se em algum momento quiser treinar com mais acompanhamento e uma experiência diferente, a EVO está aqui.
 
-Faz 30 dias desde sua experimental. Se ainda não tomou uma decisão, provavelmente ainda tem alguma dúvida ou travamento.
-
-Me fala o que tá segurando. Às vezes é simples de resolver.
-
-As portas da EVO estão abertas, mas não vou ficar insistindo infinitamente. Decisão é sua.`,
+Qualquer coisa é só chamar. 🤝`,
 };
 
 export function FollowUpSections({ 

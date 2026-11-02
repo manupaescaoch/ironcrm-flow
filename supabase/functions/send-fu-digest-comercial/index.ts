@@ -35,9 +35,9 @@ function getBrasiliaParts() {
 }
 
 const TEMPLATES: Record<string, (nome: string) => string> = {
-  'D+1': (n) => `Oi, ${n}! Tudo bem? Passando pra saber da sua experiência ontem na EVO. Como foi o treino? Se fizer sentido continuar, me chama por aqui que te explico os planos.`,
-  'D+7': (n) => `Oi, ${n}! Tudo bem? Passando pra saber se ficou alguma dúvida depois da sua experiência aqui na EVO. Se quiser concluir sua matrícula, é só me chamar.`,
-  'D+15': (n) => `Oi, ${n}! Tudo bem? Já faz alguns dias desde sua experiência. Como trabalhamos com limite de alunos, prefiro te chamar antes de encerrar seu atendimento. Se a EVO ainda fizer sentido, me fala.`,
+  'D+1': (n) => `Oi, ${n}! Tudo bem? Como você está se sentindo depois da sua aula experimental? Ficou alguma dúvida sobre os planos ou sobre como funciona o acompanhamento na EVO?`,
+  'D+7': (n) => `Oi, ${n}! Tudo bem? Passando pra saber se você ainda tem interesse em começar a treinar na EVO. Se quiser, posso verificar os horários disponíveis e te ajudar com a matrícula por aqui.`,
+  'D+15': (n) => `Oi, ${n}! Tudo bem? Vou encerrar nosso acompanhamento por enquanto, mas deixo o contato aberto caso queira retomar. Se tiver alguma dúvida ou quiser começar a treinar na EVO, é só me chamar! 💙`,
   'D+30': (n) => `Oi, ${n}! Passando pra deixar o contato aberto. Se em algum momento quiser treinar com mais acompanhamento, a EVO está aqui. 🤝`,
 };
 
@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
       .select('id, tipo, data_prevista, unidade_id, leads(id, nome, telefone, ativo, status_funil, is_matriculado)')
       .eq('status', 'pendente')
       .lte('data_prevista', `${todayStr}T23:59:59`)
-      .in('tipo', ['D+1', 'D+7', 'D+15', 'D+30']);
+      .in('tipo', ['D+1', 'D+7', 'D+15']); // D+30 automático desativado
     if (fuErr) throw fuErr;
 
     // 3. Carregar nomes das unidades
