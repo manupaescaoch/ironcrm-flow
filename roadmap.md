@@ -1,5 +1,10 @@
 # Roadmap
 
+## FC-1 — segurança e clareza do resumo comercial
+- [ ] Proteger motivos livres somente na resposta e preservar todos os cálculos existentes.
+- [ ] Validar cobertura técnica, fechamentos comprovados e consumidores antes de adicionar metadados/limites.
+- [ ] Testar e comparar outubro/novembro antes/depois com SQL independente; implantar somente a função e entregar relatório.
+
 ## Auditoria de consistência do funil comercial — somente leitura
 - [x] Conciliar outubro e novembro entre função publicada e consultas independentes; auditar histórico, unidades, origens, datas e segurança (200/400/401 reais; 12 testes existentes; sem escrita em dados).
 - [x] Entregar diagnóstico, evidências, limitações e correções recomendadas, sem implementar alterações; relatório de 02/11/2026 salvo em Files.
