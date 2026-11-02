@@ -5338,6 +5338,15 @@ export type Database = {
           fu_gerencial_status: string | null
           fu_gerencial_telegram_chat_id: number | null
           fu_gerencial_telegram_message_id: number | null
+          fu_matriculados_chat_id: number | null
+          fu_matriculados_confirmado_em: string | null
+          fu_matriculados_confirmado_nome: string | null
+          fu_matriculados_confirmado_por: string | null
+          fu_matriculados_envio_dia: string | null
+          fu_matriculados_envio_erro: string | null
+          fu_matriculados_lead_id: string | null
+          fu_matriculados_matricula_id: string | null
+          fu_matriculados_message_id: number | null
           fu_tecnico_confirmado_em: string | null
           fu_tecnico_confirmado_nome: string | null
           fu_tecnico_confirmado_por: string | null
@@ -5389,6 +5398,15 @@ export type Database = {
           fu_gerencial_status?: string | null
           fu_gerencial_telegram_chat_id?: number | null
           fu_gerencial_telegram_message_id?: number | null
+          fu_matriculados_chat_id?: number | null
+          fu_matriculados_confirmado_em?: string | null
+          fu_matriculados_confirmado_nome?: string | null
+          fu_matriculados_confirmado_por?: string | null
+          fu_matriculados_envio_dia?: string | null
+          fu_matriculados_envio_erro?: string | null
+          fu_matriculados_lead_id?: string | null
+          fu_matriculados_matricula_id?: string | null
+          fu_matriculados_message_id?: number | null
           fu_tecnico_confirmado_em?: string | null
           fu_tecnico_confirmado_nome?: string | null
           fu_tecnico_confirmado_por?: string | null
@@ -5440,6 +5458,15 @@ export type Database = {
           fu_gerencial_status?: string | null
           fu_gerencial_telegram_chat_id?: number | null
           fu_gerencial_telegram_message_id?: number | null
+          fu_matriculados_chat_id?: number | null
+          fu_matriculados_confirmado_em?: string | null
+          fu_matriculados_confirmado_nome?: string | null
+          fu_matriculados_confirmado_por?: string | null
+          fu_matriculados_envio_dia?: string | null
+          fu_matriculados_envio_erro?: string | null
+          fu_matriculados_lead_id?: string | null
+          fu_matriculados_matricula_id?: string | null
+          fu_matriculados_message_id?: number | null
           fu_tecnico_confirmado_em?: string | null
           fu_tecnico_confirmado_nome?: string | null
           fu_tecnico_confirmado_por?: string | null
@@ -5480,6 +5507,20 @@ export type Database = {
           {
             foreignKeyName: "tasks_fu_gerencial_matricula_id_fkey"
             columns: ["fu_gerencial_matricula_id"]
+            isOneToOne: false
+            referencedRelation: "interacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_fu_matriculados_lead_id_fkey"
+            columns: ["fu_matriculados_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_fu_matriculados_matricula_id_fkey"
+            columns: ["fu_matriculados_matricula_id"]
             isOneToOne: false
             referencedRelation: "interacoes"
             referencedColumns: ["id"]
@@ -6490,6 +6531,20 @@ export type Database = {
         Returns: Json
       }
       fu_gerencial_inicio: { Args: never; Returns: string }
+      fu_matriculados_claim: {
+        Args: { p_dia: string; p_task: string }
+        Returns: boolean
+      }
+      fu_matriculados_confirmar_envio: {
+        Args: {
+          p_chat: number
+          p_message: number
+          p_task: string
+          p_telegram_user: number
+        }
+        Returns: Json
+      }
+      fu_matriculados_inicio: { Args: never; Returns: string }
       fu_next_weekday: { Args: { p_date: string }; Returns: string }
       fu_tecnico_claim: {
         Args: { p_dia: string; p_task: string }
