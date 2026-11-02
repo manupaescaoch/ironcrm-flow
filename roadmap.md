@@ -3,7 +3,10 @@
 ## FC-2A.1 — diagnóstico e proposta, sem implementação
 - [x] Mapear caminhos de escrita, consumidores, permissões e 19 triggers instalados; identificar diferença entre REAG real ao lead e aviso à recepção descrito.
 - [x] Entregar relatório técnico e plano de schema, compatibilidade, implantação, rollback e testes, sem código/migração/implantação.
-- [ ] Implementar rastreabilidade — aguarda aprovação explícita do plano; nenhuma mudança operacional nesta execução.
+- [ ] Preparar migração aditiva e implementação inativa cobrindo CRM, EVO Chat, Telegram e todos os escritores antes de piloto.
+- [ ] Identificar canal/destinatário real da recepção; preparar notificação interna idempotente preservando REAG.
+- [ ] Ensaiar os 19 triggers e cenários de confirmação/remarcação/cancelamento em ambiente isolado; evidências nunca excluídas.
+- [ ] Apresentar resultados e solicitar aprovação específica para produção/piloto/mensagens — proibidos nesta preparação; sem backfill ou FC-2B.
 
 ## Falha de tempo excedido na página Telegram
 - [x] Limitar chamadas externas sem repetir envios e tratar falhas de carregamento na tela.

@@ -1,0 +1,20 @@
+-- Attachments verified from deployed catalog; local fixture only.
+CREATE TRIGGER contato_interacao_evidencia AFTER INSERT OR UPDATE ON public.interacoes FOR EACH ROW EXECUTE FUNCTION contato_interacao_evidencia();
+CREATE TRIGGER fu_gerencial_matricula AFTER INSERT OR UPDATE OF fechou_matricula, cancelado, data_fechamento ON public.interacoes FOR EACH ROW EXECUTE FUNCTION fu_gerencial_nova_matricula();
+CREATE TRIGGER fu_matriculados_matricula AFTER INSERT OR UPDATE OF fechou_matricula, cancelado, data_fechamento ON public.interacoes FOR EACH ROW EXECUTE FUNCTION fu_matriculados_nova_matricula();
+CREATE TRIGGER fu_tecnico_matricula AFTER INSERT OR UPDATE OF fechou_matricula, cancelado ON public.interacoes FOR EACH ROW EXECUTE FUNCTION fu_tecnico_nova_matricula();
+CREATE TRIGGER prevent_duplicate_matricula BEFORE INSERT OR UPDATE ON public.interacoes FOR EACH ROW EXECUTE FUNCTION check_duplicate_matricula();
+CREATE TRIGGER trg_cancel_follow_ups_on_compareceu_undone AFTER UPDATE OF compareceu ON public.interacoes FOR EACH ROW EXECUTE FUNCTION cancel_follow_ups_on_compareceu_undone();
+CREATE TRIGGER trg_cancel_follow_ups_on_reschedule AFTER INSERT ON public.interacoes FOR EACH ROW EXECUTE FUNCTION cancel_follow_ups_on_reschedule();
+CREATE TRIGGER trg_generate_post_matricula_follow_ups AFTER INSERT OR UPDATE OF fechou_matricula ON public.interacoes FOR EACH ROW EXECUTE FUNCTION generate_post_matricula_follow_ups();
+CREATE TRIGGER trg_notify_experimental_presenca AFTER UPDATE ON public.interacoes FOR EACH ROW EXECUTE FUNCTION notify_experimental_presenca_http();
+CREATE TRIGGER trg_set_compareceu_em BEFORE INSERT OR UPDATE OF compareceu ON public.interacoes FOR EACH ROW EXECUTE FUNCTION set_compareceu_em();
+CREATE TRIGGER trigger_cancel_follow_ups_on_matricula AFTER INSERT OR UPDATE OF fechou_matricula ON public.interacoes FOR EACH ROW EXECUTE FUNCTION cancel_follow_ups_on_matricula();
+CREATE TRIGGER trigger_generate_follow_ups_on_attendance AFTER INSERT OR UPDATE OF compareceu ON public.interacoes FOR EACH ROW EXECUTE FUNCTION generate_follow_ups_on_attendance();
+CREATE TRIGGER trigger_sync_hora_experimental BEFORE INSERT OR UPDATE OF data_experimental, hora_experimental ON public.interacoes FOR EACH ROW EXECUTE FUNCTION sync_hora_experimental_from_lead();
+CREATE TRIGGER trigger_sync_interacao_unidade BEFORE INSERT OR UPDATE ON public.interacoes FOR EACH ROW EXECUTE FUNCTION sync_interacao_unidade_from_lead();
+CREATE TRIGGER trigger_update_lead_matriculado AFTER INSERT OR UPDATE OF fechou_matricula ON public.interacoes FOR EACH ROW EXECUTE FUNCTION update_lead_matriculado_status();
+CREATE TRIGGER trigger_update_lead_on_matricula AFTER INSERT OR UPDATE OF fechou_matricula ON public.interacoes FOR EACH ROW EXECUTE FUNCTION update_lead_status_on_matricula();
+CREATE TRIGGER trigger_validate_hora_experimental BEFORE INSERT OR UPDATE ON public.interacoes FOR EACH ROW EXECUTE FUNCTION validate_hora_experimental();
+CREATE TRIGGER uppercase_interacoes_fields BEFORE INSERT OR UPDATE ON public.interacoes FOR EACH ROW EXECUTE FUNCTION uppercase_cadastrado_atendido();
+CREATE TRIGGER validate_status_avaliacao_trigger BEFORE INSERT OR UPDATE ON public.interacoes FOR EACH ROW EXECUTE FUNCTION validate_status_avaliacao();

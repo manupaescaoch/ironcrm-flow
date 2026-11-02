@@ -1,7 +1,7 @@
 # FC-2A.1 — Rastreabilidade de experimentais
 
 ## Objetivo e aprovação
-Criar ciclos identificáveis e resultados explícitos **Pendente / Compareceu / Não compareceu**, preservando operação e histórico. Esta entrega é somente diagnóstico e proposta: **nenhuma migração, mudança de código ou implantação foi executada**. Implementação depende da aprovação deste plano.
+Criar ciclos identificáveis e resultados explícitos **Pendente / Compareceu / Não compareceu**, preservando operação e histórico. Arquitetura aprovada para **preparação técnica e testes isolados**. Migração em produção, ativação do piloto e mensagens reais exigem nova aprovação específica após os resultados dos testes.
 
 ## Diagnóstico
 - A edição de interação transforma null em false e pode registrar falta sem escolha explícita.
@@ -18,7 +18,7 @@ O relatório técnico entregue detalha schema instalado, todos os caminhos ident
 2. Registrar confirmações explícitas com origem, responsável real quando disponível, horário servidor e histórico de correções.
 3. Ao reagendar, preservar o ciclo anterior e criar sucessor pendente. Botão antigo nunca responde pelo novo ciclo, mesmo se houver retorno ao mesmo horário.
 4. Atualizar os caminhos de criação, edição, presença, cancelamento, remoção e integração EVO Chat. Salvar descrição sem alterar presença não cria confirmação.
-5. Manter Telegram atual, webhook único, botões e grupo COMERCIAL. Confirmar de forma atômica e preservar chamada única ao REAG existente.
+5. Manter Telegram atual, webhook único, botões e grupo COMERCIAL. Confirmar de forma atômica e preservar chamada única ao REAG existente. Preparar aviso interno idempotente ao responsável pela recepção da unidade, identificando canal e destinatário existentes antes de habilitar envio.
 6. Adaptar somente os indicadores operacionais para ler novos ciclos, separando legado inconclusivo e taxa parcial comprovada. Preservar os 13 campos comerciais anteriores e os nomes/estrutura dos campos operacionais.
 
 ## Detalhes técnicos
@@ -46,12 +46,12 @@ O relatório técnico entregue detalha schema instalado, todos os caminhos ident
 - Não duplicar eventos entre leitura de interações legadas e ciclos rastreáveis. Metadados separam cobertura e taxa parcial dos comprovados; histórico inconclusivo continua separado.
 
 ## Implantação e rollback
-1. Aprovar plano e esclarecer qualquer novo destino de aviso à recepção; por padrão preservar WhatsApp atual ao lead.
+1. Identificar canal/destinatário do aviso interno à recepção sem presumir grupos/contatos; preservar WhatsApp REAG atual ao lead.
 2. Ensaiar schema/RPCs/guards e regressões em banco isolado, sem mensagens reais.
-3. Aplicar migração aditiva sem ativar escritores nem preencher histórico.
+3. Apresentar resultados dos testes e obter aprovação específica antes de aplicar migração aditiva em produção; não ativar escritores nem preencher histórico.
 4. Integrar todos os escritores da unidade piloto antes de ativação coordenada; manter autenticação e credenciais existentes.
 5. Adaptar leitura analítica, comparar campos anteriores e homologar idempotência/consistência.
-6. Homologação de mensagens reais somente com autorização específica ou acompanhamento de ciclo natural elegível, sem testes fictícios em produção.
+6. Piloto e mensagens reais somente com aprovação específica posterior; todos os escritores (CRM, EVO Chat, Telegram) integrados antes de piloto. Validar os 19 triggers e cancelamento/inativação sem excluir evidências.
 
 Rollback mantém tabelas/evidências/chaves. Desabilitar novos ciclos no piloto, mas manter operações seguras para ciclos já rastreados; não voltar para escrita direta cega, apagar histórico ou repetir mensagens/callbacks. Não alterar registros históricos para “desfazer” implantação.
 
