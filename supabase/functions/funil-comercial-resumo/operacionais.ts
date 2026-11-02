@@ -23,6 +23,9 @@ export function aggregateOperational(events:ExperimentalEvent[],evidence:Attenda
  const addReason=(key:string)=>reasons.set(key,(reasons.get(key)??0)+1);
  const slotKey=(e:ExperimentalEvent)=>JSON.stringify([e.lead_id,e.unidade_id,e.data_experimental,timeOf(e.hora_experimental)??'sem_hora']);
  const cycles=new Map<string,ExperimentalEvent[]>();
+ const unitAssignments=new Map<string,Set<string|null>>();
+ const personSlot=(e:ExperimentalEvent)=>JSON.stringify([e.lead_id,e.data_experimental,timeOf(e.hora_experimental)]);
+ for(const e of selected){if(e.lead_id&&timeOf(e.hora_experimental)){const set=unitAssignments.get(personSlot(e))??new Set<string|null>();set.add(e.unidade_id);unitAssignments.set(personSlot(e),set);}}
  const confirmedNegative=(e:ExperimentalEvent)=>matching(e).some(c=>c.resultado==='nao_compareceu');
  function matching(e:ExperimentalEvent) {
   return (controls.get(e.id)??[]).filter(c=>c.status==='respondido'&&c.respondido_em&&c.lead_id===e.lead_id&&c.unidade_id===e.unidade_id&&c.data_aula===e.data_experimental&&timeOf(c.hora_aula)===timeOf(e.hora_experimental)&&timeOf(c.hora_aula)!==null);
@@ -53,6 +56,7 @@ export function aggregateOperational(events:ExperimentalEvent[],evidence:Attenda
   const divergent=group.some(e=>e.leads?.data_aula_experimental&&recifeDay(e.leads.data_aula_experimental)!==e.data_experimental);
   if(group.length>1){state='revisao_necessaria';reason='multiplos_registros_mesmo_ciclo';}
   else if(!first.lead_id){state='revisao_necessaria';reason='identidade_do_ciclo_ausente';}
+  else if((unitAssignments.get(personSlot(first))?.size??0)>1){state='revisao_necessaria';reason='unidades_conflitantes_mesmo_horario';}
   else if(divergent){state='revisao_necessaria';reason='data_atual_do_lead_divergente';}
   else if(yes&&no){state='revisao_necessaria';reason='resultados_contraditorios';}
   else if(responses.some(c=>c.resultado==='compareceu')&&first.compareceu===false){state='revisao_necessaria';reason='resultado_atual_diverge_da_evidencia';}

@@ -16,6 +16,7 @@ Deno.test('FC-2A reagendamento seguido de presença não inventa ciclo anterior'
 Deno.test('FC-2A presença e falta contraditórias ficam revisão',()=>{const r=run([event({compareceu:true})],[proof()]);assert(r.revisao_necessaria===1&&r.taxa_comparecimento===null);});
 Deno.test('FC-2A duas experimentais da mesma pessoa são dois slots',()=>assert(run([event(),event({id:'e2',hora_experimental:'12:00'})]).agendamentos_registrados===2&&run([event(),event({id:'e2',hora_experimental:'12:00'})]).ciclos_analisados===2));
 Deno.test('FC-2A duas unidades preservam eventos locais',()=>assert(run([event(),event({id:'e2',unidade_id:'b'})]).por_unidade.length===2));
+Deno.test('FC-2A mesmo lead no mesmo horário em unidades diferentes exige revisão sem inflar taxa',()=>{const r=run([event({compareceu:true}),event({id:'e2',unidade_id:'b',compareceu:true})]);assert(r.revisao_necessaria===2&&r.base_taxa_comparecimento===0&&r.agendamentos_registrados===2);});
 Deno.test('FC-2A futuro não é pendente',()=>{const r=run([event({hora_experimental:'16:00'})]);assert(r.pendentes_confirmacao===0&&r.futuros_sem_resultado===1);});
 Deno.test('FC-2A Recife às 14h30 considera 14h00 transcorrido',()=>assert(run([event({hora_experimental:'14:00'})]).pendentes_confirmacao===1));
 Deno.test('FC-2A sem horário não inventa hora',()=>{const r=run([event({hora_experimental:null})]);assert(r.pendentes_sem_horario_verificavel===1&&r.pendentes_confirmacao===0);});
