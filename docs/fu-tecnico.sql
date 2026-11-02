@@ -23,7 +23,7 @@ BEGIN
   RAISE EXCEPTION 'Identidade do acompanhamento não pode ser alterada.';
  END IF;
  IF NEW.fu_tecnico_etapa IS NULL THEN RETURN NEW; END IF;
- IF auth.uid() IS NOT NULL THEN
+ IF auth.uid() IS NOT NULL AND pg_trigger_depth()=1 THEN
   IF TG_OP='INSERT' THEN RAISE EXCEPTION 'FU técnico é criado pela matrícula.'; END IF;
   IF NOT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id=auth.uid() AND role::text IN ('admin','gerente','coordenador')) OR
    NOT (public.has_role(auth.uid(),'admin') OR NEW.unidade_id IN (SELECT public.get_user_unidades(auth.uid()))) THEN
@@ -39,7 +39,7 @@ BEGIN
    ELSE NEW.fu_tecnico_status='pendente'; END IF;
   END IF;
  END IF;
- IF NEW.fu_tecnico_status IN ('concluido','dispensado') OR (NEW.fu_tecnico_status='cancelado' AND auth.uid() IS NOT NULL) THEN
+ IF NEW.fu_tecnico_status IN ('concluido','dispensado') OR (NEW.fu_tecnico_status='cancelado' AND auth.uid() IS NOT NULL AND pg_trigger_depth()=1) THEN
   r:=NEW.fu_tecnico_registro;
   IF r IS NULL OR coalesce(r->>'data','') !~ '^\d{4}-\d{2}-\d{2}$' OR nullif(trim(r->>'coordenador'),'') IS NULL OR
    coalesce(r->>'canal','') NOT IN ('presencial','whatsapp') OR nullif(trim(r->>'observacoes'),'') IS NULL THEN
@@ -51,7 +51,7 @@ BEGIN
  NEW.recorrencia:=NULL; NEW.recorrencia_fim:=NULL;
  NEW.notificado_24h:=true; NEW.notificado_prazo:=true;
  IF TG_OP='UPDATE' AND (NEW.fu_tecnico_status IS DISTINCT FROM OLD.fu_tecnico_status OR NEW.fu_tecnico_registro IS DISTINCT FROM OLD.fu_tecnico_registro OR NEW.unidade_id IS DISTINCT FROM OLD.unidade_id) THEN
-  SELECT coalesce(nome,'SISTEMA') INTO v_user FROM public.user_profiles WHERE user_id=auth.uid();
+  v_user:=coalesce(NEW.fu_tecnico_registro->>'coordenador','SISTEMA');
   INSERT INTO public.task_history(task_id,user_id,user_name,campo,valor_anterior,valor_novo)
    VALUES(NEW.id,auth.uid(),coalesce(v_user,'SISTEMA'),'acompanhamento_tecnico',jsonb_build_object('status',OLD.fu_tecnico_status,'registro',OLD.fu_tecnico_registro,'unidade',OLD.unidade_id)::text,jsonb_build_object('status',NEW.fu_tecnico_status,'registro',NEW.fu_tecnico_registro,'unidade',NEW.unidade_id)::text);
  END IF;
@@ -63,10 +63,14 @@ CREATE OR REPLACE FUNCTION public.fu_tecnico_nova_matricula() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
 DECLARE l public.leads; n integer;
 BEGIN
+ IF TG_OP='UPDATE' AND (NEW.cancelado=true OR NEW.fechou_matricula IS DISTINCT FROM true) THEN
+  UPDATE public.tasks SET fu_tecnico_status='cancelado',fu_tecnico_envio_erro='Matrícula cancelada' WHERE fu_tecnico_matricula_id=NEW.id AND fu_tecnico_status IN ('pendente','em_andamento');
+ END IF;
  IF NEW.fechou_matricula IS DISTINCT FROM true OR NEW.data_fechamento IS NULL OR NEW.cancelado=true THEN RETURN NEW; END IF;
  IF TG_OP='UPDATE' AND OLD.fechou_matricula=true THEN RETURN NEW; END IF;
  SELECT * INTO l FROM public.leads WHERE id=NEW.lead_id;
  IF l.ativo IS DISTINCT FROM true OR l.unidade_id IS NULL THEN RETURN NEW; END IF;
+ UPDATE public.tasks SET fu_tecnico_status='cancelado',fu_tecnico_envio_erro='Novo ciclo de matrícula' WHERE fu_tecnico_lead_id=l.id AND fu_tecnico_matricula_id<>NEW.id AND fu_tecnico_status IN ('pendente','em_andamento');
  -- No auth-derived grants are widened: creation is performed by this event trigger.
  FOR n IN SELECT unnest(ARRAY[7,21]) LOOP
   INSERT INTO public.tasks(titulo,descricao,responsavel,setor,prioridade,prazo,unidade_id,fu_tecnico_lead_id,fu_tecnico_matricula_id,fu_tecnico_etapa,fu_tecnico_status,notificado_24h,notificado_prazo)
@@ -78,7 +82,7 @@ BEGIN
  RETURN NEW;
 END $$;
 -- Trigger-generated inserts bypass only the technical INSERT prohibition via trigger depth.
-CREATE TRIGGER fu_tecnico_matricula AFTER INSERT OR UPDATE OF fechou_matricula ON public.interacoes FOR EACH ROW EXECUTE FUNCTION public.fu_tecnico_nova_matricula();
+CREATE TRIGGER fu_tecnico_matricula AFTER INSERT OR UPDATE OF fechou_matricula,cancelado ON public.interacoes FOR EACH ROW EXECUTE FUNCTION public.fu_tecnico_nova_matricula();
 
 CREATE OR REPLACE FUNCTION public.fu_tecnico_sincronizar_aluno() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
