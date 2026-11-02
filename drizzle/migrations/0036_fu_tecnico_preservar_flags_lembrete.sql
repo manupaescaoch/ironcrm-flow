@@ -1,0 +1,3 @@
+CREATE OR REPLACE FUNCTION public.fu_tecnico_flags_finais() RETURNS trigger LANGUAGE plpgsql SET search_path=public,pg_temp AS $$ BEGIN IF NEW.fu_tecnico_etapa IS NOT NULL THEN NEW.notificado_24h:=true; NEW.notificado_prazo:=true; IF TG_OP='UPDATE' AND OLD.fu_tecnico_etapa IS NULL AND pg_trigger_depth()=1 THEN RAISE EXCEPTION 'Não converta tarefa comum em FU técnico.'; END IF; END IF; RETURN NEW; END $$;
+REVOKE ALL ON FUNCTION public.fu_tecnico_flags_finais() FROM PUBLIC,anon,authenticated;
+CREATE TRIGGER zzz_fu_tecnico_flags BEFORE INSERT OR UPDATE ON public.tasks FOR EACH ROW EXECUTE FUNCTION public.fu_tecnico_flags_finais();

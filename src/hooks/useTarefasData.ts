@@ -3,6 +3,7 @@ import { addDays, addMonths, nextDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useToast } from '@/hooks/use-toast';
+import type { EtapaTecnica, StatusTecnico, RegistroTecnico } from '@/lib/fuTecnico';
 
 export interface Task {
   id: string;
@@ -24,6 +25,12 @@ export interface Task {
   recorrencia_fim: string | null;
   notificado_24h: boolean;
   notificado_prazo: boolean;
+  fu_tecnico_lead_id?: string | null;
+  fu_tecnico_matricula_id?: string | null;
+  fu_tecnico_etapa?: EtapaTecnica | null;
+  fu_tecnico_status?: StatusTecnico | null;
+  fu_tecnico_registro?: RegistroTecnico | null;
+  fu_tecnico_envio_erro?: string | null;
 }
 
 export type TaskInsert = Omit<Task, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'concluida_em' | 'arquivada' | 'notificado_24h' | 'notificado_prazo'> & { setor?: string };
@@ -89,7 +96,7 @@ export function useTarefasData() {
 
       if (fetchError) throw fetchError;
 
-      setTasks((data as Task[]) || []);
+      setTasks((data as unknown as Task[]) || []);
     } catch (err: any) {
       console.error('Erro ao buscar tarefas:', err);
       setError(err.message);
@@ -161,7 +168,7 @@ export function useTarefasData() {
         sendOpsNotification(data.id, data.titulo, task.responsavel, 'nova_tarefa', creatorName, data.descricao, unidadeAtual?.nome, data.prazo, data.hora_prazo);
       }
 
-      return data as Task;
+      return data as unknown as Task;
     } catch (err: any) {
       console.error('Erro ao criar tarefa:', err);
       toast({
@@ -189,7 +196,7 @@ export function useTarefasData() {
         sendOpsNotification(id, data.titulo, updates.responsavel, 'tarefa_atualizada', undefined, data.descricao, unidadeAtual?.nome, data.prazo, data.hora_prazo);
       }
 
-      return data as Task;
+      return data as unknown as Task;
     } catch (err: any) {
       console.error('Erro ao atualizar tarefa:', err);
       toast({
