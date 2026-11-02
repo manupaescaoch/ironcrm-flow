@@ -23,16 +23,17 @@ export async function handleGenerateFollowUps(req: Request) {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
     const raw = await req.text();
     const parsed = BodySchema.safeParse(raw ? JSON.parse(raw) : {});
     if (!parsed.success) throw new FollowUpError(400, 'Solicitação inválida');
     const unidadeId = parsed.data.unidade_id ?? null;
     const scope = await authorizeFollowUp(req, 'generate', unidadeId);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+
 
     console.log('Starting follow-up generation (attendance-based)...', { unidadeId });
 
