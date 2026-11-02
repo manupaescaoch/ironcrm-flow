@@ -77,6 +77,13 @@ export function FollowUpHistoryTimeline({ leadId, lead }: Props) {
         .order('created_at', { ascending: true });
 
       const list: TimelineEvent[] = [];
+      const { data: matriculados } = await supabase.from('tasks')
+        .select('id,status,created_at,fu_matriculados_confirmado_em,fu_matriculados_confirmado_nome,fu_matriculados_envio_erro')
+        .eq('fu_matriculados_lead_id', leadId).order('created_at');
+      for (const t of matriculados ?? []) {
+        list.push({ id:`${t.id}-matricula`,data:new Date(t.created_at),tipo:'FU Matriculados — boas-vindas Comercial',status:t.status === 'concluida' ? 'concluido' : 'pendente',responsavel:'Sistema',isAuto:true,motivo:t.fu_matriculados_envio_erro });
+        if(t.fu_matriculados_confirmado_em) list.push({id:`${t.id}-envio-matriculados`,data:new Date(t.fu_matriculados_confirmado_em),tipo:'Envio manual confirmado — FU Matriculados',status:'enviado',responsavel:t.fu_matriculados_confirmado_nome ?? 'Comercial',isAuto:false,motivo:'Confirmação manual; acompanhamento separado'});
+      }
       const { data: gerenciais } = await supabase.from('tasks')
         .select('id,fu_gerencial_status,fu_gerencial_registro,updated_at,responsavel,fu_gerencial_envio_erro,fu_gerencial_confirmado_em,fu_gerencial_confirmado_nome,fu_gerencial_concluido_em')
         .eq('fu_gerencial_lead_id',leadId).order('created_at');
