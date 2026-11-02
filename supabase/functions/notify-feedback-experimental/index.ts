@@ -51,11 +51,9 @@ const HOURS_AFTER_CLASS = 3;
 // Mensagem definida para o FU pós-experimental (mesma base do D+1, ajustada para o mesmo dia)
 const buildMensagemLead = (nome: string) => `Oi, ${nome}! Tudo bem?
 
-Passando pra saber da experiência com a gente hoje! Como foi o treino? Faz toda a diferença ter um acompanhamento de verdade, né?
+Queria saber como foi sua experiência na EVO! 💙
 
-Espero que tenha curtido a experiência aqui na EVO. Se fizer sentido pra você continuar treinando com a gente, me chama por aqui que te explico os planos.
-
-Qualquer dúvida, estamos à disposição!`;
+O que achou do treino e do acompanhamento da nossa equipe?`;
 
 
 // Eliminando redundância com _shared/zapi.ts

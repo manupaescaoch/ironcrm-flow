@@ -25,29 +25,21 @@ interface UnifiedFollowUpCardProps {
 }
 
 const FOLLOW_UP_MESSAGES: Record<string, string> = {
-  'D+1': `Oi, {{nome}}! Como você está se sentindo hoje depois da sua aula experimental?
+  'D+1': `Oi, {{nome}}! Tudo bem?
 
-Caso esteja sentindo algum desconforto muscular, pode ficar tranquilo: é normal, principalmente se você estava há algum tempo sem treinar. 😊
+Como você está se sentindo depois da sua aula experimental?
 
-Aproveitando, ficou com alguma dúvida sobre os nossos planos ou sobre como funciona o acompanhamento?`,
+Ficou alguma dúvida sobre os planos ou sobre como funciona o acompanhamento na EVO?`,
   'D+7': `Oi, {{nome}}! Tudo bem?
 
-Passando pra saber se ficou alguma dúvida depois da sua experiência aqui na EVO.
+Passando pra saber se você ainda tem interesse em começar a treinar na EVO.
 
-Muitas vezes a pessoa curte a experiência, mas acaba deixando a decisão para depois por conta da rotina corrida...
-
-Se tiver sido o seu caso, me fala. Podemos concluir sua matrícula por aqui mesmo.
-
-Como trabalhamos com limite de alunos por horário, fico à disposição pra tirar qualquer dúvida e te ajudar a decidir, sem deixar você perder a oportunidade de entrar nesse momento.`,
+Se quiser, posso verificar os horários disponíveis e te ajudar com a matrícula por aqui.`,
   'D+15': `Oi, {{nome}}! Tudo bem?
 
-Passando por aqui porque já faz alguns dias desde sua experiência na EVO.
+Vou encerrar nosso acompanhamento por enquanto, mas deixo o contato aberto caso queira retomar.
 
-Quando a pessoa conhece a estrutura, gosta do treino e mesmo assim deixa pra depois, normalmente é por algum detalhe que ficou em aberto.
-
-Como trabalhamos com limite de alunos matriculados, prefiro te chamar antes de encerrar seu atendimento por aqui.
-
-Se a EVO ainda fizer sentido pra você, me fala. Posso te ajudar a tirar qualquer dúvida e ver o melhor caminho pra você começar.`,
+Se tiver alguma dúvida ou quiser começar a treinar na EVO, é só me chamar! 💙`,
   'D+30': `Oi, {{nome}}!
 
 Passando pra deixar o contato aberto. Se em algum momento quiser treinar com mais acompanhamento e uma experiência diferente, a EVO está aqui.
