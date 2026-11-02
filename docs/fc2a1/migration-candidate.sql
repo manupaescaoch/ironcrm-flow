@@ -71,6 +71,29 @@ ALTER TABLE public.interacoes ADD COLUMN experimental_ciclo_atual_id uuid REFERE
 ALTER TABLE public.experimental_presenca_telegram ADD COLUMN ciclo_id uuid REFERENCES public.experimental_ciclos(id);
 -- A repeated date/time after a different cycle must not reuse the previous message.
 CREATE UNIQUE INDEX experimental_telegram_ciclo ON public.experimental_presenca_telegram(ciclo_id) WHERE ciclo_id IS NOT NULL;
+-- Existing transport uniqueness continues for unlinked legacy messages only.
+DROP INDEX public.ux_exp_presenca_slot;
+CREATE UNIQUE INDEX ux_exp_presenca_slot ON public.experimental_presenca_telegram(interacao_id,data_aula,hora_aula) WHERE ciclo_id IS NULL;
+
+-- Only traceable cycles skip legacy overwrites; unlinked rows retain the exact branch.
+CREATE OR REPLACE FUNCTION public.sync_hora_experimental_from_lead() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE lead_hora time;
+BEGIN
+ IF NEW.experimental_ciclo_atual_id IS NOT NULL THEN RETURN NEW; END IF;
+ IF NEW.data_experimental IS NOT NULL THEN
+  SELECT hora_aula_experimental INTO lead_hora FROM public.leads WHERE id=NEW.lead_id;
+  IF lead_hora IS NOT NULL THEN NEW.hora_experimental:=lead_hora; END IF;
+ END IF;
+ RETURN NEW;
+END $$;
+CREATE OR REPLACE FUNCTION public.sync_interacao_unidade_from_lead() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE v_lead_unidade_id uuid;
+BEGIN
+ IF NEW.experimental_ciclo_atual_id IS NOT NULL THEN RETURN NEW; END IF;
+ SELECT unidade_id INTO v_lead_unidade_id FROM public.leads WHERE id=NEW.lead_id;
+ IF v_lead_unidade_id IS NOT NULL THEN NEW.unidade_id:=v_lead_unidade_id; END IF;
+ RETURN NEW;
+END $$;
 
 CREATE FUNCTION public.experimental_contexto(p_interacao uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public,pg_temp AS $$
  SELECT EXISTS(SELECT 1 FROM public.experimental_ciclo_contexto WHERE pid=pg_backend_pid() AND transacao=txid_current() AND interacao_id=p_interacao)
