@@ -3,6 +3,7 @@
 // 2) Cria registro em follow_ups (tipo REAG) marcado como concluído
 // 3) Loga uma interação para aparecer no histórico/timeline
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
 import {
   buildIdempotencyKey,
   checkZapiStatus,
@@ -14,7 +15,7 @@ import {
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
 };
 
 const FUNC = 'send-reagendamento-experimental';
