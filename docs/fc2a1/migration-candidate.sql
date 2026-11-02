@@ -210,8 +210,14 @@ BEGIN
  SELECT interacao_id INTO novo FROM public.experimental_ciclos WHERE id=p_ciclo;
  i:=public.experimental_assert(novo,p_usuario,p_origem);
  SELECT * INTO c FROM public.experimental_ciclos WHERE id=p_ciclo FOR UPDATE;
+ IF p_chave IS NULL OR length(p_chave) NOT BETWEEN 1 AND 195 OR length(trim(coalesce(p_motivo,'')))=0 OR (p_nova_data IS NULL)<>(p_nova_hora IS NULL) THEN RAISE EXCEPTION 'Motivo/novo slot inválidos'; END IF;
  SELECT * INTO e FROM public.experimental_ciclo_eventos WHERE chave=p_chave;
- IF FOUND THEN IF e.ciclo_id<>c.id THEN RAISE EXCEPTION 'Chave reutilizada'; END IF; SELECT id INTO novo FROM public.experimental_ciclos WHERE ciclo_anterior_id=c.id; RETURN coalesce(novo,c.id); END IF;
+ IF FOUND THEN
+  IF e.ciclo_id<>c.id OR e.tipo<>CASE WHEN p_nova_data IS NULL THEN 'cancelado' ELSE 'reagendado' END OR e.motivo IS DISTINCT FROM p_motivo THEN RAISE EXCEPTION 'Chave reutilizada'; END IF;
+  SELECT id INTO novo FROM public.experimental_ciclos WHERE ciclo_anterior_id=c.id AND data_aula=p_nova_data AND hora_aula=p_nova_hora;
+  IF p_nova_data IS NOT NULL AND novo IS NULL THEN RAISE EXCEPTION 'Novo slot divergente';END IF;
+  RETURN coalesce(novo,c.id);
+ END IF;
  IF c.situacao<>'ativo' OR i.experimental_ciclo_atual_id IS DISTINCT FROM c.id OR c.unidade_id<>i.unidade_id OR c.lead_id<>i.lead_id THEN RAISE EXCEPTION 'Ciclo anterior'; END IF;
  IF p_chave IS NULL OR length(p_chave) NOT BETWEEN 1 AND 195 OR length(trim(coalesce(p_motivo,'')))=0 OR (p_nova_data IS NULL)<>(p_nova_hora IS NULL) THEN RAISE EXCEPTION 'Motivo/novo slot inválidos'; END IF;
  INSERT INTO public.experimental_ciclo_contexto VALUES(pg_backend_pid(),txid_current(),i.id) ON CONFLICT DO NOTHING;
