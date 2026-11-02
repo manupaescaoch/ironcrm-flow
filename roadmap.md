@@ -1,9 +1,9 @@
 # Roadmap
 
 ## FC-2A — experimentais operacionais somente analíticos
-- [ ] Validar fontes, identidade de ciclo, presença/falta explícitas e evidências de conflitos.
-- [ ] Adicionar objeto operacional independente com contagens, revisão, pendências e taxa conservadora; preservar os 13 campos antigos.
-- [ ] Executar testes e SQL independente de outubro/novembro, analisar os 71 pendentes antigos, implantar somente resumo e entregar relatório.
+- [x] Validar fontes e ciclos; false histórico é padrão, falta conclusiva exige resposta por slot e ambiguidades ficam em revisão.
+- [x] Adicionar objeto operacional independente com contagens, revisão, pendências e taxa conservadora; preservar os 13 campos antigos.
+- [x] Executar 58 testes e SQL independente de outubro/novembro, analisar os 71 pendentes antigos, implantar somente resumo e entregar relatório; 13 campos idênticos, taxa indisponível por revisão.
 
 ## FC-1 — segurança e clareza do resumo comercial
 - [x] Proteger motivos livres somente na resposta e preservar todos os cálculos existentes.
