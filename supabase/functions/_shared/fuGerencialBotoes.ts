@@ -9,7 +9,7 @@ export async function receberBotaoFuGerencial(admin: any, cq: any, api = telegra
   }
   const { data, error } = await admin.rpc('fu_gerencial_confirmar_envio', { p_task: id, p_telegram_user: cq.from.id, p_chat: chat, p_message: message });
   if (error || !data?.ok) { await answer(data?.erro ?? 'Não consegui registrar agora. Tente novamente.', true); return true; }
-  const edited = await api('editMessageText', { chat_id: chat, message_id: message, parse_mode: 'HTML', text: textoConfirmadoFuGerencial(data.unidade, data.aluno, data.confirmado_em, data.responsavel), reply_markup: { inline_keyboard: [] } });
+  const edited = await api('editMessageText', { chat_id: chat, message_id: message, parse_mode: 'HTML', text: textoConfirmadoFuGerencial(data.unidade, data.aluno, data.confirmado_em, data.responsavel, data.etapa ?? 'M+30'), reply_markup: { inline_keyboard: [] } });
   if (!edited.ok && !edited.description?.includes('message is not modified')) await answer('Registrado. Clique novamente para tentar atualizar o aviso.', true);
   else await answer(data.duplicado ? 'Envio já confirmado. Acompanhamento permanece aberto.' : 'Envio confirmado. Registre o resultado no CRM.');
   return true;

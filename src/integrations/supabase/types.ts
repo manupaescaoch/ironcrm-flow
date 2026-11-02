@@ -6880,6 +6880,7 @@ export type Database = {
         Returns: Json
       }
       fu_gerencial_inicio: { Args: never; Returns: string }
+      fu_gerencial_m15_inicio: { Args: never; Returns: string }
       fu_matriculados_claim: {
         Args: { p_dia: string; p_task: string }
         Returns: boolean

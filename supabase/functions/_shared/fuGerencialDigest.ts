@@ -9,7 +9,7 @@ export async function sendManagerExperienceFu(admin: SupabaseClient, dryRun = fa
   if (!isManagerFuWeekday(now)) return { success: true, results, skipped: 'fim_de_semana' };
   const day = recifeTecnicoDia(now);
   for (let offset = 0; ; offset += 200) {
-    const { data, error } = await admin.from('tasks').select('id,unidade_id,prazo,responsavel,fu_gerencial_lead_id,fu_gerencial_matricula_id')
+    const { data, error } = await admin.from('tasks').select('id,unidade_id,prazo,responsavel,fu_gerencial_lead_id,fu_gerencial_matricula_id,fu_gerencial_etapa')
       .in('fu_gerencial_status', ['pendente','em_andamento']).is('fu_gerencial_confirmado_em',null).lte('prazo',day).order('id').range(offset,offset+199);
     if (error) throw error;
     for (const task of data ?? []) {
@@ -53,7 +53,7 @@ export async function sendManagerExperienceFu(admin: SupabaseClient, dryRun = fa
       if (roleError) throw roleError;
       const managers = (staff ?? []).filter(s => (roles ?? []).some(r => r.user_id === s.user_id));
       const manager = task.responsavel !== '[GERENTE]' ? task.responsavel : managers.length === 1 ? managers[0].nome : null;
-      const payload = notificacaoFuGerencial(context.aluno,context.unidade,context.telefone,manager,context.avisos ?? []);
+      const payload = notificacaoFuGerencial(context.aluno,context.unidade,context.telefone,manager,context.avisos ?? [],task.fu_gerencial_etapa ?? 'M+30');
       const sent = await sendTelegramMessage({chat_id:group.telegram_chat_id,text:payload.text,reply_markup:tecladoFuGerencial(task.id,payload.link),recipient_type:'grupo',recipient_id:group.id,message_type:'fu_gerencial_m30'},admin);
       const { error: saveError } = await admin.from('tasks').update({ fu_gerencial_contexto: context, fu_gerencial_envio_status:sent.ok?'enviado':'erro',fu_gerencial_envio_erro:sent.error ?? null,
         ...(sent.ok ? {fu_gerencial_telegram_chat_id:group.telegram_chat_id,fu_gerencial_telegram_message_id:sent.message_id}:{}), }).eq('id',task.id);
