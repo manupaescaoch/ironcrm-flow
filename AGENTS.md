@@ -1,4 +1,6 @@
 # Architecture Decisions
+- Manager experience M+30 uses dedicated enrollment-cycle fields on existing tasks and the existing manager scheduler/webhook; suppress its overlapping legacy G+30 roster for newly activated cycles while preserving old records and all other FU identities, so one responsibility has one active source of truth.
+- Manager contact spacing checks only persisted unit-scoped contact/response timestamps and scheduled contacts, keeps suppression evidence on the task, and treats unlinked complaints as manual context rather than inventing identity matches.
 - Technical coordinator FU uses enrollment-interaction identity and dedicated fields on existing tasks, starting only on enrollment events after activation; the existing 08:00 callback sends unit-scoped individual reminders without invoking any student messaging or modifying legacy FU identifiers.
 - Technical FU manual sending confirmation uses a service-only atomic RPC validating the linked Telegram user, role, current unit, active enrollment and original message; the single Telegram webhook edits that message and never completes technical accompaniment.
 - Send Telegram payables payment data as a separate reply to its reminder and persist the reminder ID before sending the payment data, so copying excludes the summary and retries do not repeat a successful reminder.

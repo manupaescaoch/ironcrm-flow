@@ -1,5 +1,12 @@
 # Roadmap
 
+## FU gerencial M+30 — experiência do aluno
+- [x] Adaptar estrutura existente sem duplicar acompanhamento e preservar outros FUs.
+- [x] Integrar avisos individuais GERENTE e confirmação Abrir/Enviado com autorização por unidade.
+- [x] Registrar acompanhamento e histórico, presencial, conflitos e reclamações vinculadas ao aluno.
+- [x] Validar geração, idempotência, permissões e botões simulados sem disparos indevidos à produção.
+- [ ] Homologar clique real no Telegram e conclusão real pelo gerente — depende de nova matrícula elegível ou autorização de teste controlado; nenhum disparo de teste feito.
+
 ## FU técnico do Coordenador Geral — Fase 1
 - [x] Atualizar textos, botões Abrir/Enviado e confirmação manual separada da conclusão, com histórico e bloqueio de lembretes confirmados.
 - [x] Validar callbacks simulados, duplicidade concorrente, permissões e edição da mensagem sem novos disparos na produção.

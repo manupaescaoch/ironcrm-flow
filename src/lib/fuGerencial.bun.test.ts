@@ -1,0 +1,11 @@
+import { test, expect } from 'bun:test';
+import { prazoGerencial, elegivelGerencial, registroGerencialValido, registroGerencialVazio, linkGerencial } from './fuGerencial';
+test('M+30 uses 30 calendar days after enrollment', () => expect(prazoGerencial('2026-11-02')).toBe('2026-12-02'));
+test('Saturday M+30 belongs to following Monday', () => expect(prazoGerencial('2026-10-08')).toBe('2026-11-09'));
+test('Sunday M+30 belongs to following Monday', () => expect(prazoGerencial('2026-10-09')).toBe('2026-11-09'));
+test('inactive enrollment cannot receive M+30', () => expect(elegivelGerencial('2026-11-02','2026-12-02',false,true)).toBe(false));
+test('cannot generate before 30 days', () => expect(elegivelGerencial('2026-11-02','2026-12-01',true,true)).toBe(false));
+test('WhatsApp opening uses CRM phone and encoded editable message', () => expect(linkGerencial('(81) 99999-0000','Oi, Manu!')).toBe('https://wa.me/5581999990000?text=Oi%2C%20Manu!'));
+test('invalid phone has no link', () => expect(linkGerencial('123','Oi')).toBe(null));
+test('completion requires manager and perception', () => expect(registroGerencialValido('concluido',registroGerencialVazio)).toBe(false));
+test('presential completion is independent from WhatsApp confirmation', () => expect(registroGerencialValido('concluido',{...registroGerencialVazio,data:'2026-11-02',gerente:'MANU',percepcao:'ATENDIMENTO PRESENCIAL'})).toBe(true));

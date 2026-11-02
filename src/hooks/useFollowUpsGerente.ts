@@ -49,7 +49,7 @@ export function useFollowUpsGerente() {
       const { data: matriculas, error: errMat } = await supabase
         .from('interacoes')
         .select(`
-          lead_id, data_fechamento,
+          id, lead_id, data_fechamento,
           leads!inner (id, nome, telefone, email, is_matriculado, ativo)
         `)
         .eq('unidade_id', unidadeAtual.id)
@@ -63,12 +63,12 @@ export function useFollowUpsGerente() {
         return;
       }
 
-      const maisRecentePorLead = new Map<string, { data_fechamento: string; lead: any }>();
+      const maisRecentePorLead = new Map<string, { id: string; data_fechamento: string; lead: any }>();
       (matriculas || []).forEach((row: any) => {
         const lead = row.leads;
         if (!lead || lead.is_matriculado !== true || lead.ativo === false) return;
         if (!maisRecentePorLead.has(row.lead_id)) {
-          maisRecentePorLead.set(row.lead_id, { data_fechamento: row.data_fechamento, lead });
+          maisRecentePorLead.set(row.lead_id, { id: row.id, data_fechamento: row.data_fechamento, lead });
         }
       });
 
@@ -105,10 +105,14 @@ export function useFollowUpsGerente() {
       });
 
       const computados: FollowUpGerenteItem[] = [];
+      const { data: managed, error: managedError } = await supabase.from('tasks').select('fu_gerencial_matricula_id').eq('unidade_id',unidadeAtual.id).not('fu_gerencial_etapa','is',null);
+      if (managedError) throw managedError;
+      const managedIds = new Set((managed ?? []).map(t => t.fu_gerencial_matricula_id));
       for (const [leadId, info] of maisRecentePorLead) {
         const dias = diffDays(fuDate(info.data_fechamento), hoje);
         const etapa = calcularEtapa(dias);
         if (!etapa) continue;
+        if (etapa === 'G+30' && managedIds.has(info.id)) continue;
 
         const key = `${leadId}|${etapa}`;
         if (concluidos.has(key) || reagendadoFuturo.has(key)) continue;

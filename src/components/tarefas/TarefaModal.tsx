@@ -49,6 +49,8 @@ import { TaskComments } from './TaskComments';
 import { TaskSubtasks } from './TaskSubtasks';
 import { TaskHistory } from './TaskHistory';
 import { FuTecnicoForm } from './FuTecnicoForm';
+import { FuGerencialForm } from './FuGerencialForm';
+import { registroGerencialValido, registroGerencialVazio, type RegistroGerencial, type StatusGerencial } from '@/lib/fuGerencial';
 import { registroTecnicoValido, type RegistroTecnico, type StatusTecnico } from '@/lib/fuTecnico';
 import { useToast } from '@/hooks/use-toast';
 
@@ -106,6 +108,11 @@ export function TarefaModal({
   const [tecnicoStatus, setTecnicoStatus] = useState<StatusTecnico>('pendente');
   const [tecnicoRegistro, setTecnicoRegistro] = useState<RegistroTecnico>({ data: '', coordenador: '', canal: 'presencial', observacoes: '', dificuldades: '', ajustes: '', encaminhamentos: '' });
   const tecnico = !!task?.fu_tecnico_etapa;
+  const gerencial = !!task?.fu_gerencial_etapa;
+  const acompanhamento = tecnico || gerencial;
+  const [gerencialStatus, setGerencialStatus] = useState<StatusGerencial>('pendente');
+  const [gerencialRegistro, setGerencialRegistro] = useState<RegistroGerencial>(registroGerencialVazio);
+  const podeGerencial = ['admin','gerente'].includes(role ?? '') && !['concluido','dispensado','cancelado'].includes(task?.fu_gerencial_status ?? '');
   const tecnicoEncerrado = ['concluido', 'dispensado', 'cancelado'].includes(task?.fu_tecnico_status ?? '');
   const podeTecnico = ['admin', 'gerente', 'coordenador'].includes(role ?? '') && !tecnicoEncerrado;
   const isEditing = !!task;
@@ -129,6 +136,8 @@ export function TarefaModal({
 
   useEffect(() => {
     if (task) {
+      setGerencialStatus(task.fu_gerencial_status ?? 'pendente');
+      setGerencialRegistro(task.fu_gerencial_registro ?? registroGerencialVazio);
       setTecnicoStatus(task.fu_tecnico_status ?? 'pendente');
       setTecnicoRegistro(task.fu_tecnico_registro ?? { data: '', coordenador: '', canal: 'presencial', observacoes: '', dificuldades: '', ajustes: '', encaminhamentos: '' });
       form.reset({
@@ -163,6 +172,10 @@ export function TarefaModal({
 
   const handleSubmit = async (data: FormData) => {
     if (!unidadeAtual) return;
+    if (gerencial && !registroGerencialValido(gerencialStatus,gerencialRegistro)) {
+      toast({ title: 'Registro incompleto', description: 'Preencha data, gerente, canal e percepção para encerrar o acompanhamento.', variant: 'destructive' });
+      return;
+    }
     if (tecnico && !registroTecnicoValido(tecnicoStatus, tecnicoRegistro)) {
       toast({ title: 'Registro incompleto', description: 'Preencha data, coordenador, canal e observações para encerrar o acompanhamento.', variant: 'destructive' });
       return;
@@ -172,7 +185,7 @@ export function TarefaModal({
       titulo: data.titulo,
       descricao: data.descricao || null,
       responsavel: data.responsavel,
-      setor: tecnico ? task?.setor ?? 'TECNICO' : '',
+      setor: acompanhamento ? task?.setor ?? (tecnico ? 'TECNICO' : 'GERENCIA') : '',
       prioridade: data.prioridade,
       status: selectedStatus,
       prazo: data.prazo ? format(data.prazo, 'yyyy-MM-dd') : null,
@@ -181,6 +194,7 @@ export function TarefaModal({
       recorrencia: buildRecorrencia(recorrenciaTipo, recorrenciaDias),
       recorrencia_fim: recorrenciaFim ? format(recorrenciaFim, 'yyyy-MM-dd') : null,
       ...(tecnico ? { fu_tecnico_status: tecnicoStatus, fu_tecnico_registro: tecnicoRegistro } : {}),
+      ...(gerencial ? { fu_gerencial_status: gerencialStatus, fu_gerencial_registro: gerencialRegistro } : {}),
     };
 
     await onSave(taskData);
@@ -256,6 +270,7 @@ export function TarefaModal({
               </div>
 
               {tecnico && task && <FuTecnicoForm task={task} status={tecnicoStatus} registro={tecnicoRegistro} onStatus={setTecnicoStatus} onRegistro={setTecnicoRegistro} />}
+              {gerencial && task && <FuGerencialForm task={task} status={gerencialStatus} registro={gerencialRegistro} onStatus={setGerencialStatus} onRegistro={setGerencialRegistro} />}
 
               <div className="space-y-2">
                 <Label>Responsável *</Label>
@@ -325,7 +340,7 @@ export function TarefaModal({
                 </Select>
               </div>
 
-              {isEditing && !tecnico && (
+              {isEditing && !acompanhamento && (
                 <div className="space-y-2">
                   <Label>Status</Label>
                   <Select
@@ -393,7 +408,7 @@ export function TarefaModal({
               </div>
 
               {/* Recorrência */}
-              <div className={cn('space-y-3 rounded-lg border p-3', tecnico && 'hidden')}>
+              <div className={cn('space-y-3 rounded-lg border p-3', acompanhamento && 'hidden')}>
                 <div className="flex items-center gap-2">
                   <Repeat className="w-4 h-4 text-muted-foreground" />
                   <Label className="mb-0">Recorrência</Label>
@@ -476,7 +491,7 @@ export function TarefaModal({
               </div>
 
               <div className="flex justify-between pt-4">
-                {isEditing && isAdmin && onDelete && !tecnico ? (
+                {isEditing && isAdmin && onDelete && !acompanhamento ? (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
@@ -519,7 +534,7 @@ export function TarefaModal({
                   >
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={isLoading || (tecnico && !podeTecnico)}>
+                  <Button type="submit" disabled={isLoading || (tecnico && !podeTecnico) || (gerencial && !podeGerencial)}>
                     {isLoading ? 'Salvando...' : 'Salvar'}
                   </Button>
                 </div>

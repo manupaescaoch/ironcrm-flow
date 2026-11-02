@@ -77,6 +77,15 @@ export function FollowUpHistoryTimeline({ leadId, lead }: Props) {
         .order('created_at', { ascending: true });
 
       const list: TimelineEvent[] = [];
+      const { data: gerenciais } = await supabase.from('tasks')
+        .select('id,fu_gerencial_status,fu_gerencial_registro,updated_at,responsavel,fu_gerencial_envio_erro,fu_gerencial_confirmado_em,fu_gerencial_confirmado_nome,fu_gerencial_concluido_em')
+        .eq('fu_gerencial_lead_id',leadId).order('created_at');
+      for (const t of gerenciais ?? []) {
+        if (t.fu_gerencial_confirmado_em) list.push({ id:`${t.id}-envio-gerencial`,data:new Date(t.fu_gerencial_confirmado_em),tipo:'Envio manual confirmado — FU gerencial M+30',status:'enviado',responsavel:t.fu_gerencial_confirmado_nome ?? 'Gerente',isAuto:false,motivo:'Confirmação manual; acompanhamento separado' });
+        const r = t.fu_gerencial_registro as { data?:string; gerente?:string; canal?:string; percepcao?:string; reclamacoes?:string; melhorias?:string; providencias?:string } | null;
+        const day = r?.data ? (() => {const [a,m,d]=r.data.split('-').map(Number);return new Date(a,m-1,d);})() : new Date(t.updated_at);
+        list.push({id:t.id,data:t.fu_gerencial_concluido_em ? new Date(t.fu_gerencial_concluido_em) : day,tipo:'Acompanhamento gerencial M+30',status:t.fu_gerencial_status ?? 'pendente',responsavel:r?.gerente ?? t.responsavel,isAuto:!r,motivo:r ? [r.canal,r.percepcao,r.reclamacoes,r.melhorias,r.providencias].filter(Boolean).join(' · ') : t.fu_gerencial_envio_erro});
+      }
       const { data: tecnicos } = await supabase.from('tasks')
         .select('id,fu_tecnico_etapa,fu_tecnico_status,fu_tecnico_registro,updated_at,responsavel,fu_tecnico_envio_erro,fu_tecnico_confirmado_em,fu_tecnico_confirmado_nome,fu_tecnico_confirmado_telegram_id')
         .eq('fu_tecnico_lead_id', leadId).order('created_at');
