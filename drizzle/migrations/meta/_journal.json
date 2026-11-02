@@ -309,6 +309,13 @@
       "when": 1793621811395,
       "tag": "0043_fu_transicao_pos_matricula_observacao",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1793621869570,
+      "tag": "0044_fu_transicao_grants_exclusivos_servico",
+      "breakpoints": true
     }
   ]
 }
