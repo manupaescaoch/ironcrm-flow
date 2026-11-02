@@ -253,6 +253,13 @@
       "when": 1793615964232,
       "tag": "0035_fu_tecnico_coordenador_fase1",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793616141596,
+      "tag": "0036_fu_tecnico_preservar_flags_lembrete",
+      "breakpoints": true
     }
   ]
 }
