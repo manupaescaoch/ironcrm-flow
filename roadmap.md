@@ -1,5 +1,13 @@
 # Roadmap
 
+## FC-2A.1 — continuidade da preparação autorizada em 02/11
+- [ ] Apresentar opções reais de usuários EVO OPS por unidade; nenhuma vinculação automática.
+- [ ] Completar endpoint autenticado e operações atômicas candidatas, apenas em ambiente isolado.
+- [ ] Integrar e testar os 17 escritores, Telegram/REAG e recuperação sem rede real.
+- [ ] Ampliar testes dos triggers inversos, RLS, escopo, concorrência e idempotência.
+- [ ] Preparar indicadores de ciclos preservando os 13 campos e histórico inconclusivo.
+- [ ] Entregar homologação, bloqueios e proposta gradual; nenhuma produção/piloto/mensagem autorizada.
+
 ## FC-2A.1 — diagnóstico e proposta, sem implementação
 - [x] Mapear caminhos de escrita, consumidores, permissões e 19 triggers instalados; identificar diferença entre REAG real ao lead e aviso à recepção descrito.
 - [x] Entregar relatório técnico e plano de schema, compatibilidade, implantação, rollback e testes, sem código/migração/implantação.

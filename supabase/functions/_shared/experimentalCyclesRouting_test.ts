@@ -1,0 +1,5 @@
+import {routeExperimental} from './experimentalCyclesRouting.ts';
+import {experimentalWriters} from './experimentalCyclesPrepared.ts';
+const assert=(v:boolean)=>{if(!v)throw new Error('assertion failed');};
+Deno.test('FC2A1 disabling gate never mutates tracked evidence through legacy',async()=>{let writes=0,blocked=false;try{await routeExperimental({unitId:'a',readiness:null,hasCycleEvidence:true,legacy:async()=>{writes++;},traceable:async()=>{writes++;}});}catch{blocked=true;}assert(blocked&&writes===0);});
+for(const writer of experimentalWriters)Deno.test(`FC2A1 routing contract ${writer}`,async()=>{let legacy=0,traced=0;await routeExperimental({unitId:'a',readiness:{approved:true,enabled:true,unitId:'a',receptionUserId:'verified',receptionVerified:true,coveredWriters:experimentalWriters},hasCycleEvidence:true,legacy:async()=>{legacy++;},traceable:async()=>{traced++;}});assert(legacy===0&&traced===1);});
