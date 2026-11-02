@@ -31,6 +31,9 @@ export interface Task {
   fu_tecnico_status?: StatusTecnico | null;
   fu_tecnico_registro?: RegistroTecnico | null;
   fu_tecnico_envio_erro?: string | null;
+  fu_tecnico_confirmado_em?: string | null;
+  fu_tecnico_confirmado_nome?: string | null;
+  fu_tecnico_confirmado_telegram_id?: number | null;
 }
 
 export type TaskInsert = Omit<Task, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'concluida_em' | 'arquivada' | 'notificado_24h' | 'notificado_prazo'> & { setor?: string };

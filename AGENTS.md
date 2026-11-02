@@ -1,5 +1,6 @@
 # Architecture Decisions
 - Technical coordinator FU uses enrollment-interaction identity and dedicated fields on existing tasks, starting only on enrollment events after activation; the existing 08:00 callback sends unit-scoped individual reminders without invoking any student messaging or modifying legacy FU identifiers.
+- Technical FU manual sending confirmation uses a service-only atomic RPC validating the linked Telegram user, role, current unit, active enrollment and original message; the single Telegram webhook edits that message and never completes technical accompaniment.
 - Send Telegram payables payment data as a separate reply to its reminder and persist the reminder ID before sending the payment data, so copying excludes the summary and retries do not repeat a successful reminder.
 - Keep BTG DDA consent state and encrypted OAuth tokens in server-only tables, scoped by unit CNPJ; request only read-only DDA scope and block synchronization until the official list operation and pagination are verified, so banking credentials and unverified imports never reach the browser or payables.
 - Apply the shared manager messaging policy before operational channel fallback and disable legacy manager WhatsApp summary handlers, so manager notifications cannot silently revert from Telegram to WhatsApp.

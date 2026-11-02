@@ -5322,6 +5322,10 @@ export type Database = {
           created_at: string
           created_by: string | null
           descricao: string | null
+          fu_tecnico_confirmado_em: string | null
+          fu_tecnico_confirmado_nome: string | null
+          fu_tecnico_confirmado_por: string | null
+          fu_tecnico_confirmado_telegram_id: number | null
           fu_tecnico_envio_dia: string | null
           fu_tecnico_envio_erro: string | null
           fu_tecnico_envio_status: string | null
@@ -5330,6 +5334,8 @@ export type Database = {
           fu_tecnico_matricula_id: string | null
           fu_tecnico_registro: Json | null
           fu_tecnico_status: string | null
+          fu_tecnico_telegram_chat_id: number | null
+          fu_tecnico_telegram_message_id: number | null
           hora_prazo: string | null
           id: string
           notificado_24h: boolean | null
@@ -5351,6 +5357,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          fu_tecnico_confirmado_em?: string | null
+          fu_tecnico_confirmado_nome?: string | null
+          fu_tecnico_confirmado_por?: string | null
+          fu_tecnico_confirmado_telegram_id?: number | null
           fu_tecnico_envio_dia?: string | null
           fu_tecnico_envio_erro?: string | null
           fu_tecnico_envio_status?: string | null
@@ -5359,6 +5369,8 @@ export type Database = {
           fu_tecnico_matricula_id?: string | null
           fu_tecnico_registro?: Json | null
           fu_tecnico_status?: string | null
+          fu_tecnico_telegram_chat_id?: number | null
+          fu_tecnico_telegram_message_id?: number | null
           hora_prazo?: string | null
           id?: string
           notificado_24h?: boolean | null
@@ -5380,6 +5392,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          fu_tecnico_confirmado_em?: string | null
+          fu_tecnico_confirmado_nome?: string | null
+          fu_tecnico_confirmado_por?: string | null
+          fu_tecnico_confirmado_telegram_id?: number | null
           fu_tecnico_envio_dia?: string | null
           fu_tecnico_envio_erro?: string | null
           fu_tecnico_envio_status?: string | null
@@ -5388,6 +5404,8 @@ export type Database = {
           fu_tecnico_matricula_id?: string | null
           fu_tecnico_registro?: Json | null
           fu_tecnico_status?: string | null
+          fu_tecnico_telegram_chat_id?: number | null
+          fu_tecnico_telegram_message_id?: number | null
           hora_prazo?: string | null
           id?: string
           notificado_24h?: boolean | null
@@ -6396,6 +6414,15 @@ export type Database = {
       fu_tecnico_claim: {
         Args: { p_dia: string; p_task: string }
         Returns: boolean
+      }
+      fu_tecnico_confirmar_envio: {
+        Args: {
+          p_chat: number
+          p_message: number
+          p_task: string
+          p_telegram_user: number
+        }
+        Returns: Json
       }
       generate_follow_ups_for_lead: {
         Args: { p_lead_id: string }

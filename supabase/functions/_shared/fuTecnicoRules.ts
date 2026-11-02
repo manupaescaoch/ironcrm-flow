@@ -13,9 +13,17 @@ export function notificacaoFuTecnico(etapa: string, nome: string, unidade: strin
   const local = proper(unidade.replace(/^EVO\s+/i, ''));
   const coord = coordenador && coordenador !== '[COORDENADOR]' ? proper(coordenador) : '[COORDENADOR]';
   const mensagem = etapa === 'M+7'
-    ? `Oi, ${primeiro}! Tudo bem?\n\nAqui é ${coord}, coordenador técnico da EVO ${local}.\n\nQueria acompanhar sua adaptação aos exercícios nessa primeira semana.\n\nExiste algum movimento em que esteja sentindo dificuldade ou precisando de mais orientação?\n\nEstou à disposição!`
-    : `Oi, ${primeiro}!\n\nAqui é ${coord}, da EVO ${local}.\n\nJá estamos chegando ao seu primeiro mês de treinamento.\n\nQueria saber se está percebendo alguma evolução na execução dos exercícios, nas cargas ou no condicionamento.\n\nSeu retorno vai nos ajudar a acompanhar o desenvolvimento do seu treino.`;
+    ? `Oi, ${primeiro}! Aqui é ${coord}, da EVO ${local}.\n\nComo está sua adaptação aos treinos? Alguma dificuldade com os exercícios?`
+    : `Oi, ${primeiro}! Aqui é ${coord}, da EVO ${local}.\n\nComo estão os treinos? Já percebe alguma evolução ou tem algo que podemos ajustar?`;
   const numero = telefoneFuTecnico(telefone);
   const link = numero ? `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}` : null;
-  return { mensagem, link, text: `<b>ACOMPANHAMENTO TÉCNICO | ${html(etapa)}</b>\n\n📍 <b>Unidade:</b> ${html(unidade)}\n👤 <b>Aluno:</b> ${html(nome)}\n📞 <b>Contato:</b> ${html(numero ?? telefone ?? 'Não informado')}\n\n<b>Mensagem proposta:</b>\n\n${html(mensagem)}\n\n${link ? `<a href="${html(link)}">💬 Falar com o aluno</a>` : '⚠️ Telefone inválido: contato presencial disponível.'}\n${treinador ? `Treinador: ${html(treinador)}` : '⚠️ Treinador não identificado.'}\n${coord === '[COORDENADOR]' ? '⚠️ Preencha [COORDENADOR] antes do envio manual.\n' : ''}Consulte o histórico, os treinos e as pendências técnicas antes do contato. Registre o acompanhamento no CRM.` };
+  return { mensagem, link, text: `<b>ACOMPANHAMENTO TÉCNICO | ${html(etapa)}</b>\n\n📍 <b>Unidade:</b> ${html(unidade)}\n👤 <b>Aluno:</b> ${html(nome)}\n📞 <b>Contato:</b> ${html(numero ?? telefone ?? 'Não informado')}\n\n<b>Mensagem proposta:</b>\n\n${html(mensagem)}\n\n${link ? '' : '⚠️ Telefone inválido: contato presencial disponível.\n'}${treinador ? `Treinador: ${html(treinador)}` : '⚠️ Treinador não identificado.'}\n${coord === '[COORDENADOR]' ? '⚠️ Preencha [COORDENADOR] antes do envio manual.\n' : ''}Consulte o histórico antes do contato. Confirme o envio manual em ✅ Enviado; registre o resultado técnico no CRM.` };
+}
+
+export function tecladoFuTecnico(taskId: string, link: string | null) {
+  return { inline_keyboard: [[...(link ? [{ text: '💬 Abrir', url: link }] : []), { text: '✅ Enviado', callback_data: `ftc:${taskId}` }]] };
+}
+export function textoConfirmadoFuTecnico(unidade: string, aluno: string, etapa: string, confirmado: string, responsavel: string) {
+  const when = new Date(confirmado).toLocaleString('pt-BR', { timeZone: 'America/Recife' });
+  return `<b>✅ ENVIO CONFIRMADO</b>\n\n📍 <b>Unidade:</b> ${html(unidade)}\n👤 <b>Aluno:</b> ${html(aluno)}\n📋 <b>FU:</b> ${html(etapa)}\n🕒 <b>Confirmado:</b> ${html(when)}\n👤 <b>Responsável:</b> ${html(responsavel)}\n\nConfirmação manual de envio — não comprova entrega pelo WhatsApp. O acompanhamento técnico permanece no CRM para registrar o resultado.`;
 }

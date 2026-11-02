@@ -260,6 +260,13 @@
       "when": 1793616141596,
       "tag": "0036_fu_tecnico_preservar_flags_lembrete",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793616575668,
+      "tag": "0037_fu_tecnico_confirmacao_envio_telegram",
+      "breakpoints": true
     }
   ]
 }

@@ -1,11 +1,13 @@
 # Roadmap
 
 ## FU técnico do Coordenador Geral — Fase 1
+- [x] Atualizar textos, botões Abrir/Enviado e confirmação manual separada da conclusão, com histórico e bloqueio de lembretes confirmados.
+- [x] Validar callbacks simulados, duplicidade concorrente, permissões e edição da mensagem sem novos disparos na produção.
 - [x] Analisar matrícula efetiva, tarefas/histórico, grupos e agendador existentes.
 - [x] Implementar geração idempotente M+7/M+21 e registro técnico nas tarefas existentes.
 - [x] Integrar avisos individuais no Telegram da unidade e links WhatsApp manuais.
 - [x] Validar regras em banco fictício, permissões simuladas e formulário; abrir Tarefas com login real e informar limites.
-- [ ] Homologar recebimento real no Telegram e conclusão real por coordenador — depende de matrícula nova elegível ou autorização de teste controlado; nenhum disparo fictício realizado na produção.
+- [ ] Homologar botões reais no Telegram e conclusão real por coordenador — depende de matrícula nova elegível ou autorização de teste controlado; exemplo anterior enviado a Boa Viagem, mas não valida os novos botões.
 
 - [x] Bloquear temporariamente Folha de Pagamentos e Ajuda de Custo para todos exceto administradores, sem alterar dados financeiros.
 

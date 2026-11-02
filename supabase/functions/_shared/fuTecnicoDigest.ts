@@ -1,6 +1,6 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { resolveGrupoUnidade, sendTelegramMessage } from './telegram.ts';
-import { notificacaoFuTecnico, recifeTecnicoDia } from './fuTecnicoRules.ts';
+import { tecladoFuTecnico, notificacaoFuTecnico, recifeTecnicoDia } from './fuTecnicoRules.ts';
 
 /** Technical follow-ups only; never calls WhatsApp, legacy FU or task notification functions. */
 export async function sendTechnicalFu(admin: SupabaseClient, dryRun = false, now = new Date()) {
@@ -8,7 +8,7 @@ export async function sendTechnicalFu(admin: SupabaseClient, dryRun = false, now
   const results: { task: string; status: string }[] = [];
   for (let offset = 0; ; offset += 200) {
     const { data, error } = await admin.from('tasks').select('id,unidade_id,responsavel,fu_tecnico_etapa,fu_tecnico_lead_id,fu_tecnico_matricula_id')
-      .in('fu_tecnico_status', ['pendente', 'em_andamento']).lte('prazo', today).order('id').range(offset, offset + 199);
+      .in('fu_tecnico_status', ['pendente', 'em_andamento']).is('fu_tecnico_confirmado_em', null).lte('prazo', today).order('id').range(offset, offset + 199);
     if (error) throw error;
     for (const task of data ?? []) {
       const { data: lead, error: leadError } = await admin.from('leads').select('nome,telefone,unidade_id,ativo,is_matriculado,status_funil').eq('id', task.fu_tecnico_lead_id).single();
@@ -40,9 +40,11 @@ export async function sendTechnicalFu(admin: SupabaseClient, dryRun = false, now
       const coordinators = (staff ?? []).filter(s => (roles ?? []).some(r => r.user_id === s.user_id));
       const coordinator = task.responsavel !== '[COORDENADOR]' ? task.responsavel : coordinators.length === 1 ? coordinators[0].nome : null;
       const payload = notificacaoFuTecnico(task.fu_tecnico_etapa, lead.nome, unit.nome, lead.telefone, coordinator, enrollment.treinador_responsavel);
-      const sent = await sendTelegramMessage({ chat_id: grupo.telegram_chat_id, text: payload.text, recipient_type: 'grupo', recipient_id: grupo.id, message_type: 'fu_tecnico' }, admin);
+      const sent = await sendTelegramMessage({ chat_id: grupo.telegram_chat_id, text: payload.text, reply_markup: tecladoFuTecnico(task.id, payload.link), recipient_type: 'grupo', recipient_id: grupo.id, message_type: 'fu_tecnico' }, admin);
       // Fail closed on uncertain network outcomes; retry on the next Recife day, not repeatedly today.
-      const { error: logError } = await admin.from('tasks').update({ fu_tecnico_envio_status: sent.ok ? 'enviado' : 'erro', fu_tecnico_envio_erro: sent.error ?? null }).eq('id', task.id);
+      const { error: logError } = await admin.from('tasks').update({ fu_tecnico_envio_status: sent.ok ? 'enviado' : 'erro', fu_tecnico_envio_erro: sent.error ?? null,
+        ...(sent.ok ? { fu_tecnico_telegram_chat_id: grupo.telegram_chat_id, fu_tecnico_telegram_message_id: sent.message_id } : {}),
+      }).eq('id', task.id);
       if (logError) throw logError;
       results.push({ task: task.id, status: sent.ok ? 'enviado' : 'erro' });
     }

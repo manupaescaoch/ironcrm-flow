@@ -78,9 +78,12 @@ export function FollowUpHistoryTimeline({ leadId, lead }: Props) {
 
       const list: TimelineEvent[] = [];
       const { data: tecnicos } = await supabase.from('tasks')
-        .select('id,fu_tecnico_etapa,fu_tecnico_status,fu_tecnico_registro,updated_at,responsavel,fu_tecnico_envio_erro')
+        .select('id,fu_tecnico_etapa,fu_tecnico_status,fu_tecnico_registro,updated_at,responsavel,fu_tecnico_envio_erro,fu_tecnico_confirmado_em,fu_tecnico_confirmado_nome,fu_tecnico_confirmado_telegram_id')
         .eq('fu_tecnico_lead_id', leadId).order('created_at');
       for (const t of tecnicos ?? []) {
+        if (t.fu_tecnico_confirmado_em) list.push({ id: `${t.id}-envio`, data: new Date(t.fu_tecnico_confirmado_em),
+          tipo: `Envio manual confirmado — FU técnico ${t.fu_tecnico_etapa}`, status: 'enviado', responsavel: t.fu_tecnico_confirmado_nome ?? 'Coordenador', isAuto: false,
+          motivo: `Telegram: ${t.fu_tecnico_confirmado_telegram_id} · Confirmação manual; acompanhamento separado` });
         const registro = t.fu_tecnico_registro as { data?: string; coordenador?: string; canal?: string; observacoes?: string; dificuldades?: string; ajustes?: string; encaminhamentos?: string } | null;
         const dataRegistro = registro?.data ? (() => { const [a,m,d] = registro.data.split('-').map(Number); return new Date(a,m-1,d); })() : new Date(t.updated_at);
         list.push({ id: t.id, data: dataRegistro, tipo: `Acompanhamento técnico ${t.fu_tecnico_etapa}`,
