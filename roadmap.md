@@ -1,8 +1,8 @@
 # Roadmap
 
 ## Falha de tempo excedido na página Telegram
-- [ ] Limitar chamadas externas sem repetir envios e tratar falhas de carregamento na tela.
-- [ ] Testar conexão/corpo sem resposta e página autenticada sob erro 504; implantar somente funções Telegram necessárias.
+- [x] Limitar chamadas externas sem repetir envios e tratar falhas de carregamento na tela.
+- [x] Quatro testes passaram; página autenticada permanece visível sob 504 simulado e conexão real confirmou Conectado sem erros; implantados health/admin/send.
 
 ## FC-2A — experimentais operacionais somente analíticos
 - [x] Validar fontes e ciclos; false histórico é padrão, falta conclusiva exige resposta por slot e ambiguidades ficam em revisão.
