@@ -1,5 +1,5 @@
 import { mensagemGerencial, test, expect } from 'bun:test';
-import { prazoGerencial, elegivelGerencial, registroGerencialValido, registroGerencialVazio, linkGerencial } from './fuGerencial';
+import { mensagemGerencial, prazoGerencial, elegivelGerencial, registroGerencialValido, registroGerencialVazio, linkGerencial } from './fuGerencial';
 test('M+30 uses 30 calendar days after enrollment', () => expect(prazoGerencial('2026-11-02')).toBe('2026-12-02'));
 test('Saturday M+30 belongs to following Monday', () => expect(prazoGerencial('2026-10-08')).toBe('2026-11-09'));
 test('Sunday M+30 belongs to following Monday', () => expect(prazoGerencial('2026-10-09')).toBe('2026-11-09'));
