@@ -48,3 +48,17 @@ SELECT test_assert((SELECT count(*) FROM tasks)=4,'transition creates no tasks')
 SELECT test_assert(NOT has_function_privilege('authenticated','fu_transicao_avaliar(jsonb,boolean)','EXECUTE'),'browser cannot mutate transition');
 SELECT test_assert(NOT has_table_privilege('authenticated','fu_transicao_config','UPDATE'),'browser cannot activate');
 SELECT test_assert(NOT has_table_privilege('authenticated','fu_transicao_homologacoes','INSERT'),'browser cannot fake homologation');
+SELECT test_assert((SELECT count(*) FROM fu_transicao_config_historico)>0,'config changes audited');
+UPDATE leads SET unidade_id='00000000-0000-0000-0000-000000000001';
+UPDATE tasks SET unidade_id='00000000-0000-0000-0000-000000000001';
+INSERT INTO fu_transicao_config(unidade_id,familia,modo,ciclos_desde,aprovado_em,aprovacao) VALUES('00000000-0000-0000-0000-000000000001','R02','NOVO','2026-11-02',now(),'ISOLATED ONLY');
+INSERT INTO follow_ups VALUES('30000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001','M+30','pendente','2026-11-02');
+SELECT test_assert(NOT EXISTS(SELECT 1 FROM follow_ups WHERE tipo='M+30'),'eligible new legacy generation suppressed');
+SELECT test_assert((SELECT status FROM follow_ups WHERE tipo='M+7')='pendente','existing rows not cancelled');
+SELECT test_assert((fu_transicao_avaliar(test_candidate('R02','M+7')||'{"legado_id":"30000000-0000-0000-0000-000000000002"}')->>'suprimir')::boolean,'persisted eligible contact suppressed before send');
+INSERT INTO follow_ups VALUES('30000000-0000-0000-0000-000000000004','10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001','D+15','pendente','2026-11-02');
+SELECT test_assert(EXISTS(SELECT 1 FROM follow_ups WHERE tipo='D+15'),'commercial generation untouched');
+DO $$ BEGIN BEGIN PERFORM fu_transicao_filtrar('00000000-0000-0000-0000-000000000002','R01','[]'); RAISE EXCEPTION 'FAIL unauthorized browser'; EXCEPTION WHEN raise_exception THEN IF SQLERRM LIKE 'FAIL%' THEN RAISE; END IF; END; END $$;
+SELECT set_config('test.uid','40000000-0000-0000-0000-000000000001',false);
+INSERT INTO user_unidades VALUES('40000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001');
+SELECT test_assert(jsonb_array_length(fu_transicao_filtrar('00000000-0000-0000-0000-000000000001','R01',jsonb_build_array(test_candidate('R01','D+7'))))=1,'authorized read-only roster filtering');

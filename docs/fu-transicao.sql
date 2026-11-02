@@ -176,3 +176,15 @@ END $$;
 REVOKE ALL ON FUNCTION public.fu_transicao_auditar_config() FROM PUBLIC,anon,authenticated;
 CREATE TRIGGER fu_transicao_config_auditoria AFTER INSERT OR UPDATE OR DELETE ON public.fu_transicao_config FOR EACH ROW EXECUTE FUNCTION public.fu_transicao_auditar_config();
 CREATE TRIGGER fu_transicao_homologacao_auditoria AFTER INSERT OR UPDATE OR DELETE ON public.fu_transicao_homologacoes FOR EACH ROW EXECUTE FUNCTION public.fu_transicao_auditar_config();
+
+-- Only new persisted M+ contacts can be suppressed at generation; never D+ conversion.
+CREATE FUNCTION public.fu_transicao_geracao_legada() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE d jsonb;
+BEGIN
+ IF NEW.tipo NOT IN('M+7','M+30') OR NEW.status<>'pendente' THEN RETURN NEW; END IF;
+ d:=public.fu_transicao_avaliar(jsonb_build_object('familia','R02','etapa',NEW.tipo,'lead_id',NEW.lead_id,'unidade_id',NEW.unidade_id,'referencia',NEW.data_referencia),true);
+ IF d->>'suprimir'='true' THEN RETURN NULL; END IF;
+ RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.fu_transicao_geracao_legada() FROM PUBLIC,anon,authenticated;
+CREATE TRIGGER fu_transicao_geracao_legada BEFORE INSERT ON public.follow_ups FOR EACH ROW EXECUTE FUNCTION public.fu_transicao_geracao_legada();
