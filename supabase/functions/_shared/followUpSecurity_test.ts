@@ -65,10 +65,10 @@ Deno.test('Três endpoints retornam 401 sem autenticação, sem rede externa', a
 Deno.test('Lead e interação de unidades diferentes são rejeitados', () => {
   assertThrows(() => validateExperimental(lead,{...interaction,unidade_id:setubal},scope),FollowUpError);
 });
-Deno.test('Interação de outro lead é rejeitada', () => assertThrows(() => validateExperimental(lead,{...interaction,lead_id:'other'},scope),FollowUpError));
-Deno.test('Recurso fora da unidade retorna indisponível', () => assertThrows(() => validateExperimental({...lead,unidade_id:setubal},interaction,scope),FollowUpError));
+Deno.test('Interação de outro lead é rejeitada', () => { assertThrows(() => validateExperimental(lead,{...interaction,lead_id:'other'},scope),FollowUpError); });
+Deno.test('Recurso fora da unidade retorna indisponível', () => { assertThrows(() => validateExperimental({...lead,unidade_id:setubal},interaction,scope),FollowUpError); });
 for (const [name, change] of [['compareceu',{compareceu:true}],['cancelada',{cancelado:true}],['futura',{data_experimental:'2099-01-01'}],['não experimental',{agendou_experimental:false}]] as const) {
-  Deno.test(`Reagendamento rejeita experimental ${name}`, () => assertThrows(() => validateExperimental(lead,{...interaction,...change},scope),FollowUpError));
+  Deno.test(`Reagendamento rejeita experimental ${name}`, () => { assertThrows(() => validateExperimental(lead,{...interaction,...change},scope),FollowUpError); });
 }
 Deno.test('Nova experimental tem identidade distinta mesmo no mesmo dia', () => {
   const first = validateExperimental(lead,interaction,scope);
