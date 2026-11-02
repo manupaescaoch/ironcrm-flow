@@ -19,6 +19,7 @@ const CAMPO_LABELS: Record<string, string> = {
   prazo: 'Prazo',
   titulo: 'Título',
   setor: 'Setor',
+  acompanhamento_tecnico: 'Acompanhamento técnico',
 };
 
 const STATUS_LABELS: Record<string, string> = {

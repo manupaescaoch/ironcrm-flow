@@ -135,6 +135,7 @@ export function TarefaCard({ task, onClick, isDragging, compact = false }: Taref
         )}
 
         <h4 className="font-medium text-sm line-clamp-2">{task.titulo}</h4>
+        {task.fu_tecnico_status && <Badge variant="outline">{({ pendente: 'Pendente', em_andamento: 'Em andamento', concluido: 'Concluído', dispensado: 'Dispensado', cancelado: 'Cancelado' })[task.fu_tecnico_status]}</Badge>}
 
         <div className="flex flex-wrap gap-1.5 items-center">
           <Badge

@@ -101,7 +101,7 @@ export function TarefaModal({
 }: TarefaModalProps) {
   const { unidadeAtual } = useUnidade();
   const { users, loading: usersLoading } = useUnidadeUsers();
-  const { isAdmin, role } = useAuth();
+  const { isAdmin, userRole: role } = useAuth();
   const { toast } = useToast();
   const [tecnicoStatus, setTecnicoStatus] = useState<StatusTecnico>('pendente');
   const [tecnicoRegistro, setTecnicoRegistro] = useState<RegistroTecnico>({ data: '', coordenador: '', canal: 'presencial', observacoes: '', dificuldades: '', ajustes: '', encaminhamentos: '' });

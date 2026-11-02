@@ -96,7 +96,7 @@ export function useTarefasData() {
 
       if (fetchError) throw fetchError;
 
-      setTasks((data as Task[]) || []);
+      setTasks((data as unknown as Task[]) || []);
     } catch (err: any) {
       console.error('Erro ao buscar tarefas:', err);
       setError(err.message);
@@ -168,7 +168,7 @@ export function useTarefasData() {
         sendOpsNotification(data.id, data.titulo, task.responsavel, 'nova_tarefa', creatorName, data.descricao, unidadeAtual?.nome, data.prazo, data.hora_prazo);
       }
 
-      return data as Task;
+      return data as unknown as Task;
     } catch (err: any) {
       console.error('Erro ao criar tarefa:', err);
       toast({
@@ -196,7 +196,7 @@ export function useTarefasData() {
         sendOpsNotification(id, data.titulo, updates.responsavel, 'tarefa_atualizada', undefined, data.descricao, unidadeAtual?.nome, data.prazo, data.hora_prazo);
       }
 
-      return data as Task;
+      return data as unknown as Task;
     } catch (err: any) {
       console.error('Erro ao atualizar tarefa:', err);
       toast({

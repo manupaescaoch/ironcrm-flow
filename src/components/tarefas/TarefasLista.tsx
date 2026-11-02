@@ -293,7 +293,7 @@ export function TarefasLista({
                             statusConfig?.color
                           )}
                         />
-                        <span className="text-sm">{statusConfig?.label}</span>
+                        <span className="text-sm">{task.fu_tecnico_status ? ({ pendente: 'Pendente', em_andamento: 'Em andamento', concluido: 'Concluído', dispensado: 'Dispensado', cancelado: 'Cancelado' })[task.fu_tecnico_status] : statusConfig?.label}</span>
                       </div>
                     </TableCell>
                     <TableCell>

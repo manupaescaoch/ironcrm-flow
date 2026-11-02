@@ -1,6 +1,6 @@
 export type EtapaTecnica = 'M+7' | 'M+21';
 export type StatusTecnico = 'pendente' | 'em_andamento' | 'concluido' | 'dispensado' | 'cancelado';
-export interface RegistroTecnico {
+export type RegistroTecnico = {
   data: string;
   coordenador: string;
   canal: 'presencial' | 'whatsapp';

@@ -16,7 +16,7 @@ export function FuTecnicoForm({ task, status, registro, onStatus, onRegistro }: 
   onStatus: (value: StatusTecnico) => void; onRegistro: (value: RegistroTecnico) => void;
 }) {
   const { unidadeAtual } = useUnidade();
-  const { role } = useAuth();
+  const { userRole: role } = useAuth();
   const [aluno, setAluno] = useState<{ nome: string; telefone: string | null } | null>(null);
   const [treinador, setTreinador] = useState<string | null>(null);
   const [mensagem, setMensagem] = useState('');

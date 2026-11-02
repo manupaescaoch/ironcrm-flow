@@ -31,7 +31,15 @@ export async function sendTechnicalFu(admin: SupabaseClient, dryRun = false, now
       if (!claimed) { results.push({ task: task.id, status: 'ja_processado' }); continue; }
       const { data: unit, error: unitError } = await admin.from('unidades').select('nome').eq('id', task.unidade_id).single();
       if (unitError) throw unitError;
-      const payload = notificacaoFuTecnico(task.fu_tecnico_etapa, lead.nome, unit.nome, lead.telefone, task.responsavel, enrollment.treinador_responsavel);
+      // A single linked coordinator can be named; ambiguous assignments remain editable.
+      const { data: staff, error: staffError } = await admin.from('cronograma_funcionarios').select('nome,user_id').eq('unidade_id', task.unidade_id).eq('ativo', true).not('user_id', 'is', null);
+      if (staffError) throw staffError;
+      const ids = (staff ?? []).map(s => s.user_id);
+      const { data: roles, error: rolesError } = ids.length ? await admin.from('user_roles').select('user_id').eq('role', 'coordenador').in('user_id', ids) : { data: [], error: null };
+      if (rolesError) throw rolesError;
+      const coordinators = (staff ?? []).filter(s => (roles ?? []).some(r => r.user_id === s.user_id));
+      const coordinator = task.responsavel !== '[COORDENADOR]' ? task.responsavel : coordinators.length === 1 ? coordinators[0].nome : null;
+      const payload = notificacaoFuTecnico(task.fu_tecnico_etapa, lead.nome, unit.nome, lead.telefone, coordinator, enrollment.treinador_responsavel);
       const sent = await sendTelegramMessage({ chat_id: grupo.telegram_chat_id, text: payload.text, recipient_type: 'grupo', recipient_id: grupo.id, message_type: 'fu_tecnico' }, admin);
       // Fail closed on uncertain network outcomes; retry on the next Recife day, not repeatedly today.
       const { error: logError } = await admin.from('tasks').update({ fu_tecnico_envio_status: sent.ok ? 'enviado' : 'erro', fu_tecnico_envio_erro: sent.error ?? null }).eq('id', task.id);
