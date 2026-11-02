@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { fuDate, fuDay, addFuBusinessDays, diffFuBusinessDays, effectiveFuDay } from '@/lib/fuBusinessDays';
+import { transitionExclusions } from '@/lib/fuTransition';
 
 export type FollowUpMatriculadoTipo = 'D+1' | 'D+7' | 'D+30';
 
@@ -53,7 +54,7 @@ export function useFollowUpsMatriculados() {
       const { data: matriculas, error: errMat } = await supabase
         .from('interacoes')
         .select(`
-          lead_id, data_fechamento,
+          id, lead_id, data_fechamento,
           leads!inner (id, nome, telefone, email, is_matriculado, ativo)
         `)
         .eq('unidade_id', unidadeAtual.id)
@@ -68,12 +69,13 @@ export function useFollowUpsMatriculados() {
       }
 
       // 2) Manter a matrícula mais recente por lead, filtrando ativos e is_matriculado
-      const maisRecentePorLead = new Map<string, { data_fechamento: string; lead: any }>();
+      const maisRecentePorLead = new Map<string, { id:string; data_fechamento: string; lead: any }>();
       (matriculas || []).forEach((row: any) => {
         const lead = row.leads;
         if (!lead || lead.is_matriculado !== true || lead.ativo === false) return;
         if (!maisRecentePorLead.has(row.lead_id)) {
           maisRecentePorLead.set(row.lead_id, {
+            id:row.id,
             data_fechamento: row.data_fechamento,
             lead,
           });
@@ -150,7 +152,11 @@ export function useFollowUpsMatriculados() {
         });
       }
 
-      setItems(computados);
+      const excluded = await transitionExclusions(unidadeAtual.id,'R01',computados.flatMap(item => {
+        const cycle = maisRecentePorLead.get(item.lead_id)?.id;
+        return cycle ? [{lead_id:item.lead_id,etapa:item.tipo,ciclo_id:cycle}] : [];
+      }));
+      setItems(computados.filter(item=>!excluded.has(`${item.lead_id}|${item.tipo}`)));
     } catch (e) {
       console.error('Erro ao carregar FU de matriculados:', e);
       setError('Não foi possível carregar os FU de matriculados.');
