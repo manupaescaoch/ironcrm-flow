@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { NivelInteresseBadge } from '@/components/NivelInteresseBadge';
 import { calcularConversionScore } from '@/hooks/useConversionScore';
 import { useUnidade } from '@/contexts/UnidadeContext';
+import { MotivosPerdaModal } from '@/components/lead/MotivosPerdaModal';
 
 const columns: { status: StatusFunil; label: string; color: string; bgLight: string }[] = [
   { status: 'novo', label: 'Novo', color: 'bg-blue-500', bgLight: 'bg-blue-500/10' },
@@ -54,6 +55,8 @@ export default function Kanban() {
   const [loading, setLoading] = useState(true);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<StatusFunil | null>(null);
+  const [lossLead, setLossLead] = useState<LeadWithExperimental | null>(null);
+  const [savingLoss, setSavingLoss] = useState(false);
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
 
@@ -200,6 +203,12 @@ export default function Kanban() {
       return;
     }
 
+    if (newStatus==='perdido') {
+      setLossLead(lead);
+      setDraggingId(null);
+      return;
+    }
+
     // Optimistic update
     setLeads((prev) =>
       prev.map((l) => (l.id === draggingId ? { ...l, status_funil: newStatus } : l))
@@ -223,6 +232,19 @@ export default function Kanban() {
   const handleDragEnd = () => {
     setDraggingId(null);
     setDragOverColumn(null);
+  };
+
+  const confirmLoss = async (motivo: string, observacao: string) => {
+    if (!lossLead || !motivo.trim()) return;
+    setSavingLoss(true);
+    const {error}=await supabase.from('leads').update({status_funil:'perdido',motivo_perda:motivo,
+      observacoes:observacao.trim() ? [lossLead.observacoes,observacao.trim()].filter(Boolean).join('\n\n') : lossLead.observacoes
+    }).eq('id',lossLead.id);
+    setSavingLoss(false);
+    if(error) {toast({title:'Erro ao atualizar status',description:getErrorMessage(error),variant:'destructive'});return;}
+    setLossLead(null);
+    await fetchLeads();
+    toast({title:'Lead marcado como perdido'});
   };
 
   const getLeadsByStatus = (status: StatusFunil) =>
@@ -532,6 +554,7 @@ export default function Kanban() {
           </div>
         </div>
       </div>
+      <MotivosPerdaModal open={Boolean(lossLead)} onOpenChange={open=>{if(!open&&!savingLoss)setLossLead(null);}} onConfirm={confirmLoss} loading={savingLoss} />
     </Layout>
   );
 }

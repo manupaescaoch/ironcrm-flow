@@ -1,0 +1,20 @@
+-- Local isolated fixture only; run after creating a minimal leads table and applying the trigger SQL.
+INSERT INTO leads(id,status_funil,is_matriculado) VALUES(1,'novo',false),(2,'convertido',true),(3,'perdido',false);
+DO $$ BEGIN IF EXISTS(SELECT 1 FROM leads WHERE convertido_em_aluno_at IS NOT NULL OR data_perda IS NOT NULL) THEN RAISE EXCEPTION 'backfill detected'; END IF; END $$;
+UPDATE leads SET status_funil='convertido' WHERE id=1;
+DO $$ BEGIN IF (SELECT convertido_em_aluno_at FROM leads WHERE id=1) IS NULL THEN RAISE EXCEPTION 'conversion missing'; END IF; END $$;
+UPDATE leads SET convertido_em_aluno_at='2026-01-01T12:00:00Z',status_funil='novo' WHERE id=1;
+UPDATE leads SET is_matriculado=true WHERE id=1;
+DO $$ BEGIN IF (SELECT convertido_em_aluno_at FROM leads WHERE id=1)<>'2026-01-01T12:00:00Z' THEN RAISE EXCEPTION 'existing conversion replaced'; END IF; END $$;
+UPDATE leads SET status_funil='convertido' WHERE id=2;
+UPDATE leads SET status_funil='perdido' WHERE id=3;
+DO $$ BEGIN IF (SELECT convertido_em_aluno_at FROM leads WHERE id=2) IS NOT NULL OR (SELECT data_perda FROM leads WHERE id=3) IS NOT NULL THEN RAISE EXCEPTION 'same status is backfill'; END IF; END $$;
+UPDATE leads SET status_funil='perdido' WHERE id=1;
+DO $$ BEGIN IF (SELECT data_perda FROM leads WHERE id=1) IS DISTINCT FROM (((now() AT TIME ZONE 'America/Recife')::date)::timestamp AT TIME ZONE 'America/Recife') THEN RAISE EXCEPTION 'Recife date incorrect'; END IF; END $$;
+UPDATE leads SET data_perda='2026-01-01T03:00:00Z',status_funil='novo' WHERE id=1;
+UPDATE leads SET status_funil='perdido' WHERE id=1;
+DO $$ BEGIN IF (SELECT data_perda FROM leads WHERE id=1)<>'2026-01-01T03:00:00Z' THEN RAISE EXCEPTION 'existing loss replaced'; END IF; END $$;
+UPDATE leads SET is_matriculado=false WHERE id=2;
+UPDATE leads SET is_matriculado=true WHERE id=2;
+DO $$ BEGIN IF (SELECT convertido_em_aluno_at FROM leads WHERE id=2) IS NULL THEN RAISE EXCEPTION 'enrollment transition missing'; END IF; END $$;
+SELECT 'PASS: insert unchanged, conversion, enrollment, existing dates, Recife loss, no backfill';

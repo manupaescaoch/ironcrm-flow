@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.painel-contas-pagar-baixa]
 verify_jwt = false
+
+[functions.funil-comercial-resumo]
+verify_jwt = false

@@ -274,7 +274,6 @@ export function FollowUpSections({
         .update({ 
           status_funil: 'perdido',
           motivo_perda: selectedReason,
-          data_perda: new Date().toISOString(),
         })
         .eq('id', selectedItem.lead_id);
 

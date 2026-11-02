@@ -357,22 +357,21 @@ export default function LeadDetail() {
   };
 
   const handleConfirmPerda = async (motivo: string, observacao: string) => {
-    if (!lead || !pendingStatus) return;
+    if (!lead || !pendingStatus || !motivo.trim()) return;
     setSavingMotivo(true);
 
     const observacaoFinal = observacao.trim()
       ? `${lead.observacoes || ''}\n\n[Motivo da Perda - ${formatTimestampInBrasilia(new Date(), { dateOnly: true })}]: ${observacao}`.trim()
       : lead.observacoes;
 
-    const { error } = await supabase
+    const { data: updatedLead, error } = await supabase
       .from('leads')
       .update({
         status_funil: pendingStatus,
         motivo_perda: motivo,
-        data_perda: new Date().toISOString(),
         observacoes: observacaoFinal,
       })
-      .eq('id', id);
+      .eq('id', id).select('data_perda').single();
 
     setSavingMotivo(false);
 
@@ -383,7 +382,7 @@ export default function LeadDetail() {
         ...lead, 
         status_funil: pendingStatus, 
         motivo_perda: motivo, 
-        data_perda: new Date().toISOString(),
+        data_perda: updatedLead?.data_perda ?? lead.data_perda,
         observacoes: observacaoFinal 
       });
       toast({ title: 'Lead marcado como perdido' });
