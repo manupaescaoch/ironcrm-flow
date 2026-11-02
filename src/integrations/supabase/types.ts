@@ -3397,6 +3397,179 @@ export type Database = {
           },
         ]
       }
+      fu_transicao_config: {
+        Row: {
+          aprovacao: string | null
+          aprovado_em: string | null
+          ciclos_desde: string | null
+          familia: string
+          modo: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          aprovacao?: string | null
+          aprovado_em?: string | null
+          ciclos_desde?: string | null
+          familia: string
+          modo?: string
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          aprovacao?: string | null
+          aprovado_em?: string | null
+          ciclos_desde?: string | null
+          familia?: string
+          modo?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fu_transicao_config_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fu_transicao_config_historico: {
+        Row: {
+          anterior: Json | null
+          atual: Json | null
+          created_at: string
+          entidade: string
+          id: string
+          operacao: string
+        }
+        Insert: {
+          anterior?: Json | null
+          atual?: Json | null
+          created_at?: string
+          entidade: string
+          id?: string
+          operacao: string
+        }
+        Update: {
+          anterior?: Json | null
+          atual?: Json | null
+          created_at?: string
+          entidade?: string
+          id?: string
+          operacao?: string
+        }
+        Relationships: []
+      }
+      fu_transicao_eventos: {
+        Row: {
+          chave: string
+          ciclo_id: string | null
+          contexto: Json
+          created_at: string
+          estado: string
+          etapa: string
+          familia: string
+          id: string
+          lead_id: string
+          legado_id: string | null
+          modo: string
+          motivo: string
+          substitutos: Json
+          unidade_id: string
+        }
+        Insert: {
+          chave: string
+          ciclo_id?: string | null
+          contexto: Json
+          created_at?: string
+          estado: string
+          etapa: string
+          familia: string
+          id?: string
+          lead_id: string
+          legado_id?: string | null
+          modo: string
+          motivo: string
+          substitutos: Json
+          unidade_id: string
+        }
+        Update: {
+          chave?: string
+          ciclo_id?: string | null
+          contexto?: Json
+          created_at?: string
+          estado?: string
+          etapa?: string
+          familia?: string
+          id?: string
+          lead_id?: string
+          legado_id?: string | null
+          modo?: string
+          motivo?: string
+          substitutos?: Json
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fu_transicao_eventos_ciclo_id_fkey"
+            columns: ["ciclo_id"]
+            isOneToOne: false
+            referencedRelation: "interacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fu_transicao_eventos_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fu_transicao_eventos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fu_transicao_homologacoes: {
+        Row: {
+          autorizacao: string
+          autorizado_em: string
+          evidencias: Json
+          homologado_em: string
+          substituto: string
+          unidade_id: string
+        }
+        Insert: {
+          autorizacao: string
+          autorizado_em: string
+          evidencias: Json
+          homologado_em?: string
+          substituto: string
+          unidade_id: string
+        }
+        Update: {
+          autorizacao?: string
+          autorizado_em?: string
+          evidencias?: Json
+          homologado_em?: string
+          substituto?: string
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fu_transicao_homologacoes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gestao_lancamentos_semanais: {
         Row: {
           cancelamentos: number
@@ -6749,6 +6922,22 @@ export type Database = {
           p_telegram_user: number
         }
         Returns: Json
+      }
+      fu_transicao_avaliar: {
+        Args: { p_candidato: Json; p_registrar?: boolean }
+        Returns: Json
+      }
+      fu_transicao_filtrar: {
+        Args: { p_candidatos: Json; p_familia: string; p_unidade: string }
+        Returns: Json
+      }
+      fu_transicao_homologado: {
+        Args: { p_substituto: string; p_unidade: string }
+        Returns: boolean
+      }
+      fu_transicao_matriz: {
+        Args: { p_etapa: string; p_familia: string }
+        Returns: string[]
       }
       generate_follow_ups_for_lead: {
         Args: { p_lead_id: string }
