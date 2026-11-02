@@ -1,7 +1,5 @@
 -- Disposable local database only. No real credentials, providers or production data.
-CREATE ROLE anon NOLOGIN;
-CREATE ROLE authenticated NOLOGIN;
-CREATE ROLE service_role NOLOGIN;
+DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon NOLOGIN; END IF; IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF; IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='service_role') THEN CREATE ROLE service_role NOLOGIN; END IF; END $$;
 CREATE SCHEMA auth;
 CREATE SCHEMA net;
 CREATE TABLE unidades(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),nome text);
@@ -19,6 +17,8 @@ CREATE UNIQUE INDEX tasks_fu_tecnico_ciclo ON tasks(fu_tecnico_lead_id,fu_tecnic
 CREATE UNIQUE INDEX tasks_fu_gerencial_ciclo ON tasks(fu_gerencial_lead_id,fu_gerencial_matricula_id,fu_gerencial_etapa) WHERE fu_gerencial_etapa IS NOT NULL;
 CREATE UNIQUE INDEX tasks_fu_matriculados_ciclo ON tasks(fu_matriculados_matricula_id) WHERE fu_matriculados_matricula_id IS NOT NULL;
 CREATE TABLE experimental_presenca_telegram(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),interacao_id uuid REFERENCES interacoes ON DELETE CASCADE,lead_id uuid,unidade_id uuid,data_aula date,hora_aula text,status text DEFAULT 'enviado',resultado text,origem_resposta text,respondido_por text,respondido_em timestamptz,telegram_chat_id bigint,telegram_message_id bigint,updated_at timestamptz DEFAULT now(),UNIQUE(interacao_id,data_aula,hora_aula));
+ALTER TABLE experimental_presenca_telegram DROP CONSTRAINT experimental_presenca_telegra_interacao_id_data_aula_hora_a_key;
+CREATE UNIQUE INDEX ux_exp_presenca_slot ON experimental_presenca_telegram(interacao_id,data_aula,hora_aula);
 CREATE TABLE telegram_groups(id uuid DEFAULT gen_random_uuid(),unidade_id uuid,telegram_chat_id bigint,status text,group_type text);
 CREATE TABLE cronograma_funcionarios(id uuid DEFAULT gen_random_uuid(),unidade_id uuid,user_id uuid,setor text,cargo text,ativo boolean DEFAULT true);
 CREATE TABLE ops_notificacoes(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),usuario_id uuid,tipo text,titulo text,mensagem text,lida boolean DEFAULT false,created_at timestamptz DEFAULT now());

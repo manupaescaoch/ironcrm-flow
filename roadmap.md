@@ -3,10 +3,12 @@
 ## FC-2A.1 — diagnóstico e proposta, sem implementação
 - [x] Mapear caminhos de escrita, consumidores, permissões e 19 triggers instalados; identificar diferença entre REAG real ao lead e aviso à recepção descrito.
 - [x] Entregar relatório técnico e plano de schema, compatibilidade, implantação, rollback e testes, sem código/migração/implantação.
-- [ ] Preparar migração aditiva e implementação inativa cobrindo CRM, EVO Chat, Telegram e todos os escritores antes de piloto.
-- [ ] Identificar canal/destinatário real da recepção; preparar notificação interna idempotente preservando REAG.
-- [ ] Ensaiar os 19 triggers e cenários de confirmação/remarcação/cancelamento em ambiente isolado; evidências nunca excluídas.
-- [ ] Apresentar resultados e solicitar aprovação específica para produção/piloto/mensagens — proibidos nesta preparação; sem backfill ou FC-2B.
+- [x] Preparar candidato aditivo e dispatcher inativo com inventário de 17 fronteiras de escrita; 29 testes bloqueiam piloto incompleto. Chamadores ainda não conectados, sem ativação.
+- [x] Identificar EVO OPS como canal; aviso idempotente ensaiado com conta sintética, sem alterar REAG. Destinatário real não vinculado nas unidades.
+- [x] Ensaiar os 19 triggers instalados com rede inerte: 45 asserções SQL/concorrência e 58 regressões do resumo passaram; evidências preservadas.
+- [ ] Vincular responsável real da recepção — depende de escolha/vínculo de usuário autorizado por unidade; não inventar destino.
+- [ ] Conectar e homologar todos os chamadores + análises de novos ciclos — depende de preparação complementar do endpoint autenticado/criação-edição e resolução dos comportamentos legados descritos no relatório; não autoriza piloto.
+- [x] Apresentar resultados parciais e bloqueios; migração produção/piloto/mensagens continuam proibidos e exigem aprovação específica posterior, sem backfill ou FC-2B.
 
 ## Falha de tempo excedido na página Telegram
 - [x] Limitar chamadas externas sem repetir envios e tratar falhas de carregamento na tela.

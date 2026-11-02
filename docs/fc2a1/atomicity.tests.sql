@@ -1,0 +1,35 @@
+CREATE FUNCTION fixture_fail_projection() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.descricao='force-failure' AND NEW.compareceu IS TRUE THEN RAISE EXCEPTION 'forced projection failure'; END IF; RETURN NEW; END $$;
+CREATE TRIGGER zzzz_fixture_fail_projection BEFORE UPDATE ON interacoes FOR EACH ROW EXECUTE FUNCTION fixture_fail_projection();
+DO $$
+DECLARE u uuid;l uuid;i uuid;c uuid;actor uuid:=gen_random_uuid();ctl uuid;before_count integer;u2 uuid:=gen_random_uuid();c2 uuid;i2 uuid;
+BEGIN
+ SELECT unidade_id INTO u FROM experimental_ciclos_config LIMIT 1;
+ INSERT INTO user_unidades VALUES(actor,u);
+ INSERT INTO leads(unidade_id) VALUES(u) RETURNING id INTO l;
+ INSERT INTO interacoes(lead_id,unidade_id,agendou_experimental,data_experimental,hora_experimental,descricao,compareceu) VALUES(l,u,true,current_date,'11:00','force-failure',NULL) RETURNING id INTO i;
+ c:=experimental_novo_ciclo(i,current_date,'11:00',actor,'crm_manual','atomic-create');
+ INSERT INTO experimental_presenca_telegram(interacao_id,lead_id,unidade_id,data_aula,hora_aula,ciclo_id,telegram_chat_id,telegram_message_id) VALUES(i,l,u,current_date,'11:00',c,-999,20) RETURNING id INTO ctl;
+ SELECT count(*) INTO before_count FROM experimental_ciclo_eventos;
+ BEGIN PERFORM experimental_confirmar(c,'compareceu',NULL,'telegram','atomic-answer',0,NULL,ctl,-999,20,321); RAISE EXCEPTION 'expected forced failure'; EXCEPTION WHEN OTHERS THEN IF SQLERRM='expected forced failure' THEN RAISE; END IF; END;
+ PERFORM fixture_assert((SELECT resultado='pendente' AND versao=0 FROM experimental_ciclos WHERE id=c),'failure after evidence rolls back cycle state');
+ PERFORM fixture_assert((SELECT count(*)=before_count FROM experimental_ciclo_eventos),'failure rolls back evidence append');
+ PERFORM fixture_assert((SELECT status='enviado' AND resultado IS NULL FROM experimental_presenca_telegram WHERE id=ctl),'failure leaves Telegram claim eligible for safe retry');
+ PERFORM fixture_assert((SELECT count(*)=0 FROM experimental_ciclo_contexto),'failure cleans context by transactional rollback');
+ UPDATE interacoes SET descricao='retry-safe' WHERE id=i;
+ PERFORM experimental_confirmar(c,'compareceu',NULL,'telegram','atomic-answer',0,NULL,ctl,-999,20,321);
+ PERFORM fixture_assert((SELECT resultado='compareceu' FROM experimental_ciclos WHERE id=c),'same key succeeds after rollback');
+ INSERT INTO unidades(id,nome) VALUES(u2,'FIXTURE TRANSFER');
+ UPDATE leads SET unidade_id=u2,hora_aula_experimental='20:00' WHERE id=l;
+ UPDATE interacoes SET descricao='after transfer edit' WHERE id=i;
+ PERFORM fixture_assert((SELECT unidade_id=u AND hora_experimental='11:00' FROM interacoes WHERE id=i),'unrelated edit after lead transfer preserves original cycle unit/time');
+ INSERT INTO experimental_ciclos_config(unidade_id,ativo,crm_integrado,evochat_integrado,telegram_integrado,escritores_integrados,aprovado_em) VALUES(u2,true,true,true,true,true,now());
+ INSERT INTO user_unidades VALUES(actor,u2);
+ INSERT INTO interacoes(lead_id,unidade_id,agendou_experimental,data_experimental,hora_experimental,compareceu) VALUES(l,u2,true,current_date,'12:00',NULL) RETURNING id INTO i2;
+ c2:=experimental_novo_ciclo(i2,current_date,'12:00',actor,'crm_manual','second-unit-create');
+ PERFORM fixture_assert(c2<>c AND (SELECT unidade_id=u2 FROM experimental_ciclos WHERE id=c2),'same lead in new unit has separate new cycle');
+ PERFORM fixture_assert((SELECT unidade_id=u FROM experimental_ciclos WHERE id=c),'new unit cycle never changes previous unit evidence');
+ BEGIN PERFORM experimental_confirmar(c2,'nao_compareceu',NULL,'telegram','wrong-unit',0,NULL,ctl,-999,20,321); RAISE EXCEPTION 'expected binding failure'; EXCEPTION WHEN OTHERS THEN IF SQLERRM='expected binding failure' THEN RAISE; END IF; END;
+ PERFORM fixture_assert((SELECT resultado='pendente' FROM experimental_ciclos WHERE id=c2),'cross cycle Telegram message rejected');
+ BEGIN UPDATE experimental_ciclos_config SET telegram_integrado=false WHERE unidade_id=u2; RAISE EXCEPTION 'expected readiness failure'; EXCEPTION WHEN check_violation THEN NULL; END;
+ PERFORM fixture_assert((SELECT telegram_integrado FROM experimental_ciclos_config WHERE unidade_id=u2),'pilot cannot activate missing Telegram writer');
+END $$;

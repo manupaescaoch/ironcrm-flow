@@ -1,0 +1,16 @@
+import {dispatchPreparedExperimental,experimentalReady,experimentalWriters,noShowNotificationKey,explicitAttendanceChange,type ExperimentalReadiness} from './experimentalCyclesPrepared.ts';
+const assert=(v:boolean)=>{if(!v)throw new Error('Assertion failed');};
+const config=():ExperimentalReadiness=>({approved:true,enabled:true,unitId:'unit-a',receptionUserId:'real-linked-user',receptionVerified:true,coveredWriters:experimentalWriters});
+Deno.test('FC2A1 missing config has no new calls and exact legacy result',async()=>{let l=0,t=0;const result=await dispatchPreparedExperimental({unitId:'unit-a',readiness:null,legacy:async()=>{l++;return {warning:'legacy partial result'};},traceable:async()=>{t++;return {warning:'new'};}});assert(l===1&&t===0&&result.warning==='legacy partial result');});
+Deno.test('FC2A1 enabled operation never runs legacy as well',async()=>{let l=0,t=0;await dispatchPreparedExperimental({unitId:'unit-a',readiness:config(),legacy:async()=>{l++;},traceable:async()=>{t++;}});assert(l===0&&t===1);});
+Deno.test('FC2A1 network failure after possible commit never retries legacy',async()=>{let l=0,t=0;try{await dispatchPreparedExperimental({unitId:'unit-a',readiness:config(),legacy:async()=>{l++;},traceable:async()=>{t++;throw new Error('response lost after commit');}});}catch{}assert(l===0&&t===1);});
+for(const writer of experimentalWriters)Deno.test(`FC2A1 pilot blocked without writer ${writer}`,()=>assert(!experimentalReady({...config(),coveredWriters:experimentalWriters.filter(w=>w!==writer)},'unit-a')));
+Deno.test('FC2A1 target not invented when reception account unavailable',()=>assert(!experimentalReady({...config(),receptionUserId:null},'unit-a')));
+Deno.test('FC2A1 linked but unverified reception does not activate',()=>assert(!experimentalReady({...config(),receptionVerified:false},'unit-a')));
+Deno.test('FC2A1 another unit cannot activate',()=>assert(!experimentalReady(config(),'unit-b')));
+Deno.test('FC2A1 production approval required',()=>assert(!experimentalReady({...config(),approved:false},'unit-a')));
+Deno.test('FC2A1 editing untouched absence does not create evidence',()=>assert(explicitAttendanceChange('pendente','nao_compareceu',false)===null));
+Deno.test('FC2A1 pending never creates absence',()=>assert(explicitAttendanceChange('pendente','pendente',true)===null));
+Deno.test('FC2A1 explicit manual selection records attendance',()=>assert(explicitAttendanceChange('pendente','compareceu',true)==='compareceu'));
+Deno.test('FC2A1 repeated result is no change',()=>assert(explicitAttendanceChange('compareceu','compareceu',true)===null));
+Deno.test('FC2A1 reception notices keyed by cycle not lead/time',()=>assert(noShowNotificationKey('cycle-a')!==noShowNotificationKey('cycle-b')&&noShowNotificationKey('cycle-a')===noShowNotificationKey('cycle-a')));
