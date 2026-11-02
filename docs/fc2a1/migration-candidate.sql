@@ -128,7 +128,7 @@ BEGIN
  IF auth.role() IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Serviço obrigatório'; END IF;
  SELECT * INTO i FROM public.interacoes WHERE id=p_interacao FOR UPDATE;
  IF NOT FOUND OR NOT EXISTS(SELECT 1 FROM public.experimental_ciclos_config WHERE unidade_id=i.unidade_id AND ativo) THEN RAISE EXCEPTION 'Ciclo não habilitado'; END IF;
- IF p_origem NOT IN ('crm_manual','telegram','integracao') THEN RAISE EXCEPTION 'Origem inválida'; END IF;
+ IF p_origem IS NULL OR p_origem NOT IN ('crm_manual','telegram','integracao') THEN RAISE EXCEPTION 'Origem inválida'; END IF;
  IF p_origem='crm_manual' AND (p_usuario IS NULL OR NOT (public.has_role(p_usuario,'admin') OR i.unidade_id IN (SELECT public.get_user_unidades(p_usuario)))) THEN RAISE EXCEPTION 'Sem autorização para unidade'; END IF;
  RETURN i;
 END $$;
@@ -148,7 +148,7 @@ CREATE FUNCTION public.experimental_novo_ciclo(p_interacao uuid,p_data date,p_ho
 DECLARE i public.interacoes;c uuid;e public.experimental_ciclo_eventos;
 BEGIN
  i:=public.experimental_assert(p_interacao,p_usuario,p_origem);
- IF p_data IS NULL OR p_hora IS NULL OR length(p_chave) NOT BETWEEN 1 AND 200 THEN RAISE EXCEPTION 'Slot/chave inválidos'; END IF;
+ IF p_data IS NULL OR p_hora IS NULL OR p_chave IS NULL OR length(p_chave) NOT BETWEEN 1 AND 200 THEN RAISE EXCEPTION 'Slot/chave inválidos'; END IF;
  SELECT * INTO e FROM public.experimental_ciclo_eventos WHERE chave=p_chave;
  IF FOUND THEN IF e.interacao_id<>i.id OR e.tipo<>'criado' OR e.data_aula<>p_data OR e.hora_aula<>p_hora THEN RAISE EXCEPTION 'Chave reutilizada'; END IF; RETURN e.ciclo_id; END IF;
  IF EXISTS(SELECT 1 FROM public.experimental_ciclos WHERE interacao_id=i.id AND situacao='ativo') THEN RAISE EXCEPTION 'Ciclo ativo existente'; END IF;
@@ -170,7 +170,7 @@ BEGIN
  i:=public.experimental_assert(n,p_usuario,p_origem);
  SELECT * INTO c FROM public.experimental_ciclos WHERE id=p_ciclo FOR UPDATE;
  IF c.situacao<>'ativo' OR i.experimental_ciclo_atual_id IS DISTINCT FROM c.id OR i.lead_id<>c.lead_id OR i.unidade_id<>c.unidade_id OR i.data_experimental<>c.data_aula OR i.hora_experimental<>c.hora_aula OR i.cancelado THEN RAISE EXCEPTION 'Agendamento anterior ou vínculo divergente'; END IF;
- IF p_resultado NOT IN ('compareceu','nao_compareceu') OR p_resultado IS NULL OR length(p_chave) NOT BETWEEN 1 AND 200 THEN RAISE EXCEPTION 'Resultado/chave inválidos'; END IF;
+ IF p_resultado NOT IN ('compareceu','nao_compareceu') OR p_resultado IS NULL OR p_chave IS NULL OR p_versao IS NULL OR length(p_chave) NOT BETWEEN 1 AND 200 THEN RAISE EXCEPTION 'Resultado/chave inválidos'; END IF;
  IF p_origem='telegram' THEN
   SELECT * INTO m FROM public.experimental_presenca_telegram WHERE id=p_controle FOR UPDATE;
   IF NOT FOUND OR m.ciclo_id IS DISTINCT FROM c.id OR m.interacao_id<>i.id OR m.lead_id<>c.lead_id OR m.unidade_id<>c.unidade_id OR m.data_aula<>c.data_aula OR m.hora_aula::time<>c.hora_aula OR m.telegram_chat_id IS DISTINCT FROM p_chat OR m.telegram_message_id IS DISTINCT FROM p_mensagem OR p_telegram IS NULL OR NOT EXISTS(SELECT 1 FROM public.telegram_groups WHERE unidade_id=c.unidade_id AND telegram_chat_id=p_chat AND group_type='comercial' AND status='conectado') THEN RAISE EXCEPTION 'Mensagem/grupo/ciclo inválidos'; END IF;
@@ -211,7 +211,7 @@ BEGIN
  SELECT * INTO e FROM public.experimental_ciclo_eventos WHERE chave=p_chave;
  IF FOUND THEN IF e.ciclo_id<>c.id THEN RAISE EXCEPTION 'Chave reutilizada'; END IF; SELECT id INTO novo FROM public.experimental_ciclos WHERE ciclo_anterior_id=c.id; RETURN coalesce(novo,c.id); END IF;
  IF c.situacao<>'ativo' OR i.experimental_ciclo_atual_id IS DISTINCT FROM c.id OR c.unidade_id<>i.unidade_id OR c.lead_id<>i.lead_id THEN RAISE EXCEPTION 'Ciclo anterior'; END IF;
- IF length(trim(coalesce(p_motivo,'')))=0 OR (p_nova_data IS NULL)<>(p_nova_hora IS NULL) THEN RAISE EXCEPTION 'Motivo/novo slot inválidos'; END IF;
+ IF p_chave IS NULL OR length(p_chave) NOT BETWEEN 1 AND 195 OR length(trim(coalesce(p_motivo,'')))=0 OR (p_nova_data IS NULL)<>(p_nova_hora IS NULL) THEN RAISE EXCEPTION 'Motivo/novo slot inválidos'; END IF;
  INSERT INTO public.experimental_ciclo_contexto VALUES(pg_backend_pid(),txid_current(),i.id) ON CONFLICT DO NOTHING;
  UPDATE public.experimental_ciclos SET situacao=CASE WHEN p_nova_data IS NULL THEN 'cancelado' ELSE 'substituido' END,versao=versao+1 WHERE id=c.id;
  PERFORM public.experimental_evento(c.id,CASE WHEN p_nova_data IS NULL THEN 'cancelado' ELSE 'reagendado' END,c.resultado,c.resultado,p_origem,p_usuario,NULL,NULL,p_chave,p_motivo);
