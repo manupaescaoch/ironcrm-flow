@@ -47,12 +47,11 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    // Autentica usuário (JWT)
-    const authHeader = req.headers.get('Authorization') || '';
-    const token = authHeader.replace(/^Bearer\s+/i, '');
-    if (!token) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Autentica: usuário logado (painel) OU segredo de automação (callback do Telegram)
+    const auth = await authorizeCronOrJwt(req);
+    if (!auth.ok) {
+      return new Response(JSON.stringify({ error: auth.error || 'Unauthorized' }), {
+        status: auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -61,18 +60,10 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    const { data: userData } = await supabase.auth.getUser(token);
-    const user = userData?.user;
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     const body = await req.json().catch(() => ({}));
     const leadId: string | undefined = body?.lead_id;
     const interacaoId: string | undefined = body?.interacao_id;
-    const responsavelNome: string = (body?.responsavel_nome || user.email || 'RECEPÇÃO').toString();
+    const responsavelNome: string = (body?.responsavel_nome || (auth.method === 'cron' ? 'TELEGRAM' : 'RECEPÇÃO')).toString();
 
     if (!leadId) {
       return new Response(JSON.stringify({ error: 'lead_id obrigatório' }), {
