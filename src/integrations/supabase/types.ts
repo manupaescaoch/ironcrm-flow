@@ -1057,6 +1057,117 @@ export type Database = {
           },
         ]
       }
+      contato_execucoes: {
+        Row: {
+          acompanhamento_concluido_em: string | null
+          adiado_em: string | null
+          canal: string
+          chave: string
+          ciclo_id: string | null
+          created_at: string
+          enviado_em: string | null
+          estado: string
+          evidencias: Json
+          excecao: string | null
+          fluxo: string
+          id: string
+          lead_id: string
+          modo: string
+          motivo: string | null
+          nao_urgente: boolean
+          objetivo: string
+          observacoes: Json
+          prazo_original: string | null
+          prioridade: number
+          proxima_tentativa: string | null
+          reservado_em: string | null
+          responsavel: string | null
+          resultado: string | null
+          setor: string
+          telefone_normalizado: string | null
+          tipo_fu: string | null
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          acompanhamento_concluido_em?: string | null
+          adiado_em?: string | null
+          canal: string
+          chave: string
+          ciclo_id?: string | null
+          created_at?: string
+          enviado_em?: string | null
+          estado: string
+          evidencias?: Json
+          excecao?: string | null
+          fluxo: string
+          id?: string
+          lead_id: string
+          modo?: string
+          motivo?: string | null
+          nao_urgente?: boolean
+          objetivo: string
+          observacoes?: Json
+          prazo_original?: string | null
+          prioridade: number
+          proxima_tentativa?: string | null
+          reservado_em?: string | null
+          responsavel?: string | null
+          resultado?: string | null
+          setor: string
+          telefone_normalizado?: string | null
+          tipo_fu?: string | null
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          acompanhamento_concluido_em?: string | null
+          adiado_em?: string | null
+          canal?: string
+          chave?: string
+          ciclo_id?: string | null
+          created_at?: string
+          enviado_em?: string | null
+          estado?: string
+          evidencias?: Json
+          excecao?: string | null
+          fluxo?: string
+          id?: string
+          lead_id?: string
+          modo?: string
+          motivo?: string | null
+          nao_urgente?: boolean
+          objetivo?: string
+          observacoes?: Json
+          prazo_original?: string | null
+          prioridade?: number
+          proxima_tentativa?: string | null
+          reservado_em?: string | null
+          responsavel?: string | null
+          resultado?: string | null
+          setor?: string
+          telefone_normalizado?: string | null
+          tipo_fu?: string | null
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contato_execucoes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contato_execucoes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cronograma_atividades: {
         Row: {
           ativo: boolean
@@ -3546,6 +3657,7 @@ export type Database = {
           compareceu: boolean | null
           compareceu_em: string | null
           confirmado: boolean | null
+          contato_meta: Json | null
           created_at: string
           created_by: string | null
           data_avaliacao: string | null
@@ -3591,6 +3703,7 @@ export type Database = {
           compareceu?: boolean | null
           compareceu_em?: string | null
           confirmado?: boolean | null
+          contato_meta?: Json | null
           created_at?: string
           created_by?: string | null
           data_avaliacao?: string | null
@@ -3636,6 +3749,7 @@ export type Database = {
           compareceu?: boolean | null
           compareceu_em?: string | null
           confirmado?: boolean | null
+          contato_meta?: Json | null
           created_at?: string
           created_by?: string | null
           data_avaliacao?: string | null
@@ -6377,6 +6491,62 @@ export type Database = {
           p_ttl_minutes?: number
         }
         Returns: boolean
+      }
+      contato_avaliar: {
+        Args: {
+          p_agora?: string
+          p_chave: string
+          p_ciclo: string
+          p_excecao: string
+          p_lead: string
+          p_nao_urgente: boolean
+          p_objetivo: string
+          p_prioridade: number
+        }
+        Returns: Json
+      }
+      contato_evidencias: {
+        Args: { p_lead: string }
+        Returns: {
+          at: string
+          chave: string
+          ciclo_id: string
+          excecao: string
+          objetivo: string
+        }[]
+      }
+      contato_intencao: {
+        Args: { p_intencao: Json; p_reservar: boolean }
+        Returns: Json
+      }
+      contato_modo: {
+        Args: { p_fluxo: string; p_unidade: string }
+        Returns: string
+      }
+      contato_observar: { Args: { p_intencao: Json }; Returns: Json }
+      contato_registrar_evidencia: {
+        Args: {
+          p_canal: string
+          p_chave: string
+          p_ciclo: string
+          p_data: string
+          p_excecao?: string
+          p_fluxo: string
+          p_lead: string
+          p_objetivo: string
+          p_prioridade: number
+          p_responsavel: string
+          p_resultado: string
+          p_setor: string
+          p_tipo: string
+          p_unidade: string
+        }
+        Returns: undefined
+      }
+      contato_reservar: { Args: { p_intencao: Json }; Returns: Json }
+      contato_resultado: {
+        Args: { p_estado: string; p_id: string; p_resultado: string }
+        Returns: undefined
       }
       encerramento_tecnico_arquivar: {
         Args: { p_resposta_id: string }

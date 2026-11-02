@@ -6,8 +6,8 @@ const id='00000000-0000-0000-0000-000000000001';
 Deno.test('Opening uses registered phone and encoded personalized message without a callback',()=>{
  const p=notificacaoFuMatriculados('MANU PAES','EVO SETÚBAL','81996392285');
  const k=tecladoFuMatriculados(id,p.link); const b=k.inline_keyboard[0][0];
- assert('url' in b && new URL(b.url).pathname==='/5581996392285');
- assert('url' in b && new URL(b.url).searchParams.get('text')===p.mensagem);
+ assert('url' in b && typeof b.url === 'string' && new URL(b.url).pathname==='/5581996392285');
+ assert('url' in b && typeof b.url === 'string' && new URL(b.url).searchParams.get('text')===p.mensagem);
  assert(!('callback_data' in b));
 });
 Deno.test('Confirmation edits original message, removes buttons and never sends a second notification',async()=>{
@@ -24,7 +24,7 @@ Deno.test('Invalid phone has no opening link',()=>assert(tecladoFuMatriculados(i
 function fakeAdmin(tasks:any[]) {
  let claimed=false;
  const chain=(value:any)=>{const q:any={then:(f:any)=>Promise.resolve(value).then(f)}; for(const n of ['select','not','is','neq','lte','order','range','eq','update'])q[n]=()=>q;q.maybeSingle=()=>Promise.resolve(value);q.single=()=>Promise.resolve(value);return q;};
- return {from:(table:string)=>chain({data:table==='tasks'?tasks:table==='leads'?{nome:'ALUNO',telefone:'81996392285',ativo:true,is_matriculado:true}: {nome:'TESTE'},error:null}),rpc:()=>{const v=!claimed;claimed=true;return {data:v,error:null};}};
+ return {from:(table:string)=>chain({data:table==='tasks'?tasks:table==='leads'?{nome:'ALUNO',telefone:'81996392285',ativo:true,is_matriculado:true}: {nome:'TESTE'},error:null}),rpc:(name:string)=>{if(name==='contato_observar') return {data:{id:'observation',permitido:true,modo:'observacao'},error:null};const v=!claimed;claimed=true;return {data:v,error:null};}};
 }
 Deno.test('Individual messages only to Commercial in current unit; daily claim stops duplicate runs',async()=>{
  const calls:any[]=[];const admin=fakeAdmin([{id,unidade_id:'unit',fu_matriculados_lead_id:'lead'}]);

@@ -288,6 +288,20 @@
       "when": 1793619603125,
       "tag": "0040_fu_fase21_autorizacao_reagendamento",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1793620580164,
+      "tag": "0041_contato_central_observacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1793620815295,
+      "tag": "0042_contato_config_ativacao_protegida",
+      "breakpoints": true
     }
   ]
 }

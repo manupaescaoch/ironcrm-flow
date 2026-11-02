@@ -1,3 +1,4 @@
+import { controlledSend } from '../_shared/contactControl.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeFollowUp, FollowUpError } from '../_shared/followUpAuthorization.ts';
 import { z } from 'npm:zod@3.23.8';
@@ -424,7 +425,12 @@ async function processFollowUps(
 
     try {
       const chave = buildIdempotencyKey([FUNC, fu.id, lead.id, fu.tipo, fu.data_prevista, phone]);
-      const r = await sendTextIdempotent(supabase, creds, phone, message, { chave, funcao: FUNC });
+      const r = await controlledSend(supabase, { lead_id: lead.id, unidade_id: fu.unidade_id, chave, fluxo: isPostMatricula ? 'recepcao_legado' : 'comercial_d', objetivo: isPostMatricula ? 'experiencia' : 'conversao', tipo_fu: fu.tipo, setor: isPostMatricula ? 'recepcao' : 'comercial', canal: 'whatsapp', prioridade: isPostMatricula ? 3 : 4, nao_urgente: true, responsavel: opts.callerName, prazo_original: fu.data_prevista }, () => sendTextIdempotent(supabase, creds, phone, message, { chave, funcao: FUNC }));
+      if (r.deferred) {
+        await supabase.from('follow_ups').update({ status: 'pendente' }).eq('id',fu.id).eq('status','enviando');
+        results.push({ tipo: fu.tipo, lead: lead.nome, status: 'adiado', motivo: r.body.motivo });
+        continue;
+      }
       if (r.skipped) {
         await supabase.from('follow_ups').update({ status: 'concluido', concluido_em: new Date().toISOString(), concluido_por: 'SISTEMA (duplicidade bloqueada)', updated_at: new Date().toISOString() }).eq('id', fu.id);
         results.push({ tipo: fu.tipo, lead: lead.nome, status: 'skipped_idempotency' });

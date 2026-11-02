@@ -1,3 +1,4 @@
+import { controlledSend } from '../_shared/contactControl.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3.23.8';
@@ -52,7 +53,7 @@ export async function handleReagendamento(req: Request) {
         const name = lead.nome.trim().split(/\s+/)[0];
         const unitName = unit.nome.replace(/^(EVO|IRON)(\s+CLUB)?\s*/i, '').trim();
         const message = `Oi, ${name}! Tudo bem?\n\nVi que você não conseguiu comparecer à sua aula experimental na EVO ${unitName}.\n\nGostaria de reagendar para outro dia?\n\nPosso verificar os horários disponíveis para você.`;
-        return await sendTextIdempotent(admin, creds, phone, message, { chave: key, funcao: FUNC });
+        return await controlledSend(admin, { lead_id: lead.id, unidade_id:lead.unidade_id,ciclo_id:interaction.id,chave:key,fluxo:'reagendamento',objetivo:'reagendamento_experimental',tipo_fu:'REAG',setor:'comercial',canal:'whatsapp',prioridade:1,nao_urgente:false,excecao:'reagendamento_experimental_elegivel',responsavel:responsible }, () => sendTextIdempotent(admin, creds, phone, message, { chave:key,funcao:FUNC }));
       },
       finish: async (reservation, state, status) => {
         const { error } = await admin.rpc('fu_reag_finalizar', { p_id: reservation.id, p_chave: key, p_estado: state, p_status: status });
