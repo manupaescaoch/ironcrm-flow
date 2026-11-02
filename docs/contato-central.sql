@@ -26,6 +26,7 @@ CREATE TABLE public.contato_execucoes (
  motivo text,
  resultado text,
  evidencias jsonb NOT NULL DEFAULT '[]',
+ observacoes jsonb NOT NULL DEFAULT '[]',
  created_at timestamptz NOT NULL DEFAULT now(),
  updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -64,12 +65,14 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public,pg_temp AS $$
  UNION ALL
  SELECT 'tecnico:'||t.id,t.fu_tecnico_confirmado_em,NULL,'tecnico',t.fu_tecnico_matricula_id FROM public.tasks t WHERE t.fu_tecnico_lead_id=p_lead AND t.fu_tecnico_confirmado_em IS NOT NULL
  UNION ALL
+ SELECT 'registro-tecnico:'||t.id,((t.fu_tecnico_registro->>'data')::date+time '23:59:59') AT TIME ZONE 'America/Recife',NULL,'tecnico',t.fu_tecnico_matricula_id FROM public.tasks t WHERE t.fu_tecnico_lead_id=p_lead AND t.fu_tecnico_status='concluido' AND t.fu_tecnico_registro->>'data' ~ '^\d{4}-\d{2}-\d{2}$' AND t.fu_tecnico_registro->>'canal' IN ('presencial','whatsapp')
+ UNION ALL
  SELECT 'gerencial:'||t.id,t.fu_gerencial_confirmado_em,NULL,'experiencia',t.fu_gerencial_matricula_id FROM public.tasks t WHERE t.fu_gerencial_lead_id=p_lead AND t.fu_gerencial_confirmado_em IS NOT NULL
  UNION ALL
- SELECT 'matriculados:'||t.id,t.fu_matriculados_confirmado_em,'transicao_matricula','boas_vindas',t.fu_matriculados_matricula_id FROM public.tasks t WHERE t.fu_matriculados_lead_id=p_lead AND t.fu_matriculados_confirmado_em IS NOT NULL
+ SELECT 'registro-gerencial:'||t.id,((t.fu_gerencial_registro->>'data')::date+time '23:59:59') AT TIME ZONE 'America/Recife',NULL,'experiencia',t.fu_gerencial_matricula_id FROM public.tasks t WHERE t.fu_gerencial_lead_id=p_lead AND t.fu_gerencial_status='concluido' AND t.fu_gerencial_registro->>'data' ~ '^\d{4}-\d{2}-\d{2}$' AND t.fu_gerencial_registro->>'canal' IN ('presencial','whatsapp')
  UNION ALL
- SELECT 'feedback:'||i.id,i.feedback_pos_aula_enviado_em,NULL,'conversao',NULL::uuid FROM public.interacoes i WHERE i.lead_id=p_lead AND i.feedback_pos_aula_enviado_em IS NOT NULL AND i.compareceu=true
- AND NOT EXISTS(SELECT 1 FROM public.contato_execucoes e WHERE e.fluxo='feedback' AND e.ciclo_id=i.id)
+ SELECT 'matriculados:'||t.id,t.fu_matriculados_confirmado_em,'transicao_matricula','boas_vindas',t.fu_matriculados_matricula_id FROM public.tasks t WHERE t.fu_matriculados_lead_id=p_lead AND t.fu_matriculados_confirmado_em IS NOT NULL
+
 $$;
 REVOKE ALL ON FUNCTION public.contato_evidencias(uuid) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.contato_evidencias(uuid) TO service_role;
@@ -124,7 +127,7 @@ BEGIN
  VALUES(l.id,intent_unit,cycle,p_intencao->>'chave',p_intencao->>'fluxo',p_intencao->>'objetivo',p_intencao->>'tipo_fu',p_intencao->>'setor',p_intencao->>'canal',public.canonical_phone(l.telefone),p_intencao->>'responsavel',priority,coalesce((p_intencao->>'nao_urgente')::boolean,true),nullif(p_intencao->>'excecao',''),
  CASE WHEN allowed AND p_reservar THEN 'reservado' WHEN mode='ativo' AND NOT allowed THEN 'adiado' ELSE 'pendente' END,mode,nullif(p_intencao->>'prazo_original','')::timestamptz,
  CASE WHEN decision->>'elegivel'='false' THEN now() END,(decision->>'proxima_tentativa')::timestamptz,CASE WHEN allowed AND p_reservar THEN now() END,decision->>'motivo',coalesce(decision->'evidencias','[]'::jsonb))
- ON CONFLICT(chave) DO UPDATE SET estado=EXCLUDED.estado,modo=EXCLUDED.modo,adiado_em=coalesce(contato_execucoes.adiado_em,EXCLUDED.adiado_em),proxima_tentativa=EXCLUDED.proxima_tentativa,reservado_em=EXCLUDED.reservado_em,motivo=EXCLUDED.motivo,evidencias=EXCLUDED.evidencias,updated_at=now()
+ ON CONFLICT(chave) DO UPDATE SET estado=EXCLUDED.estado,modo=EXCLUDED.modo,adiado_em=coalesce(contato_execucoes.adiado_em,EXCLUDED.adiado_em),proxima_tentativa=EXCLUDED.proxima_tentativa,reservado_em=EXCLUDED.reservado_em,motivo=EXCLUDED.motivo,evidencias=EXCLUDED.evidencias,observacoes=CASE WHEN contato_execucoes.motivo IS DISTINCT FROM EXCLUDED.motivo THEN contato_execucoes.observacoes||jsonb_build_array(jsonb_build_object('em',now(),'motivo_anterior',contato_execucoes.motivo,'motivo',EXCLUDED.motivo,'proxima_tentativa',EXCLUDED.proxima_tentativa)) ELSE contato_execucoes.observacoes END,updated_at=now()
  RETURNING id INTO e.id;
  RETURN jsonb_build_object('id',e.id,'permitido',allowed,'modo',mode,'motivo',decision->>'motivo','proxima_tentativa',decision->'proxima_tentativa');
 END $$;
@@ -152,6 +155,7 @@ CREATE FUNCTION public.contato_registrar_evidencia(p_lead uuid,p_unidade uuid,p_
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
 BEGIN
  PERFORM pg_advisory_xact_lock(hashtextextended(p_lead::text,0));
+ UPDATE public.contato_execucoes SET estado='cancelado',motivo='Contato manual efetivamente registrado; candidato interno encerrado',updated_at=now() WHERE lead_id=p_lead AND chave LIKE 'candidato:%' AND fluxo=p_fluxo AND ciclo_id IS NOT DISTINCT FROM p_ciclo AND estado IN ('pendente','adiado');
  INSERT INTO public.contato_execucoes(lead_id,unidade_id,chave,fluxo,objetivo,ciclo_id,tipo_fu,setor,canal,responsavel,enviado_em,estado,prioridade,nao_urgente,excecao,resultado,telefone_normalizado)
  VALUES(p_lead,p_unidade,p_chave,p_fluxo,p_objetivo,p_ciclo,p_tipo,p_setor,p_canal,p_responsavel,p_data,'enviado',p_prioridade,true,p_excecao,p_resultado,(SELECT public.canonical_phone(telefone) FROM public.leads WHERE id=p_lead)) ON CONFLICT(chave) DO NOTHING;
 END $$;
@@ -190,6 +194,7 @@ BEGIN
  IF TG_OP='UPDATE' AND NEW.contato_meta IS NOT DISTINCT FROM OLD.contato_meta THEN RETURN NEW; END IF;
  meta:=NEW.contato_meta;
  IF meta IS NULL OR meta->>'estado'<>'enviado' THEN RETURN NEW; END IF;
+ IF auth.uid() IS NOT NULL AND NEW.created_by IS DISTINCT FROM auth.uid() AND NOT public.has_role(auth.uid(),'admin') THEN RAISE EXCEPTION 'Responsável do contato inválido'; END IF;
  IF meta->>'canal' NOT IN ('whatsapp','presencial','telefone','outro') OR length(coalesce(meta->>'objetivo','')) NOT BETWEEN 1 AND 100
  OR NEW.created_by IS NULL OR NEW.data_interacao>now() THEN RAISE EXCEPTION 'Contato realizado inválido'; END IF;
  channel:=meta->>'canal';contact_at:=NEW.data_interacao;
