@@ -1888,6 +1888,88 @@ export type Database = {
           },
         ]
       }
+      experimental_presenca_telegram: {
+        Row: {
+          created_at: string
+          data_aula: string
+          enviado_em: string | null
+          erro_msg: string | null
+          hora_aula: string
+          id: string
+          interacao_id: string
+          lead_id: string
+          origem_resposta: string | null
+          respondido_em: string | null
+          respondido_por: string | null
+          resultado: string | null
+          status: string
+          telegram_chat_id: number | null
+          telegram_message_id: number | null
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_aula: string
+          enviado_em?: string | null
+          erro_msg?: string | null
+          hora_aula: string
+          id?: string
+          interacao_id: string
+          lead_id: string
+          origem_resposta?: string | null
+          respondido_em?: string | null
+          respondido_por?: string | null
+          resultado?: string | null
+          status?: string
+          telegram_chat_id?: number | null
+          telegram_message_id?: number | null
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_aula?: string
+          enviado_em?: string | null
+          erro_msg?: string | null
+          hora_aula?: string
+          id?: string
+          interacao_id?: string
+          lead_id?: string
+          origem_resposta?: string | null
+          respondido_em?: string | null
+          respondido_por?: string | null
+          resultado?: string | null
+          status?: string
+          telegram_chat_id?: number | null
+          telegram_message_id?: number | null
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "experimental_presenca_telegram_interacao_id_fkey"
+            columns: ["interacao_id"]
+            isOneToOne: false
+            referencedRelation: "interacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "experimental_presenca_telegram_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "experimental_presenca_telegram_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       folha_ajuda_parcelas: {
         Row: {
           colaborador_id: string

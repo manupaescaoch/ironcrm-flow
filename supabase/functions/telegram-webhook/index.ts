@@ -6,6 +6,7 @@ import { receberCallbackContasPagar, receberMensagemContasPagar } from '../_shar
 import { receberBotaoCobranca } from '../_shared/contasPagarBotoes.ts';
 import { receberPerguntaFinanceira } from '../_shared/contasPagarAssistente.ts';
 import { receberBotaoConferencia, receberRespostaEdicao } from '../_shared/contasPagarConferenciaTelegram.ts';
+import { receberBotaoPresenca } from '../_shared/experimentalPresencaBotoes.ts';
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
@@ -26,6 +27,9 @@ Deno.serve(async (req) => {
     // --- Contas a Pagar: botões de unidade e documentos enviados ao grupo ---
     if (update.callback_query) {
       const cq = update.callback_query;
+      if (await receberBotaoPresenca(admin, cq)) {
+        return new Response(JSON.stringify({ ok: true, presenca_experimental: true }), { status: 200 });
+      }
       if (!(await receberBotaoConferencia(admin, cq)) && !(await receberBotaoCobranca(admin, cq))) await receberCallbackContasPagar(admin, cq);
       return new Response(JSON.stringify({ ok: true }), { status: 200 });
     }
