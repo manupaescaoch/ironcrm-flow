@@ -52,6 +52,8 @@ const STATUS_STYLE: Record<string, { label: string; cls: string; Icon: typeof Ch
   pendente: { label: 'Pendente', cls: 'border-amber-500 text-amber-700 bg-amber-50', Icon: Clock },
   cancelado: { label: 'Cancelado', cls: 'border-red-500 text-red-700 bg-red-50', Icon: XCircle },
   enviado: { label: 'Enviado', cls: 'border-blue-500 text-blue-700 bg-blue-50', Icon: CheckCircle2 },
+  em_andamento: { label: 'Em andamento', cls: 'border-primary text-primary bg-primary/10', Icon: Clock },
+  dispensado: { label: 'Dispensado', cls: 'border-border text-muted-foreground bg-muted', Icon: XCircle },
 };
 
 function isAutoResponsavel(nome: string | null | undefined) {
@@ -76,13 +78,14 @@ export function FollowUpHistoryTimeline({ leadId, lead }: Props) {
 
       const list: TimelineEvent[] = [];
       const { data: tecnicos } = await supabase.from('tasks')
-        .select('id,fu_tecnico_etapa,fu_tecnico_status,fu_tecnico_registro,updated_at,responsavel')
+        .select('id,fu_tecnico_etapa,fu_tecnico_status,fu_tecnico_registro,updated_at,responsavel,fu_tecnico_envio_erro')
         .eq('fu_tecnico_lead_id', leadId).order('created_at');
       for (const t of tecnicos ?? []) {
-        const registro = t.fu_tecnico_registro as { coordenador?: string; canal?: string; observacoes?: string; dificuldades?: string; ajustes?: string; encaminhamentos?: string } | null;
-        list.push({ id: t.id, data: new Date(t.updated_at), tipo: `Acompanhamento técnico ${t.fu_tecnico_etapa}`,
+        const registro = t.fu_tecnico_registro as { data?: string; coordenador?: string; canal?: string; observacoes?: string; dificuldades?: string; ajustes?: string; encaminhamentos?: string } | null;
+        const dataRegistro = registro?.data ? (() => { const [a,m,d] = registro.data.split('-').map(Number); return new Date(a,m-1,d); })() : new Date(t.updated_at);
+        list.push({ id: t.id, data: dataRegistro, tipo: `Acompanhamento técnico ${t.fu_tecnico_etapa}`,
           status: t.fu_tecnico_status ?? 'pendente', responsavel: registro?.coordenador ?? t.responsavel,
-          isAuto: !registro, motivo: registro ? [registro.canal, registro.observacoes, registro.dificuldades, registro.ajustes, registro.encaminhamentos].filter(Boolean).join(' · ') : null });
+          isAuto: !registro, motivo: registro ? [registro.canal, registro.observacoes, registro.dificuldades, registro.ajustes, registro.encaminhamentos].filter(Boolean).join(' · ') : t.fu_tecnico_envio_erro });
       }
 
       (fus || []).forEach((f: any) => {
