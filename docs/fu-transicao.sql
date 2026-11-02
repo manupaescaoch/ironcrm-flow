@@ -74,10 +74,12 @@ DECLARE s text; family text; unit uuid;
 BEGIN
  IF current_user NOT IN ('postgres','service_role','supabase_admin') THEN RAISE EXCEPTION 'Configuração restrita ao serviço autorizado'; END IF;
  IF TG_OP='DELETE' THEN RETURN OLD; END IF;
- IF TG_TABLE_NAME='fu_transicao_config' AND NEW.modo='NOVO' THEN
+ IF TG_TABLE_NAME='fu_transicao_config' THEN
+ IF NEW.modo='NOVO' THEN
   FOREACH s IN ARRAY CASE NEW.familia WHEN 'R01' THEN ARRAY['MATRICULADOS','TECNICO_M7','TECNICO_M21','GERENCIAL_M30'] WHEN 'R02' THEN ARRAY['TECNICO_M7','GERENCIAL_M30'] ELSE ARRAY['TECNICO_M7','GERENCIAL_M30'] END LOOP
    IF NOT public.fu_transicao_homologado(NEW.unidade_id,s) THEN RAISE EXCEPTION 'Substituto % não homologado nesta unidade',s; END IF;
   END LOOP;
+ END IF;
  END IF;
  RETURN NEW;
 END $$;
@@ -106,8 +108,8 @@ BEGIN
  IF cycle IS NULL AND family='R02' THEN
   ref:=nullif(p_candidato->>'referencia','')::timestamptz AT TIME ZONE 'America/Recife';
   -- Ambiguous or absent enrollment references preserve the legacy, never guess the newest cycle.
-  IF (SELECT count(*) FROM public.interacoes WHERE lead_id=l.id AND fechou_matricula=true AND cancelado IS DISTINCT FROM true AND data_fechamento=ref)=1 THEN
-   SELECT id INTO cycle FROM public.interacoes WHERE lead_id=l.id AND fechou_matricula=true AND cancelado IS DISTINCT FROM true AND data_fechamento=ref;
+  IF (SELECT count(*) FROM public.interacoes WHERE lead_id=l.id AND fechou_matricula=true AND cancelado IS DISTINCT FROM true AND data_interacao::date=ref)=1 THEN
+   SELECT id INTO cycle FROM public.interacoes WHERE lead_id=l.id AND fechou_matricula=true AND cancelado IS DISTINCT FROM true AND data_interacao::date=ref;
   END IF;
  END IF;
  SELECT * INTO i FROM public.interacoes WHERE id=cycle AND lead_id=l.id;
@@ -155,3 +157,22 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.fu_transicao_filtrar(uuid,text,jsonb) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.fu_transicao_filtrar(uuid,text,jsonb) TO authenticated;
+
+CREATE TABLE public.fu_transicao_config_historico (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ entidade text NOT NULL,
+ operacao text NOT NULL,
+ anterior jsonb,
+ atual jsonb,
+ created_at timestamptz NOT NULL DEFAULT now()
+);
+GRANT SELECT,INSERT ON public.fu_transicao_config_historico TO service_role;
+ALTER TABLE public.fu_transicao_config_historico ENABLE ROW LEVEL SECURITY;
+CREATE FUNCTION public.fu_transicao_auditar_config() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+BEGIN
+ INSERT INTO public.fu_transicao_config_historico(entidade,operacao,anterior,atual) VALUES(TG_TABLE_NAME,TG_OP,CASE WHEN TG_OP<>'INSERT' THEN to_jsonb(OLD) END,CASE WHEN TG_OP<>'DELETE' THEN to_jsonb(NEW) END);
+ IF TG_OP='DELETE' THEN RETURN OLD; END IF; RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.fu_transicao_auditar_config() FROM PUBLIC,anon,authenticated;
+CREATE TRIGGER fu_transicao_config_auditoria AFTER INSERT OR UPDATE OR DELETE ON public.fu_transicao_config FOR EACH ROW EXECUTE FUNCTION public.fu_transicao_auditar_config();
+CREATE TRIGGER fu_transicao_homologacao_auditoria AFTER INSERT OR UPDATE OR DELETE ON public.fu_transicao_homologacoes FOR EACH ROW EXECUTE FUNCTION public.fu_transicao_auditar_config();

@@ -1,5 +1,5 @@
 import { evaluateTransition } from './fuTransition.ts';
-import { diffFuBusinessDays, fuDay } from './fuBusinessDays.ts';
+import { addFuBusinessDays, diffFuBusinessDays, effectiveFuDay, fuDay } from './fuBusinessDays.ts';
 
 /** Observe R01 without changing its calculated frontend roster or creating any task. */
 export async function observeEnrollmentLegacyRoster(admin: any, now = new Date()) {
@@ -24,7 +24,10 @@ export async function observeEnrollmentLegacyRoster(admin: any, now = new Date()
       const {data:follows,error:fuError} = await admin.from('follow_ups').select('status,data_prevista')
         .eq('lead_id',row.lead_id).eq('unidade_id',row.unidade_id).eq('tipo',stage);
       if (fuError) throw fuError;
-      if ((follows ?? []).some((f:any) => f.status==='concluido' || (f.status==='pendente' && f.data_prevista && fuDay(f.data_prevista)>today))) continue;
+      if ((follows ?? []).some((f:any) => f.status==='concluido' || (f.status==='pendente' && f.data_prevista && effectiveFuDay(f.data_prevista)>today))) continue;
+      const saved = (follows ?? []).find((f:any) => f.status==='pendente');
+      const due = saved?.data_prevista ? effectiveFuDay(saved.data_prevista) : fuDay(addFuBusinessDays(row.data_fechamento,Number(stage.slice(2))));
+      if (due>today) continue;
       await evaluateTransition(admin,{familia:'R01',etapa:stage,lead_id:row.lead_id,unidade_id:row.unidade_id,ciclo_id:row.id});
       observed++;
     }
