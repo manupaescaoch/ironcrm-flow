@@ -160,9 +160,11 @@ export function FollowUpHistoryTimeline({ leadId, lead }: Props) {
       const { data: contacts } = await supabase.from('contato_execucoes')
         .select('id,fluxo,objetivo,tipo_fu,setor,canal,estado,responsavel,enviado_em,created_at,motivo,modo,proxima_tentativa,resultado,unidade_id')
         .eq('lead_id', leadId).order('created_at');
+      const unitIds = [...new Set((contacts ?? []).map(contact => contact.unidade_id))];
+      const { data: contactUnits } = unitIds.length ? await supabase.from('unidades').select('id,nome').in('id', unitIds) : { data: [] };
       for (const contact of contacts ?? []) {
         list.push({ id: `contato-${contact.id}`, data: new Date(contact.enviado_em ?? contact.created_at),
-          tipo: `${contact.tipo_fu ?? contact.objetivo} · ${contact.setor} · ${contact.canal}`,
+          tipo: `${contact.tipo_fu ?? contact.objetivo} · ${contact.setor} · ${contact.canal} · ${contactUnits?.find(unit => unit.id === contact.unidade_id)?.nome ?? 'Unidade não identificada'}`,
           status: contact.estado, responsavel: contact.responsavel ?? 'Sistema', isAuto: isAutoResponsavel(contact.responsavel),
           motivo: [contact.modo === 'observacao' && contact.motivo ? 'Observação (sem bloqueio)' : null, contact.motivo,
             contact.proxima_tentativa ? `Próxima elegibilidade: ${format(new Date(contact.proxima_tentativa), "dd/MM/yyyy HH:mm", { locale: ptBR })}` : null,
