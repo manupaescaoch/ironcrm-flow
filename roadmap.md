@@ -1,10 +1,11 @@
 # Roadmap
 
 ## FU técnico do Coordenador Geral — Fase 1
-- [ ] Analisar matrícula efetiva, tarefas/histórico, grupos e agendador existentes.
-- [ ] Implementar geração idempotente M+7/M+21 e registro técnico nas tarefas existentes.
-- [ ] Integrar avisos individuais no Telegram da unidade e links WhatsApp manuais.
-- [ ] Validar regras, permissões, navegação e ausência de efeitos nos outros FUs; informar limites dos testes reais.
+- [x] Analisar matrícula efetiva, tarefas/histórico, grupos e agendador existentes.
+- [x] Implementar geração idempotente M+7/M+21 e registro técnico nas tarefas existentes.
+- [x] Integrar avisos individuais no Telegram da unidade e links WhatsApp manuais.
+- [x] Validar regras em banco fictício, permissões simuladas e formulário; abrir Tarefas com login real e informar limites.
+- [ ] Homologar recebimento real no Telegram e conclusão real por coordenador — depende de matrícula nova elegível ou autorização de teste controlado; nenhum disparo fictício realizado na produção.
 
 - [x] Bloquear temporariamente Folha de Pagamentos e Ajuda de Custo para todos exceto administradores, sem alterar dados financeiros.
 
