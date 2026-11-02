@@ -16,7 +16,7 @@ BEGIN
     OR i.data_experimental IS NULL OR i.hora_experimental IS NULL
     OR l.data_aula_experimental IS DISTINCT FROM i.data_experimental OR l.hora_aula_experimental IS DISTINCT FROM i.hora_experimental
     OR (i.data_experimental+i.hora_experimental) AT TIME ZONE 'America/Recife'>now() THEN RAISE EXCEPTION 'Experimental não elegível'; END IF;
-  expected := 'send-reagendamento-experimental:'||l.id||':'||i.id||':'||i.data_experimental||':'||to_char(i.hora_experimental,'HH24:MI');
+  expected := 'send-reagendamento-experimental:'||l.id||':'||i.data_experimental||':'||to_char(i.hora_experimental,'HH24:MI');
   IF p_chave IS DISTINCT FROM expected THEN RAISE EXCEPTION 'Identidade do evento inválida'; END IF;
   INSERT INTO public.follow_ups(lead_id,unidade_id,tipo,data_referencia,data_prevista,status)
   VALUES(l.id,l.unidade_id,'REAG',now(),now(),'enviando') ON CONFLICT(lead_id,tipo) DO NOTHING;

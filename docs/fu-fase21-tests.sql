@@ -3,7 +3,7 @@ INSERT INTO leads VALUES('00000000-0000-4000-8000-000000000010','ALUNO','0000000
 INSERT INTO interacoes(id,lead_id,unidade_id,agendou_experimental,compareceu,data_experimental,hora_experimental)
 VALUES('00000000-0000-4000-8000-000000000020','00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000001',true,false,'2026-10-30','10:00');
 DO $$
-DECLARE r jsonb; again jsonb; key text := 'send-reagendamento-experimental:00000000-0000-4000-8000-000000000010:00000000-0000-4000-8000-000000000020:2026-10-30:10:00';
+DECLARE r jsonb; again jsonb; key text := 'send-reagendamento-experimental:00000000-0000-4000-8000-000000000010:2026-10-30:10:00';
 BEGIN
  r:=fu_reag_reservar('00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000020',key,'EQUIPE');
  ASSERT (r->>'claimed')::boolean, 'first reservation';

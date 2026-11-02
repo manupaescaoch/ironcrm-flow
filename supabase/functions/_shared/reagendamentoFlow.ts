@@ -17,7 +17,7 @@ export function validateExperimental(lead: any, interaction: any, scope: FollowU
     || String(lead.hora_aula_experimental ?? '').slice(0, 5) !== time) {
     throw new FollowUpError(409, 'Experimental não elegível para reagendamento');
   }
-  return buildIdempotencyKey(['send-reagendamento-experimental', lead.id, interaction.id, date, time]);
+  return buildIdempotencyKey(['send-reagendamento-experimental', lead.id, date, time]);
 }
 
 // No provider call may precede the durable reservation; all failures are fail-closed.

@@ -96,4 +96,6 @@ Deno.test('Timeout conserva estado ambíguo e bloqueia repetição', async () =>
   const deps={reserve:async()=>{const fresh=!claimed;claimed=true;return{id:'fu',claimed:fresh};},send:async()=>{sent++;throw new Error('timeout');},finish:async(_:any,s:string)=>{state=s;}};
   await assertRejects(()=>runReagendamento(deps),FollowUpError);
   await runReagendamento(deps);assertEquals(state,'ambiguo');assertEquals(sent,1);
+});Deno.test('Interações duplicadas da mesma experimental compartilham reserva', () => {
+  assertEquals(validateExperimental(lead,interaction,scope),validateExperimental(lead,{...interaction,id:'duplicate'},scope));
 });
