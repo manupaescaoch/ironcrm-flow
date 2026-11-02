@@ -1,8 +1,8 @@
 # Roadmap
 
 ## FC-2A.1 — diagnóstico e proposta, sem implementação
-- [ ] Mapear todos os caminhos de escrita, consumidores, permissões e triggers de experimental/presença/reagendamento.
-- [ ] Entregar relatório técnico e plano de schema, compatibilidade, implantação, rollback e testes.
+- [x] Mapear caminhos de escrita, consumidores, permissões e 19 triggers instalados; identificar diferença entre REAG real ao lead e aviso à recepção descrito.
+- [x] Entregar relatório técnico e plano de schema, compatibilidade, implantação, rollback e testes, sem código/migração/implantação.
 - [ ] Implementar rastreabilidade — aguarda aprovação explícita do plano; nenhuma mudança operacional nesta execução.
 
 ## Falha de tempo excedido na página Telegram
