@@ -11,7 +11,7 @@ DROP TABLE IF EXISTS telegram_groups CASCADE;
 CREATE TABLE leads(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
  nome text DEFAULT 'FIXTURE',
- unidade_id uuid REFERENCES unidades,
+ unidade_id uuid,
  ativo boolean DEFAULT true,
  is_matriculado boolean DEFAULT false,
  status_funil text DEFAULT 'aula_agendada',
@@ -113,6 +113,18 @@ CREATE TABLE nps_respostas(
 );
 
 CREATE OR REPLACE FUNCTION canonical_phone(text) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT regexp_replace(coalesce($1,''),'\D','','g') $$;
+
+-- As funções de confirmação leem o nome do funcionário; o bootstrap não tem essa coluna.
+DROP TABLE IF EXISTS cronograma_funcionarios CASCADE;
+CREATE TABLE cronograma_funcionarios(
+ id uuid DEFAULT gen_random_uuid(),
+ unidade_id uuid,
+ user_id uuid,
+ setor text,
+ cargo text,
+ nome text,
+ ativo boolean DEFAULT true
+);
 
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recorrencia text;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recorrencia_fim date;
