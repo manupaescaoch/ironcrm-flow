@@ -4,6 +4,7 @@ import { resolveGrupoUnidade, sendTelegramMessage } from '../_shared/telegram.ts
 import { sendManagerFuDigest } from '../_shared/fuGerenteDigest.ts';
 import { sendTechnicalFu } from '../_shared/fuTecnicoDigest.ts';
 import { sendManagerExperienceFu } from '../_shared/fuGerencialDigest.ts';
+import { observeEnrollmentLegacyRoster } from '../_shared/fuTransitionRoster.ts';
 import { z } from 'npm:zod@3';
 
 const corsHeaders = {
