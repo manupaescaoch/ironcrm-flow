@@ -128,6 +128,8 @@ CREATE TABLE cronograma_funcionarios(
 
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recorrencia text;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recorrencia_fim date;
+-- Produção usa 'a_fazer' como status inicial das tarefas.
+ALTER TABLE tasks ALTER COLUMN status SET DEFAULT 'a_fazer';
 
 -- Colunas fu_* que o bootstrap não tem: adicionadas uma a uma para que os
 -- ALTER TABLE multi-coluna das migrações se tornem no-ops benignos.
