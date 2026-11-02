@@ -5634,6 +5634,7 @@ export type Database = {
           fu_matriculados_confirmado_por: string | null
           fu_matriculados_envio_dia: string | null
           fu_matriculados_envio_erro: string | null
+          fu_matriculados_etapa: string
           fu_matriculados_lead_id: string | null
           fu_matriculados_matricula_id: string | null
           fu_matriculados_message_id: number | null
@@ -5694,6 +5695,7 @@ export type Database = {
           fu_matriculados_confirmado_por?: string | null
           fu_matriculados_envio_dia?: string | null
           fu_matriculados_envio_erro?: string | null
+          fu_matriculados_etapa?: string
           fu_matriculados_lead_id?: string | null
           fu_matriculados_matricula_id?: string | null
           fu_matriculados_message_id?: number | null
@@ -5754,6 +5756,7 @@ export type Database = {
           fu_matriculados_confirmado_por?: string | null
           fu_matriculados_envio_dia?: string | null
           fu_matriculados_envio_erro?: string | null
+          fu_matriculados_etapa?: string
           fu_matriculados_lead_id?: string | null
           fu_matriculados_matricula_id?: string | null
           fu_matriculados_message_id?: number | null
@@ -6910,6 +6913,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fu_recepcao_inicio: { Args: never; Returns: string }
       fu_tecnico_claim: {
         Args: { p_dia: string; p_task: string }
         Returns: boolean
