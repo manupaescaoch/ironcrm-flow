@@ -28,8 +28,9 @@ export async function finishContact(admin: any, id: string, state: 'enviado' | '
 
 // A group reminder is only a candidate observation, never a student contact or reservation.
 export async function observeManualCandidate(admin: any, intent: ContactIntent) {
-  const { error } = await admin.rpc('contato_observar', { p_intencao: intent });
+  const { data, error } = await admin.rpc('contato_observar', { p_intencao: intent });
   if (error) throw new Error('Não foi possível observar o contato');
+  return data as ContactDecision | null;
 }
 
 export async function controlledSend(

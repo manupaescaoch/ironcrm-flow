@@ -51,6 +51,9 @@ const STATUS_STYLE: Record<string, { label: string; cls: string; Icon: typeof Ch
   concluido: { label: 'Concluído', cls: 'border-green-500 text-green-700 bg-green-50', Icon: CheckCircle2 },
   pendente: { label: 'Pendente', cls: 'border-amber-500 text-amber-700 bg-amber-50', Icon: Clock },
   cancelado: { label: 'Cancelado', cls: 'border-red-500 text-red-700 bg-red-50', Icon: XCircle },
+  adiado: { label: 'Adiado', cls: 'border-border text-muted-foreground bg-muted', Icon: Clock },
+  reservado: { label: 'Reservado', cls: 'border-primary text-primary bg-primary/10', Icon: Clock },
+  incerto: { label: 'Incerto · reconciliar', cls: 'border-destructive text-destructive bg-muted', Icon: Clock },
   enviado: { label: 'Enviado', cls: 'border-blue-500 text-blue-700 bg-blue-50', Icon: CheckCircle2 },
   em_andamento: { label: 'Em andamento', cls: 'border-primary text-primary bg-primary/10', Icon: Clock },
   dispensado: { label: 'Dispensado', cls: 'border-border text-muted-foreground bg-muted', Icon: XCircle },
@@ -151,6 +154,19 @@ export function FollowUpHistoryTimeline({ leadId, lead }: Props) {
           status: 'enviado',
           responsavel: lead.follow_up_responsavel || 'Sistema',
           isAuto: isAutoResponsavel(lead.follow_up_responsavel),
+        });
+      }
+
+      const { data: contacts } = await supabase.from('contato_execucoes')
+        .select('id,fluxo,objetivo,tipo_fu,setor,canal,estado,responsavel,enviado_em,created_at,motivo,modo,proxima_tentativa,resultado,unidade_id')
+        .eq('lead_id', leadId).order('created_at');
+      for (const contact of contacts ?? []) {
+        list.push({ id: `contato-${contact.id}`, data: new Date(contact.enviado_em ?? contact.created_at),
+          tipo: `${contact.tipo_fu ?? contact.objetivo} · ${contact.setor} · ${contact.canal}`,
+          status: contact.estado, responsavel: contact.responsavel ?? 'Sistema', isAuto: isAutoResponsavel(contact.responsavel),
+          motivo: [contact.modo === 'observacao' && contact.motivo ? 'Observação (sem bloqueio)' : null, contact.motivo,
+            contact.proxima_tentativa ? `Próxima elegibilidade: ${format(new Date(contact.proxima_tentativa), "dd/MM/yyyy HH:mm", { locale: ptBR })}` : null,
+            contact.resultado].filter(Boolean).join(' · '),
         });
       }
 

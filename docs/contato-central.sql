@@ -114,6 +114,7 @@ BEGIN
  PERFORM pg_advisory_xact_lock(hashtextextended(p_intencao->>'lead_id',0));
  SELECT * INTO l FROM public.leads WHERE id=(p_intencao->>'lead_id')::uuid;
  IF l.id IS NULL OR l.unidade_id IS DISTINCT FROM intent_unit THEN RAISE EXCEPTION 'Aluno ou unidade indisponível'; END IF;
+ IF cycle IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.interacoes WHERE id=cycle AND lead_id=l.id) THEN RAISE EXCEPTION 'Ciclo não pertence ao aluno'; END IF;
  SELECT * INTO e FROM public.contato_execucoes WHERE chave=p_intencao->>'chave';
  mode:=public.contato_modo(p_intencao->>'fluxo',intent_unit);
  IF e.id IS NOT NULL AND (e.lead_id<>l.id OR e.objetivo<>p_intencao->>'objetivo') THEN RAISE EXCEPTION 'Identidade do contato incompatível'; END IF;
@@ -203,3 +204,28 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.contato_interacao_evidencia() FROM PUBLIC,anon,authenticated;
 CREATE TRIGGER contato_interacao_evidencia AFTER INSERT OR UPDATE ON public.interacoes FOR EACH ROW EXECUTE FUNCTION public.contato_interacao_evidencia();
+-- Essential confirmation evidence never becomes a pro-active spacing blocker.
+CREATE FUNCTION public.contato_lead_confirmacao() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE j jsonb; o jsonb; field text;
+BEGIN
+ j:=to_jsonb(NEW);o:=to_jsonb(OLD);
+ FOREACH field IN ARRAY ARRAY['confirmacao_24h_enviada_em','confirmacao_2h_enviada_em'] LOOP
+  IF j->>field IS NOT NULL AND j->>field IS DISTINCT FROM o->>field THEN
+   PERFORM public.contato_registrar_evidencia(NEW.id,NEW.unidade_id,'essencial:'||NEW.id||':'||field||':'||(j->>field),'experimental_essencial','confirmacao_agendamento',NULL,field,'comercial','whatsapp','SISTEMA',(j->>field)::timestamptz,'Confirmação essencial conforme registro existente',1,'confirmacao_essencial');
+  END IF;
+ END LOOP;
+ RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.contato_lead_confirmacao() FROM PUBLIC,anon,authenticated;
+CREATE TRIGGER contato_lead_confirmacao AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION public.contato_lead_confirmacao();
+
+CREATE FUNCTION public.contato_fu_manual() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+BEGIN
+ IF NEW.status='concluido' AND OLD.status IS DISTINCT FROM 'concluido' AND NEW.concluido_em IS NOT NULL AND NEW.tipo<>'REAG'
+ AND coalesce(NEW.concluido_por,'') !~* '(duplicidade|reagendado|feedback|cancelado|SISTEMA)' THEN
+  PERFORM public.contato_registrar_evidencia(NEW.lead_id,NEW.unidade_id,'fu-manual:'||NEW.id,'crm_fu',CASE WHEN NEW.tipo LIKE 'G+%' OR NEW.tipo LIKE 'M+%' THEN 'experiencia' ELSE 'conversao' END,NULL,NEW.tipo,CASE WHEN NEW.tipo LIKE 'G+%' THEN 'gerente' ELSE 'comercial' END,'whatsapp',NEW.concluido_por,NEW.concluido_em,'Contato confirmado no CRM conforme registro legado',CASE WHEN NEW.tipo LIKE 'G+%' THEN 3 ELSE 4 END);
+ END IF;
+ RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.contato_fu_manual() FROM PUBLIC,anon,authenticated;
+CREATE TRIGGER contato_fu_manual AFTER UPDATE ON public.follow_ups FOR EACH ROW EXECUTE FUNCTION public.contato_fu_manual();
