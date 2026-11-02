@@ -1,5 +1,12 @@
 # Roadmap
 
+## FU Fase 2.2A — controle de contatos em observação
+- [ ] Diagnosticar evidências e identidade existentes; preservar segurança e fluxos legados.
+- [ ] Implementar elegibilidade, reserva atômica e histórico central mínimo, com configuração por fluxo/unidade inicialmente em observação.
+- [ ] Integrar contatos automáticos e confirmações manuais/presenciais sem contar avisos internos.
+- [ ] Validar intervalos, concorrência, histórico e regressões sem envios reais; implantar observação e entregar relatório.
+- [ ] Ativar bloqueios efetivos — depende de aprovação após análise da observação; fora da ativação desta etapa.
+
 ## FU Fase 2.1 — P01 e P02
 - [x] Restringir os três endpoints por identidade, perfil e unidade, preservando chamadas legítimas do agendador.
 - [x] Registrar REAG por experimental antes do envio, com reserva atômica, estado rastreável e bloqueio de tentativas ambíguas.
