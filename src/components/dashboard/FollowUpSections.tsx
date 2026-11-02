@@ -82,13 +82,11 @@ Se quiser, posso verificar os horários disponíveis e te ajudar com a matrícul
 Vou encerrar nosso acompanhamento por enquanto, mas deixo o contato aberto caso queira retomar.
 
 Se tiver alguma dúvida ou quiser começar a treinar na EVO, é só me chamar! 💙`,
-  'D+30': (nome) => `${nome}, último contato da minha parte.
+  'D+30': (nome) => `Oi, ${nome}!
 
-Faz 30 dias desde sua experimental. Se ainda não tomou uma decisão, provavelmente ainda tem alguma dúvida ou travamento.
+Passando pra deixar o contato aberto. Se em algum momento quiser treinar com mais acompanhamento e uma experiência diferente, a EVO está aqui.
 
-Me fala o que tá segurando. Às vezes é simples de resolver.
-
-As portas da EVO estão abertas, mas não vou ficar insistindo infinitamente. Decisão é sua.`,
+Qualquer coisa é só chamar. 🤝`,
 };
 
 export function FollowUpSections({ 

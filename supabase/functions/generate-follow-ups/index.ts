@@ -127,7 +127,7 @@ export async function handleGenerateFollowUps(req: Request) {
         { tipo: 'D+1', dias: 1 },
         { tipo: 'D+7', dias: 7 },
         { tipo: 'D+15', dias: 15 },
-        { tipo: 'D+30', dias: 30 },
+        // D+30 desativado: não gerar novos registros.
       ];
 
       for (const { tipo, dias } of followUpTypes) {

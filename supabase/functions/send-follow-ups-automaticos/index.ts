@@ -173,7 +173,7 @@ export async function handleFollowUps(req: Request) {
       `)
       .eq('status', 'pendente')
       .lte('data_prevista', `${todayStr}T23:59:59-03:00`)
-      .in('tipo', ['D+1', 'D+7', 'D+15', 'D+30', 'M+7', 'M+30']);
+      .in('tipo', ['D+1', 'D+7', 'D+15', 'M+7', 'M+30']) // D+30 automático desativado; registros preservados;
     if (scope.units) followUpsQuery = followUpsQuery.in('unidade_id', scope.units).in('leads.unidade_id', scope.units);
     const { data: followUps, error: fuErr } = await followUpsQuery;
 

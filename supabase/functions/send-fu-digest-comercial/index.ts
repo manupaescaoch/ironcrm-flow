@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
       .select('id, tipo, data_prevista, unidade_id, leads(id, nome, telefone, ativo, status_funil, is_matriculado)')
       .eq('status', 'pendente')
       .lte('data_prevista', `${todayStr}T23:59:59`)
-      .in('tipo', ['D+1', 'D+7', 'D+15', 'D+30']);
+      .in('tipo', ['D+1', 'D+7', 'D+15']); // D+30 automático desativado
     if (fuErr) throw fuErr;
 
     // 3. Carregar nomes das unidades
