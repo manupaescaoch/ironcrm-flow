@@ -57,6 +57,9 @@ const STATUS_STYLE: Record<string, { label: string; cls: string; Icon: typeof Ch
   enviado: { label: 'Enviado', cls: 'border-blue-500 text-blue-700 bg-blue-50', Icon: CheckCircle2 },
   em_andamento: { label: 'Em andamento', cls: 'border-primary text-primary bg-primary/10', Icon: Clock },
   dispensado: { label: 'Dispensado', cls: 'border-border text-muted-foreground bg-muted', Icon: XCircle },
+  observado: { label: 'Observado · sem supressão', cls: 'border-border text-muted-foreground bg-muted', Icon: Clock },
+  preservado: { label: 'Legado preservado', cls: 'border-border text-muted-foreground bg-muted', Icon: Clock },
+  suprimido: { label: 'Contato suprimido · não realizado', cls: 'border-border text-muted-foreground bg-muted', Icon: XCircle },
 };
 
 function isAutoResponsavel(nome: string | null | undefined) {
@@ -172,6 +175,16 @@ export function FollowUpHistoryTimeline({ leadId, lead }: Props) {
         });
       }
 
+      const {data:transitions} = await supabase.from('fu_transicao_eventos')
+        .select('id,created_at,familia,etapa,estado,motivo,modo,ciclo_id,unidade_id,contexto')
+        .eq('lead_id',leadId).order('created_at');
+      const transitionUnitIds=[...new Set((transitions??[]).map(t=>t.unidade_id))];
+      const {data:transitionUnits}=transitionUnitIds.length ? await supabase.from('unidades').select('id,nome').in('id',transitionUnitIds) : {data:[]};
+      for(const t of transitions??[]) {
+        const context=t.contexto && typeof t.contexto==='object' && !Array.isArray(t.contexto) ? t.contexto : {};
+        list.push({id:`transicao-${t.id}`,data:new Date(t.created_at),tipo:`Legado ${t.familia} ${t.etapa} · ${transitionUnits?.find(u=>u.id===t.unidade_id)?.nome??'Unidade não identificada'}`,status:t.estado,responsavel:'Sistema',isAuto:true,
+          motivo:[t.modo,t.motivo,Array.isArray(context.objetivos)?`Objetivos: ${context.objetivos.join(', ')}`:null,context.data_confirmacao?`Matrícula: ${context.data_confirmacao}`:null,t.ciclo_id?`Ciclo: ${t.ciclo_id}`:null].filter(Boolean).join(' · ')});
+      }
       list.sort((a, b) => a.data.getTime() - b.data.getTime());
 
       if (alive) {

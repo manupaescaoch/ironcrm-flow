@@ -19,6 +19,7 @@ Deno.test('Telegram manager digest sends only each unit pending FU and does not 
       return Response.json({ ok: true, result: { message_id: sent.length } });
     }
     const table = url.pathname.split('/').pop();
+    if (table === 'fu_transicao_avaliar') data = {modo:'OBSERVACAO',suprimir:false,motivo:'preservado'};
     if (table === 'unidades') data = units;
     if (table === 'telegram_groups') data = [{ id: 'group', group_type: 'gerencia', telegram_chat_id: url.searchParams.get('unidade_id') === 'eq.unit-a' ? -1 : -2 }];
     if (table === 'interacoes') {

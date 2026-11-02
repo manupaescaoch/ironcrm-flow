@@ -1,4 +1,5 @@
 import { controlledSend } from '../_shared/contactControl.ts';
+import { evaluateTransition } from '../_shared/fuTransition.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeFollowUp, FollowUpError } from '../_shared/followUpAuthorization.ts';
 import { z } from 'npm:zod@3.23.8';
@@ -387,6 +388,19 @@ async function processFollowUps(
 
     const message = tmpl(firstName(lead.nome));
     const phone = normalizePhone(lead.telefone);
+
+    if (isPostMatricula) {
+      try {
+        const transition = await evaluateTransition(supabase, {familia:'R02',etapa:fu.tipo,lead_id:lead.id,unidade_id:fu.unidade_id,legado_id:fu.id,referencia:fu.data_referencia}, !opts.dryRun);
+        if (transition.suprimir) {
+          results.push({tipo:fu.tipo,lead:lead.nome,status:'suprimido_transicao',motivo:transition.motivo});
+          continue; // Preserve pending status, deadline, completion and all historical results.
+        }
+      } catch {
+        errors.push('Decisão de transição indisponível; contato M+ mantido pendente');
+        continue; // Never send redundantly when the protected server decision is unavailable.
+      }
+    }
 
     if (opts.dryRun) {
       results.push({ tipo: fu.tipo, lead: lead.nome, phone, preview: message });

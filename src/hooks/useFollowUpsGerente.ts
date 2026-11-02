@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { fuDate, fuDay, addFuBusinessDays, diffFuBusinessDays, effectiveFuDay } from '@/lib/fuBusinessDays';
+import { transitionExclusions } from '@/lib/fuTransition';
 
 export type FollowUpGerenteTipo = 'G+7' | 'G+30';
 
@@ -135,7 +136,11 @@ export function useFollowUpsGerente() {
         });
       }
 
-      setItems(computados);
+      const excluded = await transitionExclusions(unidadeAtual.id,'G02',computados.flatMap(item=>{
+        const cycle=maisRecentePorLead.get(item.lead_id)?.id;
+        return cycle ? [{lead_id:item.lead_id,etapa:item.tipo,ciclo_id:cycle}] : [];
+      }));
+      setItems(computados.filter(item=>!excluded.has(`${item.lead_id}|${item.tipo}`)));
     } finally {
       setLoading(false);
     }

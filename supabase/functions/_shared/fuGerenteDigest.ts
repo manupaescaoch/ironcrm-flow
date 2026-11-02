@@ -1,4 +1,5 @@
 import { observeManualCandidate } from './contactControl.ts';
+import { evaluateTransition } from './fuTransition.ts';
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { resolveGrupoUnidade, sendTelegramMessage } from './telegram.ts';
 import { isManagerFuWeekday, managerFuStage, recifeDay, suppressManagerFu } from './fuGerenteRules.ts';
@@ -59,6 +60,12 @@ export async function sendManagerFuDigest(admin: SupabaseClient, dryRun = false,
     const managedIds = new Set((managed ?? []).map(t => t.fu_gerencial_matricula_id));
     for (let index = pending.length - 1; index >= 0; index--) {
       if (pending[index].tipo === 'G+30' && managedIds.has(latest.get(pending[index].lead.id)?.id)) pending.splice(index,1);
+    }
+    // The earlier G+30 exclusion above is preserved, not expanded by observation.
+    for (let index = pending.length - 1; index >= 0; index--) {
+      const item = pending[index];
+      const decision = await evaluateTransition(admin,{familia:'G02',etapa:item.tipo,lead_id:item.lead.id,unidade_id:unit.id,ciclo_id:latest.get(item.lead.id)?.id},!dryRun);
+      if (decision.suprimir) pending.splice(index,1);
     }
     if (!pending.length) {
       results.push({ unidade: unit.nome, status: 'sem_pendencias', total: 0 });

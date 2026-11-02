@@ -1,0 +1,2 @@
+REVOKE ALL ON public.fu_transicao_config,public.fu_transicao_homologacoes,public.fu_transicao_config_historico,public.fu_transicao_eventos FROM anon,authenticated;
+GRANT SELECT ON public.fu_transicao_eventos TO authenticated;

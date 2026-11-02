@@ -4,6 +4,7 @@ import { resolveGrupoUnidade, sendTelegramMessage } from '../_shared/telegram.ts
 import { sendManagerFuDigest } from '../_shared/fuGerenteDigest.ts';
 import { sendTechnicalFu } from '../_shared/fuTecnicoDigest.ts';
 import { sendManagerExperienceFu } from '../_shared/fuGerencialDigest.ts';
+import { observeEnrollmentLegacyRoster } from '../_shared/fuTransitionRoster.ts';
 import { z } from 'npm:zod@3';
 
 const corsHeaders = {
@@ -183,6 +184,10 @@ Deno.serve(async (req) => {
       ? await sendManagerFuDigest(supabase, parsed.data.dry_run === true)
       : null;
     if (__auth.method === 'cron') {
+      if (parsed.data.dry_run !== true) {
+        try { await observeEnrollmentLegacyRoster(supabase); }
+        catch { console.warn('Observação da transição indisponível; resumos preservados'); }
+      }
       try { await sendManagerExperienceFu(supabase, parsed.data.dry_run === true); }
       catch (error) { console.error('FU gerencial: falha no processamento', error instanceof Error ? error.message : 'erro desconhecido'); }
     }
