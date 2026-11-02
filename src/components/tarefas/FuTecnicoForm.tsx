@@ -50,6 +50,8 @@ export function FuTecnicoForm({ task, status, registro, onStatus, onRegistro }: 
     <div className="text-sm space-y-1">
       <p>{aluno?.nome ?? task.titulo} · {unidadeAtual?.nome}</p>
       <p className="text-muted-foreground">Treinador: {treinador ?? 'Não identificado'}</p>
+      <p>Envio ao aluno: <strong>{task.fu_tecnico_confirmado_em ? 'Enviado' : 'Pendente'}</strong></p>
+      {task.fu_tecnico_confirmado_em && <p className="text-muted-foreground">Confirmado por {task.fu_tecnico_confirmado_nome} em {new Date(task.fu_tecnico_confirmado_em).toLocaleString('pt-BR', { timeZone: 'America/Recife' })}</p>}
       {task.fu_tecnico_envio_erro && <p className="text-destructive">{task.fu_tecnico_envio_erro}</p>}
     </div>
     {anteriores.length > 0 && <details className="text-sm">
