@@ -1,4 +1,5 @@
 # Architecture Decisions
+- Cancellation submission keeps nullable legacy contact preferences and exposes an injectable handler for isolated persistence/notification tests, so omitted preferences never imply consent and tests never contact real groups.
 - Enrollment welcome FU adapts the existing welcome endpoint and cron with enrollment-keyed tasks and the single Telegram webhook; first-confirmation triggers request immediate processing, and service-only claims/confirmation preserve manual sending independently of task completion without duplicate legacy welcome delivery.
 - Manager experience M+15/M+30 uses existing enrollment-cycle tasks, cutoffs, scheduler and webhook; the legacy G+7/G+30 digest is a side-effect-free retired entrypoint and per-task errors are isolated, so only individual reminders run while historical records and other endpoint routines remain intact.
 - Manager contact spacing checks only persisted unit-scoped contact/response timestamps and scheduled contacts, keeps suppression evidence on the task, and treats unlinked complaints as manual context rather than inventing identity matches.
