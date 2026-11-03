@@ -50,8 +50,7 @@ for (const scenario of cases) {
       }
       if (table === 'telegram_groups') {
         const unit = url.searchParams.get('unidade_id')?.slice(3);
-        assert(url.searchParams.get('group_type') === 'in.(gerencia)', 'Wrong sector or fallback');
-        return Response.json(scenario.missingGroup && unit === 'A' ? [] : [{id:`g-${unit}`,group_type:'gerencia',telegram_chat_id:unit === 'A' ? -1 : unit === 'B' ? -2 : -3}]);
+        return Response.json(scenario.missingGroup && unit === 'A' ? [] : [{id:`wrong-${unit}`,group_type:'coordenadores',telegram_chat_id:-99},{id:`g-${unit}`,group_type:'gerencia',telegram_chat_id:unit === 'A' ? -1 : unit === 'B' ? -2 : -3}]);
       }
       // Read-only observation and untouched technical/operational queries use empty fixtures.
       if (url.pathname.includes('/rpc/')) return Response.json({modo:'observacao',permitido:true});
