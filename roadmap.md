@@ -1,5 +1,12 @@
 # Roadmap
 
+## Auditoria real de todos os follow-ups — 03/11/2026
+- [x] Conferir agendadores, gatilhos, execução HTTP, tarefas e logs por etapa/unidade, sem chamadas que enviem ou alterem dados.
+- [x] Reexecutar simulações isoladas: 56 Deno + 11 Bun aprovados; distinguir produção, testes, confirmação e conclusão.
+- [x] Entregar matriz, falhas e propostas; HTTP 400 comercial (triggered_at) e Recepção (time), Comercial Aflitos desconectado e coordenadores sem vínculo; nenhuma correção adicional.
+- [ ] Corrigir pedidos cron comercial/Recepção e decidir tratamento da fila vencida — depende de aprovação específica, não autoriza reenvios.
+- [ ] Confirmar próximo ciclo automático gerencial pós-correção — depende de 04/11 às 08:00 Recife; não antecipar nem enviar testes.
+
 ## Correção gerencial aprovada — 03/11/2026
 - [x] Desativar somente o emissor legado G+7/G+30, preservando históricos, agendador e demais rotinas.
 - [x] Testar avisos individuais, isolamento de falhas, autorização, idempotência e confirmação independente: 24 Deno, 11 Bun e 3 suítes SQL isoladas aprovados.
