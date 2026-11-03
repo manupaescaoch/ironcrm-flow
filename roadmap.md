@@ -1,5 +1,10 @@
 # Roadmap
 
+## Auditoria real de todos os follow-ups — 03/11/2026
+- [ ] Conferir agendadores, gatilhos, execução HTTP, tarefas e logs por etapa/unidade, sem chamadas que enviem ou alterem dados.
+- [ ] Reexecutar simulações isoladas e distinguir produção, testes, confirmação e conclusão.
+- [ ] Entregar matriz, falhas e propostas; não corrigir outras rotinas sem autorização.
+
 ## Correção gerencial aprovada — 03/11/2026
 - [x] Desativar somente o emissor legado G+7/G+30, preservando históricos, agendador e demais rotinas.
 - [x] Testar avisos individuais, isolamento de falhas, autorização, idempotência e confirmação independente: 24 Deno, 11 Bun e 3 suítes SQL isoladas aprovados.
