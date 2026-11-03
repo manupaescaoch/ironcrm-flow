@@ -31,7 +31,7 @@ async function run(extra: Record<string, unknown> = {}) {
   }), {
     adminClient: () => admin as any,
     resolveUnidadeId: async () => 'unit-test',
-    resolveGrupoUnidade: async (_admin: unknown, unit: string, types: string[]) => {
+    resolveGrupoUnidade: async (_admin: unknown, unit: string | null, types: string[]) => {
       assert(unit === 'unit-test' && types[0] === 'gerencia', 'destino original preservado');
       return { id: 'test', group_type: 'gerencia' as const, telegram_chat_id: -1, telegram_title: 'TESTE' };
     },
