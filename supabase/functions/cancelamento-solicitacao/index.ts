@@ -44,7 +44,9 @@ const clean = (t?: string | null) => (t && t.trim() ? t.replace(/[*_`\[\]]/g, ''
 const list = (a: string[]) => (a.length ? a.map(clean).join(', ') : '—');
 const ALERTA_RE = /professor|recep|comercial|estrutura|cobran|acompanhamento/i;
 
-Deno.serve(async (req) => {
+export async function handleCancelamento(req: Request, deps = {
+  adminClient, resolveUnidadeId, resolveGrupoUnidade, sendTelegramGroupText,
+}) {
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: cors });
 
@@ -54,9 +56,9 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Dados inválidos' }), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } });
     }
     const d = parsed.data;
-    const admin = adminClient();
+    const admin = deps.adminClient();
     const cfg = UNIDADES[d.unidade];
-    const unidadeId = await resolveUnidadeId(admin, cfg.busca);
+    const unidadeId = await deps.resolveUnidadeId(admin, cfg.busca);
 
     const { data: row, error } = await admin.from('cancelamento_solicitacoes').insert({
       nome: d.nome.toUpperCase(), telefone: d.telefone, ddi: d.ddi, unidade: d.unidade, unidade_id: unidadeId,
@@ -73,7 +75,6 @@ Deno.serve(async (req) => {
     if (d.nota != null && d.nota <= 6) alertas.push('🚨 *EXPERIÊNCIA NEGATIVA*');
     const relatos = [...d.problemas, ...d.motivos].filter((p) => !/nenhum/i.test(p));
     if (relatos.some((p) => ALERTA_RE.test(p))) alertas.push('⚠️ *ATENÇÃO GERENCIAL*');
-    if (d.aceita_contato_antes) alertas.push('🔥 *OPORTUNIDADE DE RETENÇÃO*');
 
     const dataHora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Recife', dateStyle: 'short', timeStyle: 'short' });
     const texto = [
@@ -100,10 +101,6 @@ Deno.serve(async (req) => {
       `🎯 *Próxima escolha:* ${clean(d.proxima_escolha)}`,
       `💬 *Principal fator:* ${clean(d.fator_escolha)}`,
       '',
-      d.aceita_contato_antes
-        ? '🔥 *OPORTUNIDADE DE RETENÇÃO*\n✅ Aluno autorizou contato antes da conclusão do cancelamento.'
-        : '🚫 Aluno não autorizou contato para retenção.',
-      '',
       `🕒 ${dataHora}`,
     ].join('\n');
 
@@ -113,12 +110,12 @@ Deno.serve(async (req) => {
     if (envChat && /^-?\d+$/.test(envChat.trim())) {
       grupo = { id: null as any, group_type: 'gerencia', telegram_chat_id: Number(envChat.trim()), telegram_title: null };
     } else {
-      grupo = await resolveGrupoUnidade(admin, unidadeId, ['gerencia', 'cancelamento', 'coordenadores']);
+      grupo = await deps.resolveGrupoUnidade(admin, unidadeId, ['gerencia', 'cancelamento', 'coordenadores']);
     }
 
     let enviado = false;
     if (grupo) {
-      const r = await sendTelegramGroupText(admin, grupo, texto, 'formulario_cancelamento');
+      const r = await deps.sendTelegramGroupText(admin, grupo, texto, 'formulario_cancelamento');
       enviado = r.ok;
       if (!r.ok) console.error('Falha Telegram cancelamento', r.error);
     } else {
@@ -131,4 +128,6 @@ Deno.serve(async (req) => {
     console.error(e);
     return new Response(JSON.stringify({ error: 'Erro ao registrar solicitação' }), { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } });
   }
-});
+}
+
+if (import.meta.main) Deno.serve((req) => handleCancelamento(req));
