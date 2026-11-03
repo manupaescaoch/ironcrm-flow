@@ -89,7 +89,7 @@ export async function sendTelegramMessage(
   return { ok, error, message_id: messageId };
 }
 
-export type TelegramGroupType = 'coordenadores' | 'comercial' | 'gerencia' | 'nps' | 'anamnese' | 'cancelamento';
+export type TelegramGroupType = 'coordenadores' | 'encerramentos' | 'comercial' | 'gerencia' | 'nps' | 'anamnese' | 'cancelamento';
 
 export interface TelegramGrupoUnidade {
   id: string;
