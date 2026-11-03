@@ -1,5 +1,9 @@
 # Roadmap
 
+## Cancelamento — remoção da pergunta de autorização de contato
+- [ ] Remover pergunta e linhas de autorização nas notificações, preservando histórico e preferências; testar sem notificações reais.
+- [ ] Apresentar arquivos e testes; publicação aguarda nova aprovação (pedido anterior não executado).
+
 ## Auditoria real de todos os follow-ups — 03/11/2026
 - [x] Conferir agendadores, gatilhos, execução HTTP, tarefas e logs por etapa/unidade, sem chamadas que enviem ou alterem dados.
 - [x] Reexecutar simulações isoladas: 56 Deno + 11 Bun aprovados; distinguir produção, testes, confirmação e conclusão.
