@@ -1,8 +1,8 @@
 # Roadmap
 
 ## Cancelamento — remoção da pergunta de autorização de contato
-- [ ] Remover pergunta e linhas de autorização nas notificações, preservando histórico e preferências; testar sem notificações reais.
-- [ ] Apresentar arquivos e testes; publicação aguarda nova aprovação (pedido anterior não executado).
+- [x] Remover perguntas e linhas de autorização, preservando histórico e preferências; 3 testes Deno, 72 Bun e fluxo de 14 etapas com envio interceptado aprovados.
+- [ ] Implantar função e publicar após nova aprovação; pedido anterior não executado. Nenhum dado real ou grupo alterado.
 
 ## Auditoria real de todos os follow-ups — 03/11/2026
 - [x] Conferir agendadores, gatilhos, execução HTTP, tarefas e logs por etapa/unidade, sem chamadas que enviem ou alterem dados.
