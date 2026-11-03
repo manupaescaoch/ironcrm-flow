@@ -1,6 +1,12 @@
 # Roadmap
 
-## FC-2A.1 — continuidade da preparação autorizada em 02/11
+## Correção gerencial aprovada — 03/11/2026
+- [ ] Desativar somente o emissor legado G+7/G+30, preservando históricos, agendador e demais rotinas.
+- [ ] Testar avisos individuais, isolamento de falhas, autorização, idempotência e confirmação independente, sem rede real.
+- [ ] Implantar somente notify-resumo-gestao-operacional e verificar processamento sem envio em produção.
+- [ ] Entregar evidências e limitações da verificação.
+
+## FC-2A.1 — interrompida pelo usuário; fora da publicação
 - [ ] Apresentar opções reais de usuários EVO OPS por unidade; nenhuma vinculação automática.
 - [ ] Completar endpoint autenticado e operações atômicas candidatas, apenas em ambiente isolado.
 - [ ] Integrar e testar os 17 escritores, Telegram/REAG e recuperação sem rede real.
