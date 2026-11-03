@@ -13,6 +13,7 @@ export async function sendManagerExperienceFu(admin: SupabaseClient, dryRun = fa
       .in('fu_gerencial_status', ['pendente','em_andamento']).is('fu_gerencial_confirmado_em',null).lte('prazo',day).order('id').range(offset,offset+199);
     if (error) throw error;
     for (const task of data ?? []) {
+      try {
       if (!dryRun) {
         try { const decision = await observeManualCandidate(admin, { lead_id: task.fu_gerencial_lead_id, unidade_id: task.unidade_id, ciclo_id: task.fu_gerencial_matricula_id, chave: 'candidato:fu_gerencial:' + task.id, fluxo: 'fu_gerencial', objetivo: 'experiencia', setor: 'gerente', canal: 'whatsapp', prioridade: 3, nao_urgente: true, prazo_original: task.prazo ? task.prazo + 'T08:00:00-03:00' : null }); if (decision?.modo === 'ativo' && !decision.permitido) { results.push({ task: task.id, status: 'adiado' }); continue; } }
         catch { console.warn('[contato] observação de candidato indisponível; notificação interna preservada'); }
@@ -59,6 +60,12 @@ export async function sendManagerExperienceFu(admin: SupabaseClient, dryRun = fa
         ...(sent.ok ? {fu_gerencial_telegram_chat_id:group.telegram_chat_id,fu_gerencial_telegram_message_id:sent.message_id}:{}), }).eq('id',task.id);
       if (saveError) throw saveError;
       results.push({task:task.id,status:sent.ok?'enviado':'erro'});
+      } catch (error) {
+        // Do not release an existing claim: an ambiguous send remains protected.
+        // One failing enrollment must not stop other tasks or endpoint routines.
+        console.error('FU gerencial: falha isolada no acompanhamento', error instanceof Error ? error.message : 'erro desconhecido');
+        results.push({ task: task.id, status: 'erro' });
+      }
     }
     if ((data?.length ?? 0)<200) break;
   }
