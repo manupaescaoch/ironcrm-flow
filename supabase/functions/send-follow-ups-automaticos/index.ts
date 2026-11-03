@@ -88,7 +88,7 @@ export async function handleFollowUps(req: Request) {
 
   try {
     const raw = await req.text();
-    const parsed = z.object({ unidade_id: z.string().uuid().nullish(), dry_run: z.boolean().optional(), force: z.boolean().optional(), manual: z.boolean().optional(), min_delay_ms: z.number().optional(), max_delay_ms: z.number().optional(), auto_retry: z.boolean().optional() }).strict().safeParse(raw ? JSON.parse(raw) : {});
+    const parsed = followUpBodySchema.safeParse(raw ? JSON.parse(raw) : {});
     if (!parsed.success) throw new FollowUpError(400, 'Solicitação inválida');
     const body = parsed.data;
     const scope = await authorizeFollowUp(req, 'send', body.unidade_id);

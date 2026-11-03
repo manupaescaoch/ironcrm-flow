@@ -6,7 +6,7 @@ export async function sendEnrollmentWelcomeFu(admin: any, dryRun = false, taskId
   const results: {task: string; status: string}[] = [];
   if ([0,6].includes(new Date(`${day}T12:00:00Z`).getUTCDay())) return {success:true,results,skipped:'fim_de_semana'};
   for (let offset=0; ; offset+=200) {
-    let query = admin.from('tasks').select('id,unidade_id,prazo,fu_matriculados_lead_id,fu_matriculados_matricula_id,fu_matriculados_etapa').not('fu_matriculados_matricula_id','is',null).is('fu_matriculados_confirmado_em',null).neq('status','concluida').lte('prazo',day).order('id').range(offset,offset+199);
+    let query = admin.from('tasks').select('id,unidade_id,prazo,fu_matriculados_lead_id,fu_matriculados_matricula_id,fu_matriculados_etapa,fu_matriculados_chat_id').not('fu_matriculados_matricula_id','is',null).is('fu_matriculados_confirmado_em',null).neq('status','concluida').lte('prazo',day).order('id').range(offset,offset+199);
     if (taskId) query=query.eq('id',taskId);
     const {data,error}=await query; if(error) throw error;
     for (const task of data ?? []) {
