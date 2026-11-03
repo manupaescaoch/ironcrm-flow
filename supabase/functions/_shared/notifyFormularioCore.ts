@@ -553,12 +553,14 @@ export async function checkRateLimit(
 /**
  * Cada formulário vai para o grupo da unidade no Telegram, com fallback de tipo.
  */
+// Encerramentos usam destino próprio ('encerramentos'), independente do grupo
+// COORDENADOR usado pelo FU técnico.
 const PRIORIDADE_GRUPO: Record<TipoFormulario, TelegramGroupType[]> = {
-  estagiario_lider: ['coordenadores', 'gerencia'],
-  coordenador_unidade: ['gerencia', 'coordenadores'],
-  coordenador_horario: ['coordenadores', 'gerencia'],
+  estagiario_lider: ['encerramentos', 'gerencia'],
+  coordenador_unidade: ['gerencia', 'encerramentos'],
+  coordenador_horario: ['encerramentos', 'gerencia'],
   relatorio_comercial: ['comercial', 'gerencia'],
-  coordenador_tecnico: ['coordenadores', 'gerencia'],
+  coordenador_tecnico: ['encerramentos', 'gerencia'],
 };
 
 export async function resolveGrupo(
