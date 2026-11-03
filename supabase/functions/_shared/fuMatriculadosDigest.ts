@@ -13,6 +13,7 @@ export async function sendEnrollmentWelcomeFu(admin: any, dryRun = false, taskId
       const {data:lead,error:le}=await admin.from('leads').select('nome,telefone,ativo,is_matriculado,pausado_fu,origem').eq('id',task.fu_matriculados_lead_id).eq('unidade_id',task.unidade_id).maybeSingle();
       if(le) throw le;
       if(!lead?.ativo || !lead.is_matriculado || lead.pausado_fu) continue;
+      if(task.fu_matriculados_chat_id) { results.push({task:task.id,status:'ja_notificado'}); continue; }
       if (!dryRun) {
         try { const decision = await observeManualCandidate(admin, { lead_id: task.fu_matriculados_lead_id, unidade_id: task.unidade_id, ciclo_id: task.fu_matriculados_matricula_id, chave: 'candidato:fu_matriculados:' + task.id, fluxo: 'fu_matriculados', objetivo: (task.fu_matriculados_etapa ?? 'BV') === 'BV' ? 'boas_vindas' : 'recepcao_' + task.fu_matriculados_etapa, setor: 'comercial', canal: 'whatsapp', prioridade: 4, nao_urgente: true, prazo_original: task.prazo ? task.prazo + 'T08:00:00-03:00' : null, excecao: 'transicao_matricula' }); if (decision?.modo === 'ativo' && !decision.permitido) { results.push({ task: task.id, status: 'adiado' }); continue; } }
         catch { console.warn('[contato] observação de candidato indisponível; notificação interna preservada'); }

@@ -3,7 +3,7 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { authorizeCronOnly } from '../_shared/cronAuth.ts';
 import { adminClient } from '../_shared/telegram.ts';
 import { sendEnrollmentWelcomeFu } from '../_shared/fuMatriculadosDigest.ts';
-import { z } from 'npm:zod@3';
+import { boasVindasBodySchema } from './bodySchema.ts';
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', {headers:corsHeaders});
   const auth=authorizeCronOnly(req);

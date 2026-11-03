@@ -2,7 +2,7 @@ import { controlledSend } from '../_shared/contactControl.ts';
 import { evaluateTransition } from '../_shared/fuTransition.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authorizeFollowUp, FollowUpError } from '../_shared/followUpAuthorization.ts';
-import { z } from 'npm:zod@3.23.8';
+import { followUpBodySchema } from './bodySchema.ts';
 import {
   RATE_LIMIT_MS,
   checkZapiStatus,

@@ -32,6 +32,10 @@ Deno.test('Individual messages only to Commercial in current unit; daily claim s
  await sendEnrollmentWelcomeFu(admin,false,undefined,new Date('2026-11-02T11:00:00Z'),deps);await sendEnrollmentWelcomeFu(admin,false,undefined,new Date('2026-11-02T11:00:00Z'),deps);
  assert(calls.length===1&&calls[0].chat_id===-12);
 });
+Deno.test('Task already notified is never re-notified',async()=>{
+ let sends=0;const r=await sendEnrollmentWelcomeFu(fakeAdmin([{id,unidade_id:'unit',fu_matriculados_lead_id:'lead',fu_matriculados_chat_id:-12}]),false,undefined,new Date('2026-11-02T11:00:00Z'),{resolve:async()=>({id:'g',group_type:'comercial' as const,telegram_chat_id:-12,telegram_title:'T'}),send:async()=>{sends++;return {ok:true};}});
+ assert(sends===0&&r.results[0].status==='ja_notificado');
+});
 Deno.test('Missing Commercial group never falls back or sends',async()=>{
  let sends=0;const r=await sendEnrollmentWelcomeFu(fakeAdmin([{id,unidade_id:'unit'}]),false,undefined,new Date('2026-11-02T11:00:00Z'),{resolve:async()=>null,send:async()=>{sends++;return {ok:true};}});assert(sends===0&&r.results[0].status==='sem_grupo');
 });Deno.test('Recepção M+3 and M+32 use approved texts and identify the stage',()=>{
