@@ -1,10 +1,10 @@
 # Roadmap
 
 ## Correção gerencial aprovada — 03/11/2026
-- [ ] Desativar somente o emissor legado G+7/G+30, preservando históricos, agendador e demais rotinas.
-- [ ] Testar avisos individuais, isolamento de falhas, autorização, idempotência e confirmação independente, sem rede real.
-- [ ] Implantar somente notify-resumo-gestao-operacional e verificar processamento sem envio em produção.
-- [ ] Entregar evidências e limitações da verificação.
+- [x] Desativar somente o emissor legado G+7/G+30, preservando históricos, agendador e demais rotinas.
+- [x] Testar avisos individuais, isolamento de falhas, autorização, idempotência e confirmação independente: 24 Deno, 11 Bun e 3 suítes SQL isoladas aprovados.
+- [x] Implantar somente notify-resumo-gestao-operacional; diagnóstico autorizado por cron em dry_run retornou 200 e resumo_gerencial_legado_desativado, sem envios/gravações.
+- [x] Entregar evidências e limitações: agendador 08:00 preservado; próximo ciclo automático ainda não ocorreu e não foi antecipado.
 
 ## FC-2A.1 — interrompida pelo usuário; fora da publicação
 - [ ] Apresentar opções reais de usuários EVO OPS por unidade; nenhuma vinculação automática.
