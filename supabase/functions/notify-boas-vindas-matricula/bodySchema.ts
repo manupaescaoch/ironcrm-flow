@@ -1,4 +1,4 @@
-import { z } from 'npm:zod@3';
+import { z } from 'npm:zod@3.25.76';
 
 // Contrato do corpo aceito pela função. O agendamento (pg_cron) envia `time`;
 // o campo é aceito e ignorado. Campos desconhecidos continuam rejeitados (strict).

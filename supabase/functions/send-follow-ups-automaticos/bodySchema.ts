@@ -1,4 +1,4 @@
-import { z } from 'npm:zod@3.23.8';
+import { z } from 'npm:zod@3.25.76';
 
 // Contrato do corpo aceito pela função. O agendamento diário (pg_cron) envia
 // `triggered_at` e o agendamento de recuperação envia `auto_retry`; ambos são
