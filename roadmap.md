@@ -1,5 +1,11 @@
 # Roadmap
 
+## Fase 1E — preparação isolada, sem produção
+- [ ] Incluir moderator exclusivamente em confirmações Recepção com unidade, preservando demais permissões.
+- [ ] Preparar ativação padrão desligada compatível com produção e usuários de teste autorizados.
+- [ ] Validar estrutura, evidência, histórico, JWT, integração UI/SQL, concorrência e regressões sem dados reais.
+- [ ] Entregar arquivos, candidatos, matriz, evidências, riscos, planos de publicação e reversão; implantação proibida sem aprovação.
+
 ## Auditoria de abertura, confirmação e indicadores FU — 04/11/2026
 - [x] Fase 1D: aviso comercial corrigido, SQL/endpoints candidatos fora da implantação, Enviado CRM com ativação somente desenvolvimento inativa, 90 Bun + 93 Deno, 70 verificações SQL e quatro ensaios navegador aprovados. Lint direcionado sem erros (um aviso legado Fast Refresh), tipagem candidata Deno e build automático OK. Nenhuma produção alterada.
 - [ ] Fase 1D implantação: depende de aprovação posterior; moderator/Recepção permanece bloqueado conforme banco, ampliação exige autorização; política completa de evidência e login real não certificados no fixture reduzido.

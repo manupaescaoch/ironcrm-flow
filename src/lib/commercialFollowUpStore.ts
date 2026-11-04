@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { confirmCommercialFollowUp, type CommercialIdentity, type CommercialStore, type PersistedCommercial } from './confirmCommercialFollowUp';
 import { commercialHistoryId } from './commercialHistoryIdentity';
-import { confirmationDevelopmentEnabled, confirmCommercialTransaction } from './fuConfirmationClient';
+import { confirmationEnabledForUser, confirmCommercialTransaction } from './fuConfirmationClient';
 
 const columns = 'id,lead_id,unidade_id,tipo,status,concluido_em';
 const query = (identity: CommercialIdentity) => supabase.from('follow_ups').select(columns).eq('id', identity.id).eq('lead_id', identity.leadId).eq('unidade_id', identity.unitId).eq('tipo', identity.stage);
@@ -26,4 +26,7 @@ const store: CommercialStore = {
     return result;
   },
 };
-export const confirmCommercial = (identity: CommercialIdentity, responsible: string, description: string) => confirmationDevelopmentEnabled && identity.stage !== 'REAG' ? confirmCommercialTransaction(identity) : confirmCommercialFollowUp(store, identity, responsible, description);
+export const confirmCommercial = async (identity: CommercialIdentity, responsible: string, description: string) => {
+  const { data } = await supabase.auth.getSession();
+  return confirmationEnabledForUser(data.session?.user.id) && identity.stage !== 'REAG' ? confirmCommercialTransaction(identity) : confirmCommercialFollowUp(store, identity, responsible, description);
+};

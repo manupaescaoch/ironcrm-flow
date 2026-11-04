@@ -2,10 +2,11 @@ import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import type { FuTaskItem } from './fuTaskState';
 import type { CommercialIdentity, CommercialConfirmation } from './confirmCommercialFollowUp';
+import { confirmationRolloutEnabled } from './fuConfirmationRollout';
 
 export type InternalConfirmation = { ok: true; duplicado: boolean; confirmado_em: string; responsavel: string; task_id: string; lead_id: string; matricula_id: string; unidade_id: string; etapa: string };
 export type ConfirmationTransport = (name: string, body: Record<string, unknown>) => Promise<unknown>;
-export const confirmationDevelopmentEnabled = import.meta.env.DEV && import.meta.env.VITE_FU_CRM_CONFIRMATION_ENABLED === 'true';
+export const confirmationEnabledForUser = (userId: string | undefined) => confirmationRolloutEnabled({ enabled: import.meta.env.VITE_FU_CRM_CONFIRMATION_ENABLED, testUsers: import.meta.env.VITE_FU_CRM_CONFIRMATION_TEST_USERS }, userId);
 
 export const invokeConfirmation: ConfirmationTransport = async (name, body) => {
   const { data, error } = await supabase.functions.invoke(name, { body });

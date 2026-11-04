@@ -10,11 +10,12 @@ import { fuItemLink, fuItemMessage, pendingFuMessages, type FuTaskItem } from '@
 import { fuDate } from '@/lib/fuBusinessDays';
 import { useAuth } from '@/contexts/AuthContext';
 import { useInternalFuConfirmation } from '@/hooks/useInternalFuConfirmation';
-import { confirmationDevelopmentEnabled } from '@/lib/fuConfirmationClient';
+import { confirmationEnabledForUser } from '@/lib/fuConfirmationClient';
 
-export function PersistedFuSection({ title, items, loading, error, refetch, confirmationEnabled = confirmationDevelopmentEnabled }: { title: string; items: FuTaskItem[]; loading: boolean; error: string | null; refetch: () => void; confirmationEnabled?: boolean }) {
+export function PersistedFuSection({ title, items, loading, error, refetch, confirmationEnabled }: { title: string; items: FuTaskItem[]; loading: boolean; error: string | null; refetch: () => void; confirmationEnabled?: boolean }) {
   const { unidadeAtual } = useUnidade();
-  const { userRole } = useAuth();
+  const { userRole, user } = useAuth();
+  const rolloutEnabled = confirmationEnabled ?? confirmationEnabledForUser(user?.id);
   const confirmation = useInternalFuConfirmation(refetch);
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -23,7 +24,7 @@ export function PersistedFuSection({ title, items, loading, error, refetch, conf
   const confirmedOpen = visible.filter(item => !!item.confirmedAt && item.open);
   const rows = [...pending, ...confirmedOpen];
   const selected = visible.find(item => item.id === selectedId);
-  const canConfirm = selected && (userRole === 'admin' || (selected.family === 'recepcao' ? userRole === 'comercial' : selected.family === 'gerencia' ? userRole === 'gerente' : userRole === 'gerente' || userRole === 'coordenador'));
+  const canConfirm = selected && (userRole === 'admin' || (selected.family === 'recepcao' ? userRole === 'comercial' || userRole === 'recepcao' : selected.family === 'gerencia' ? userRole === 'gerente' : userRole === 'gerente' || userRole === 'coordenador'));
   const select = (id: string | null) => { confirmation.select(id); setSelectedId(id); };
   const unitName = unidadeAtual?.nome ?? '';
   const index = rows.findIndex(item => item.id === selectedId);
@@ -39,7 +40,7 @@ export function PersistedFuSection({ title, items, loading, error, refetch, conf
         <p className="text-sm">{selected.confirmedAt ? `Envio confirmado em ${new Date(selected.confirmedAt).toLocaleString('pt-BR', { timeZone: 'America/Recife' })}` : 'Envio pendente'}</p>
         <p className="whitespace-pre-wrap text-sm">{fuItemMessage(selected, unitName)}</p>
         {confirmation.error && <p role="alert" className="text-sm text-destructive">{confirmation.error}</p>}
-        <div className="flex flex-wrap gap-2">{fuItemLink(selected, unitName) ? <Button variant="outline" asChild><a href={fuItemLink(selected, unitName) ?? undefined} target="_blank" rel="noopener noreferrer"><MessageCircle className="w-4 h-4 mr-2" />Abrir WhatsApp</a></Button> : <span className="text-destructive text-sm">Telefone inválido ou ausente.</span>}{confirmationEnabled && canConfirm && !selected.confirmedAt && <Button disabled={loading || confirmation.saving || !selected.open || !fuItemLink(selected, unitName)} onClick={() => { void confirmation.confirm(selected); }}>{confirmation.saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}Enviado</Button>}<Button variant="outline" onClick={() => navigate(`/tarefas?task=${selected.id}`)}>Acompanhamento</Button><Button variant="ghost" size="icon" title="Próximo aluno" disabled={confirmation.saving || index < 0 || index >= rows.length - 1} onClick={() => select(rows[index + 1]?.id ?? null)}><ChevronRight className="w-4 h-4" /></Button></div>
+        <div className="flex flex-wrap gap-2">{fuItemLink(selected, unitName) ? <Button variant="outline" asChild><a href={fuItemLink(selected, unitName) ?? undefined} target="_blank" rel="noopener noreferrer"><MessageCircle className="w-4 h-4 mr-2" />Abrir WhatsApp</a></Button> : <span className="text-destructive text-sm">Telefone inválido ou ausente.</span>}{rolloutEnabled && canConfirm && !selected.confirmedAt && <Button disabled={loading || confirmation.saving || !selected.open || !fuItemLink(selected, unitName)} onClick={() => { void confirmation.confirm(selected); }}>{confirmation.saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}Enviado</Button>}<Button variant="outline" onClick={() => navigate(`/tarefas?task=${selected.id}`)}>Acompanhamento</Button><Button variant="ghost" size="icon" title="Próximo aluno" disabled={confirmation.saving || index < 0 || index >= rows.length - 1} onClick={() => select(rows[index + 1]?.id ?? null)}><ChevronRight className="w-4 h-4" /></Button></div>
       </>}</DialogContent></Dialog>
     </CardContent>
   </Card>;
