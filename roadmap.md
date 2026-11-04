@@ -1,5 +1,10 @@
 # Roadmap
 
+## Auditoria de abertura, confirmação e indicadores FU — 04/11/2026
+- [ ] Reproduzir com dados fictícios e auditar tela, confirmação, Telegram, permissões e consultas sem escrita em produção.
+- [ ] Entregar diagnóstico com matriz, causas comprovadas, limitações e propostas.
+- [ ] Aplicar correções e validar — depende de aprovação do diagnóstico; migração e publicação dependem de autorização específica.
+
 ## Cancelamento — remoção da pergunta de autorização de contato
 - [x] Remover perguntas e linhas de autorização, preservando histórico e preferências; 3 testes Deno, 72 Bun e fluxo de 14 etapas com envio interceptado aprovados.
 - [ ] Implantar função e publicar após nova aprovação; pedido anterior não executado. Nenhum dado real ou grupo alterado.
