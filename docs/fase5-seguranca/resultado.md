@@ -23,3 +23,9 @@ Interromper se qualquer cron retornar 401/403 ou o histórico parar de gravar.
 
 ## Reversão
 Executar `originais.sql`, restaurar EXECUTE para anon/authenticated nas 10 funções e recriar a política `insert_task_history_system`; remover `admin_assert_admin`.
+
+## Implantação em produção — 04/11/2026 ~18:20 UTC
+- Pré-checagem: definições das 4 funções admin em produção idênticas a `originais.sql` (reversão válida); políticas/ACLs iguais ao estado testado.
+- Migração única `drizzle/migrations/0048_fase5_correcoes_seguranca.sql` = concatenação byte a byte de `correcoes.candidate.sql` + `apply-guards.sql` (sha256 1030cb96…).
+- Pós-verificação: anon/authenticated sem EXECUTE em get_cron_secret, telefones, reservas WhatsApp/contas e generate_follow_ups_for_lead; service_role e postgres (cron) mantidos. 4 funções admin com guarda. task_history exige autoria + unidade; trigger log_task_changes segue SECURITY DEFINER (postgres). Sem erros de permissão nos logs do banco após a aplicação.
+- Chave das automações não trocada. Frontend não publicado. Reversão não necessária.
