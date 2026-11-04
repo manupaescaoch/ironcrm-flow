@@ -6,6 +6,10 @@ const columns = 'id,lead_id,unidade_id,tipo,status,concluido_em';
 const query = (identity: CommercialIdentity) => supabase.from('follow_ups').select(columns).eq('id', identity.id).eq('lead_id', identity.leadId).eq('unidade_id', identity.unitId).eq('tipo', identity.stage);
 const store: CommercialStore = {
   read: async identity => { const result = await query(identity).maybeSingle(); return { ...result, data: result.data as PersistedCommercial | null }; },
+  readHistory: async (identity, row) => {
+    const id = await commercialHistoryId(identity.id, row.concluido_em ?? '');
+    return supabase.from('interacoes').select('id').eq('id', id).eq('lead_id', identity.leadId).eq('unidade_id', identity.unitId).maybeSingle();
+  },
   completePending: async (identity, at, responsible) => {
     const result = await supabase.from('follow_ups').update({ status: 'concluido', concluido_em: at, concluido_por: responsible }).eq('id', identity.id).eq('lead_id', identity.leadId).eq('unidade_id', identity.unitId).eq('tipo', identity.stage).eq('status', 'pendente').select(columns).maybeSingle();
     return { ...result, data: result.data as PersistedCommercial | null };

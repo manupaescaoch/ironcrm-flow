@@ -3,6 +3,7 @@ export type PersistedCommercial = { id: string; lead_id: string; unidade_id: str
 type Result<T> = { data: T | null; error?: unknown };
 export interface CommercialStore {
   read: (identity: CommercialIdentity) => Promise<Result<PersistedCommercial>>;
+  readHistory: (identity: CommercialIdentity, row: PersistedCommercial) => Promise<Result<{ id: string }>>;
   completePending: (identity: CommercialIdentity, at: string, responsible: string) => Promise<Result<PersistedCommercial>>;
   addHistory: (identity: CommercialIdentity, row: PersistedCommercial, responsible: string, description: string) => Promise<Result<{ id: string }>>;
 }
@@ -19,7 +20,15 @@ export function confirmCommercialFollowUp(store: CommercialStore, identity: Comm
   const run = (async () => {
     const before = await store.read(identity);
     if (before.error || !commercialIdentityMatches(identity, before.data) || !before.data) throw new Error('Não foi possível verificar este follow-up na unidade atual.');
-    if (before.data.status === 'concluido' && before.data.concluido_em) return { row: before.data, alreadyConfirmed: true, historyPending: false };
+    const existingConfirmation = async (row: PersistedCommercial): Promise<CommercialConfirmation> => {
+      try {
+        const history = await store.readHistory(identity, row);
+        return { row, alreadyConfirmed: true, historyPending: !!history.error || !history.data };
+      } catch {
+        return { row, alreadyConfirmed: true, historyPending: true };
+      }
+    };
+    if (before.data.status === 'concluido' && before.data.concluido_em) return existingConfirmation(before.data);
     if (before.data.status !== 'pendente') throw new Error('Este follow-up não está mais pendente.');
     const at = new Date().toISOString();
     let updated: Result<PersistedCommercial>;
@@ -31,7 +40,7 @@ export function confirmCommercialFollowUp(store: CommercialStore, identity: Comm
     }
     const ownsUpdate = commercialIdentityMatches(identity, updated.data) || (!!updated.error && Date.parse(persisted.data.concluido_em) === Date.parse(at));
     // Another client won the conditional update: never insert a second history.
-    if (!ownsUpdate) return { row: persisted.data, alreadyConfirmed: true, historyPending: false };
+    if (!ownsUpdate) return existingConfirmation(persisted.data);
     let historyPending = false;
     try {
       const history = await store.addHistory(identity, persisted.data, responsible, description);
