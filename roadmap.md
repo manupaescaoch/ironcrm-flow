@@ -1,5 +1,10 @@
 # Roadmap
 
+## Fase 2 — filtros, cadastros e persistência
+- [ ] Investigar telas operacionais e reproduzir falhas em filtros/buscas/escrita/listas/recarga com dados fictícios e transporte isolado.
+- [ ] Corrigir somente falhas reproduzidas, com regressões automatizadas e verificação de unidade/permissões.
+- [ ] Entregar relatório curto de resultados e limites; sem migrações/RLS/publicação/dados reais, preservando Fase 1 e áreas excluídas.
+
 ## Fase 1F — implantação controlada
 - [x] Export atual concluído e disponível conforme confirmação do usuário em 04/11 16:03 UTC; arquivo não inspecionado.
 - [ ] Validar recuperação do export em destino isolado — não executado; usuário aceitou risco residual em 04/11 16:02 UTC, mantendo export disponível como condição obrigatória.
