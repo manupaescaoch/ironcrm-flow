@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Fase 1F — implantação controlada
+- [x] Consolidar checklist final: arquivos/endpoints, bloqueio servidor candidato, recuperação, ordem, verificações e interrupções; implantação segue bloqueada.
 - [x] Documentar limites de verificação do backup e alternativa isolada de recuperação — snapshot não verificável pelas ferramentas; export/destino dependem do usuário.
 - [x] Preparar bloqueio servidor default-off e lista explícita de contas de teste, além de JWT/papel/unidade; 16 testes novos + 5 regressões Deno e 3 Bun aprovados, sem produção.
 - [x] Revisar plano final com impacto Telegram e reversão; nenhuma execução em produção autorizada pela aprovação de escopo.
