@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Auditoria de abertura, confirmação e indicadores FU — 04/11/2026
+- [ ] Fase 1C: reexecutar homologação isolada, consultar permissões somente leitura e entregar propostas de confirmação CRM e transação comercial; sem código privilegiado, migração, implantação, publicação ou escrita de produção.
 - [x] Fase 1B: contato vinculado à identidade, confirmação comercial com atualização condicional/releitura, Operação lendo tarefas persistidas, detalhe por ID e falhas visuais Telegram contidas; 84 Bun + 31 Deno aprovados e novos ensaios Chromium com transporte fictício.
 - [ ] Homologar Fase 1B em versão real e implantar/publicar somente após aprovação. Confirmação web das tarefas internas e transação comercial+histórico exigem proposta separada; permissões reais por perfil e concorrência SQL não certificadas nesta fase.
 - [x] Auditar tela, confirmação, Telegram, permissões e consultas somente leitura; reproduzir contato anterior em Técnico/Gerência, telefone inválido e sucesso falso comercial com transporte fictício; 47 testes existentes aprovados. Concorrência SQL e dispositivos reais não homologados.
