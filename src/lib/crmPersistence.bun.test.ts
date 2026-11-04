@@ -58,3 +58,21 @@ test('Lead edit: zero-row save preserves original baseline and cannot claim succ
   const handle = compile(code, { lead, originalLead: { ...lead, nome: 'ORIGINAL' }, id: lead.id, supabase: { from: () => q }, setSaving: () => {}, toast: (t: { title: string }) => titles.push(t.title), getErrorMessage: () => '', setLead: () => {}, setOriginalLead: () => { advanced = true; } }, 'handleSaveLead');
   await handle(); expect(advanced).toBe(false); expect(titles).toEqual(['Erro ao salvar']); expect(scopes).toContainEqual(['unidade_id', 'A']);
 });
+test('Lead edit: returned persisted row becomes baseline, not the optimistic draft', async () => {
+  const code = detail.slice(detail.indexOf('  const handleSaveLead = async'), detail.indexOf('  const handleConfirmPerda'));
+  const lead = { id: 'lead', unidade_id: 'A', nome: 'editado', telefone: '81900000001' };
+  const saved = { ...lead, nome: 'EDITADO' }; let baseline: unknown;
+  const q = { update: () => q, eq: () => q, select: () => q, single: async () => ({ data: saved, error: null }) };
+  const handle = compile(code, { lead, originalLead: { ...lead, nome: 'ORIGINAL' }, id: lead.id, supabase: { from: () => q }, setSaving: () => {}, toast: () => {}, getErrorMessage: () => '', setLead: () => {}, setOriginalLead: (v: unknown) => { baseline = v; } }, 'handleSaveLead');
+  await handle(); expect(baseline).toEqual(saved);
+});
+for (const [mode, data] of [['zero', null], ['wrong-unit', { id: 'lead', unidade_id: 'B', ativo: false }], ['saved', { id: 'lead', unidade_id: 'A', ativo: false }]] as const) {
+  test(`CRM archival: ${mode} verifies unit and persistence before refreshing`, async () => {
+    const code = crm.slice(crm.indexOf('  const handleDelete = async'), crm.indexOf('  // Parse CSV file'));
+    const titles: string[] = []; let refreshed = 0; let rows = [{ id: 'lead' }];
+    const q = { update: () => q, eq: () => q, select: () => q, single: async () => ({ data, error: null }) };
+    const handle = compile(code, { unidadeAtual: { id: 'A' }, leadToDelete: 'lead', currentUnit: { current: 'A' }, supabase: { from: () => q }, toast: (t: { title: string }) => titles.push(t.title), getErrorMessage: () => '', setLeads: (f: (v: typeof rows) => typeof rows) => { rows = f(rows); }, fetchLeads: () => { refreshed++; }, setDeleteDialogOpen: () => {}, setLeadToDelete: () => {} }, 'handleDelete');
+    await handle(); expect(titles).toEqual([mode === 'saved' ? 'Lead excluído com sucesso!' : 'Erro ao excluir lead']);
+    expect(refreshed).toBe(mode === 'saved' ? 1 : 0); expect(rows.length).toBe(mode === 'saved' ? 0 : 1);
+  });
+}
