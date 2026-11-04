@@ -37,16 +37,11 @@ CREATE FUNCTION log_task_changes() RETURNS trigger LANGUAGE plpgsql SECURITY DEF
 BEGIN INSERT INTO task_history(task_id,user_id,campo,valor_novo) VALUES(NEW.id,auth.uid(),'titulo',NEW.titulo); RETURN NEW; END $$;
 CREATE TRIGGER t AFTER UPDATE ON tasks FOR EACH ROW EXECUTE FUNCTION log_task_changes();
 GRANT SELECT, UPDATE ON tasks TO authenticated;
--- função interna chamadora (como notify_*_http): SECURITY DEFINER
-CREATE FUNCTION interno_le_segredo() RETURNS text LANGUAGE sql SECURITY DEFINER SET search_path=public AS $$SELECT public.get_cron_secret()$$;
-GRANT EXECUTE ON FUNCTION interno_le_segredo() TO authenticated;
 SQL
 # corpos atuais de produção (cópia de leitura)
 sed '/^-- Privilégios/,$d' "$DIR/originais.sql" | sed 's/^-- Definições.*//' | "${P[@]}" >/dev/null
-CREATE_RESERVA=$(cat <<'SQL'
-SELECT 1;
-SQL
-)
+# função interna chamadora (como notify_*_http): SECURITY DEFINER
+"${P[@]}" -c "CREATE FUNCTION interno_le_segredo() RETURNS text LANGUAGE sql SECURITY DEFINER SET search_path=public AS \$\$SELECT public.get_cron_secret()\$\$; GRANT EXECUTE ON FUNCTION interno_le_segredo() TO authenticated;"
 # estado antes: provar vulnerabilidades
 "${P[@]}" -At <<'SQL' > "$T/antes.txt"
 INSERT INTO user_roles VALUES('11111111-0000-0000-0000-000000000001','admin'),('22222222-0000-0000-0000-000000000002','moderator');
