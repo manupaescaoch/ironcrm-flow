@@ -16,4 +16,4 @@ Os candidatos de confirmação e evidência continuam em `../fu-phase1d/`. `mode
 
 ## Telegram
 
-Não modificar roteamento/callbacks nem destinos. RPCs existentes reconhecem confirmação CRM após validar identidade Telegram/unidade/mensagem. Moderator é autorizado no candidato CRM; a autorização Telegram existente continua preservada (admin/user em Recepção). Usuário Telegram já autorizado consegue reconhecer confirmação feita por moderator no CRM. Caso se deseje permitir que moderator também seja o primeiro confirmador via Telegram, será necessária aprovação específica da alteração da RPC existente.
+Roteamento/callbacks e destinos intactos. `telegram-scope.candidate.sql` prepara somente substituições de três RPCs: consulta direta de vínculo em `user_unidades` dentro da função service-only (o helper atual exige `auth.uid()` e bloqueia o serviço sem JWT de usuário); Recepção inclui moderator somente BV/M+3/M+32. Papéis Técnico/Gerencial intactos, demais validações de matrícula/grupo/mensagem preservadas. Estas substituições são exclusivamente candidatas locais, não alterações de produção. Sem reenvio nem histórico novo após confirmação CRM.

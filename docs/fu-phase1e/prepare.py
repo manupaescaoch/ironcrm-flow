@@ -33,6 +33,7 @@ def prepare():
     # Service-only operations, real public grants; no direct authenticated execution.
     sql((ROOT / 'docs/fu-phase1d/confirmations.candidate.sql').read_text())
     sql((ROOT / 'docs/fu-phase1d/evidence-origin.candidate.sql').read_text())
+    sql((ROOT / 'docs/fu-phase1e/telegram-scope.candidate.sql').read_text())
     print('Restored public structure and candidates; Auth/HTTP remain local scaffolding')
 
 if __name__ == '__main__':

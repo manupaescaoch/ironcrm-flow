@@ -22,7 +22,7 @@ BEGIN
  UPDATE public.tasks SET fu_gerencial_confirmado_em=now(),fu_gerencial_confirmado_por=v_user,fu_gerencial_confirmado_telegram_id=p_telegram_user,fu_gerencial_confirmado_nome=v_nome WHERE id=t.id;
  INSERT INTO public.task_history(task_id,user_id,user_name,campo,valor_anterior,valor_novo) VALUES(t.id,v_user,v_nome,'fu_gerencial_envio_aluno','pendente',jsonb_build_object('status','enviado','confirmado_em',now(),'telegram_user_id',p_telegram_user)::text);
  RETURN jsonb_build_object('ok',true,'duplicado',false,'confirmado_em',now(),'responsavel',v_nome,'unidade',v_unit,'aluno',l.nome,'etapa',t.fu_gerencial_etapa);
-END $function$
+END $function$;
 
 CREATE OR REPLACE FUNCTION public.fu_matriculados_confirmar_envio(p_task uuid, p_telegram_user bigint, p_chat bigint, p_message bigint)
  RETURNS jsonb
@@ -48,7 +48,7 @@ BEGIN
  IF t.fu_matriculados_etapa='BV' THEN UPDATE public.interacoes SET boas_vindas_enviada_em=now() WHERE id=t.fu_matriculados_matricula_id; END IF;
  INSERT INTO public.task_history(task_id,user_id,user_name,campo,valor_anterior,valor_novo) VALUES(t.id,v_user,v_nome,CASE WHEN t.fu_matriculados_etapa='BV' THEN 'fu_matriculados_envio_aluno' ELSE 'fu_recepcao_envio_aluno' END,'pendente',jsonb_build_object('status','enviado','etapa',t.fu_matriculados_etapa,'confirmado_em',now(),'telegram_user_id',p_telegram_user)::text);
  RETURN jsonb_build_object('ok',true,'duplicado',false,'confirmado_em',now(),'responsavel',v_nome,'unidade',v_unit,'aluno',l.nome,'etapa',t.fu_matriculados_etapa);
-END $function$
+END $function$;
 
 CREATE OR REPLACE FUNCTION public.fu_tecnico_confirmar_envio(p_task uuid, p_telegram_user bigint, p_chat bigint, p_message bigint)
  RETURNS jsonb
@@ -81,6 +81,4 @@ BEGIN
  INSERT INTO public.task_history(task_id,user_id,user_name,campo,valor_anterior,valor_novo)
  VALUES(t.id,v_user,v_nome,'fu_tecnico_envio_aluno','pendente',jsonb_build_object('status','enviado','confirmado_em',now(),'telegram_user_id',p_telegram_user)::text);
  RETURN jsonb_build_object('ok',true,'duplicado',false,'confirmado_em',now(),'responsavel',v_nome,'unidade',v_unit,'aluno',l.nome,'etapa',t.fu_tecnico_etapa);
-END $function$
-
-;
+END $function$;
