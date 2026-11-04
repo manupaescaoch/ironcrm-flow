@@ -34,7 +34,12 @@ def task(i, family, stage):
     c = 'chat_id' if family == 'matriculados' else 'telegram_chat_id'
     m = 'message_id' if family == 'matriculados' else 'telegram_message_id'
     # Avoid conflicting default BV family marker: real identity is defined by enrollment columns.
-    sql(f"INSERT INTO tasks(id,titulo,responsavel,unidade_id,status,{p}_lead_id,{p}_matricula_id,{p}_etapa,{p}_{c},{p}_{m}) VALUES('{t}','TESTE {stage}','TESTE','{UNIT}','a_fazer','{lead}','{enrollment}','{stage}',{chat},1);")
+    # Real enrollment triggers may create this exact stage even for an old enrollment date.
+    existing = sql(f"SELECT id FROM tasks WHERE {p}_matricula_id='{enrollment}' AND {p}_etapa='{stage}'")
+    if existing:
+        sql(f"UPDATE tasks SET id='{t}',{p}_{c}={chat},{p}_{m}=1 WHERE id='{existing}'")
+    else:
+        sql(f"INSERT INTO tasks(id,titulo,responsavel,unidade_id,status,{p}_lead_id,{p}_matricula_id,{p}_etapa,{p}_{c},{p}_{m}) VALUES('{t}','TESTE {stage}','TESTE','{UNIT}','a_fazer','{lead}','{enrollment}','{stage}',{chat},1);")
     return t, p, chat
 
 def crm(t, actor, stage, unit=UNIT):
