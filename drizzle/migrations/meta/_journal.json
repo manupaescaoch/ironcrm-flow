@@ -337,6 +337,13 @@
       "when": 1793808270960,
       "tag": "0047_fu_phase1f_controlled_confirmations",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1793816157195,
+      "tag": "0048_fase5_correcoes_seguranca",
+      "breakpoints": true
     }
   ]
 }
