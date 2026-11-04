@@ -27,6 +27,7 @@ CREATE TABLE follow_ups(lead_id uuid, unidade_id uuid, tipo text, data_referenci
 CREATE TABLE user_profiles(user_id uuid, telefone text);
 CREATE TABLE whatsapp_idempotencia(chave text PRIMARY KEY, funcao text, destino text, canal text, expires_at timestamptz);
 CREATE TABLE contas_pagar(id uuid PRIMARY KEY, unidade_id uuid);
+CREATE TABLE contas_pagar_envios(id uuid DEFAULT gen_random_uuid(), conta_id uuid, unidade_id uuid, tipo_envio text, status text, proxima_tentativa_em timestamptz, tentativas int DEFAULT 0, UNIQUE(conta_id,tipo_envio));
 CREATE TABLE tasks(id uuid PRIMARY KEY, unidade_id uuid, titulo text);
 CREATE TABLE task_history(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), task_id uuid, user_id uuid, user_name text, campo text, valor_anterior text, valor_novo text, created_at timestamptz DEFAULT now());
 GRANT SELECT, INSERT ON task_history TO authenticated; GRANT ALL ON task_history TO service_role;
