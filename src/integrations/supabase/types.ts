@@ -6862,6 +6862,27 @@ export type Database = {
         Args: { p_date: string; p_days: number }
         Returns: string
       }
+      fu_comercial_confirmar_transacional: {
+        Args: {
+          p_actor: string
+          p_etapa: string
+          p_fu: string
+          p_lead: string
+          p_unidade: string
+        }
+        Returns: Json
+      }
+      fu_crm_confirmar_envio: {
+        Args: {
+          p_actor: string
+          p_etapa: string
+          p_lead: string
+          p_matricula: string
+          p_task: string
+          p_unidade: string
+        }
+        Returns: Json
+      }
       fu_gerencial_claim: {
         Args: { p_dia: string; p_task: string }
         Returns: boolean
