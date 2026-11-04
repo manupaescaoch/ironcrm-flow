@@ -46,8 +46,8 @@ const MetricCard = memo(function MetricCard({ title, value, icon: Icon, iconBg, 
   return (
     <Card className="bg-card border shadow-sm hover:shadow-md transition-shadow">
       <CardContent className="p-4">
-        <div className="flex items-center gap-3">
-          <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0', iconBg)}>
+        <div className="flex items-center gap-2">
+          <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0', iconBg)}>
             <Icon className={cn('w-5 h-5', iconColor)} />
           </div>
           <div className="min-w-0 flex-1">
@@ -81,7 +81,7 @@ const ConversionCard = memo(function ConversionCard({ fromLabel, toLabel, value,
             <Icon className={cn('w-5 h-5', iconColor)} />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-1 text-xs leading-tight text-muted-foreground">
               <span>{fromLabel}</span>
               <ArrowRight className="w-3 h-3" />
               <span>{toLabel}</span>

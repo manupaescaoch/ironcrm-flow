@@ -191,10 +191,6 @@ export function useComissoesData() {
       const treinador = padronizarTreinadorComissoes(treinadorOriginal!);
       const current = grouped.get(treinador) || { aulasSet: new Set(), matriculasSet: new Set(), faturamento: 0 };
       
-      if (int.compareceu) {
-        current.aulasSet.add(int.lead_id);
-      }
-      
       if (int.fechou_matricula) {
         current.matriculasSet.add(int.lead_id);
         current.faturamento += (int.valor_plano || 0);
