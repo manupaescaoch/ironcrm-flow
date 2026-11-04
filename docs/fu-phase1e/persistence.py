@@ -52,3 +52,17 @@ assert json.loads(sql(c))['historyPending']
 assert sql(f"SELECT count(*) FROM interacoes WHERE id='{r['historyId']}'") == '0'
 checks += 2
 print(f'{checks} persistence/stage/author/metric/rollback/legacy assertions passed')
+
+telegram_checks = 0
+for i, stage in enumerate(['BV', 'M+3', 'M+32'], 600):
+    t, prefix, chat = task(i, 'matriculados', stage)
+    call = f"SELECT {prefix}_confirmar_envio('{t}',105,{chat},1);"
+    assert not json.loads(sql(call.replace(',105,', ',107,')))['ok']
+    assert not json.loads(sql(call.replace(str(chat), '-9999')))['ok']
+    assert not json.loads(sql(call.replace(',1);', ',999);')))['ok']
+    assert json.loads(sql(call))['ok']
+    assert json.loads(sql(crm(t, ACTORS['moderator'], stage)))['duplicado']
+    assert sql(f"SELECT count(*) FROM task_history WHERE task_id='{t}'") == '1'
+    assert sql(f"SELECT resultado LIKE '%Telegram%' FROM contato_execucoes WHERE chave='manual:{prefix}:{t}'") == 't'
+    telegram_checks += 7
+print(f'{telegram_checks} moderator Telegram scope, original-message and CRM compatibility assertions passed')

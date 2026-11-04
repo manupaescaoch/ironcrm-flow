@@ -59,6 +59,10 @@ if (Deno.env.get('FU_E2E_SERVE') === 'true') {
     }
     let r = await request(await token(id(105), true)); assertEquals(r.status, 401); await r.text();
     r = await request('invalid'); assertEquals(r.status, 401); await r.text();
+    const signed = await token(id(105));
+    const parts = signed.split('.');
+    parts[1] = encode({ sub: id(101), exp: Math.floor(Date.now() / 1000) + 3600 });
+    r = await request(parts.join('.')); assertEquals(r.status, 401); await r.text();
     r = await request(await token(id(105)), { ...body, p_actor: id(101) }); assertEquals(r.status, 400); await r.text();
     const moderator = await token(id(105));
     const results = await Promise.all([request(moderator), request(moderator)]);
