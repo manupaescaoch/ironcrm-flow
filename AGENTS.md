@@ -1,5 +1,5 @@
 # Architecture Decisions
-- Keep FU CRM rollout default-off and test-user scoped; service-only SQL validates roles and units independently of UI flags.
+- FU CRM defaults off; server test allowlists precede SQL role/unit checks, independent of UI flags.
 - FU forms bind loaded contacts to task/lead/enrollment/unit; Operação reads task confirmations, while commercial conditional updates verify read-back and stable existing interaction IDs without schema changes.
 - Telegram FU visual failures never roll back confirmation or resend a notification.
 - Cancellation submission keeps nullable legacy contact preferences and exposes an injectable handler for isolated persistence/notification tests, so omitted preferences never imply consent and tests never contact real groups.
