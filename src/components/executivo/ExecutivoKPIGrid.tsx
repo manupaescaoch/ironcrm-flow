@@ -135,6 +135,7 @@ export const ExecutivoKPIGrid = memo(function ExecutivoKPIGrid({
         <MetricCard
           title="Matrículas"
           value={topCards.matriculas}
+          subtitle="Realizadas no período"
           icon={GraduationCap}
           iconBg="bg-green-500/15"
           iconColor="text-green-500"
@@ -149,7 +150,7 @@ export const ExecutivoKPIGrid = memo(function ExecutivoKPIGrid({
       </div>
 
       {/* Row 2: Conversion & Cost Metrics - 6 columns on large screens */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
         <ConversionCard
           fromLabel="Lead"
           toLabel="Atend."
@@ -162,6 +163,14 @@ export const ExecutivoKPIGrid = memo(function ExecutivoKPIGrid({
           fromLabel="Atend."
           toLabel="Aluno"
           value={`${topCards.taxaConversao.toFixed(1)}%`}
+          icon={Target}
+          iconBg="bg-cyan-500/15"
+          iconColor="text-cyan-500"
+        />
+        <ConversionCard
+          fromLabel="Coorte"
+          toLabel="Aluno"
+          value={`${topCards.taxaConversaoCoorte.toFixed(1)}%`}
           icon={Target}
           iconBg="bg-cyan-500/15"
           iconColor="text-cyan-500"

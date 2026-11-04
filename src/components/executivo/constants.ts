@@ -11,6 +11,8 @@ export interface TopCards {
   faturamentoTotal: number;
   ticketMedio: number;
   ltv: number;
+  matriculasCoorte: number;
+  taxaConversaoCoorte: number;
 }
 
 export interface FunilItem {
