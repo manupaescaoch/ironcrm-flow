@@ -29,6 +29,17 @@ interface UseExecutivoMetricsReturn {
   resumoFinal: ResumoFinal;
 }
 
+/** Coorte: leads captados no período que se matricularam ÷ leads captados no período. */
+export function calcularConversaoCoorte(leads: Pick<Lead, 'id' | 'is_matriculado' | 'status_funil'>[]) {
+  const ids = new Set(leads.map(l => l.id));
+  const matriculados = new Set(
+    leads.filter(l => l.is_matriculado === true || l.status_funil === 'convertido').map(l => l.id)
+  );
+  const total = ids.size;
+  const matriculasCoorte = matriculados.size;
+  return { matriculasCoorte, taxaConversaoCoorte: total > 0 ? (matriculasCoorte / total) * 100 : 0 };
+}
+
 export function useExecutivoMetrics(leads: Lead[], interacoes: Interacao[]): UseExecutivoMetricsReturn {
   
   // ==================== TOP CARDS ====================
@@ -67,7 +78,8 @@ export function useExecutivoMetrics(leads: Lead[], interacoes: Interacao[]): Use
       taxaLeadAtendimento,
       faturamentoTotal,
       ticketMedio,
-      ltv
+      ltv,
+      ...calcularConversaoCoorte(leads),
     };
   }, [leads, interacoes]);
 
