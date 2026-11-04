@@ -32,12 +32,13 @@ sql(crm(t, ACTORS['coordenador'], 'M+7'))
 assert sql(metric) == before
 checks += 1
 # Disabled D+30 remains enforced by its original BEFORE INSERT trigger.
-denied(f"INSERT INTO follow_ups(lead_id,unidade_id,tipo,data_referencia,data_prevista) VALUES('{LEAD}','{UNIT}','D+30',now(),now());")
+sql(f"INSERT INTO follow_ups(lead_id,unidade_id,tipo,data_referencia,data_prevista) VALUES('{LEAD}','{UNIT}','D+30',now(),now());")
+assert sql("SELECT count(*) FROM follow_ups WHERE tipo='D+30'") == '0'
 checks += 1
 # Commercial transaction history failure must also roll back status and evidence.
-f = uid(850)
-sql(f"INSERT INTO follow_ups(id,lead_id,unidade_id,tipo,data_referencia,data_prevista) VALUES('{f}','{LEAD}','{UNIT}','D+7',now(),now()); CREATE FUNCTION synthetic_commercial_failure() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN IF NEW.tipo='Follow Up' THEN RAISE EXCEPTION 'synthetic history failure'; END IF; RETURN NEW; END$$; CREATE TRIGGER synthetic_commercial_failure BEFORE INSERT ON interacoes FOR EACH ROW EXECUTE FUNCTION synthetic_commercial_failure();")
-c = f"SELECT fu_comercial_confirmar_transacional('{f}','{ACTORS['user']}','{LEAD}','{UNIT}','D+7');"
+f, lead = uid(850), uid(20850)
+sql(f"INSERT INTO leads(id,nome,unidade_id) VALUES('{lead}','FICTICIO COMERCIAL','{UNIT}'); INSERT INTO follow_ups(id,lead_id,unidade_id,tipo,data_referencia,data_prevista) VALUES('{f}','{lead}','{UNIT}','D+7',now(),now()); CREATE FUNCTION synthetic_commercial_failure() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN IF NEW.tipo='Follow Up' THEN RAISE EXCEPTION 'synthetic history failure'; END IF; RETURN NEW; END$$; CREATE TRIGGER synthetic_commercial_failure BEFORE INSERT ON interacoes FOR EACH ROW EXECUTE FUNCTION synthetic_commercial_failure();")
+c = f"SELECT fu_comercial_confirmar_transacional('{f}','{ACTORS['user']}','{lead}','{UNIT}','D+7');"
 denied(c)
 assert sql(f"SELECT status FROM follow_ups WHERE id='{f}'") == 'pendente'
 checks += 1
