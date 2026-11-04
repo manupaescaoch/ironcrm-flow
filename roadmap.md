@@ -1,8 +1,15 @@
 # Roadmap
 
+## Fase 1E — preparação isolada, sem produção
+- [x] Incluir moderator exclusivamente em confirmações Recepção com unidade, preservando demais permissões; candidatos CRM/Telegram corrigem vínculo direto em serviço sem modificar helper/RLS.
+- [x] Preparar ativação padrão desligada compatível com produção e lista explícita de usuários de teste.
+- [x] Restaurar estrutura pública real sem registros pessoais; testar SQL, JWT assinado, interface com transporte local, concorrência, persistência e regressões. Auth hospedado/PostgREST completos e dispositivos reais permanecem não certificados.
+- [x] Entregar arquivos, candidatos, matriz, evidências, riscos, planos de publicação e reversão no relatório da Fase 1E.
+- [ ] Implantação/publicação: proibida até aprovação explícita; nova preparação pode exigir homologação do transporte hospedado e liberação dos usuários de teste.
+
 ## Auditoria de abertura, confirmação e indicadores FU — 04/11/2026
 - [x] Fase 1D: aviso comercial corrigido, SQL/endpoints candidatos fora da implantação, Enviado CRM com ativação somente desenvolvimento inativa, 90 Bun + 93 Deno, 70 verificações SQL e quatro ensaios navegador aprovados. Lint direcionado sem erros (um aviso legado Fast Refresh), tipagem candidata Deno e build automático OK. Nenhuma produção alterada.
-- [ ] Fase 1D implantação: depende de aprovação posterior; moderator/Recepção permanece bloqueado conforme banco, ampliação exige autorização; política completa de evidência e login real não certificados no fixture reduzido.
+- [ ] Fase 1D implantação: depende de aprovação posterior; Fase 1E autorizou moderator em candidatos isolados, mas produção permanece intacta; validar transporte hospedado antes de liberar usuários de teste.
 - [x] Fase 1C: 147 testes (84 Bun + 63 Deno), 33 verificações SQL isoladas e três ensaios de navegador aprovados; metadados atuais consultados somente leitura; relatório entregue com lint global reprovado e lacuna comercial reproduzida. Sem código funcional, implantação, publicação ou escrita de produção.
 - [x] Implementação isolada das propostas autorizada na Fase 1D; Zod/lint relevante resolvidos, concorrência SQL CRM × Telegram e handler local aprovados. Implantação e fixture completo seguem pendentes na Fase 1D.
 - [x] Fase 1B: contato vinculado à identidade, confirmação comercial com atualização condicional/releitura, Operação lendo tarefas persistidas, detalhe por ID e falhas visuais Telegram contidas; 84 Bun + 31 Deno aprovados e novos ensaios Chromium com transporte fictício.

@@ -21,10 +21,12 @@ import { OperacaoKPIRow } from '@/components/operacao/OperacaoKPIRow';
 import { AtividadesUnidadeResumo } from '@/components/operacao/AtividadesUnidadeResumo';
 import { TarefasDeHojeList } from '@/components/operacao/TarefasDeHojeList';
 import { AtencaoCard, AtencaoItem } from '@/components/operacao/AtencaoCard';
-import { confirmationDevelopmentEnabled } from '@/lib/fuConfirmationClient';
+import { confirmationEnabledForUser } from '@/lib/fuConfirmationClient';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Operacao() {
   const { unidadeAtual, loading: unidadeLoading } = useUnidade();
+  const { user } = useAuth();
 
   // Período fixo (visão do dia/semana) — a operação é sempre "hoje"
   const [startDate] = useState(() => new Date(2020, 0, 1));
@@ -254,7 +256,7 @@ export default function Operacao() {
           </div>
         )}
 
-        {confirmationDevelopmentEnabled && <PersistedFuSection title="FU Coordenador" items={technicalFu} loading={persistedFu.loading} error={persistedFu.error} refetch={persistedFu.refetch} />}
+        {confirmationEnabledForUser(user?.id) && <PersistedFuSection title="FU Coordenador" items={technicalFu} loading={persistedFu.loading} error={persistedFu.error} refetch={persistedFu.refetch} />}
 
         {showFollowUpSection && (
           <div ref={followUpSectionRef} className="space-y-4">
