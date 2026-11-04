@@ -2,7 +2,7 @@
 
 ## Fase 1F — implantação controlada
 - [ ] Exportar banco atual pela interface Lovable Cloud — depende do usuário iniciar Export data; sem ferramenta de exportação disponível.
-- [ ] Validar recuperação do export em destino isolado sem canais/automações — depende do export e de projeto separado disponibilizados pelo usuário; não executado.
+- [ ] Validar recuperação do export em destino isolado — não executado; usuário aceitou risco residual em 04/11 16:02 UTC, mantendo export disponível como condição obrigatória.
 - [x] Reconfirmar quatro definições SQL originais e ACLs preservadas localmente; candidatos servidor bloqueiam por padrão sem lista autorizada.
 - [x] Consolidar checklist final: arquivos/endpoints, bloqueio servidor candidato, recuperação, ordem, verificações e interrupções; implantação segue bloqueada.
 - [x] Documentar limites de verificação do backup e alternativa isolada de recuperação — snapshot não verificável pelas ferramentas; export/destino dependem do usuário.
@@ -10,7 +10,7 @@
 - [x] Revisar plano final com impacto Telegram e reversão; nenhuma execução em produção autorizada pela aprovação de escopo.
 - [x] Ler autorização, consultar definições/ACLs e trigger instalados, preservar snapshot e conferir flag desligada (3 testes aprovados).
 - [x] Registrar backup informado pelo usuário: 04/11/2026 04:49:58 UTC; recuperabilidade não ensaiada.
-- [ ] Aplicar somente seis funções aprovadas e implantar dois endpoints — aguarda aprovação do plano exato e revisão de divergências.
+- [ ] Aplicar somente seis funções aprovadas e implantar dois endpoints — autorizado em 04/11 16:02 UTC, condicionado a export atual disponível; aguarda confirmação dessa condição.
 - [ ] Validar transporte hospedado, rejeições sem escrita e integridade — depende da implantação aprovada.
 - [ ] Preparar/publicar liberação restrita — depende de usuários autorizados e nova autorização específica; interface permanece desligada.
 
