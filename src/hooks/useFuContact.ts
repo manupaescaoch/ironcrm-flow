@@ -4,21 +4,22 @@ import { contactKey, contactMatches, type ContactIdentity } from '@/lib/fuContac
 
 export function useFuContact(identity: ContactIdentity, makeMessage: (name: string) => string) {
   const key = contactKey(identity);
+  const { taskId, leadId, enrollmentId, unitId, stage } = identity;
   const [loaded, setLoaded] = useState<{ key: string; aluno: { nome: string; telefone: string | null }; mensagem: string } | null>(null);
   const [failure, setFailure] = useState<{ key: string; message: string } | null>(null);
   useEffect(() => {
     let active = true;
     setLoaded(null);
     setFailure(null);
-    if (!identity.taskId || !identity.leadId || !identity.enrollmentId || !identity.unitId || !identity.stage) {
+    if (!taskId || !leadId || !enrollmentId || !unitId || !stage) {
       setFailure({ key, message: 'Contato indisponível para esta seleção.' });
       return;
     }
     (async () => {
       try {
         const [lead, enrollment] = await Promise.all([
-          supabase.from('leads').select('nome,telefone').eq('id', identity.leadId).eq('unidade_id', identity.unitId).maybeSingle(),
-          supabase.from('interacoes').select('id').eq('id', identity.enrollmentId).eq('lead_id', identity.leadId).eq('unidade_id', identity.unitId).maybeSingle(),
+          supabase.from('leads').select('nome,telefone').eq('id', leadId).eq('unidade_id', unitId).maybeSingle(),
+          supabase.from('interacoes').select('id').eq('id', enrollmentId).eq('lead_id', leadId).eq('unidade_id', unitId).maybeSingle(),
         ]);
         if (!active) return;
         if (lead.error || enrollment.error) throw new Error('Não foi possível carregar este contato.');
@@ -29,7 +30,7 @@ export function useFuContact(identity: ContactIdentity, makeMessage: (name: stri
       }
     })();
     return () => { active = false; };
-  }, [key, makeMessage]);
+  }, [key, makeMessage, taskId, leadId, enrollmentId, unitId, stage]);
   const matching = contactMatches(key, loaded?.key);
   return {
     aluno: matching ? loaded?.aluno ?? null : null,

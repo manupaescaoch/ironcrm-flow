@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -134,7 +134,11 @@ export function TarefaModal({
     },
   });
 
+  const resetKey = useRef<string | null>(null);
   useEffect(() => {
+    const key = `${task?.id ?? "new"}:${open}`;
+    if (resetKey.current === key) return;
+    resetKey.current = key;
     if (task) {
       setGerencialStatus(task.fu_gerencial_status ?? 'pendente');
       setGerencialRegistro(task.fu_gerencial_registro ?? registroGerencialVazio);
@@ -168,7 +172,7 @@ export function TarefaModal({
       setRecorrenciaFim(null);
       setActiveTab('detalhes');
     }
-  }, [task?.id, form, open]);
+  }, [task, form, open]);
   useEffect(() => {
     if (task?.fu_tecnico_status) setTecnicoStatus(task.fu_tecnico_status);
     if (task?.fu_gerencial_status) setGerencialStatus(task.fu_gerencial_status);

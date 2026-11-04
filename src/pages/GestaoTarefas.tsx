@@ -38,7 +38,7 @@ export default function GestaoTarefas() {
   useEffect(() => {
     const id = searchParams.get('task');
     if (id && tasks.some(task => task.id === id && task.unidade_id === unidadeAtual?.id)) { setSelectedTaskId(id); setModalOpen(true); }
-  }, [searchParams, unidadeAtual?.id, tasks.length]);
+  }, [searchParams, unidadeAtual?.id, tasks]);
   const [isSaving, setIsSaving] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [filters, setFilters] = useState<TarefasFiltersState>({
