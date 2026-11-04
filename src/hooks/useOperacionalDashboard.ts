@@ -43,8 +43,8 @@ function useRawOperacional(start: string, end: string) {
   return useQuery<RawData>({
     queryKey: ['operacional-dashboard-raw', prevStart, end],
     queryFn: async () => {
-      const fromTs = `${prevStart}T00:00:00`;
-      const toTs = `${end}T23:59:59.999`;
+      const fromTs = `${prevStart}T00:00:00-03:00`;
+      const toTs = `${end}T23:59:59.999999-03:00`;
       const [h, c, t, a, p] = await Promise.all([
         supabase.from('encerramento_horario_respostas').select('*').gte('data', prevStart).lte('data', end),
         supabase.from('encerramento_coordenador_respostas').select('*').gte('created_at', fromTs).lte('created_at', toTs),

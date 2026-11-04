@@ -91,9 +91,11 @@ export function useDashboardStats(): UseDashboardStatsReturn {
     );
 
     // Map: lead_id -> data_experimental (do lead que compareceu)
-    const dataExperimentalPorLead = new Map<string, string>();
+    const dataExperimentalPorLead = new Map<string, Set<string>>();
     experimentaisData?.filter(e => e.compareceu === true && e.data_experimental).forEach(e => {
-      dataExperimentalPorLead.set(e.lead_id, e.data_experimental as string);
+      const datas = dataExperimentalPorLead.get(e.lead_id) ?? new Set<string>();
+      datas.add(e.data_experimental as string);
+      dataExperimentalPorLead.set(e.lead_id, datas);
     });
 
     // Fetch matriculas count for period - counting unique leads only
@@ -110,8 +112,7 @@ export function useDashboardStats(): UseDashboardStatsReturn {
     // Conversão no mesmo dia: leads cuja data_fechamento === data_experimental (compareceu)
     const leadsConversaoMesmoDia = new Set<string>();
     matriculasData?.forEach(m => {
-      const dataExp = dataExperimentalPorLead.get(m.lead_id);
-      if (dataExp && m.data_fechamento === dataExp) {
+      if (m.data_fechamento && dataExperimentalPorLead.get(m.lead_id)?.has(m.data_fechamento)) {
         leadsConversaoMesmoDia.add(m.lead_id);
       }
     });
