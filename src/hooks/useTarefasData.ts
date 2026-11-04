@@ -121,13 +121,13 @@ export function useTarefasData() {
       if (fetchError) throw fetchError;
       if (request !== requestId.current || unitId !== currentUnit.current) return;
       setTasks((data as unknown as Task[]) || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (request !== requestId.current || unitId !== currentUnit.current) return;
       console.error('Erro ao buscar tarefas:', err);
-      setError(err.message);
+      setError((err instanceof Error ? err.message : String(err)));
       toast({
         title: 'Erro ao carregar tarefas',
-        description: err.message,
+        description: (err instanceof Error ? err.message : String(err)),
         variant: 'destructive',
       });
     } finally {
@@ -194,11 +194,11 @@ export function useTarefasData() {
       }
 
       return data as unknown as Task;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao criar tarefa:', err);
       toast({
         title: 'Erro ao criar tarefa',
-        description: err.message,
+        description: (err instanceof Error ? err.message : String(err)),
         variant: 'destructive',
       });
       throw err;
@@ -224,11 +224,11 @@ export function useTarefasData() {
       }
 
       return data as unknown as Task;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao atualizar tarefa:', err);
       toast({
         title: 'Erro ao atualizar tarefa',
-        description: err.message,
+        description: (err instanceof Error ? err.message : String(err)),
         variant: 'destructive',
       });
       throw err;
@@ -248,11 +248,11 @@ export function useTarefasData() {
         title: 'Tarefa excluída',
         description: 'A tarefa foi excluída com sucesso.',
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao excluir tarefa:', err);
       toast({
         title: 'Erro ao excluir tarefa',
-        description: err.message,
+        description: (err instanceof Error ? err.message : String(err)),
         variant: 'destructive',
       });
       throw err;

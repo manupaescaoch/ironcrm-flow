@@ -33,12 +33,14 @@ export function usePersistedFuTasks() {
     }
   }, [unitId]);
   useEffect(() => {
+    const generationRef = generation;
     void refetch();
     if (!unitId) return;
     const channel = supabase.channel(`persisted-fu-${unitId}`).on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `unidade_id=eq.${unitId}` }, () => { void refetch(); }).subscribe();
     const refresh = () => { void refetch(); };
     window.addEventListener('focus', refresh);
-    return () => { generation.current++; void supabase.removeChannel(channel); window.removeEventListener('focus', refresh); };
+    window.addEventListener('fu-confirmation-changed', refresh);
+    return () => { generationRef.current++; void supabase.removeChannel(channel); window.removeEventListener('focus', refresh); window.removeEventListener('fu-confirmation-changed', refresh); };
   }, [unitId, refetch]);
   return { items: state.unitId === unitId ? state.items : [], loading: state.unitId !== unitId || state.loading, error: state.unitId === unitId ? state.error : null, refetch };
 }

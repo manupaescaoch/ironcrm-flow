@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { confirmedFuToday, type FuTaskItem } from '@/lib/fuTaskState';
 import { fuDay } from '@/lib/fuBusinessDays';
 import { useRef } from 'react';
+import type { LucideIcon } from 'lucide-react';
 
 interface AtividadesStats {
   experimentaisHoje: number;
@@ -36,7 +37,7 @@ interface AtividadesDoDiaProps {
   persistedFuLoading?: boolean;
 }
 
-const ITEMS: Array<{ key: StatKey; label: string; subtitle: string; icon: any; color: string }> = [
+const ITEMS: Array<{ key: StatKey; label: string; subtitle: string; icon: LucideIcon; color: string }> = [
   { key: 'experimentaisHoje', label: 'Experimentais do dia', subtitle: 'aulas experimentais hoje', icon: Dumbbell, color: 'text-primary' },
   { key: 'experimentaisSemana', label: 'Experimentais da semana', subtitle: 'agendadas nesta semana', icon: CalendarDays, color: 'text-indigo-600' },
   { key: 'confirmacoesEnviadas', label: 'Confirmações experimentais', subtitle: 'lembretes 24h/2h enviados hoje', icon: BellRing, color: 'text-sky-600' },
@@ -63,14 +64,14 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
   const [modalLoading, setModalLoading] = useState(false);
   const [fuRefresh, setFuRefresh] = useState(0);
   const currentUnit = useRef(unidadeAtual?.id); currentUnit.current = unidadeAtual?.id;
-  const confirmedInternal = confirmedFuToday(persistedFuItems.filter(item => item.unitId === unidadeAtual?.id));
+  const confirmedInternal = useMemo(() => confirmedFuToday(persistedFuItems.filter(item => item.unitId === unidadeAtual?.id)), [persistedFuItems, unidadeAtual?.id]);
   useEffect(() => {
     if (!unidadeAtual) return;
     const refresh = () => setFuRefresh(value => value + 1);
     const channel = supabase.channel(`activity-fu-${unidadeAtual.id}`).on('postgres_changes', { event: '*', schema: 'public', table: 'follow_ups', filter: `unidade_id=eq.${unidadeAtual.id}` }, refresh).subscribe();
     window.addEventListener('fu-confirmation-changed', refresh);
     return () => { void supabase.removeChannel(channel); window.removeEventListener('fu-confirmation-changed', refresh); };
-  }, [unidadeAtual?.id]);
+  }, [unidadeAtual]);
 
   useEffect(() => {
     if (!unidadeAtual) return;
@@ -144,12 +145,12 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
           .lte('confirmacao_2h_enviada_em', endTs),
       ]);
 
-      const leadsComAnamnese = new Set((anamLeadIdsRes.data || []).map((a: any) => a.lead_id));
-      const pendentes = (leadsExpRes.data || []).filter((l: any) => !leadsComAnamnese.has(l.id)).length;
+      const leadsComAnamnese = new Set((anamLeadIdsRes.data || []).map((a) => a.lead_id));
+      const pendentes = (leadsExpRes.data || []).filter((l) => !leadsComAnamnese.has(l.id)).length;
 
       const confSet = new Set<string>();
-      (conf24Res.data || []).forEach((l: any) => confSet.add(l.id));
-      (conf2Res.data || []).forEach((l: any) => confSet.add(l.id));
+      (conf24Res.data || []).forEach((l) => confSet.add(l.id));
+      (conf2Res.data || []).forEach((l) => confSet.add(l.id));
 
       if (cancelled) return;
       setStats({
@@ -167,7 +168,7 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
     return () => { cancelled = true; };
   }, [unidadeAtual, fuRefresh]);
 
-  const fetchLeadsForKey = async (key: StatKey) => {
+  const fetchLeadsForKey = useCallback(async (key: StatKey) => {
     if (!unidadeAtual) return;
     const requestedUnit = unidadeAtual.id;
     setModalLoading(true);
@@ -185,8 +186,8 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
           .eq('agendou_experimental', true)
           .eq('data_experimental', today);
         const list: LeadEntry[] = (data || [])
-          .filter((r: any) => r.leads && r.leads.ativo !== false)
-          .map((r: any) => ({
+          .filter((r) => r.leads && r.leads.ativo !== false)
+          .map((r) => ({
             id: r.leads.id,
             nome: r.leads.nome,
             detalhe: r.hora_experimental ? r.hora_experimental.slice(0, 5) : undefined,
@@ -204,8 +205,8 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
           .lte('data_experimental', weekEnd)
           .order('data_experimental', { ascending: true });
         const list: LeadEntry[] = (data || [])
-          .filter((r: any) => r.leads && r.leads.ativo !== false)
-          .map((r: any) => {
+          .filter((r) => r.leads && r.leads.ativo !== false)
+          .map((r) => {
             const [y, m, d] = (r.data_experimental || '').split('-').map(Number);
             const dataFmt = y ? format(new Date(y, m - 1, d), 'dd/MM', { locale: ptBR }) : '';
             const hora = r.hora_experimental ? r.hora_experimental.slice(0, 5) : '';
@@ -219,7 +220,7 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
           .select('id, nome, confirmacao_24h_enviada_em, confirmacao_2h_enviada_em')
           .eq('unidade_id', unidadeAtual.id)
           .or(`and(confirmacao_24h_enviada_em.gte.${startTs},confirmacao_24h_enviada_em.lte.${endTs}),and(confirmacao_2h_enviada_em.gte.${startTs},confirmacao_2h_enviada_em.lte.${endTs})`);
-        const list: LeadEntry[] = (data || []).map((l: any) => {
+        const list: LeadEntry[] = (data || []).map((l) => {
           const at2h = l.confirmacao_2h_enviada_em && l.confirmacao_2h_enviada_em >= startTs && l.confirmacao_2h_enviada_em <= endTs;
           const tipo = at2h ? '2h' : '24h';
           const at = at2h ? l.confirmacao_2h_enviada_em : l.confirmacao_24h_enviada_em;
@@ -237,7 +238,7 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
           .eq('unidade_id', unidadeAtual.id)
           .gte('created_at', startTs)
           .lte('created_at', endTs);
-        const list: LeadEntry[] = (data || []).map((a: any) => ({
+        const list: LeadEntry[] = ((data ?? []) as unknown as Array<{ leads: { id: string; nome: string }; created_at: string }>).map((a) => ({
           id: a.leads.id,
           nome: a.leads.nome,
           detalhe: format(new Date(a.created_at), 'HH:mm', { locale: ptBR }),
@@ -256,10 +257,10 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
             .select('lead_id')
             .eq('unidade_id', unidadeAtual.id),
         ]);
-        const respondidos = new Set((anamRes.data || []).map((a: any) => a.lead_id));
+        const respondidos = new Set((anamRes.data || []).map((a) => a.lead_id));
         const list: LeadEntry[] = (leadsRes.data || [])
-          .filter((l: any) => !respondidos.has(l.id))
-          .map((l: any) => ({
+          .filter((l) => !respondidos.has(l.id))
+          .map((l) => ({
             id: l.id,
             nome: l.nome,
             detalhe: l.data_aula_experimental
@@ -277,7 +278,7 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
           .not('concluido_por', 'in', '("SISTEMA (duplicidade bloqueada)","SISTEMA (reagendado)")')
           .gte('concluido_em', startTs)
           .lte('concluido_em', endTs);
-        const list: LeadEntry[] = (data || []).map((f: any) => ({
+        const list: LeadEntry[] = (data || []).map((f) => ({
           id: f.leads.id,
           nome: f.leads.nome,
           detalhe: `${f.tipo}${f.concluido_em ? ' • ' + format(new Date(f.concluido_em), 'HH:mm', { locale: ptBR }) : ''}`,
@@ -292,7 +293,7 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
           .in('tipo', ['D+1', 'D+7', 'D+15', 'REAG'])
           .gte('data_prevista', startTs)
           .order('data_prevista', { ascending: true });
-        const list: LeadEntry[] = (data || []).map((f: any) => ({
+        const list: LeadEntry[] = (data || []).map((f) => ({
           id: f.leads.id,
           nome: f.leads.nome,
           detalhe: `${f.tipo} • ${format(new Date(f.data_prevista), 'dd/MM HH:mm', { locale: ptBR })}`,
@@ -302,9 +303,9 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
     } finally {
       setModalLoading(false);
     }
-  };
+  }, [unidadeAtual, persistedFuItems, confirmedInternal]);
 
-  const dedupe = (list: LeadEntry[]) => {
+  function dedupe(list: LeadEntry[]) {
     const seen = new Set<string>();
     return list.filter((l) => {
       if (seen.has(l.id)) return false;
@@ -322,7 +323,7 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
   useEffect(() => { setOpenKey(null); setModalLeads([]); }, [unidadeAtual?.id]);
   useEffect(() => {
     if (openKey === 'followUpsEnviados' || openKey === 'followUpsAgendados') void fetchLeadsForKey(openKey);
-  }, [fuRefresh, persistedFuItems, openKey]);
+  }, [fuRefresh, persistedFuItems, openKey, fetchLeadsForKey]);
 
   return (
     <>

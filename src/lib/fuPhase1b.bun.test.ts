@@ -8,11 +8,12 @@ import { commercialHistoryId } from './commercialHistoryIdentity';
 const identity = { id: 'a', leadId: 'alfa', unitId: 'one', stage: 'D+1' };
 const original: PersistedCommercial = { id: 'a', lead_id: 'alfa', unidade_id: 'one', tipo: 'D+1', status: 'pendente', concluido_em: null };
 function fixture(mode: 'ok' | 'zero' | 'history-failure' | 'lost-response' = 'ok') {
-  let row = { ...original }; let historyCount = 0; let updateCount = 0;
+  let row = { ...original }; let historyCount = 0; let updateCount = 0; let historySaved = false;
   const store: CommercialStore = {
     read: async () => ({ data: { ...row } }),
+    readHistory: async () => ({ data: historySaved ? { id: 'history' } : null }),
     completePending: async (_identity, at) => { updateCount++; if (mode === 'zero') return { data: null }; row = { ...row, status: 'concluido', concluido_em: at }; if (mode === 'lost-response') throw new Error('response lost'); return { data: row }; },
-    addHistory: async () => { historyCount++; return mode === 'history-failure' ? { data: null, error: true } : { data: { id: 'history' } }; },
+    addHistory: async () => { historyCount++; historySaved = mode !== 'history-failure'; return historySaved ? { data: { id: 'history' } } : { data: null, error: true }; },
   };
   return { store, counts: () => ({ historyCount, updateCount }), row: () => row };
 }
@@ -26,6 +27,8 @@ describe('Fase 1B identity and persistence', () => {
   test('invalid phone cannot form a contact link', () => { expect(telefoneTecnico('abc')).toBeNull(); expect(telefoneTecnico('81900000001')).toBe('5581900000001'); });
   test('zero changed rows cannot claim success', async () => { const f = fixture('zero'); await expect(confirmCommercialFollowUp(f.store, identity, 'TESTE', 'test')).rejects.toThrow('confirmar a gravação'); expect(f.counts().historyCount).toBe(0); });
   test('history failure is explicit while persisted confirmation stays saved', async () => { const f = fixture('history-failure'); const r = await confirmCommercialFollowUp(f.store, identity, 'TESTE', 'test'); expect(r.historyPending).toBe(true); expect(f.row().status).toBe('concluido'); });
+  test('repeating concluded follow-up keeps missing history warning without reconstruction', async () => { const f = fixture('history-failure'); await confirmCommercialFollowUp(f.store, identity, 'TESTE', 'test'); const repeated = await confirmCommercialFollowUp(f.store, identity, 'TESTE', 'test'); expect(repeated.historyPending).toBe(true); expect(repeated.alreadyConfirmed).toBe(true); expect(f.counts()).toEqual({ historyCount: 1, updateCount: 1 }); });
+  test('concurrent loser verifies history and preserves warning when absent', async () => { const f = fixture(); let reads = 0; f.store.read = async () => ({ data: ++reads === 1 ? original : { ...original, status: 'concluido', concluido_em: '2026-11-04T12:00:00Z' } }); f.store.completePending = async () => ({ data: null }); const r = await confirmCommercialFollowUp(f.store, identity, 'TESTE', 'test'); expect(r.historyPending).toBe(true); expect(f.counts().historyCount).toBe(0); });
   test('response lost after commit reads persisted state without a second update', async () => { const f = fixture('lost-response'); const r = await confirmCommercialFollowUp(f.store, identity, 'TESTE', 'test'); expect(r.row.status).toBe('concluido'); expect(f.counts().updateCount).toBe(1); });
   test('double click and repeat confirmation create one update and history', async () => { const f = fixture(); const [a,b] = await Promise.all([confirmCommercialFollowUp(f.store, identity, 'TESTE', 'test'), confirmCommercialFollowUp(f.store, identity, 'TESTE', 'test')]); expect(a.row.concluido_em).toBe(b.row.concluido_em); await confirmCommercialFollowUp(f.store, identity, 'TESTE', 'test'); expect(f.counts()).toEqual({ updateCount: 1, historyCount: 1 }); });
   test('wrong unit read-back cannot confirm a different record', async () => { const f = fixture(); f.store.read = async () => ({ data: { ...original, unidade_id: 'other' } }); await expect(confirmCommercialFollowUp(f.store, identity, 'TESTE', 'test')).rejects.toThrow('unidade'); expect(f.counts().updateCount).toBe(0); });

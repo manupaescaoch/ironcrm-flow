@@ -21,7 +21,8 @@ import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format, differenceInDays, isToday, isPast, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -114,7 +115,7 @@ export function FollowUpSections({
   const [now, setNow] = useState(Date.now());
 
   // Atualiza contador do cooldown
-  useMemo(() => {
+  useEffect(() => {
     if (manualCooldownUntil <= 0) return;
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
@@ -134,9 +135,9 @@ export function FollowUpSections({
         },
       });
       if (error) {
-        const msg = (error as any)?.context?.error || error.message || 'Falha ao iniciar envio';
+        const msg = error.message || 'Falha ao iniciar envio';
         // Supabase functions.invoke retorna erro em status != 2xx; tentamos extrair a mensagem
-        const status = (error as any)?.context?.status;
+        const status = error instanceof FunctionsHttpError ? error.context.status : undefined;
         if (status === 409) {
           toast.warning('Já existe uma execução manual em andamento. Aguarde alguns minutos.');
         } else if (status === 403) {
@@ -155,8 +156,8 @@ export function FollowUpSections({
       );
       setManualCooldownUntil(Date.now() + 60_000);
       setNow(Date.now());
-    } catch (e: any) {
-      toast.error(e?.message || 'Falha ao iniciar envio');
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Falha ao iniciar envio');
     } finally {
       setManualSending(false);
       setManualConfirmOpen(false);
