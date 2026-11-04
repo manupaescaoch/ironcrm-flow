@@ -7,7 +7,7 @@ const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')
 async function sql(query: string) {
   const result = await new Deno.Command('psql', { args: [...base, '-c', query] }).output();
   if (!result.success) throw new Error(new TextDecoder().decode(result.stderr));
-  return new TextDecoder().decode(result.stdout).trim();
+  return new TextDecoder().decode(result.stdout).trim().split('\n').filter(v => v !== 'SET').join('\n');
 }
 const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
 const jwk = { ...await crypto.subtle.exportKey('jwk', pair.publicKey), kty: 'EC', key_ops: ['verify'], kid: 'isolated', alg: 'ES256', use: 'sig' };
@@ -41,7 +41,7 @@ const server = Deno.serve({ hostname: '127.0.0.1', port: 55442, onListen: () => 
   return handler(req);
 });
 async function seedTask() {
-  const result = await new Deno.Command('python3', { args: ['-c', "import sys;sys.path.insert(0,'docs/fu-phase1e');from structural import task;task(390,'matriculados','M+3')"] }).output();
+  const result = await new Deno.Command('python3', { args: ['-c', "import sys;sys.path.insert(0,'docs/fu-phase1e');from structural import task;from prepare import sql;task(390,'matriculados','M+3') if sql(\"SELECT count(*) FROM tasks WHERE id='00000000-0000-4000-8000-000000000390'\")=='0' else None"] }).output();
   if (!result.success) throw new Error(new TextDecoder().decode(result.stderr));
 }
 const body = { task_id: id(390), lead_id: id(20390), matricula_id: id(10390), unidade_id: id(1), etapa: 'M+3' };
