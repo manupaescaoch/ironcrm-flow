@@ -41,3 +41,19 @@ describe('Fase 3 — indicadores', () => {
     expect(s).toMatch(/if \(requestId !== requestIdRef\.current\) return;/);
   });
 });
+
+import { calcularConversaoCoorte } from '@/hooks/useExecutivoMetrics';
+describe('Fase 3 — coorte executivo', () => {
+  test('3 de 4 leads captados matriculados = 75%', () => {
+    const r = calcularConversaoCoorte([
+      { id: 'a', is_matriculado: true, status_funil: 'convertido' },
+      { id: 'b', is_matriculado: false, status_funil: 'convertido' },
+      { id: 'c', is_matriculado: true, status_funil: 'novo' },
+      { id: 'd', is_matriculado: false, status_funil: 'perdido' },
+    ] as any);
+    expect(r).toEqual({ matriculasCoorte: 3, taxaConversaoCoorte: 75 });
+  });
+  test('sem leads captados = 0%', () => {
+    expect(calcularConversaoCoorte([]).taxaConversaoCoorte).toBe(0);
+  });
+});
