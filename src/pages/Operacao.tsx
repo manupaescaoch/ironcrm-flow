@@ -21,6 +21,7 @@ import { OperacaoKPIRow } from '@/components/operacao/OperacaoKPIRow';
 import { AtividadesUnidadeResumo } from '@/components/operacao/AtividadesUnidadeResumo';
 import { TarefasDeHojeList } from '@/components/operacao/TarefasDeHojeList';
 import { AtencaoCard, AtencaoItem } from '@/components/operacao/AtencaoCard';
+import { confirmationDevelopmentEnabled } from '@/lib/fuConfirmationClient';
 
 export default function Operacao() {
   const { unidadeAtual, loading: unidadeLoading } = useUnidade();
@@ -63,6 +64,7 @@ export default function Operacao() {
   const persistedFu = usePersistedFuTasks();
   const receptionFu = persistedFu.items.filter(item => item.family === 'recepcao');
   const managerFu = persistedFu.items.filter(item => item.family === 'gerencia');
+  const technicalFu = persistedFu.items.filter(item => item.family === 'tecnico');
 
   const { tarefas, resumoPorUnidade, isLoading: tarefasLoading } = useOpsGestao();
 
@@ -251,6 +253,8 @@ export default function Operacao() {
             <PersistedFuSection title="FU Gerente — Vencidos / Hoje" items={managerFu} loading={persistedFu.loading} error={persistedFu.error} refetch={persistedFu.refetch} />
           </div>
         )}
+
+        {confirmationDevelopmentEnabled && <PersistedFuSection title="FU Coordenador" items={technicalFu} loading={persistedFu.loading} error={persistedFu.error} refetch={persistedFu.refetch} />}
 
         {showFollowUpSection && (
           <div ref={followUpSectionRef} className="space-y-4">
