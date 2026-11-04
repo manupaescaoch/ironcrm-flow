@@ -238,7 +238,7 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
           .eq('unidade_id', unidadeAtual.id)
           .gte('created_at', startTs)
           .lte('created_at', endTs);
-        const list: LeadEntry[] = (data || []).map((a) => ({
+        const list: LeadEntry[] = ((data ?? []) as unknown as Array<{ leads: { id: string; nome: string }; created_at: string }>).map((a) => ({
           id: a.leads.id,
           nome: a.leads.nome,
           detalhe: format(new Date(a.created_at), 'HH:mm', { locale: ptBR }),
