@@ -24,3 +24,10 @@ Sem migrations, RLS, publicação ou dados reais alterados.
 - Conversão por treinador (Comissões): comprovado que a base usa só interações com matrícula, logo tende a 100%. Bônus não depende dela. Correção aguarda aprovação.
 - Filtros: nenhum dashboard persiste filtros após recarga; é comportamento atual, não regressão.
 - Testes: 30 passaram, 0 falhas.
+
+## Encerramento (04/11/2026)
+- Comissões: conversão por treinador = alunos únicos com experimental realizada pelo treinador no mês que se matricularam ÷ alunos únicos com experimental realizada (compareceu) pelo treinador no mês × 100. Denominador zero = 0%. Matrículas, bônus e comissões inalterados.
+- Executivo: título "Coorte → Aluno" não é mais cortado.
+- Visual com dados fictícios em duas unidades: Executivo, Dashboard, Operacional e Comissões sem erro; unidades isoladas (A: JOAO 4 aulas/2 matrículas/50%; B: MARIA 1/1/100%); bônus R$ 20/aluno mantido.
+- Testes: 34 passaram, 0 falhas.
+- Fase 3 concluída em desenvolvimento; publicação pendente da homologação final.
