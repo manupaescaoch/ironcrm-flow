@@ -10,6 +10,7 @@ import { ptBR } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 import { confirmedFuToday, type FuTaskItem } from '@/lib/fuTaskState';
 import { fuDay } from '@/lib/fuBusinessDays';
+import { useRef } from 'react';
 
 interface AtividadesStats {
   experimentaisHoje: number;
@@ -61,6 +62,7 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
   const [modalLeads, setModalLeads] = useState<LeadEntry[]>([]);
   const [modalLoading, setModalLoading] = useState(false);
   const [fuRefresh, setFuRefresh] = useState(0);
+  const currentUnit = useRef(unidadeAtual?.id); currentUnit.current = unidadeAtual?.id;
   const confirmedInternal = confirmedFuToday(persistedFuItems.filter(item => item.unitId === unidadeAtual?.id));
   useEffect(() => {
     if (!unidadeAtual) return;
@@ -117,7 +119,8 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
           .select('id', { count: 'exact', head: true })
           .eq('unidade_id', unidadeAtual.id)
           .eq('status', 'concluido')
-          .in('tipo', ['D+1', 'D+7', 'D+15', 'REAG', 'POS_EXPERIMENTAL'])
+          .in('tipo', ['D+1', 'D+7', 'D+15', 'REAG'])
+          .not('concluido_por', 'in', '("SISTEMA (duplicidade bloqueada)","SISTEMA (reagendado)")')
           .gte('concluido_em', startTs)
           .lte('concluido_em', endTs),
         supabase
@@ -125,7 +128,7 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
           .select('id', { count: 'exact', head: true })
           .eq('unidade_id', unidadeAtual.id)
           .eq('status', 'pendente')
-          .in('tipo', ['D+1', 'D+7', 'D+15', 'REAG', 'POS_EXPERIMENTAL'])
+          .in('tipo', ['D+1', 'D+7', 'D+15', 'REAG'])
           .gte('data_prevista', startTs),
         supabase
           .from('leads')
@@ -166,6 +169,7 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
 
   const fetchLeadsForKey = async (key: StatKey) => {
     if (!unidadeAtual) return;
+    const requestedUnit = unidadeAtual.id;
     setModalLoading(true);
     setModalLeads([]);
     const today = fuDay(new Date());
@@ -269,7 +273,8 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
           .select('lead_id, tipo, concluido_em, leads!inner(id, nome)')
           .eq('unidade_id', unidadeAtual.id)
           .eq('status', 'concluido')
-          .in('tipo', ['D+1', 'D+7', 'D+15', 'REAG', 'POS_EXPERIMENTAL'])
+          .in('tipo', ['D+1', 'D+7', 'D+15', 'REAG'])
+          .not('concluido_por', 'in', '("SISTEMA (duplicidade bloqueada)","SISTEMA (reagendado)")')
           .gte('concluido_em', startTs)
           .lte('concluido_em', endTs);
         const list: LeadEntry[] = (data || []).map((f: any) => ({
@@ -277,14 +282,14 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
           nome: f.leads.nome,
           detalhe: `${f.tipo}${f.concluido_em ? ' • ' + format(new Date(f.concluido_em), 'HH:mm', { locale: ptBR }) : ''}`,
         }));
-        setModalLeads([...list, ...confirmedInternal.map(item => ({ id: item.leadId, nome: item.lead.nome, detalhe: `${item.stage} · ${item.confirmedName ?? 'Envio confirmado'}` }))]);
+        if (currentUnit.current === requestedUnit) setModalLeads([...list, ...confirmedInternal.map(item => ({ id: item.leadId, nome: item.lead.nome, detalhe: `${item.stage} · ${item.confirmedName ?? 'Envio confirmado'}` }))]);
       } else if (key === 'followUpsAgendados') {
         const { data } = await supabase
           .from('follow_ups')
           .select('lead_id, tipo, data_prevista, leads!inner(id, nome)')
           .eq('unidade_id', unidadeAtual.id)
           .eq('status', 'pendente')
-          .in('tipo', ['D+1', 'D+7', 'D+15', 'REAG', 'POS_EXPERIMENTAL'])
+          .in('tipo', ['D+1', 'D+7', 'D+15', 'REAG'])
           .gte('data_prevista', startTs)
           .order('data_prevista', { ascending: true });
         const list: LeadEntry[] = (data || []).map((f: any) => ({
@@ -292,7 +297,7 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
           nome: f.leads.nome,
           detalhe: `${f.tipo} • ${format(new Date(f.data_prevista), 'dd/MM HH:mm', { locale: ptBR })}`,
         }));
-        setModalLeads([...list, ...persistedFuItems.filter(item => item.open && !item.confirmedAt && item.due >= today).map(item => ({ id: item.leadId, nome: item.lead.nome, detalhe: `${item.stage} · ${item.due}` }))]);
+        if (currentUnit.current === requestedUnit) setModalLeads([...list, ...persistedFuItems.filter(item => item.open && !item.confirmedAt && item.due >= today).map(item => ({ id: item.leadId, nome: item.lead.nome, detalhe: `${item.stage} · ${item.due}` }))]);
       }
     } finally {
       setModalLoading(false);
@@ -314,6 +319,10 @@ export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persist
   };
 
   const currentItem = ITEMS.find((i) => i.key === openKey);
+  useEffect(() => { setOpenKey(null); setModalLeads([]); }, [unidadeAtual?.id]);
+  useEffect(() => {
+    if (openKey === 'followUpsEnviados' || openKey === 'followUpsAgendados') void fetchLeadsForKey(openKey);
+  }, [fuRefresh, persistedFuItems, openKey]);
 
   return (
     <>
