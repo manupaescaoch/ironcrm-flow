@@ -59,7 +59,6 @@ interface LayoutProps {
   children: ReactNode;
 }
 
-const MASTER_ADMIN_EMAIL = 'emanuel.paes@gmail.com';
 
 const allNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
@@ -106,9 +105,8 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
 
   // Filter nav items based on user role and master admin status
   const canSee = (item: { masterOnly?: boolean; roles: string[] }) => {
-    const isMasterAdmin = user?.email === MASTER_ADMIN_EMAIL;
-    if (item.masterOnly && !isMasterAdmin) return false;
-    if (!userRole) return true; // fallback for users without role
+    // Role comes from user_roles (server-validated); never fail open nor gate by e-mail.
+    if (!userRole) return false;
     return item.roles.includes(userRole);
   };
 
@@ -344,11 +342,7 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ 
           {userRole && (
             <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
               <p className="text-[10px] text-muted-foreground/70 capitalize">{userRole}</p>
-              {user?.email === MASTER_ADMIN_EMAIL ? (
-                <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 bg-purple-500/10 text-purple-500 border-purple-500/30">
-                  Master
-                </Badge>
-              ) : userRole === 'admin' && (
+              {userRole === 'admin' && (
                 <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 bg-amber-500/10 text-amber-500 border-amber-500/30">
                   Admin
                 </Badge>
