@@ -326,10 +326,12 @@ export default function LeadDetail() {
       return;
     }
 
-    const { error } = await supabase
+    const { data: savedLead, error } = await supabase
       .from('leads')
       .update(changedFields)
-      .eq('id', id);
+      .eq('id', id)
+      .eq('unidade_id', lead.unidade_id)
+      .select('*').single();
 
     setSaving(false);
 
@@ -349,9 +351,11 @@ export default function LeadDetail() {
       } else {
         toast({ title: 'Erro ao salvar', description: msg, variant: 'destructive' });
       }
+    } else if (!savedLead || savedLead.id !== lead.id || savedLead.unidade_id !== lead.unidade_id) {
+      toast({ title: 'Erro ao salvar', description: 'Não foi possível confirmar a gravação. Atualize o cadastro e tente novamente.', variant: 'destructive' });
     } else {
-      setLead(leadParaSalvar);
-      setOriginalLead(leadParaSalvar);
+      setLead(savedLead as unknown as Lead);
+      setOriginalLead(savedLead as unknown as Lead);
       toast({ title: 'Lead atualizado!' });
     }
   };
