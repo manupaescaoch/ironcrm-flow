@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useUnidade } from '@/contexts/UnidadeContext';
@@ -28,8 +28,12 @@ export function useComissoesData() {
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
 
+  const requestIdRef = useRef(0);
+  useEffect(() => () => { requestIdRef.current++; }, []);
+
   const fetchComissoes = async () => {
     if (!unidadeAtual) return;
+    const requestId = ++requestIdRef.current;
     setLoading(true);
 
     const mesNum = parseInt(mes);
@@ -49,6 +53,8 @@ export function useComissoesData() {
       .gte('data_fechamento', startDateStr)
       .lte('data_fechamento', endDateStr)
       .order('data_fechamento', { ascending: false });
+
+    if (requestId !== requestIdRef.current) return;
 
     if (error) {
       toast({ title: 'Erro ao carregar comissões', variant: 'destructive' });
