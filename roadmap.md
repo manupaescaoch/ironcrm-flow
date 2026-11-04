@@ -1,5 +1,12 @@
 # Roadmap
 
+## Fase 1F — implantação controlada
+- [x] Ler autorização, consultar definições/ACLs e trigger instalados, preservar snapshot e conferir flag desligada (3 testes aprovados).
+- [x] Registrar backup informado pelo usuário: 04/11/2026 04:49:58 UTC; recuperabilidade não ensaiada.
+- [ ] Aplicar somente seis funções aprovadas e implantar dois endpoints — aguarda aprovação do plano exato e revisão de divergências.
+- [ ] Validar transporte hospedado, rejeições sem escrita e integridade — depende da implantação aprovada.
+- [ ] Preparar/publicar liberação restrita — depende de usuários autorizados e nova autorização específica; interface permanece desligada.
+
 ## Fase 1E — preparação isolada, sem produção
 - [x] Incluir moderator exclusivamente em confirmações Recepção com unidade, preservando demais permissões; candidatos CRM/Telegram corrigem vínculo direto em serviço sem modificar helper/RLS.
 - [x] Preparar ativação padrão desligada compatível com produção e lista explícita de usuários de teste.
