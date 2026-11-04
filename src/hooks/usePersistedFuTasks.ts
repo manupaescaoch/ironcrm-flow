@@ -15,7 +15,7 @@ export function usePersistedFuTasks() {
     if (!unitId) { setState({ items: [], loading: false, error: null }); return; }
     setState(previous => ({ unitId, items: previous.unitId === unitId ? previous.items : [], loading: true, error: null }));
     try {
-      const result = await supabase.from('tasks').select('*').eq('unidade_id', unitId).or('fu_matriculados_etapa.not.is.null,fu_gerencial_etapa.not.is.null,fu_tecnico_etapa.not.is.null').order('prazo');
+      const result = await supabase.from('tasks').select('*').eq('unidade_id', unitId).or('fu_matriculados_lead_id.not.is.null,fu_gerencial_etapa.not.is.null,fu_tecnico_etapa.not.is.null').order('prazo');
       if (result.error) throw result.error;
       const tasks = (result.data ?? []) as unknown as Task[];
       const items = tasks.map(taskFuItem).filter((item): item is FuTaskItem => item !== null);

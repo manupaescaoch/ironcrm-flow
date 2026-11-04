@@ -6,7 +6,7 @@ import { mensagemFuMatriculados } from '../../supabase/functions/_shared/fuMatri
 export type FuFamily = 'recepcao' | 'gerencia' | 'tecnico';
 export type FuTaskItem = { id: string; leadId: string; enrollmentId: string; unitId: string; stage: string; due: string; confirmedAt: string | null; confirmedName: string | null; open: boolean; family: FuFamily; task: Task; lead: { nome: string; telefone: string | null } };
 export function taskFuItem(task: Task): FuTaskItem | null {
-  const family = task.fu_matriculados_etapa ? 'recepcao' : task.fu_gerencial_etapa ? 'gerencia' : task.fu_tecnico_etapa ? 'tecnico' : null;
+  const family = task.fu_matriculados_lead_id && task.fu_matriculados_matricula_id ? 'recepcao' : task.fu_gerencial_etapa ? 'gerencia' : task.fu_tecnico_etapa ? 'tecnico' : null;
   if (!family) return null;
   const stage = family === 'recepcao' ? task.fu_matriculados_etapa : family === 'gerencia' ? task.fu_gerencial_etapa : task.fu_tecnico_etapa;
   const leadId = family === 'recepcao' ? task.fu_matriculados_lead_id : family === 'gerencia' ? task.fu_gerencial_lead_id : task.fu_tecnico_lead_id;
