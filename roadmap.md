@@ -1,6 +1,9 @@
 # Roadmap
 
 ## Fase 1F — implantação controlada
+- [x] Documentar limites de verificação do backup e alternativa isolada de recuperação — snapshot não verificável pelas ferramentas; export/destino dependem do usuário.
+- [x] Preparar bloqueio servidor default-off e lista explícita de contas de teste, além de JWT/papel/unidade; 16 testes novos + 5 regressões Deno e 3 Bun aprovados, sem produção.
+- [x] Revisar plano final com impacto Telegram e reversão; nenhuma execução em produção autorizada pela aprovação de escopo.
 - [x] Ler autorização, consultar definições/ACLs e trigger instalados, preservar snapshot e conferir flag desligada (3 testes aprovados).
 - [x] Registrar backup informado pelo usuário: 04/11/2026 04:49:58 UTC; recuperabilidade não ensaiada.
 - [ ] Aplicar somente seis funções aprovadas e implantar dois endpoints — aguarda aprovação do plano exato e revisão de divergências.
