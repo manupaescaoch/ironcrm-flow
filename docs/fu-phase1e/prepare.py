@@ -21,8 +21,7 @@ def prepare():
     subprocess.run(['pg_dump', '--schema-only', '--schema=public', '--no-owner', '--file=' + str(TMP / 'public.schema.sql')], check=True, capture_output=True)
     schema = (TMP / 'public.schema.sql').read_text()
     # Disposable database only; preserve the exported SQL rather than table replacements.
-    sql('DROP SCHEMA public CASCADE; CREATE SCHEMA public;')
-    sql('DROP SCHEMA public;')
+    sql('DROP SCHEMA IF EXISTS public CASCADE;')
     for role in set(re.findall(r'^GRANT .* TO (\w+);$|^ALTER DEFAULT PRIVILEGES FOR ROLE (\w+)', schema, re.MULTILINE)):
         role = next(part for part in role if part)
         if sql(f"SELECT count(*) FROM pg_roles WHERE rolname='{role}'") == '0':
