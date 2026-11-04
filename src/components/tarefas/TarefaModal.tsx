@@ -168,7 +168,11 @@ export function TarefaModal({
       setRecorrenciaFim(null);
       setActiveTab('detalhes');
     }
-  }, [task, form, open]);
+  }, [task?.id, form, open]);
+  useEffect(() => {
+    if (task?.fu_tecnico_status) setTecnicoStatus(task.fu_tecnico_status);
+    if (task?.fu_gerencial_status) setGerencialStatus(task.fu_gerencial_status);
+  }, [task?.fu_tecnico_status, task?.fu_gerencial_status]);
 
   const handleSubmit = async (data: FormData) => {
     if (!unidadeAtual) return;
