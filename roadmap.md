@@ -1,6 +1,8 @@
 # Roadmap
 
 ## Auditoria de abertura, confirmação e indicadores FU — 04/11/2026
+- [x] Fase 1C: 147 testes (84 Bun + 63 Deno), 33 verificações SQL isoladas e três ensaios de navegador aprovados; metadados atuais consultados somente leitura; relatório entregue com lint global reprovado e lacuna comercial reproduzida. Sem código funcional, implantação, publicação ou escrita de produção.
+- [ ] Implementar confirmação interna CRM e transação comercial — depende de aprovação das propostas e matriz Recepção/BV; concorrência CRM × Telegram e endpoint autenticado são testes futuros, não homologados. Lint relevante e dependência Zod da suíte de segurança exigem triagem antes de certificação integral.
 - [x] Fase 1B: contato vinculado à identidade, confirmação comercial com atualização condicional/releitura, Operação lendo tarefas persistidas, detalhe por ID e falhas visuais Telegram contidas; 84 Bun + 31 Deno aprovados e novos ensaios Chromium com transporte fictício.
 - [ ] Homologar Fase 1B em versão real e implantar/publicar somente após aprovação. Confirmação web das tarefas internas e transação comercial+histórico exigem proposta separada; permissões reais por perfil e concorrência SQL não certificadas nesta fase.
 - [x] Auditar tela, confirmação, Telegram, permissões e consultas somente leitura; reproduzir contato anterior em Técnico/Gerência, telefone inválido e sucesso falso comercial com transporte fictício; 47 testes existentes aprovados. Concorrência SQL e dispositivos reais não homologados.
