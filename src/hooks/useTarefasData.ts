@@ -334,6 +334,9 @@ export function useTarefasData() {
   // Initial fetch
   useEffect(() => {
     fetchTasks();
+    const refresh = () => { void fetchTasks(); };
+    window.addEventListener('focus', refresh);
+    return () => { window.removeEventListener('focus', refresh); };
   }, [fetchTasks]);
 
   // Realtime subscription

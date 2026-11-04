@@ -29,7 +29,7 @@ export function confirmCommercialFollowUp(store: CommercialStore, identity: Comm
     if (persisted.error || !persisted.data || !commercialIdentityMatches(identity, persisted.data) || persisted.data.status !== 'concluido' || !persisted.data.concluido_em) {
       throw new Error('Não foi possível confirmar a gravação. Consulte o estado antes de tentar novamente.');
     }
-    const ownsUpdate = commercialIdentityMatches(identity, updated.data) || Date.parse(persisted.data.concluido_em) === Date.parse(at);
+    const ownsUpdate = commercialIdentityMatches(identity, updated.data) || (!!updated.error && Date.parse(persisted.data.concluido_em) === Date.parse(at));
     // Another client won the conditional update: never insert a second history.
     if (!ownsUpdate) return { row: persisted.data, alreadyConfirmed: true, historyPending: false };
     let historyPending = false;
