@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Auditoria de abertura, confirmação e indicadores FU — 04/11/2026
+- [ ] Fase 1B aprovada: corrigir identidade de contato, confirmação comercial verificada, listas/indicadores persistidos e detalhe atualizado; novos testes isolados; sem publicação, migrações, alterações de permissões ou mensagens reais.
 - [x] Auditar tela, confirmação, Telegram, permissões e consultas somente leitura; reproduzir contato anterior em Técnico/Gerência, telefone inválido e sucesso falso comercial com transporte fictício; 47 testes existentes aprovados. Concorrência SQL e dispositivos reais não homologados.
 - [x] Entregar diagnóstico com matriz, causas comprovadas, limitações e propostas; nenhum arquivo funcional ou registro real alterado.
 - [ ] Aplicar correções e validar — depende de aprovação do diagnóstico; migração e publicação dependem de autorização específica.
