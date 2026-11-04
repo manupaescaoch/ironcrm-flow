@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -59,6 +59,9 @@ export default function Kanban() {
   const [savingLoss, setSavingLoss] = useState(false);
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
+  const leadRequest = useRef(0);
+  const currentUnit = useRef(unidadeAtual?.id);
+  currentUnit.current = unidadeAtual?.id;
 
   // Filters
   const [filterOrigem, setFilterOrigem] = useState<string>('all');
@@ -67,10 +70,18 @@ export default function Kanban() {
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
+    setLeads([]);
+    setLossLead(null);
+    setDraggingId(null);
     fetchLeads();
+    return () => { leadRequest.current++; };
   }, [unidadeAtual?.id]);
 
   const fetchLeads = async () => {
+    const request = ++leadRequest.current;
+    const unitId = unidadeAtual?.id;
+    const isCurrent = () => request === leadRequest.current && currentUnit.current === unitId;
+    if (!unitId) { setLeads([]); setLoading(false); return; }
     setLoading(true);
     
     // Fetch leads
@@ -80,12 +91,11 @@ export default function Kanban() {
       .eq('ativo', true)
       .order('created_at', { ascending: false });
 
-    if (unidadeAtual) {
-      query = query.eq('unidade_id', unidadeAtual.id);
-    }
+    query = query.eq('unidade_id', unitId);
 
     const { data: leadsData, error: leadsError } = await query;
 
+    if (!isCurrent()) return;
     if (leadsError) {
       toast({ title: 'Erro ao carregar leads', variant: 'destructive' });
       setLoading(false);
@@ -100,8 +110,9 @@ export default function Kanban() {
     const chunks: string[][] = [];
     for (let i = 0; i < leadIds.length; i += 150) chunks.push(leadIds.slice(i, i + 150));
     const results = await Promise.all(chunks.map((ids) =>
-      supabase.from('interacoes').select('*').in('lead_id', ids).order('data_interacao', { ascending: false })
+      supabase.from('interacoes').select('*').eq('unidade_id', unitId).in('lead_id', ids).order('data_interacao', { ascending: false })
     ));
+    if (!isCurrent()) return;
     const interacoesData = results.flatMap((r) => r.data ?? [])
       .sort((a: any, b: any) => String(b.data_interacao ?? '').localeCompare(String(a.data_interacao ?? '')));
 
@@ -115,7 +126,7 @@ export default function Kanban() {
         if (!interacoesMap.has(int.lead_id)) {
           interacoesMap.set(int.lead_id, []);
         }
-        interacoesMap.get(int.lead_id)!.push(int);
+        interacoesMap.get(int.lead_id)?.push(int);
         
         // Track experimental data (first found = most recent)
         if (!experimentalMap.has(int.lead_id) && int.data_experimental) {
@@ -134,6 +145,7 @@ export default function Kanban() {
       interacoes: interacoesMap.get(lead.id) || [],
     }));
 
+    if (!isCurrent()) return;
     setLeads(leadsWithExperimental);
     setLoading(false);
   };
@@ -152,6 +164,7 @@ export default function Kanban() {
   // Filter leads
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
+      if (lead.unidade_id !== unidadeAtual?.id) return false;
       // Origem filter
       if (filterOrigem !== 'all' && lead.origem !== filterOrigem) return false;
 
@@ -172,7 +185,7 @@ export default function Kanban() {
 
       return true;
     });
-  }, [leads, filterOrigem, filterAtendidoPor, dateFrom, dateTo]);
+  }, [leads, unidadeAtual?.id, filterOrigem, filterAtendidoPor, dateFrom, dateTo]);
 
   const handleDragStart = (e: React.DragEvent, leadId: string) => {
     setDraggingId(leadId);
