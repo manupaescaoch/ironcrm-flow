@@ -6597,6 +6597,7 @@ export type Database = {
       }
     }
     Functions: {
+      admin_assert_admin: { Args: never; Returns: undefined }
       admin_bulk_update_cronograma: {
         Args: {
           p_add_dias?: number[]
