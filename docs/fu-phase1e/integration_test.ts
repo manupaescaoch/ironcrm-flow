@@ -26,11 +26,11 @@ const handler = createHandler('internal', {
   },
   rpc: async (name, args) => {
     // Handler validates every UUID/stage. This test adapter is NOT a production SQL endpoint.
-    if (name !== 'fu_crm_confirmar_envio' || Object.values(args).some(v => typeof v !== 'string' || !/^[a-zA-Z0-9+\-]+$/.test(v))) return { data: null, error: { code: '22023' } };
+    if (name !== 'fu_crm_confirmar_envio' || Object.values(args).some(v => typeof v !== 'string' || !/^[a-zA-Z0-9+-]+$/.test(v))) return { data: null, error: { code: '22023' } };
     try {
       const values = ['p_task', 'p_actor', 'p_lead', 'p_matricula', 'p_unidade', 'p_etapa'].map(k => `'${args[k]}'`).join(',');
       return { data: JSON.parse(await sql(`SET ROLE service_role; SELECT ${name}(${values});`)), error: null };
-    } catch (e) { return { data: null, error: { code: /ERROR:  (\w{5}):/.exec(String(e))?.[1] ?? 'XX000' } }; }
+    } catch (e) { return { data: null, error: { code: /ERROR: {2}(\w{5}):/.exec(String(e))?.[1] ?? 'XX000' } }; }
   },
 });
 const response = (v: unknown) => new Response(JSON.stringify(v), { headers: { 'Content-Type': 'application/json' } });
