@@ -23,7 +23,8 @@ def prepare():
     # Disposable database only; preserve the exported SQL rather than table replacements.
     sql('DROP SCHEMA public CASCADE; CREATE SCHEMA public;')
     sql('DROP SCHEMA public;')
-    for role in set(re.findall(r'(?:TO|FOR ROLE) (\w+)', schema)):
+    for role in set(re.findall(r'^GRANT .* TO (\w+);$|^ALTER DEFAULT PRIVILEGES FOR ROLE (\w+)', schema, re.MULTILINE)):
+        role = next(part for part in role if part)
         if sql(f"SELECT count(*) FROM pg_roles WHERE rolname='{role}'") == '0':
             sql(f'CREATE ROLE {role};')
     result = subprocess.run(BASE + ['-f', str(TMP / 'public.schema.sql')], capture_output=True, text=True)
