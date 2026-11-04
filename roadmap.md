@@ -1,7 +1,7 @@
 # Roadmap
 
 ## Fase 1F — implantação controlada
-- [ ] Exportar banco atual pela interface Lovable Cloud — depende do usuário iniciar Export data; sem ferramenta de exportação disponível.
+- [x] Export atual concluído e disponível conforme confirmação do usuário em 04/11 16:03 UTC; arquivo não inspecionado.
 - [ ] Validar recuperação do export em destino isolado — não executado; usuário aceitou risco residual em 04/11 16:02 UTC, mantendo export disponível como condição obrigatória.
 - [x] Reconfirmar quatro definições SQL originais e ACLs preservadas localmente; candidatos servidor bloqueiam por padrão sem lista autorizada.
 - [x] Consolidar checklist final: arquivos/endpoints, bloqueio servidor candidato, recuperação, ordem, verificações e interrupções; implantação segue bloqueada.
