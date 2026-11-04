@@ -57,3 +57,19 @@ describe('Fase 3 — coorte executivo', () => {
     expect(calcularConversaoCoorte([]).taxaConversaoCoorte).toBe(0);
   });
 });
+
+import { calcularConversaoTreinador } from '@/hooks/useComissoesData';
+describe('Fase 3 — conversão por treinador', () => {
+  test('2 de 4 experimentais viraram matrícula = 50%', () => {
+    expect(calcularConversaoTreinador(new Set(['a', 'b', 'c', 'd']), new Set(['a', 'b']))).toBe(50);
+  });
+  test('sem matrícula = 0%', () => {
+    expect(calcularConversaoTreinador(new Set(['a', 'b']), new Set())).toBe(0);
+  });
+  test('denominador zero = 0% (sem NaN)', () => {
+    expect(calcularConversaoTreinador(new Set(), new Set(['x']))).toBe(0);
+  });
+  test('matrícula sem experimental do treinador no período não infla a taxa', () => {
+    expect(calcularConversaoTreinador(new Set(['a']), new Set(['a', 'z']))).toBe(100);
+  });
+});

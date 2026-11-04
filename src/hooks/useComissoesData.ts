@@ -19,6 +19,16 @@ import {
   calcularBonusPorAluno,
 } from '@/utils/comissoesMappers';
 
+export interface ExperimentalTreinador { lead_id: string; treinador_responsavel: string | null }
+
+/** Matrículas atribuídas às experimentais do treinador ÷ experimentais realizadas (alunos únicos) × 100. */
+export function calcularConversaoTreinador(aulas: Set<string>, matriculas: Set<string>): number {
+  if (aulas.size === 0) return 0;
+  let convertidas = 0;
+  aulas.forEach((lead) => { if (matriculas.has(lead)) convertidas++; });
+  return (convertidas / aulas.size) * 100;
+}
+
 export function useComissoesData() {
   const [loading, setLoading] = useState(false);
   const [interacoes, setInteracoes] = useState<InteracaoComLead[]>([]);
@@ -28,6 +38,7 @@ export function useComissoesData() {
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
 
+  const [experimentais, setExperimentais] = useState<ExperimentalTreinador[]>([]);
   const requestIdRef = useRef(0);
   useEffect(() => () => { requestIdRef.current++; }, []);
 
@@ -45,6 +56,14 @@ export function useComissoesData() {
     const startDateStr = format(startDate, 'yyyy-MM-dd');
     const endDateStr = format(endDate, 'yyyy-MM-dd');
 
+    const experimentaisPromise = supabase
+      .from('interacoes')
+      .select('lead_id, treinador_responsavel')
+      .eq('compareceu', true)
+      .eq('unidade_id', unidadeAtual.id)
+      .gte('data_experimental', startDateStr)
+      .lte('data_experimental', endDateStr);
+
     const { data: interacoesData, error } = await supabase
       .from('interacoes')
       .select('id, lead_id, responsavel_fechamento, treinador_responsavel, valor_plano, plano_escolhido, comissao_comercial, comissao_recepcao, data_fechamento, fechou_matricula, compareceu, leads(nome, cadastrado_por)')
@@ -54,7 +73,13 @@ export function useComissoesData() {
       .lte('data_fechamento', endDateStr)
       .order('data_fechamento', { ascending: false });
 
+    const { data: experimentaisData, error: expError } = await experimentaisPromise;
+
     if (requestId !== requestIdRef.current) return;
+    if (expError) {
+      toast({ title: 'Erro ao carregar experimentais dos treinadores', variant: 'destructive' });
+    }
+    setExperimentais(expError ? [] : (experimentaisData || []));
 
     if (error) {
       toast({ title: 'Erro ao carregar comissões', variant: 'destructive' });
@@ -166,10 +191,6 @@ export function useComissoesData() {
       const treinador = padronizarTreinadorComissoes(treinadorOriginal!);
       const current = grouped.get(treinador) || { aulasSet: new Set(), matriculasSet: new Set(), faturamento: 0 };
       
-      if (int.compareceu) {
-        current.aulasSet.add(int.lead_id);
-      }
-      
       if (int.fechou_matricula) {
         current.matriculasSet.add(int.lead_id);
         current.faturamento += (int.valor_plano || 0);
@@ -178,12 +199,24 @@ export function useComissoesData() {
       grouped.set(treinador, current);
     });
 
+    const filtro = filterFuncionario.trim().toLowerCase();
+    experimentais.forEach((exp) => {
+      const original = exp.treinador_responsavel;
+      if (!isValidTreinador(original)) return;
+      if (deveExcluirResponsavel(original)) return;
+      if (filtro && !original!.toLowerCase().includes(filtro)) return;
+      const treinador = padronizarTreinadorComissoes(original!);
+      const current = grouped.get(treinador) || { aulasSet: new Set(), matriculasSet: new Set(), faturamento: 0 };
+      current.aulasSet.add(exp.lead_id);
+      grouped.set(treinador, current);
+    });
+
     return Array.from(grouped.entries())
       .map(([treinador, data]) => {
         const aulas = data.aulasSet.size;
         const matriculas = data.matriculasSet.size;
         const faturamento = data.faturamento;
-        const conversao = aulas > 0 ? (matriculas / aulas) * 100 : 0;
+        const conversao = calcularConversaoTreinador(data.aulasSet, data.matriculasSet);
         
         const bonusPorAluno = calcularBonusPorAluno(matriculas);
         const bonusTotal = matriculas * bonusPorAluno;
@@ -192,7 +225,7 @@ export function useComissoesData() {
       })
       .filter(t => t.aulas > 0 || t.matriculas > 0)
       .sort((a, b) => b.matriculas - a.matriculas);
-  }, [filteredInteracoes]);
+  }, [filteredInteracoes, experimentais, filterFuncionario]);
 
   const treinadorStats: TreinadorStats = useMemo(() => {
     const totalMatriculas = bonusTreinadores.reduce((sum, t) => sum + t.matriculas, 0);
