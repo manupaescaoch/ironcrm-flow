@@ -8,6 +8,8 @@ import { useUnidade } from '@/contexts/UnidadeContext';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
+import { confirmedFuToday, type FuTaskItem } from '@/lib/fuTaskState';
+import { fuDay } from '@/lib/fuBusinessDays';
 
 interface AtividadesStats {
   experimentaisHoje: number;
@@ -29,6 +31,8 @@ interface LeadEntry {
 
 interface AtividadesDoDiaProps {
   onVerRelatorio?: () => void;
+  persistedFuItems?: FuTaskItem[];
+  persistedFuLoading?: boolean;
 }
 
 const ITEMS: Array<{ key: StatKey; label: string; subtitle: string; icon: any; color: string }> = [
@@ -41,7 +45,7 @@ const ITEMS: Array<{ key: StatKey; label: string; subtitle: string; icon: any; c
   { key: 'followUpsAgendados', label: 'Follow-ups agendados', subtitle: 'programados', icon: CalendarClock, color: 'text-muted-foreground' },
 ];
 
-export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
+export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persistedFuLoading = false }: AtividadesDoDiaProps) {
   const { unidadeAtual } = useUnidade();
   const [stats, setStats] = useState<AtividadesStats>({
     experimentaisHoje: 0,
@@ -56,6 +60,15 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
   const [openKey, setOpenKey] = useState<StatKey | null>(null);
   const [modalLeads, setModalLeads] = useState<LeadEntry[]>([]);
   const [modalLoading, setModalLoading] = useState(false);
+  const [fuRefresh, setFuRefresh] = useState(0);
+  const confirmedInternal = confirmedFuToday(persistedFuItems.filter(item => item.unitId === unidadeAtual?.id));
+  useEffect(() => {
+    if (!unidadeAtual) return;
+    const refresh = () => setFuRefresh(value => value + 1);
+    const channel = supabase.channel(`activity-fu-${unidadeAtual.id}`).on('postgres_changes', { event: '*', schema: 'public', table: 'follow_ups', filter: `unidade_id=eq.${unidadeAtual.id}` }, refresh).subscribe();
+    window.addEventListener('fu-confirmation-changed', refresh);
+    return () => { void supabase.removeChannel(channel); window.removeEventListener('fu-confirmation-changed', refresh); };
+  }, [unidadeAtual?.id]);
 
   useEffect(() => {
     if (!unidadeAtual) return;
@@ -63,9 +76,9 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
 
     (async () => {
       setLoading(true);
-      const today = format(new Date(), 'yyyy-MM-dd');
-      const startTs = `${today}T00:00:00`;
-      const endTs = `${today}T23:59:59`;
+      const today = fuDay(new Date());
+      const startTs = `${today}T00:00:00-03:00`;
+      const endTs = `${today}T23:59:59.999-03:00`;
       const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
       const weekEnd = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
@@ -104,6 +117,7 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
           .select('id', { count: 'exact', head: true })
           .eq('unidade_id', unidadeAtual.id)
           .eq('status', 'concluido')
+          .in('tipo', ['D+1', 'D+7', 'D+15', 'REAG', 'POS_EXPERIMENTAL'])
           .gte('concluido_em', startTs)
           .lte('concluido_em', endTs),
         supabase
@@ -111,6 +125,7 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
           .select('id', { count: 'exact', head: true })
           .eq('unidade_id', unidadeAtual.id)
           .eq('status', 'pendente')
+          .in('tipo', ['D+1', 'D+7', 'D+15', 'REAG', 'POS_EXPERIMENTAL'])
           .gte('data_prevista', startTs),
         supabase
           .from('leads')
@@ -147,15 +162,15 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
     })();
 
     return () => { cancelled = true; };
-  }, [unidadeAtual]);
+  }, [unidadeAtual, fuRefresh]);
 
   const fetchLeadsForKey = async (key: StatKey) => {
     if (!unidadeAtual) return;
     setModalLoading(true);
     setModalLeads([]);
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const startTs = `${today}T00:00:00`;
-    const endTs = `${today}T23:59:59`;
+    const today = fuDay(new Date());
+    const startTs = `${today}T00:00:00-03:00`;
+    const endTs = `${today}T23:59:59.999-03:00`;
 
     try {
       if (key === 'experimentaisHoje') {
@@ -254,6 +269,7 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
           .select('lead_id, tipo, concluido_em, leads!inner(id, nome)')
           .eq('unidade_id', unidadeAtual.id)
           .eq('status', 'concluido')
+          .in('tipo', ['D+1', 'D+7', 'D+15', 'REAG', 'POS_EXPERIMENTAL'])
           .gte('concluido_em', startTs)
           .lte('concluido_em', endTs);
         const list: LeadEntry[] = (data || []).map((f: any) => ({
@@ -261,13 +277,14 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
           nome: f.leads.nome,
           detalhe: `${f.tipo}${f.concluido_em ? ' • ' + format(new Date(f.concluido_em), 'HH:mm', { locale: ptBR }) : ''}`,
         }));
-        setModalLeads(list);
+        setModalLeads([...list, ...confirmedInternal.map(item => ({ id: item.leadId, nome: item.lead.nome, detalhe: `${item.stage} · ${item.confirmedName ?? 'Envio confirmado'}` }))]);
       } else if (key === 'followUpsAgendados') {
         const { data } = await supabase
           .from('follow_ups')
           .select('lead_id, tipo, data_prevista, leads!inner(id, nome)')
           .eq('unidade_id', unidadeAtual.id)
           .eq('status', 'pendente')
+          .in('tipo', ['D+1', 'D+7', 'D+15', 'REAG', 'POS_EXPERIMENTAL'])
           .gte('data_prevista', startTs)
           .order('data_prevista', { ascending: true });
         const list: LeadEntry[] = (data || []).map((f: any) => ({
@@ -275,7 +292,7 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
           nome: f.leads.nome,
           detalhe: `${f.tipo} • ${format(new Date(f.data_prevista), 'dd/MM HH:mm', { locale: ptBR })}`,
         }));
-        setModalLeads(list);
+        setModalLeads([...list, ...persistedFuItems.filter(item => item.open && !item.confirmedAt && item.due >= today).map(item => ({ id: item.leadId, nome: item.lead.nome, detalhe: `${item.stage} · ${item.due}` }))]);
       }
     } finally {
       setModalLoading(false);
@@ -319,7 +336,7 @@ export function AtividadesDoDia({ onVerRelatorio }: AtividadesDoDiaProps) {
                 </div>
               </div>
               <div className="text-2xl font-semibold tabular-nums">
-                {loading ? '—' : stats[key]}
+                {loading || ((key === 'followUpsEnviados' || key === 'followUpsAgendados') && persistedFuLoading) ? '—' : key === 'followUpsEnviados' ? stats[key] + confirmedInternal.length : key === 'followUpsAgendados' ? stats[key] + persistedFuItems.filter(item => item.open && !item.confirmedAt && item.due >= fuDay(new Date())).length : stats[key]}
               </div>
             </button>
           ))}

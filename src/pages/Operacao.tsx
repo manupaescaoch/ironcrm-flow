@@ -4,8 +4,8 @@ import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useDashboardData } from '@/hooks/useDashboardData';
-import { useFollowUpsMatriculados } from '@/hooks/useFollowUpsMatriculados';
-import { useFollowUpsGerente } from '@/hooks/useFollowUpsGerente';
+import { usePersistedFuTasks } from '@/hooks/usePersistedFuTasks';
+import { pendingFuMessages } from '@/lib/fuTaskState';
 import { useOpsGestao } from '@/hooks/useOpsGestao';
 import { EventosHoje, EventoItem } from '@/components/dashboard/EventosHoje';
 import { ConfirmacoesAmanha } from '@/components/dashboard/ConfirmacoesAmanha';
@@ -15,8 +15,7 @@ import { AtividadesDoDia } from '@/components/dashboard/AtividadesDoDia';
 import { ReagendarModal } from '@/components/dashboard/ReagendarModal';
 import { FollowUpSections } from '@/components/dashboard/FollowUpSections';
 import { CompactRelatorioFollowUps } from '@/components/dashboard/CompactRelatorioFollowUps';
-import { FollowUpMatriculadosSection } from '@/components/dashboard/FollowUpMatriculadosSection';
-import { FollowUpGerenteSection } from '@/components/dashboard/FollowUpGerenteSection';
+import { PersistedFuSection } from '@/components/dashboard/PersistedFuSection';
 import { SyncIndicator } from '@/components/dashboard/SyncIndicator';
 import { OperacaoKPIRow } from '@/components/operacao/OperacaoKPIRow';
 import { AtividadesUnidadeResumo } from '@/components/operacao/AtividadesUnidadeResumo';
@@ -61,8 +60,9 @@ export default function Operacao() {
     refetchEventos,
   } = useDashboardData(startDate, endDate);
 
-  const { urgentItems: urgentMatriculadosFU, loading: matriculadosLoading, error: matriculadosError, refetch: refetchMatriculadosFU } = useFollowUpsMatriculados();
-  const { urgentItems: urgentGerenteFU, refetch: refetchGerenteFU } = useFollowUpsGerente();
+  const persistedFu = usePersistedFuTasks();
+  const receptionFu = persistedFu.items.filter(item => item.family === 'recepcao');
+  const managerFu = persistedFu.items.filter(item => item.family === 'gerencia');
 
   const { tarefas, resumoPorUnidade, isLoading: tarefasLoading } = useOpsGestao();
 
@@ -220,8 +220,8 @@ export default function Operacao() {
         <OperacaoKPIRow
           followUpPendingCount={followUpPendingCount}
           followUpD1Count={followUpD1Count}
-          followUpMatriculadosCount={urgentMatriculadosFU.length}
-          followUpGerenteCount={urgentGerenteFU.length}
+          followUpMatriculadosCount={pendingFuMessages(receptionFu).length}
+          followUpGerenteCount={pendingFuMessages(managerFu).length}
           naoCompareceram={naoCompareceram}
           experimentaisSemanaCount={experimentaisSemanaCount}
           comparecimentos={periodStats.comparecimentosPeriodo}
@@ -242,18 +242,13 @@ export default function Operacao() {
 
         {showFollowUpMatriculadosSection && (
           <div ref={followUpMatriculadosSectionRef} className="space-y-4">
-            <FollowUpMatriculadosSection
-              urgentItems={urgentMatriculadosFU}
-              onRefresh={refetchMatriculadosFU}
-              fetching={matriculadosLoading || unidadeLoading}
-              error={matriculadosError}
-            />
+            <PersistedFuSection title="FU Matriculados — Recepção" items={receptionFu} loading={persistedFu.loading} error={persistedFu.error} refetch={persistedFu.refetch} />
           </div>
         )}
 
         {showFollowUpGerenteSection && (
           <div ref={followUpGerenteSectionRef} className="space-y-4">
-            <FollowUpGerenteSection urgentItems={urgentGerenteFU} onRefresh={refetchGerenteFU} />
+            <PersistedFuSection title="FU Gerente — Vencidos / Hoje" items={managerFu} loading={persistedFu.loading} error={persistedFu.error} refetch={persistedFu.refetch} />
           </div>
         )}
 
@@ -308,7 +303,7 @@ export default function Operacao() {
         </section>
 
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <AtividadesDoDia onVerRelatorio={handleFollowUpClick} />
+          <AtividadesDoDia onVerRelatorio={handleFollowUpClick} persistedFuItems={persistedFu.items} persistedFuLoading={persistedFu.loading} />
           <PendenciasDia
             onVerTodas={handleFollowUpClick}
             onVerFollowUps={handleFollowUpClick}
