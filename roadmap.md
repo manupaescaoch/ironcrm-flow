@@ -1,8 +1,8 @@
 # Roadmap
 
 ## Auditoria de abertura, confirmação e indicadores FU — 04/11/2026
-- [ ] Reproduzir com dados fictícios e auditar tela, confirmação, Telegram, permissões e consultas sem escrita em produção.
-- [ ] Entregar diagnóstico com matriz, causas comprovadas, limitações e propostas.
+- [x] Auditar tela, confirmação, Telegram, permissões e consultas somente leitura; reproduzir contato anterior em Técnico/Gerência, telefone inválido e sucesso falso comercial com transporte fictício; 47 testes existentes aprovados. Concorrência SQL e dispositivos reais não homologados.
+- [x] Entregar diagnóstico com matriz, causas comprovadas, limitações e propostas; nenhum arquivo funcional ou registro real alterado.
 - [ ] Aplicar correções e validar — depende de aprovação do diagnóstico; migração e publicação dependem de autorização específica.
 
 ## Cancelamento — remoção da pergunta de autorização de contato
