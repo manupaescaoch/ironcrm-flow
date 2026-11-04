@@ -76,3 +76,10 @@ for (const [mode, data] of [['zero', null], ['wrong-unit', { id: 'lead', unidade
     expect(refreshed).toBe(mode === 'saved' ? 1 : 0); expect(rows.length).toBe(mode === 'saved' ? 0 : 1);
   });
 }
+test('CRM reactivation: zero-row result cannot navigate or report success', async () => {
+  const code = crm.slice(crm.indexOf('  const handleReativarDuplicado = async'), crm.indexOf('  const handleCreate = async'));
+  let navigated = false; const titles: string[] = [];
+  const q = { update: () => q, eq: () => q, select: () => q, single: async () => ({ data: null, error: null }) };
+  const handle = compile(code, { unidadeAtual: { id: 'A' }, currentUnit: { current: 'A' }, supabase: { from: () => q }, setReativandoDuplicado: () => {}, toast: (t: { title: string }) => titles.push(t.title), setLeadDuplicado: () => {}, setDialogOpen: () => {}, fetchLeads: () => {}, navigate: () => { navigated = true; } }, 'handleReativarDuplicado');
+  await handle({ id: 'lead', nome: 'TESTE' }); expect(navigated).toBe(false); expect(titles).toEqual(['Erro ao reativar lead']);
+});
