@@ -18,7 +18,9 @@ const DEFAULT_MESSAGE = "Olá! Aqui é da EVO CLUB. Tudo bem?";
  * Removes spaces, parentheses, dashes, and "+"
  */
 export function normalizePhoneForWhatsApp(phone: string): string {
-  return telefoneTecnico(phone) ?? '';
+  let normalized = phone.replace(/\D/g, '');
+  if (!normalized.startsWith('55')) normalized = '55' + normalized;
+  return normalized;
 }
 
 /**
@@ -42,7 +44,7 @@ function WhatsAppIcon({ className }: { className?: string }) {
 export function WhatsAppLink({ phone, className, showIcon = true, iconOnly = false, message = DEFAULT_MESSAGE }: WhatsAppLinkProps) {
   if (!phone) return <span className={className}>-</span>;
 
-  const normalizedPhone = normalizePhoneForWhatsApp(phone);
+  const normalizedPhone = telefoneTecnico(phone);
   if (!normalizedPhone) return <span className={cn('text-muted-foreground', className)} title="Telefone inválido">{iconOnly ? <Phone className="w-4 h-4" /> : phone}</span>;
   const encodedMessage = encodeURIComponent(message);
   const whatsappUrl = `https://wa.me/${normalizedPhone}?text=${encodedMessage}`;
