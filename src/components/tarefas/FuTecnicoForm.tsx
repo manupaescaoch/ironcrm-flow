@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useFuContact } from '@/hooks/useFuContact';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
@@ -17,30 +18,29 @@ export function FuTecnicoForm({ task, status, registro, onStatus, onRegistro }: 
 }) {
   const { unidadeAtual } = useUnidade();
   const { userRole: role } = useAuth();
-  const [aluno, setAluno] = useState<{ nome: string; telefone: string | null } | null>(null);
+  const makeMessage = useCallback((nome: string) => mensagemTecnica(task.fu_tecnico_etapa ?? 'M+7', nome, unidadeAtual?.nome ?? '', task.responsavel), [task.fu_tecnico_etapa, task.responsavel, unidadeAtual?.nome]);
+  const { aluno, mensagem, setMensagem, ready, error } = useFuContact({ taskId: task.id, leadId: task.fu_tecnico_lead_id ?? '', enrollmentId: task.fu_tecnico_matricula_id ?? '', unitId: task.unidade_id === unidadeAtual?.id ? unidadeAtual.id : '', stage: task.fu_tecnico_etapa ?? '' }, makeMessage);
   const [treinador, setTreinador] = useState<string | null>(null);
-  const [mensagem, setMensagem] = useState('');
   const [anteriores, setAnteriores] = useState<{ titulo: string; status: string | null; registro: unknown }[]>([]);
   const terminal = ['concluido', 'dispensado', 'cancelado'].includes(task.fu_tecnico_status ?? '');
   const permitido = ['admin', 'gerente', 'coordenador'].includes(role ?? '') && !terminal;
   useEffect(() => {
     let alive = true;
+    setTreinador(null);
+    setAnteriores([]);
     (async () => {
       if (!task.fu_tecnico_lead_id || !task.fu_tecnico_matricula_id || !task.fu_tecnico_etapa || !unidadeAtual) return;
-      const [leadResult, enrollmentResult, historyResult] = await Promise.all([
-        supabase.from('leads').select('nome,telefone').eq('id', task.fu_tecnico_lead_id).eq('unidade_id', unidadeAtual.id).maybeSingle(),
-        supabase.from('interacoes').select('treinador_responsavel').eq('id', task.fu_tecnico_matricula_id).maybeSingle(),
-        supabase.from('tasks').select('titulo,fu_tecnico_status,fu_tecnico_registro').eq('fu_tecnico_lead_id', task.fu_tecnico_lead_id).neq('id', task.id).order('created_at'),
+      const [enrollmentResult, historyResult] = await Promise.all([
+        supabase.from('interacoes').select('treinador_responsavel').eq('id', task.fu_tecnico_matricula_id).eq('lead_id', task.fu_tecnico_lead_id).eq('unidade_id', unidadeAtual.id).maybeSingle(),
+        supabase.from('tasks').select('titulo,fu_tecnico_status,fu_tecnico_registro').eq('fu_tecnico_lead_id', task.fu_tecnico_lead_id).eq('unidade_id', unidadeAtual.id).neq('id', task.id).order('created_at'),
       ]);
       if (!alive) return;
-      setAluno(leadResult.data);
       setTreinador(enrollmentResult.data?.treinador_responsavel ?? null);
       setAnteriores((historyResult.data ?? []).map(t => ({ titulo: t.titulo, status: t.fu_tecnico_status, registro: t.fu_tecnico_registro })));
-      if (leadResult.data) setMensagem(mensagemTecnica(task.fu_tecnico_etapa, leadResult.data.nome, unidadeAtual.nome, task.responsavel));
-    })();
+    })().catch(() => { if (alive) { setTreinador(null); setAnteriores([]); } });
     return () => { alive = false; };
   }, [task.id, task.fu_tecnico_lead_id, task.fu_tecnico_matricula_id, task.fu_tecnico_etapa, task.responsavel, unidadeAtual]);
-  const link = linkTecnico(aluno?.telefone, mensagem);
+  const link = ready ? linkTecnico(aluno?.telefone, mensagem) : null;
   const change = (key: keyof RegistroTecnico, value: string) => onRegistro({ ...registro, [key]: value });
   return <div className="space-y-4 border-t border-border pt-4">
     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -61,8 +61,8 @@ export function FuTecnicoForm({ task, status, registro, onStatus, onRegistro }: 
       </div>)}
     </details>}
     <Label htmlFor="fu-mensagem">Mensagem proposta</Label>
-    <Textarea id="fu-mensagem" value={mensagem} onChange={e => setMensagem(e.target.value)} rows={7} />
-    {link ? <Button type="button" variant="outline" asChild><a href={link} target="_blank" rel="noopener noreferrer">Falar com o aluno</a></Button> : <p className="text-destructive text-sm">Telefone inválido ou ausente — acompanhamento presencial disponível.</p>}
+    <Textarea id="fu-mensagem" value={mensagem} onChange={e => setMensagem(e.target.value)} rows={7} disabled={!ready} />
+    {link ? <Button type="button" variant="outline" asChild><a href={link} target="_blank" rel="noopener noreferrer">Falar com o aluno</a></Button> : <p role="status" className="text-muted-foreground text-sm">{error ?? (ready ? 'Telefone inválido ou ausente — acompanhamento presencial disponível.' : 'Carregando contato…')}</p>}
     <div className="space-y-2"><Label>Situação do acompanhamento</Label>
       <Select value={status} onValueChange={v => onStatus(v as StatusTecnico)} disabled={!permitido}>
         <SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STATUS_TECNICOS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>

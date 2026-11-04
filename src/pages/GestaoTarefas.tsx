@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, Kanban, Calendar, List, Loader2, Archive, ArchiveRestore } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import { TarefasExport } from '@/components/tarefas/TarefasExport';
 
 export default function GestaoTarefas() {
   const { unidadeAtual, loading: unidadeLoading } = useUnidade();
+  const [searchParams] = useSearchParams();
   const { tasks, loading, createTask, updateTask, deleteTask, updateTaskStatus } =
     useTarefasData();
   
@@ -30,7 +32,13 @@ export default function GestaoTarefas() {
   );
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const selectedTask = tasks.find(task => task.id === selectedTaskId && task.unidade_id === unidadeAtual?.id) ?? null;
+  useEffect(() => { setSelectedTaskId(null); setModalOpen(false); }, [unidadeAtual?.id]);
+  useEffect(() => {
+    const id = searchParams.get('task');
+    if (id && tasks.some(task => task.id === id && task.unidade_id === unidadeAtual?.id)) { setSelectedTaskId(id); setModalOpen(true); }
+  }, [searchParams, unidadeAtual?.id, tasks.length]);
   const [isSaving, setIsSaving] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [filters, setFilters] = useState<TarefasFiltersState>({
@@ -54,12 +62,12 @@ export default function GestaoTarefas() {
   }, [tasks, filters, showArchived]);
 
   const handleNewTask = () => {
-    setSelectedTask(null);
+    setSelectedTaskId(null);
     setModalOpen(true);
   };
 
   const handleTaskClick = useCallback((task: Task) => {
-    setSelectedTask(task);
+    setSelectedTaskId(task.id);
     setModalOpen(true);
   }, []);
 
@@ -225,7 +233,8 @@ export default function GestaoTarefas() {
 
         {/* Task Modal */}
         <TarefaModal
-          open={modalOpen}
+          key={selectedTaskId ?? 'new'}
+          open={modalOpen && (!selectedTaskId || !!selectedTask)}
           onOpenChange={setModalOpen}
           task={selectedTask}
           onSave={handleSaveTask}
