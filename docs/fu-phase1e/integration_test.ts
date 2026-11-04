@@ -10,7 +10,7 @@ async function sql(query: string) {
   return new TextDecoder().decode(result.stdout).trim();
 }
 const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
-const jwk = { ...await crypto.subtle.exportKey('jwk', pair.publicKey), kty: 'EC', kid: 'isolated', alg: 'ES256', use: 'sig' };
+const jwk = { ...await crypto.subtle.exportKey('jwk', pair.publicKey), kty: 'EC', key_ops: ['verify'], kid: 'isolated', alg: 'ES256', use: 'sig' };
 const b64 = (value: Uint8Array) => btoa(String.fromCharCode(...value)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
 const encode = (v: unknown) => b64(new TextEncoder().encode(JSON.stringify(v)));
 async function token(actor: string, expired = false) {
