@@ -46,7 +46,7 @@ check("propria unidade/autoria permitido", True, "authenticated", MOD,
 check("admin outra unidade permitido", True, "authenticated", ADM,
       f"INSERT INTO task_history(task_id,user_id) VALUES('{OTHER}','{ADM}')")
 check("trigger interno grava", True, "authenticated", MOD,
-      f"UPDATE tasks SET titulo='z' WHERE id='{OWN}'; SELECT 1/count(*) FROM task_history WHERE task_id='{OWN}'")
+      f"UPDATE tasks SET titulo='z' WHERE id='{OWN}'; RESET ROLE; SELECT 1/count(*) FROM task_history WHERE task_id='{OWN}'")
 check("service_role grava (automacoes)", True, "service_role", None,
       f"INSERT INTO task_history(task_id,user_id) VALUES('{OTHER}',NULL)")
 # 4 telefones/reservas

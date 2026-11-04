@@ -27,6 +27,7 @@ BEGIN
     'admin_standardize_treinador(text,text)',
     'admin_update_cadastrador(text,text)'] LOOP
     EXECUTE format('REVOKE EXECUTE ON FUNCTION public.%s FROM PUBLIC, anon', f);
+    EXECUTE format('GRANT EXECUTE ON FUNCTION public.%s TO authenticated, service_role', f);
   END LOOP;
 END $$;
 -- Guarda injetada no início de cada corpo (texto restante idêntico ao original):
