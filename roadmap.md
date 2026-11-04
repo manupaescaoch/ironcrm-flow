@@ -1,10 +1,11 @@
 # Roadmap
 
 ## Auditoria de abertura, confirmação e indicadores FU — 04/11/2026
-- [ ] Fase 1B aprovada: corrigir identidade de contato, confirmação comercial verificada, listas/indicadores persistidos e detalhe atualizado; novos testes isolados; sem publicação, migrações, alterações de permissões ou mensagens reais.
+- [x] Fase 1B: contato vinculado à identidade, confirmação comercial com atualização condicional/releitura, Operação lendo tarefas persistidas, detalhe por ID e falhas visuais Telegram contidas; 84 Bun + 31 Deno aprovados e novos ensaios Chromium com transporte fictício.
+- [ ] Homologar Fase 1B em versão real e implantar/publicar somente após aprovação. Confirmação web das tarefas internas e transação comercial+histórico exigem proposta separada; permissões reais por perfil e concorrência SQL não certificadas nesta fase.
 - [x] Auditar tela, confirmação, Telegram, permissões e consultas somente leitura; reproduzir contato anterior em Técnico/Gerência, telefone inválido e sucesso falso comercial com transporte fictício; 47 testes existentes aprovados. Concorrência SQL e dispositivos reais não homologados.
 - [x] Entregar diagnóstico com matriz, causas comprovadas, limitações e propostas; nenhum arquivo funcional ou registro real alterado.
-- [ ] Aplicar correções e validar — depende de aprovação do diagnóstico; migração e publicação dependem de autorização específica.
+- [x] Aplicar correções de código autorizadas na Fase 1B; preservadas regras, históricos, grupos, permissões e FC-2A.1. Limitações e proposta complementar no relatório.
 
 ## Cancelamento — remoção da pergunta de autorização de contato
 - [x] Remover perguntas e linhas de autorização, preservando histórico e preferências; 3 testes Deno, 72 Bun e fluxo de 14 etapas com envio interceptado aprovados.
