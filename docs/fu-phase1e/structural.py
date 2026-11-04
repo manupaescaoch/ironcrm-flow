@@ -27,15 +27,18 @@ def seed():
 
 def task(i, family, stage):
     t, p = uid(i), 'fu_' + family
+    enrollment = uid(i + 10000)
+    sql(f"INSERT INTO interacoes(id,lead_id,unidade_id,tipo,fechou_matricula,data_fechamento) VALUES('{enrollment}','{LEAD}','{UNIT}','Matrícula',true,'2020-01-01');")
     chat = {'matriculados': -1001, 'gerencial': -1002, 'tecnico': -1003}[family]
     c = 'chat_id' if family == 'matriculados' else 'telegram_chat_id'
     m = 'message_id' if family == 'matriculados' else 'telegram_message_id'
     # Avoid conflicting default BV family marker: real identity is defined by enrollment columns.
-    sql(f"INSERT INTO tasks(id,titulo,responsavel,unidade_id,status,{p}_lead_id,{p}_matricula_id,{p}_etapa,{p}_{c},{p}_{m}) VALUES('{t}','TESTE {stage}','TESTE','{UNIT}','a_fazer','{LEAD}','{ENROLL}','{stage}',{chat},1);")
+    sql(f"INSERT INTO tasks(id,titulo,responsavel,unidade_id,status,{p}_lead_id,{p}_matricula_id,{p}_etapa,{p}_{c},{p}_{m}) VALUES('{t}','TESTE {stage}','TESTE','{UNIT}','a_fazer','{LEAD}','{enrollment}','{stage}',{chat},1);")
     return t, p, chat
 
 def crm(t, actor, stage, unit=UNIT):
-    return f"SELECT fu_crm_confirmar_envio('{t}','{actor}','{LEAD}','{ENROLL}','{unit}','{stage}');"
+    enrollment = uid(int(t[-12:]) + 10000)
+    return f"SELECT fu_crm_confirmar_envio('{t}','{actor}','{LEAD}','{enrollment}','{unit}','{stage}');"
 
 def run():
     seed()
