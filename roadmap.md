@@ -1,5 +1,10 @@
 # Roadmap
 
+## Fase 2 — filtros, cadastros e persistência
+- [x] Investigar CRM/Kanban/detalhe e reproduzir filtros/busca/zero-row/concorrência com dados fictícios; não alegar cobertura exaustiva.
+- [x] Corrigir somente falhas reproduzidas; 27 Bun e fluxo Chromium de filtros/cadastro/arquivamento/recarga aprovados, unidade escopada.
+- [x] Entregar relatório em docs/fase2-filtros-persistencia.md; sem migrações/RLS/publicação/dados reais, preservando Fase 1 e áreas excluídas. Persistência/perfis reais e caminhos não reproduzidos permanecem não certificados.
+
 ## Fase 1F — implantação controlada
 - [x] Export atual concluído e disponível conforme confirmação do usuário em 04/11 16:03 UTC; arquivo não inspecionado.
 - [ ] Validar recuperação do export em destino isolado — não executado; usuário aceitou risco residual em 04/11 16:02 UTC, mantendo export disponível como condição obrigatória.

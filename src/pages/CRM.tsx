@@ -210,6 +210,7 @@ const STORAGE_KEY = 'crm:filters:v1';
 
 interface SavedFilters {
   search?: string;
+  filterNivel?: string[];
   filterOrigem?: string | string[];
   filterCadastradoPor?: string;
   filterStatus?: string | string[];
@@ -249,7 +250,9 @@ const matchesLeadSearch = (
   const haystack = normalizeText(`${lead.nome} ${lead.telefone ?? ''} ${lead.email ?? ''}`);
   const digitsHaystack = (lead.telefone ?? '').replace(/\D/g, '');
   const searchDigits = search.replace(/\D/g, '');
-  if (searchDigits.length >= 4 && digitsHaystack.includes(searchDigits)) return true;
+  if (searchDigits.length >= 4 && digitsHaystack.includes(searchDigits)) {
+    return term.replace(/[\d\s()+.-]/g, ' ').split(' ').filter(Boolean).every(token => haystack.includes(token));
+  }
   return term.split(' ').every((token) => haystack.includes(token));
 };
 
@@ -275,7 +278,7 @@ export default function CRM() {
     if (typeof v === 'string' && v && v !== 'all') return [v];
     return [];
   });
-  const [filterNivel, setFilterNivel] = useState<string[]>([]);
+  const [filterNivel, setFilterNivel] = useState<string[]>(() => Array.isArray(_saved.filterNivel) ? _saved.filterNivel : []);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -381,8 +384,14 @@ export default function CRM() {
   }, []);
 
 
+  const leadRequest = useRef(0);
+  const currentUnit = useRef(unidadeAtual?.id);
+  currentUnit.current = unidadeAtual?.id;
   const fetchLeads = useCallback(async () => {
-    if (!unidadeAtual) return;
+    const request = ++leadRequest.current;
+    const unitId = unidadeAtual?.id;
+    const isCurrent = () => request === leadRequest.current && currentUnit.current === unitId;
+    if (!unitId) { setLeads([]); setLoading(false); return; }
     setLoading(true);
     const PAGE = 1000;
     const all: Lead[] = [];
@@ -393,10 +402,11 @@ export default function CRM() {
         .from('leads')
         .select('*')
         .eq('ativo', true)
-        .eq('unidade_id', unidadeAtual.id)
+        .eq('unidade_id', unitId)
         .order('created_at', { ascending: false })
         .range(from, from + PAGE - 1);
 
+      if (!isCurrent()) return;
       if (error) {
         toast({ title: 'Erro ao carregar leads', description: getErrorMessage(error), variant: 'destructive' });
         setLoading(false);
@@ -409,15 +419,18 @@ export default function CRM() {
       from += PAGE;
     }
 
+    if (!isCurrent()) return;
     setLeads(all);
     setLoading(false);
   }, [unidadeAtual, toast]);
 
 
   useEffect(() => {
+    setLeads([]);
     if (unidadeAtual && !unidadeLoading) {
       fetchLeads();
     }
+    return () => { leadRequest.current++; };
   }, [unidadeAtual, unidadeLoading, fetchLeads]);
 
   // Persist filters in sessionStorage so they survive navigating to lead detail and back
@@ -427,6 +440,7 @@ export default function CRM() {
       filterOrigem,
       filterCadastradoPor,
       filterStatus,
+      filterNivel,
       periodType,
       startDate: startDate ? startDate.toISOString() : undefined,
       endDate: endDate ? endDate.toISOString() : undefined,
@@ -436,7 +450,7 @@ export default function CRM() {
     } catch {
       /* ignore quota errors */
     }
-  }, [search, filterOrigem, filterCadastradoPor, filterStatus, periodType, startDate, endDate]);
+  }, [search, filterOrigem, filterCadastradoPor, filterStatus, filterNivel, periodType, startDate, endDate]);
 
   // Fetch experimental KPIs (agendadas / realizadas) for the selected period
   useEffect(() => {
@@ -487,13 +501,16 @@ export default function CRM() {
   }, [leads]);
 
   const handleReativarDuplicado = async (lead: LeadDuplicado) => {
+    const unitId = unidadeAtual?.id;
+    if (!unitId) return;
     setReativandoDuplicado(true);
-    const { error } = await supabase.from('leads').update({ ativo: true }).eq('id', lead.id);
+    const { data, error } = await supabase.from('leads').update({ ativo: true }).eq('id', lead.id).eq('unidade_id', unitId).select('id, unidade_id, ativo').single();
     setReativandoDuplicado(false);
-    if (error) {
-      toast({ title: 'Erro ao reativar lead', description: error.message, variant: 'destructive' });
+    if (error || !data || data.id !== lead.id || data.unidade_id !== unitId || data.ativo !== true) {
+      toast({ title: 'Erro ao reativar lead', description: error?.message || 'Não foi possível confirmar a gravação. Atualize a lista e tente novamente.', variant: 'destructive' });
       return;
     }
+    if (currentUnit.current !== unitId) return;
     toast({ title: 'Lead reativado', description: `"${lead.nome}" voltou para a listagem.` });
     setLeadDuplicado(null);
     setDialogOpen(false);
@@ -648,18 +665,24 @@ export default function CRM() {
   };
 
   const handleDelete = async () => {
-    if (!leadToDelete) return;
+    const unitId = unidadeAtual?.id;
+    if (!leadToDelete || !unitId) return;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('leads')
       .update({ ativo: false })
-      .eq('id', leadToDelete);
+      .eq('id', leadToDelete)
+      .eq('unidade_id', unitId)
+      .select('id, unidade_id, ativo').single();
 
-    if (error) {
-      toast({ title: 'Erro ao excluir lead', description: getErrorMessage(error), variant: 'destructive' });
+    if (error || !data || data.id !== leadToDelete || data.unidade_id !== unitId || data.ativo !== false) {
+      toast({ title: 'Erro ao excluir lead', description: error ? getErrorMessage(error) : 'Não foi possível confirmar a gravação. Atualize a lista e tente novamente.', variant: 'destructive' });
     } else {
       toast({ title: 'Lead excluído com sucesso!' });
-      fetchLeads();
+      if (currentUnit.current === unitId) {
+        setLeads(prev => prev.filter(lead => lead.id !== leadToDelete));
+        fetchLeads();
+      }
     }
     setDeleteDialogOpen(false);
     setLeadToDelete(null);
@@ -1003,9 +1026,10 @@ export default function CRM() {
 
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
+      if (lead.unidade_id !== unidadeAtual?.id) return false;
       const matchesSearch = matchesLeadSearch(lead, debouncedSearch);
       const matchesOrigem = filterOrigem.length === 0 || filterOrigem.includes(normalizeOrigem(lead.origem));
-      const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
+      const matchesCadastradoPor = filterCadastradoPor === 'all' || normalizeCadastrador(lead.cadastrado_por) === filterCadastradoPor;
       const matchesStatus = filterStatus.length === 0 || filterStatus.includes(lead.status_funil);
       const matchesNivel =
         filterNivel.length === 0 ||
@@ -1025,7 +1049,7 @@ export default function CRM() {
       
       return matchesSearch && matchesOrigem && matchesCadastradoPor && matchesStatus && matchesNivel && matchesDate;
     });
-  }, [leads, debouncedSearch, filterOrigem, filterCadastradoPor, filterStatus, filterNivel, startDate, endDate]);
+  }, [leads, unidadeAtual?.id, debouncedSearch, filterOrigem, filterCadastradoPor, filterStatus, filterNivel, startDate, endDate]);
 
   // Renderiza a lista em blocos para a página abrir rápido mesmo com milhares de leads
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -1511,9 +1535,10 @@ export default function CRM() {
             { value: 'aula_realizada', label: 'Exp. Realizado', activeClass: 'bg-purple-600 text-white border-purple-600', inactiveClass: 'border-purple-600/40 text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950/40' },
           ];
           const baseLeads = leads.filter((lead) => {
+            if (lead.unidade_id !== unidadeAtual?.id) return false;
             const matchesSearch = matchesLeadSearch(lead, debouncedSearch);
             const matchesOrigem = filterOrigem.length === 0 || filterOrigem.includes(normalizeOrigem(lead.origem));
-            const matchesCadastradoPor = filterCadastradoPor === 'all' || lead.cadastrado_por === filterCadastradoPor;
+            const matchesCadastradoPor = filterCadastradoPor === 'all' || normalizeCadastrador(lead.cadastrado_por) === filterCadastradoPor;
             let matchesDate = true;
             if (startDate || endDate) {
               const leadDate = new Date(lead.created_at);
