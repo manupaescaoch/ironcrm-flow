@@ -1,5 +1,10 @@
 # Roadmap
 
+## Preparação final frontend — 05/11/2026
+- [ ] Paginar consultas de indicadores sem alterar cálculos; reproduzir corte e testar somente novas regressões.
+- [ ] Extrair somente patches aprovados contra referência publicada, excluindo funções/migrações/permissões e outras frentes.
+- [ ] Verificar prévia isolada sem publicar; homologação hospedada depende de ambiente de teste e pacote comprovado.
+
 ## Homologação frontend Fases 2–4 — 05/11/2026
 - [ ] Liberação final: consulta às superfícies hospedadas confirmou apenas o projeto principal, sem rascunho isolado disponível. Homologação hospedada não executada nem simulada; requer ambiente com base de teste isolada, cinco perfis e duas unidades fictícias. Não repetir os 79 testes aprovados. Totais de períodos extensos e pacote por trechos exclusivamente aprovados continuam pendentes; não publicar ou liberar Enviado/FC-2A.1.
 - [x] Homologação final: remover somente a chamada de geração no carregamento do Dashboard; reprodução anterior mostrou 10 chamadas, após correção nenhuma chamada de função no carregamento/períodos. 78 regressões existentes + 1 teste novo aprovados. Cinco perfis, duas unidades, 30 combinações tela/perfil, cinco trocas A→B e cinco navegações móveis concluídas com transporte fictício.
