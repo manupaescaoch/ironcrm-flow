@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/fetchAllRows';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
@@ -43,24 +44,28 @@ export function useDashboardEventos(): UseDashboardEventosReturn {
       const maxDate = endDateStr > tomorrow ? endDateStr : tomorrow;
 
       // Fetch experimentais
-      const { data: experimentaisData } = await supabase
+      const { data: experimentaisData, error: experimentaisDataError } = await fetchAllRows((from, to) => supabase
         .from('interacoes')
-        .select(`*, leads (id, nome, telefone, email, origem, status_funil, plano_escolhido, cadastrado_por, atendido_por, observacoes, data_aula_experimental, created_by, user_id, ativo, created_at, updated_at)`)
+        .select(`*, leads (id, nome, telefone, email, origem, status_funil, plano_escolhido, cadastrado_por, atendido_por, observacoes, data_aula_experimental, created_by, user_id, ativo, created_at, updated_at)`, { count: 'exact' })
         .eq('agendou_experimental', true)
         .eq('unidade_id', unidadeAtual.id)
         .eq('cancelado', false)
         .gte('data_experimental', minDate)
-        .lte('data_experimental', maxDate);
+        .lte('data_experimental', maxDate)
+        .order('id', { ascending: true }).range(from, to));
+      if (experimentaisDataError) throw experimentaisDataError;
 
       // Fetch avaliações físicas
-      const { data: avaliacoesData } = await supabase
+      const { data: avaliacoesData, error: avaliacoesDataError } = await fetchAllRows((from, to) => supabase
         .from('interacoes')
-        .select(`*, leads (id, nome, telefone, email, origem, status_funil, plano_escolhido, cadastrado_por, atendido_por, observacoes, data_aula_experimental, created_by, user_id, ativo, created_at, updated_at)`)
+        .select(`*, leads (id, nome, telefone, email, origem, status_funil, plano_escolhido, cadastrado_por, atendido_por, observacoes, data_aula_experimental, created_by, user_id, ativo, created_at, updated_at)`, { count: 'exact' })
         .eq('tipo', 'Avaliação Física')
         .eq('unidade_id', unidadeAtual.id)
         .eq('cancelado', false)
         .gte('data_avaliacao', minDate)
-        .lte('data_avaliacao', maxDate);
+        .lte('data_avaliacao', maxDate)
+        .order('id', { ascending: true }).range(from, to));
+      if (avaliacoesDataError) throw avaliacoesDataError;
 
 
       const todayItems: EventoItem[] = [];

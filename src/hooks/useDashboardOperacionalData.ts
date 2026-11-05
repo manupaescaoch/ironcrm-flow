@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/fetchAllRows';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getTodayInBrasilia, formatDateLocal } from '@/lib/brasilia';
@@ -81,10 +82,12 @@ export function useDashboardOperacionalData(periodo: Periodo, unidade: UnidadeFi
 
       // Cancelamentos hoje (de relatorios diarios)
       const cancHojePorUnidade: Record<string, number> = { ZN: 0, ZS: 0 };
-      const { data: relatHoje } = await supabase
+      const { data: relatHoje, error: relatHojeError } = await fetchAllRows((from, to) => supabase
         .from('relatorio_diario_comercial_respostas')
-        .select('unidade, cancelamentos')
-        .eq('data', today);
+        .select('unidade, cancelamentos', { count: 'exact' })
+        .eq('data', today)
+        .order('id', { ascending: true }).range(from, to));
+      if (relatHojeError) throw relatHojeError;
       relatHoje?.forEach((r: any) => {
         if (r.unidade === 'ZONA NORTE') cancHojePorUnidade.ZN += r.cancelamentos || 0;
         if (r.unidade === 'ZONA SUL') cancHojePorUnidade.ZS += r.cancelamentos || 0;
@@ -102,22 +105,26 @@ export function useDashboardOperacionalData(periodo: Periodo, unidade: UnidadeFi
       const semStart = dias[0].date;
       const semEnd = dias[dias.length - 1].date;
 
-      const { data: leadsSem } = await supabase
+      const { data: leadsSem, error: leadsSemError } = await fetchAllRows((from, to) => supabase
         .from('leads')
-        .select('created_at, unidade_id')
+        .select('created_at, unidade_id', { count: 'exact' })
         .gte('created_at', `${semStart}T00:00:00`)
         .lte('created_at', `${semEnd}T23:59:59`)
-        .in('unidade_id', idsAlvo);
+        .in('unidade_id', idsAlvo)
+        .order('id', { ascending: true }).range(from, to));
+      if (leadsSemError) throw leadsSemError;
       leadsSem?.forEach((l: any) => {
         const dStr = (l.created_at as string).slice(0, 10);
         const slot = dias.find((x) => x.date === dStr);
         if (slot) slot.leads++;
       });
-      const { data: intSem } = await supabase
+      const { data: intSem, error: intSemError } = await fetchAllRows((from, to) => supabase
         .from('interacoes')
-        .select('data_experimental, data_fechamento, compareceu, fechou_matricula, unidade_id')
+        .select('data_experimental, data_fechamento, compareceu, fechou_matricula, unidade_id', { count: 'exact' })
         .in('unidade_id', idsAlvo)
-        .or(`data_experimental.gte.${semStart},data_fechamento.gte.${semStart}`);
+        .or(`data_experimental.gte.${semStart},data_fechamento.gte.${semStart}`)
+        .order('id', { ascending: true }).range(from, to));
+      if (intSemError) throw intSemError;
       intSem?.forEach((i: any) => {
         if (i.compareceu && i.data_experimental) {
           const slot = dias.find((x) => x.date === i.data_experimental);
@@ -130,13 +137,15 @@ export function useDashboardOperacionalData(periodo: Periodo, unidade: UnidadeFi
       });
 
       // === RECEPÇÃO: somatório dos relatorios do periodo, filtrados por unidade ===
-      const { data: relats } = await supabase
+      const { data: relats, error: relatsError } = await fetchAllRows((from, to) => supabase
         .from('relatorio_diario_comercial_respostas')
-        .select('*')
+        .select('*', { count: 'exact' })
         .gte('data', startDate)
         .lte('data', endDate)
         .in('unidade', labelsAlvo)
-        .order('data', { ascending: false });
+        .order('data', { ascending: false })
+        .order('id', { ascending: true }).range(from, to));
+      if (relatsError) throw relatsError;
 
       const recepcao = {
         leadsRecebidos: 0, experimentaisRealizadas: 0, novosFechamentos: 0,
@@ -159,13 +168,15 @@ export function useDashboardOperacionalData(periodo: Periodo, unidade: UnidadeFi
       const ultimoRel = relats?.[0];
 
       // === ESTAGIÁRIO LÍDER: encerramento_turno_respostas no periodo, agrupado por turno ===
-      const { data: turnos } = await supabase
+      const { data: turnos, error: turnosError } = await fetchAllRows((from, to) => supabase
         .from('encerramento_turno_respostas')
-        .select('*')
+        .select('*', { count: 'exact' })
         .gte('created_at', startISO)
         .lte('created_at', endISO)
         .in('unidade', labelsAlvo)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: true }).range(from, to));
+      if (turnosError) throw turnosError;
 
       const turnosMap = new Map<string, any>();
       turnos?.forEach((t: any) => {
@@ -189,13 +200,15 @@ export function useDashboardOperacionalData(periodo: Periodo, unidade: UnidadeFi
       }).filter(Boolean);
 
       // === COORDENADOR DE HORÁRIO ===
-      const { data: horarios } = await supabase
+      const { data: horarios, error: horariosError } = await fetchAllRows((from, to) => supabase
         .from('encerramento_horario_respostas')
-        .select('*')
+        .select('*', { count: 'exact' })
         .gte('data', startDate)
         .lte('data', endDate)
         .in('unidade', labelsAlvo)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: true }).range(from, to));
+      if (horariosError) throw horariosError;
       const horMap = new Map<string, any>();
       horarios?.forEach((h: any) => {
         if (!horMap.has(h.turno)) horMap.set(h.turno, h);
@@ -230,13 +243,15 @@ export function useDashboardOperacionalData(periodo: Periodo, unidade: UnidadeFi
       }).filter(Boolean);
 
       // === COORDENADOR DE UNIDADE ===
-      const { data: coords } = await supabase
+      const { data: coords, error: coordsError } = await fetchAllRows((from, to) => supabase
         .from('encerramento_coordenador_respostas')
-        .select('*')
+        .select('*', { count: 'exact' })
         .gte('created_at', startISO)
         .lte('created_at', endISO)
         .in('unidade', labelsAlvo)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: true }).range(from, to));
+      if (coordsError) throw coordsError;
 
       const avg = (arr: any[], k: string) => {
         const vals = arr.map((x) => x[k]).filter((v) => v != null);

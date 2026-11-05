@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/fetchAllRows';
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Lead, Interacao } from '@/types/database';
@@ -24,15 +25,14 @@ export function useExecutivoData(): UseExecutivoDataReturn {
     setLoading(true);
 
     // Fetch leads in period filtered by unidade
-    let leadsQuery = supabase
+    const { data: leadsData, error: leadsError } = await fetchAllRows((from, to) => supabase
       .from('leads')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('unidade_id', unidadeAtual.id)
       .gte('created_at', dataInicio)
       .lte('created_at', dataFim + 'T23:59:59')
-      .eq('ativo', true);
-
-    const { data: leadsData, error: leadsError } = await leadsQuery;
+      .eq('ativo', true)
+      .order('id', { ascending: true }).range(from, to));
 
     if (leadsError) {
       toast({ title: 'Erro ao carregar leads', variant: 'destructive' });
@@ -41,12 +41,13 @@ export function useExecutivoData(): UseExecutivoDataReturn {
     }
 
     // Fetch all interacoes in period filtered by unidade
-    const { data: interacoesData, error: interacoesError } = await supabase
+    const { data: interacoesData, error: interacoesError } = await fetchAllRows((from, to) => supabase
       .from('interacoes')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('unidade_id', unidadeAtual.id)
       .gte('data_interacao', dataInicio)
-      .lte('data_interacao', dataFim + 'T23:59:59');
+      .lte('data_interacao', dataFim + 'T23:59:59')
+        .order('id', { ascending: true }).range(from, to));
 
     if (interacoesError) {
       toast({ title: 'Erro ao carregar interações', variant: 'destructive' });
