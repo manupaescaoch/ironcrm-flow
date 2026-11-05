@@ -23,12 +23,12 @@ async function fetchMock(input:any,init:any) {
  authorizedDataCalls++;
  if(path.endsWith('/user_roles')) return Response.json([{role}]);
  if(path.endsWith('/user_unidades')) return Response.json(url.searchParams.get('unidade_id')===`eq.${B}`?[]:[{unidade_id:A}]);
- if(path.endsWith('/anamneses_experimental')) return Response.json({id:A,lead_id:A,unidade_id:scopeUnit});
- if(path.endsWith('/tasks')) return Response.json({id:A,unidade_id:scopeUnit,titulo:'FICTICIO',responsavel:'FICTICIO'});
+ if(path.endsWith('/anamneses_experimental')) return Response.json(url.searchParams.get('id') ? {id:A,lead_id:A,unidade_id:scopeUnit}:[]);
+ if(path.endsWith('/tasks')) return Response.json(url.searchParams.get('id') ? {id:A,unidade_id:scopeUnit,titulo:'FICTICIO',responsavel:'FICTICIO'}:[]);
  if(path.endsWith('/unidades')) return Response.json([{id:scopeUnit,nome:'MADALENA'}]);
  if(path.endsWith('/leads')) return Response.json({nome:'FICTICIO',unidade_id:scopeUnit});
  if(path.endsWith('/telegram_groups')) return Response.json([]);
- if(path.endsWith('/admin/users')) return Response.json({users:[]});
+ if(path.endsWith('/admin/users') || path.endsWith('/auth/v1/admin/users')) return Response.json({users:[{id:A,user_metadata:{name:'FICTICIO'}}]});
  return Response.json([]);
 }
 for(const name of [...automatic,...admin,...apps]) {
@@ -64,7 +64,7 @@ for(const name of [...automatic,...admin,...apps]) {
     const body=name==='ops-notify-task'?{task_id:A,task_title:'FICTICIO',responsavel_name:'FICTICIO'}:{anamnese_id:A};
     assertEquals((await invoke({Authorization:`Bearer ${token('user')}`},body)).status,403);
     scopeUnit=A;
-    assert(![401,403].includes((await invoke({Authorization:`Bearer ${token('user')}`},body)).status),'Legitimate unit blocked');
+    assertEquals((await invoke({Authorization:`Bearer ${token('user')}`},body)).status,200,'Legitimate unit failed');
    }
    if(name==='notify-formulario-encerramento') {
     role='user';scopeUnit=A;
