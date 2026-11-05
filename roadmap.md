@@ -1,9 +1,10 @@
 # Roadmap
 
 ## Preparação final frontend — 05/11/2026
-- [ ] Paginar consultas de indicadores sem alterar cálculos; reproduzir corte e testar somente novas regressões.
-- [ ] Extrair somente patches aprovados contra referência publicada, excluindo funções/migrações/permissões e outras frentes.
-- [ ] Verificar prévia isolada sem publicar; homologação hospedada depende de ambiente de teste e pacote comprovado.
+- [x] Paginar sete loaders de indicadores sem alterar cálculos; seis regressões novas aprovadas (2.501 registros, falha de página, corte e escopo). Os 79 testes anteriores não foram repetidos.
+- [x] Extrair patches aprovados contra origin/_agent-publish em docs/frontend-package; aplicação local sem conflitos, excluindo funções/migrações/permissões e outras frentes.
+- [x] Verificar prévia: drafts.create é suportado, porém parte do projeto inteiro; nenhum rascunho criado. Deve receber candidato isolado e confirmar banco de teste próprio antes de qualquer homologação.
+- [ ] Montar candidato no rascunho e homologar hospedado — depende de criação de rascunho/base de teste isolada e autorização para contas fictícias; nunca usar base principal como fallback.
 
 ## Homologação frontend Fases 2–4 — 05/11/2026
 - [ ] Liberação final: consulta às superfícies hospedadas confirmou apenas o projeto principal, sem rascunho isolado disponível. Homologação hospedada não executada nem simulada; requer ambiente com base de teste isolada, cinco perfis e duas unidades fictícias. Não repetir os 79 testes aprovados. Totais de períodos extensos e pacote por trechos exclusivamente aprovados continuam pendentes; não publicar ou liberar Enviado/FC-2A.1.
@@ -14,7 +15,7 @@
 - [x] Candidatos à publicação: filtros/listas/edição básica CRM–Kanban–LeadDetail, indicadores Executivo/Comissões/Operacional e menu/gates; não dependem das 20 funções preparadas. Enviado/FC-2A.1 permanecem desligados; nenhuma função ou configuração alterada.
 - [x] Preparar matriz: CRM/Comissões para cinco perfis; Executivo para admin/coordenador/gerente; Dashboard Operacional e Usuários para admin; testar perfil ausente e unidade não permitida. Contas fictícias existem somente no transporte interceptado, não no auth hospedado.
 - [ ] Homologação hospedada de permissões e persistência — requer ambiente isolado com contas dos cinco perfis e duas unidades, sem dados reais; criação de contas/banco não autorizada nesta etapa.
-- [ ] Publicação — depende de autorização e seleção das mudanças: publicar o checkout inteiro também incluiria outras frentes não homologadas. Escopo separado em docs/frontend-release-scope.md. Períodos extensos ainda têm risco conhecido de corte de 1.000 registros. Nenhum processo agendado ou função foi alterado.
+- [ ] Publicação — depende de homologação hospedada do pacote e autorização: publicar o checkout inteiro incluiria outras frentes. Patches isolados em docs/frontend-package; corte de linhas corrigido localmente. Nenhum processo agendado ou função alterado.
 
 ## Mapeamento final dos agendamentos — 05/11/2026
 - [x] Integrar os 19 endpoints e o backup fora de supabase/functions; 46 testes fictícios aprovados, fontes implantáveis inalteradas, reversão local preservada sem afirmar identidade com versões hospedadas.

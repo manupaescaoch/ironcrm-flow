@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useDashboardStats } from './useDashboardStats';
 import { useDashboardEventos } from './useDashboardEventos';
@@ -56,7 +57,8 @@ export function useDashboardData(
     }
     
     setLoading(true);
-    await Promise.all([
+    try {
+      await Promise.all([
       statsHook.fetchStats(start, end),
       statsHook.fetchPeriodStats(start, end),
       statsHook.fetchWeeklyStats(),
@@ -64,8 +66,12 @@ export function useDashboardData(
       matriculasHook.fetchMatriculas(start, end),
       followUpsHook.fetchFollowUp(),
       followUpsHook.fetchAutoFollowUps(),
-    ]);
-    setLoading(false);
+      ]);
+      setLoading(false);
+    } catch {
+      // Keep totals hidden behind the existing loading state, never show partial data.
+      toast.error('Não foi possível carregar todos os registros. Atualize a página para tentar novamente.');
+    }
   }, [
     unidadeLoading,
     unidadeAtual,
