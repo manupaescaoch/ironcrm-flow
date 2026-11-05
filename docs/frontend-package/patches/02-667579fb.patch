@@ -1,0 +1,91 @@
+diff --git a/src/hooks/useComissoesData.ts b/src/hooks/useComissoesData.ts
+index 7800fe82..36c9d7b7 100644
+--- a/src/hooks/useComissoesData.ts
++++ b/src/hooks/useComissoesData.ts
+@@ -1,4 +1,4 @@
+-import { useEffect, useState, useMemo } from 'react';
++import { useEffect, useState, useMemo, useRef } from 'react';
+ import { supabase } from '@/integrations/supabase/client';
+ import { useToast } from '@/hooks/use-toast';
+ import { useUnidade } from '@/contexts/UnidadeContext';
+@@ -28,8 +28,12 @@ export function useComissoesData() {
+   const { toast } = useToast();
+   const { unidadeAtual } = useUnidade();
+ 
++  const requestIdRef = useRef(0);
++  useEffect(() => () => { requestIdRef.current++; }, []);
++
+   const fetchComissoes = async () => {
+     if (!unidadeAtual) return;
++    const requestId = ++requestIdRef.current;
+     setLoading(true);
+ 
+     const mesNum = parseInt(mes);
+@@ -50,6 +54,8 @@ export function useComissoesData() {
+       .lte('data_fechamento', endDateStr)
+       .order('data_fechamento', { ascending: false });
+ 
++    if (requestId !== requestIdRef.current) return;
++
+     if (error) {
+       toast({ title: 'Erro ao carregar comissões', variant: 'destructive' });
+       setLoading(false);
+diff --git a/src/hooks/useDashboardStats.ts b/src/hooks/useDashboardStats.ts
+index cb4acfd2..aac2af02 100644
+--- a/src/hooks/useDashboardStats.ts
++++ b/src/hooks/useDashboardStats.ts
+@@ -91,9 +91,11 @@ export function useDashboardStats(): UseDashboardStatsReturn {
+     );
+ 
+     // Map: lead_id -> data_experimental (do lead que compareceu)
+-    const dataExperimentalPorLead = new Map<string, string>();
++    const dataExperimentalPorLead = new Map<string, Set<string>>();
+     experimentaisData?.filter(e => e.compareceu === true && e.data_experimental).forEach(e => {
+-      dataExperimentalPorLead.set(e.lead_id, e.data_experimental as string);
++      const datas = dataExperimentalPorLead.get(e.lead_id) ?? new Set<string>();
++      datas.add(e.data_experimental as string);
++      dataExperimentalPorLead.set(e.lead_id, datas);
+     });
+ 
+     // Fetch matriculas count for period - counting unique leads only
+@@ -110,8 +112,7 @@ export function useDashboardStats(): UseDashboardStatsReturn {
+     // Conversão no mesmo dia: leads cuja data_fechamento === data_experimental (compareceu)
+     const leadsConversaoMesmoDia = new Set<string>();
+     matriculasData?.forEach(m => {
+-      const dataExp = dataExperimentalPorLead.get(m.lead_id);
+-      if (dataExp && m.data_fechamento === dataExp) {
++      if (m.data_fechamento && dataExperimentalPorLead.get(m.lead_id)?.has(m.data_fechamento)) {
+         leadsConversaoMesmoDia.add(m.lead_id);
+       }
+     });
+diff --git a/src/hooks/useOperacionalDashboard.ts b/src/hooks/useOperacionalDashboard.ts
+index e9c08b09..b405928f 100644
+--- a/src/hooks/useOperacionalDashboard.ts
++++ b/src/hooks/useOperacionalDashboard.ts
+@@ -43,8 +43,8 @@ function useRawOperacional(start: string, end: string) {
+   return useQuery<RawData>({
+     queryKey: ['operacional-dashboard-raw', prevStart, end],
+     queryFn: async () => {
+-      const fromTs = `${prevStart}T00:00:00`;
+-      const toTs = `${end}T23:59:59.999`;
++      const fromTs = `${prevStart}T00:00:00-03:00`;
++      const toTs = `${end}T23:59:59.999999-03:00`;
+       const [h, c, t, a, p] = await Promise.all([
+         supabase.from('encerramento_horario_respostas').select('*').gte('data', prevStart).lte('data', end),
+         supabase.from('encerramento_coordenador_respostas').select('*').gte('created_at', fromTs).lte('created_at', toTs),
+diff --git a/src/pages/DashboardExecutivo.tsx b/src/pages/DashboardExecutivo.tsx
+index 14337a02..876b8a54 100644
+--- a/src/pages/DashboardExecutivo.tsx
++++ b/src/pages/DashboardExecutivo.tsx
+@@ -58,9 +58,9 @@ function getPresetDates(preset: PeriodPreset): { start: string; end: string } {
+       return { start: format(startOfMonth(last), 'yyyy-MM-dd'), end: format(endOfMonth(last), 'yyyy-MM-dd') };
+     }
+     case 'last7days':
+-      return { start: format(subDays(today, 7), 'yyyy-MM-dd'), end: format(today, 'yyyy-MM-dd') };
++      return { start: format(subDays(today, 6), 'yyyy-MM-dd'), end: format(today, 'yyyy-MM-dd') };
+     case 'last30days':
+-      return { start: format(subDays(today, 30), 'yyyy-MM-dd'), end: format(today, 'yyyy-MM-dd') };
++      return { start: format(subDays(today, 29), 'yyyy-MM-dd'), end: format(today, 'yyyy-MM-dd') };
+     default:
+       return { start: format(startOfMonth(today), 'yyyy-MM-dd'), end: format(endOfMonth(today), 'yyyy-MM-dd') };
+   }

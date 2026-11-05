@@ -1,0 +1,17 @@
+diff --git a/src/hooks/useDashboardData.ts b/src/hooks/useDashboardData.ts
+index eeaf05b9..5b91eebc 100644
+--- a/src/hooks/useDashboardData.ts
++++ b/src/hooks/useDashboardData.ts
+@@ -82,11 +82,8 @@ export function useDashboardData(
+     await eventosHook.fetchEventos(start, end);
+   }, [eventosHook.fetchEventos]);
+ 
+-  // Initial fetch - generate follow-ups only once
++  // Dashboard loading is read-only; generation belongs to authorized server processes.
+   useEffect(() => {
+-    if (unidadeAtual) {
+-      followUpsHook.generateFollowUps();
+-    }
+     refetchAll(startDate, endDate);
+   }, [unidadeAtual, startDate, endDate]);
+ 

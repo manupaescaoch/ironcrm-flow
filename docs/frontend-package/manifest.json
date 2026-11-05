@@ -1,0 +1,128 @@
+{
+  "baseline": "3e0141f770937cafb4f6f2fa446184d13dff0510",
+  "results": [
+    {
+      "commit": "1e1be8ab",
+      "paths": [
+        "src/pages/CRM.tsx",
+        "src/pages/Kanban.tsx",
+        "src/pages/LeadDetail.tsx"
+      ],
+      "applied": true,
+      "output": "patching file src/pages/CRM.tsx\npatching file src/pages/Kanban.tsx\npatching file src/pages/LeadDetail.tsx\n"
+    },
+    {
+      "commit": "667579fb",
+      "paths": [
+        "src/hooks/useDashboardStats.ts",
+        "src/hooks/useOperacionalDashboard.ts",
+        "src/pages/DashboardExecutivo.tsx",
+        "src/hooks/useComissoesData.ts"
+      ],
+      "applied": true,
+      "output": "patching file src/hooks/useComissoesData.ts\npatching file src/hooks/useDashboardStats.ts\npatching file src/hooks/useOperacionalDashboard.ts\npatching file src/pages/DashboardExecutivo.tsx\n"
+    },
+    {
+      "commit": "8e644093",
+      "paths": [
+        "src/components/executivo/ExecutivoKPIGrid.tsx",
+        "src/components/executivo/constants.ts",
+        "src/hooks/useExecutivoMetrics.ts"
+      ],
+      "applied": true,
+      "output": "patching file src/components/executivo/ExecutivoKPIGrid.tsx\npatching file src/components/executivo/constants.ts\npatching file src/hooks/useExecutivoMetrics.ts\n"
+    },
+    {
+      "commit": "c328bf17",
+      "paths": [
+        "src/components/executivo/ExecutivoKPIGrid.tsx",
+        "src/hooks/useComissoesData.ts"
+      ],
+      "applied": true,
+      "output": "patching file src/components/executivo/ExecutivoKPIGrid.tsx\npatching file src/hooks/useComissoesData.ts\n"
+    },
+    {
+      "commit": "23922af4",
+      "paths": [
+        "src/components/Layout.tsx"
+      ],
+      "applied": true,
+      "output": "patching file src/components/Layout.tsx\n"
+    },
+    {
+      "commit": "34f36471",
+      "paths": [
+        "src/App.tsx"
+      ],
+      "applied": true,
+      "output": "patching file src/App.tsx\n"
+    },
+    {
+      "commit": "32e3c651",
+      "paths": [
+        "src/hooks/useDashboardData.ts"
+      ],
+      "applied": true,
+      "output": "patching file src/hooks/useDashboardData.ts\n"
+    },
+    {
+      "commit": "pagination",
+      "paths": [
+        "src/hooks/useExecutivoData.ts",
+        "src/hooks/useComissoesData.ts",
+        "src/hooks/useDashboardStats.ts",
+        "src/hooks/useDashboardMatriculas.ts",
+        "src/hooks/useDashboardEventos.ts",
+        "src/hooks/useDashboardOperacionalData.ts",
+        "src/hooks/useOperacionalDashboard.ts"
+      ],
+      "applied": true,
+      "output": "patching file src/hooks/useComissoesData.ts\npatching file src/hooks/useDashboardEventos.ts\npatching file src/hooks/useDashboardMatriculas.ts\npatching file src/hooks/useDashboardOperacionalData.ts\npatching file src/hooks/useDashboardStats.ts\npatching file src/hooks/useExecutivoData.ts\npatching file src/hooks/useOperacionalDashboard.ts\n"
+    }
+  ],
+  "paths": [
+    "src/App.tsx",
+    "src/components/Layout.tsx",
+    "src/components/executivo/ExecutivoKPIGrid.tsx",
+    "src/components/executivo/constants.ts",
+    "src/hooks/useComissoesData.ts",
+    "src/hooks/useDashboardData.ts",
+    "src/hooks/useDashboardEventos.ts",
+    "src/hooks/useDashboardMatriculas.ts",
+    "src/hooks/useDashboardOperacionalData.ts",
+    "src/hooks/useDashboardStats.ts",
+    "src/hooks/useExecutivoData.ts",
+    "src/hooks/useExecutivoMetrics.ts",
+    "src/hooks/useOperacionalDashboard.ts",
+    "src/lib/fetchAllRows.bun.test.ts",
+    "src/lib/fetchAllRows.ts",
+    "src/pages/CRM.tsx",
+    "src/pages/DashboardExecutivo.tsx",
+    "src/pages/Kanban.tsx",
+    "src/pages/LeadDetail.tsx",
+    "src/lib/metricPagination.bun.test.ts"
+  ],
+  "status": "frontend-only patch series; applied successfully to local published-branch baseline; hosted validation pending",
+  "excluded": [
+    "supabase/functions",
+    "drizzle",
+    "supabase/migrations",
+    "secrets",
+    "permissions",
+    "FU confirmations",
+    "FC-2A.1"
+  ],
+  "files": {
+    "additions/src/lib/fetchAllRows.bun.test.ts": "ed9016e620b06fb0e8cb498e16a9110f326ce29a5b186ff7e49e7dcf3a865a03",
+    "additions/src/lib/fetchAllRows.ts": "09b501887075ac0030cd69968620622a627e0c8b7d839575bfad3cbe86948cc4",
+    "additions/src/lib/metricPagination.bun.test.ts": "71ca1722ab71f420b7834d7db0b691749b050192b69511a08ce65007a5e8f181",
+    "patches/01-1e1be8ab.patch": "e2f50a3fc1e5dbc31c23bd2c7d1593ecbdf5345fb40e9da23dd4b4c605835c42",
+    "patches/02-667579fb.patch": "d0bbd3305babc77d492ee264d21bf47e57d648262c91d19eaceb85f1c7612688",
+    "patches/03-8e644093.patch": "eb3e2bee3759a79f74ce71c3ecd750a05a4df752d0bc7e0a8bb2666d3c998ef0",
+    "patches/04-c328bf17.patch": "7cd46e318b84de24a0336fd16501c811c6d52f41dcbf7f6740322cdc66b3705b",
+    "patches/05-23922af4.patch": "22ddac53a0a31eba261a7438cd1592f74b24a4ade94a81b504b0b8ef2162c429",
+    "patches/06-34f36471.patch": "fa7c7ae708b5fa424aba9e711e4725e1c669602418b3e36af1072e82a37db49e",
+    "patches/07-32e3c651.patch": "5c5dd867b50d90f7f7f38d25a7eb26d7d927d9f74c8359e81d6554c8f7c3daaf",
+    "patches/08-pagination.patch": "52aed17a03474da6f223a42fe84370932b001af45585d699ff5298f65de5702b"
+  }
+}
