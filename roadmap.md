@@ -1,5 +1,10 @@
 # Roadmap
 
+## Mapeamento final dos agendamentos — 05/11/2026
+- [x] Ler cron.job e emissores SQL sem executar automações; identificar 15 agendas ativas, 1 inativa e 4 emissores por trigger.
+- [x] Conferir candidato e executar 10 testes fictícios; documentar incompatibilidade de exports, correções ainda não integradas e mapa em docs/fase6-automacoes/mapeamento-final.md.
+- [ ] Implantação/rotação — bloqueadas por autorização específica, conclusão dos 19 patches, credenciais do job 36/backup/resumo semanal e consumidores externos ainda não confirmados.
+
 ## Fase 2 — filtros, cadastros e persistência
 - [x] Investigar CRM/Kanban/detalhe e reproduzir filtros/busca/zero-row/concorrência com dados fictícios; não alegar cobertura exaustiva.
 - [x] Corrigir somente falhas reproduzidas; 27 Bun e fluxo Chromium de filtros/cadastro/arquivamento/recarga aprovados, unidade escopada.
