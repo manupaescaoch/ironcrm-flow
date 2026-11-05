@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/fetchAllRows';
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
@@ -77,13 +78,15 @@ export function useDashboardStats(): UseDashboardStatsReturn {
     const endDateStr = format(endDate, 'yyyy-MM-dd');
 
     // Fetch experimental count for period - counting unique leads only
-    const { data: experimentaisData } = await supabase
+    const { data: experimentaisData, error: experimentaisDataError } = await fetchAllRows((from, to) => supabase
       .from('interacoes')
-      .select('lead_id, compareceu, data_experimental')
+      .select('lead_id, compareceu, data_experimental', { count: 'exact' })
       .eq('agendou_experimental', true)
       .eq('unidade_id', unidadeAtual.id)
       .gte('data_experimental', startDateStr)
-      .lte('data_experimental', endDateStr);
+      .lte('data_experimental', endDateStr)
+        .order('id', { ascending: true }).range(from, to));
+      if (experimentaisDataError) throw experimentaisDataError;
 
     const leadsUnicosExperimentais = new Set(experimentaisData?.map(e => e.lead_id) || []);
     const leadsUnicosComparecimentos = new Set(
@@ -99,13 +102,15 @@ export function useDashboardStats(): UseDashboardStatsReturn {
     });
 
     // Fetch matriculas count for period - counting unique leads only
-    const { data: matriculasData } = await supabase
+    const { data: matriculasData, error: matriculasDataError } = await fetchAllRows((from, to) => supabase
       .from('interacoes')
-      .select('lead_id, data_fechamento')
+      .select('lead_id, data_fechamento', { count: 'exact' })
       .eq('fechou_matricula', true)
       .eq('unidade_id', unidadeAtual.id)
       .gte('data_fechamento', startDateStr)
-      .lte('data_fechamento', endDateStr);
+      .lte('data_fechamento', endDateStr)
+        .order('id', { ascending: true }).range(from, to));
+      if (matriculasDataError) throw matriculasDataError;
 
     const leadsUnicosMatriculados = new Set(matriculasData?.map(m => m.lead_id) || []);
 
@@ -122,13 +127,15 @@ export function useDashboardStats(): UseDashboardStatsReturn {
     const mesStart = format(new Date(now.getFullYear(), now.getMonth(), 1), 'yyyy-MM-dd');
     const mesEnd = format(new Date(now.getFullYear(), now.getMonth() + 1, 0), 'yyyy-MM-dd');
 
-    const { data: matriculasMesData } = await supabase
+    const { data: matriculasMesData, error: matriculasMesDataError } = await fetchAllRows((from, to) => supabase
       .from('interacoes')
-      .select('lead_id, valor_plano')
+      .select('lead_id, valor_plano', { count: 'exact' })
       .eq('fechou_matricula', true)
       .eq('unidade_id', unidadeAtual.id)
       .gte('data_fechamento', mesStart)
-      .lte('data_fechamento', mesEnd);
+      .lte('data_fechamento', mesEnd)
+        .order('id', { ascending: true }).range(from, to));
+      if (matriculasMesDataError) throw matriculasMesDataError;
 
     const valoresPorLead = new Map<string, number>();
     matriculasMesData?.forEach(m => {
@@ -158,13 +165,15 @@ export function useDashboardStats(): UseDashboardStatsReturn {
     const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
     const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
-    const { data: weeklyExperimentaisData } = await supabase
+    const { data: weeklyExperimentaisData, error: weeklyExperimentaisDataError } = await fetchAllRows((from, to) => supabase
       .from('interacoes')
-      .select('lead_id')
+      .select('lead_id', { count: 'exact' })
       .eq('agendou_experimental', true)
       .eq('unidade_id', unidadeAtual.id)
       .gte('data_experimental', weekStart)
-      .lte('data_experimental', weekEnd);
+      .lte('data_experimental', weekEnd)
+        .order('id', { ascending: true }).range(from, to));
+      if (weeklyExperimentaisDataError) throw weeklyExperimentaisDataError;
 
     const leadsUnicosSemana = new Set(weeklyExperimentaisData?.map(e => e.lead_id) || []);
     setExperimentaisSemanaCount(leadsUnicosSemana.size);

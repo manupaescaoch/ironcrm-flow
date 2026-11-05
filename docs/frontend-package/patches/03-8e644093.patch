@@ -1,0 +1,81 @@
+diff --git a/src/components/executivo/ExecutivoKPIGrid.tsx b/src/components/executivo/ExecutivoKPIGrid.tsx
+index a1b3162b..82259d14 100644
+--- a/src/components/executivo/ExecutivoKPIGrid.tsx
++++ b/src/components/executivo/ExecutivoKPIGrid.tsx
+@@ -135,6 +135,7 @@ export const ExecutivoKPIGrid = memo(function ExecutivoKPIGrid({
+         <MetricCard
+           title="Matrículas"
+           value={topCards.matriculas}
++          subtitle="Realizadas no período"
+           icon={GraduationCap}
+           iconBg="bg-green-500/15"
+           iconColor="text-green-500"
+@@ -149,7 +150,7 @@ export const ExecutivoKPIGrid = memo(function ExecutivoKPIGrid({
+       </div>
+ 
+       {/* Row 2: Conversion & Cost Metrics - 6 columns on large screens */}
+-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
++      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+         <ConversionCard
+           fromLabel="Lead"
+           toLabel="Atend."
+@@ -166,6 +167,14 @@ export const ExecutivoKPIGrid = memo(function ExecutivoKPIGrid({
+           iconBg="bg-cyan-500/15"
+           iconColor="text-cyan-500"
+         />
++        <ConversionCard
++          fromLabel="Coorte"
++          toLabel="Aluno"
++          value={`${topCards.taxaConversaoCoorte.toFixed(1)}%`}
++          icon={Target}
++          iconBg="bg-cyan-500/15"
++          iconColor="text-cyan-500"
++        />
+         <MetricCard
+           title="CPL"
+           value={cpl ? formatCurrency(cpl) : '-'}
+diff --git a/src/components/executivo/constants.ts b/src/components/executivo/constants.ts
+index 0e891c24..8d394b22 100644
+--- a/src/components/executivo/constants.ts
++++ b/src/components/executivo/constants.ts
+@@ -11,6 +11,8 @@ export interface TopCards {
+   faturamentoTotal: number;
+   ticketMedio: number;
+   ltv: number;
++  matriculasCoorte: number;
++  taxaConversaoCoorte: number;
+ }
+ 
+ export interface FunilItem {
+diff --git a/src/hooks/useExecutivoMetrics.ts b/src/hooks/useExecutivoMetrics.ts
+index 922a8f17..2ea13752 100644
+--- a/src/hooks/useExecutivoMetrics.ts
++++ b/src/hooks/useExecutivoMetrics.ts
+@@ -29,6 +29,17 @@ interface UseExecutivoMetricsReturn {
+   resumoFinal: ResumoFinal;
+ }
+ 
++/** Coorte: leads captados no período que se matricularam ÷ leads captados no período. */
++export function calcularConversaoCoorte(leads: Pick<Lead, 'id' | 'is_matriculado' | 'status_funil'>[]) {
++  const ids = new Set(leads.map(l => l.id));
++  const matriculados = new Set(
++    leads.filter(l => l.is_matriculado === true || l.status_funil === 'convertido').map(l => l.id)
++  );
++  const total = ids.size;
++  const matriculasCoorte = matriculados.size;
++  return { matriculasCoorte, taxaConversaoCoorte: total > 0 ? (matriculasCoorte / total) * 100 : 0 };
++}
++
+ export function useExecutivoMetrics(leads: Lead[], interacoes: Interacao[]): UseExecutivoMetricsReturn {
+   
+   // ==================== TOP CARDS ====================
+@@ -67,7 +78,8 @@ export function useExecutivoMetrics(leads: Lead[], interacoes: Interacao[]): Use
+       taxaLeadAtendimento,
+       faturamentoTotal,
+       ticketMedio,
+-      ltv
++      ltv,
++      ...calcularConversaoCoorte(leads),
+     };
+   }, [leads, interacoes]);
+ 

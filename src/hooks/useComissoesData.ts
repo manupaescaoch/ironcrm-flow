@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/fetchAllRows';
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -56,28 +57,32 @@ export function useComissoesData() {
     const startDateStr = format(startDate, 'yyyy-MM-dd');
     const endDateStr = format(endDate, 'yyyy-MM-dd');
 
-    const experimentaisPromise = supabase
+    const experimentaisPromise = fetchAllRows((from, to) => supabase
       .from('interacoes')
-      .select('lead_id, treinador_responsavel')
+      .select('lead_id, treinador_responsavel', { count: 'exact' })
       .eq('compareceu', true)
       .eq('unidade_id', unidadeAtual.id)
       .gte('data_experimental', startDateStr)
-      .lte('data_experimental', endDateStr);
+      .lte('data_experimental', endDateStr)
+      .order('id', { ascending: true }).range(from, to));
 
-    const { data: interacoesData, error } = await supabase
+    const { data: interacoesData, error } = await fetchAllRows((from, to) => supabase
       .from('interacoes')
-      .select('id, lead_id, responsavel_fechamento, treinador_responsavel, valor_plano, plano_escolhido, comissao_comercial, comissao_recepcao, data_fechamento, fechou_matricula, compareceu, leads(nome, cadastrado_por)')
+      .select('id, lead_id, responsavel_fechamento, treinador_responsavel, valor_plano, plano_escolhido, comissao_comercial, comissao_recepcao, data_fechamento, fechou_matricula, compareceu, leads(nome, cadastrado_por)', { count: 'exact' })
       .eq('fechou_matricula', true)
       .eq('unidade_id', unidadeAtual.id)
       .gte('data_fechamento', startDateStr)
       .lte('data_fechamento', endDateStr)
-      .order('data_fechamento', { ascending: false });
+      .order('data_fechamento', { ascending: false })
+        .order('id', { ascending: true }).range(from, to));
 
     const { data: experimentaisData, error: expError } = await experimentaisPromise;
 
     if (requestId !== requestIdRef.current) return;
     if (expError) {
-      toast({ title: 'Erro ao carregar experimentais dos treinadores', variant: 'destructive' });
+      toast({ title: 'Consulta incompleta. Tente novamente.', variant: 'destructive' });
+      setLoading(false);
+      return;
     }
     setExperimentais(expError ? [] : (experimentaisData || []));
 

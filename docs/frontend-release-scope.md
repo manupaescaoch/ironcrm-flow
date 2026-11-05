@@ -11,4 +11,10 @@ Excluir integralmente funções, SQL/migrações, configurações/secrets, finan
 
 Evidências: 79 testes Bun aprovados (78 existentes + 1 novo); Chromium com login e respostas fictícias, cinco perfis, duas unidades, navegação móvel, períodos e edição/releitura após recarga. Rede externa interceptada; nenhum envio, automação ou gravação hospedada.
 
-Bloqueios: permissões/persistência hospedadas ainda não homologadas; volume de períodos extensos; autorização de publicação e seleção dos trechos contra a versão publicada. Próxima ação: preparar ambiente isolado autorizado para contas/unidades fictícias e aceitar a matriz sem liberar funções pendentes.
+Pacote separado em `docs/frontend-package/`: oito patches históricos/novos e três adições, aplicados sem conflitos contra a referência local `origin/_agent-publish`; nenhuma função, migration, configuração ou alteração de permissões incluída. O checkout inteiro não é esse pacote. Referência de publicação local, não comprovação do conteúdo servido no domínio.
+
+Totais: sete loaders de indicadores usam páginas de 500 com contagem exata e ordenação, preservando filtros e fórmulas; erros/cortes e mudança de contagem não retornam totais parciais. Se o Dashboard não concluir todas as leituras, mantém os totais ocultos e informa a falha. Seis testes novos aprovados; os 79 anteriores não foram repetidos.
+
+Prévia: criação de rascunho é suportada, mas nenhum rascunho existe ou foi criado. Um rascunho parte do projeto principal inteiro, não de uma seleção de patches; é necessário montar o candidato separado nele e confirmar que recebeu banco de teste próprio (a plataforma pode usar o banco principal se o isolamento falhar). Nenhuma homologação hospedada foi executada ou simulada.
+
+Bloqueios: montar o pacote no rascunho, confirmar isolamento e homologar permissões/persistência com cinco perfis e duas unidades fictícias; obter autorização posterior de publicação. Enviado/FC-2A.1 continuam excluídos; agendadores intocados.

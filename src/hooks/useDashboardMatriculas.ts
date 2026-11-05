@@ -1,3 +1,4 @@
+import { fetchAllRows } from '@/lib/fetchAllRows';
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
@@ -25,19 +26,21 @@ export function useDashboardMatriculas(): UseDashboardMatriculasReturn {
       const startDateStr = format(startDate, 'yyyy-MM-dd');
       const endDateStr = format(endDate, 'yyyy-MM-dd');
 
-      const { data: matriculasData } = await supabase
+      const { data: matriculasData, error: matriculasDataError } = await fetchAllRows((from, to) => supabase
         .from('interacoes')
         .select(`
           id, lead_id, data_fechamento, atendido_por, responsavel_fechamento,
           treinador_responsavel, plano_escolhido, valor_plano, comissao_comercial,
           comissao_recepcao, comissao_cadastrador,
           leads (id, nome, telefone, origem, status_funil, cadastrado_por, created_by, ativo)
-        `)
+        `, { count: 'exact' })
         .eq('fechou_matricula', true)
         .eq('unidade_id', unidadeAtual.id)
         .gte('data_fechamento', startDateStr)
         .lte('data_fechamento', endDateStr)
-        .order('data_fechamento', { ascending: false });
+        .order('data_fechamento', { ascending: false })
+        .order('id', { ascending: true }).range(from, to));
+      if (matriculasDataError) throw matriculasDataError;
 
       if (!matriculasData || matriculasData.length === 0) {
         setMatriculasDetalhadas([]);

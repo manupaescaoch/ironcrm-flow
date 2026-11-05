@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { fetchAllRows } from '@/lib/fetchAllRows';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -46,11 +47,11 @@ function useRawOperacional(start: string, end: string) {
       const fromTs = `${prevStart}T00:00:00-03:00`;
       const toTs = `${end}T23:59:59.999999-03:00`;
       const [h, c, t, a, p] = await Promise.all([
-        supabase.from('encerramento_horario_respostas').select('*').gte('data', prevStart).lte('data', end),
-        supabase.from('encerramento_coordenador_respostas').select('*').gte('created_at', fromTs).lte('created_at', toTs),
-        supabase.from('encerramento_turno_respostas').select('*').gte('created_at', fromTs).lte('created_at', toTs),
-        supabase.from('v_operacional_atendimentos').select('*').gte('data', prevStart).lte('data', end),
-        supabase.from('operacional_pendencias').select('*'),
+        fetchAllRows((from, to) => supabase.from('encerramento_horario_respostas').select('*', { count: 'exact' }).gte('data', prevStart).lte('data', end).order('id').range(from, to)),
+        fetchAllRows((from, to) => supabase.from('encerramento_coordenador_respostas').select('*', { count: 'exact' }).gte('created_at', fromTs).lte('created_at', toTs).order('id').range(from, to)),
+        fetchAllRows((from, to) => supabase.from('encerramento_turno_respostas').select('*', { count: 'exact' }).gte('created_at', fromTs).lte('created_at', toTs).order('id').range(from, to)),
+        fetchAllRows((from, to) => supabase.from('v_operacional_atendimentos').select('*', { count: 'exact' }).gte('data', prevStart).lte('data', end).order('formulario_id').order('origem').order('treinador').order('responsavel').range(from, to)),
+        fetchAllRows((from, to) => supabase.from('operacional_pendencias').select('*', { count: 'exact' }).order('id').range(from, to)),
       ]);
       const err = h.error || c.error || t.error || a.error || p.error;
       if (err) throw err;
