@@ -120,8 +120,8 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  // If user has a role set and is not admin, redirect to dashboard
-  if (userRole && !isAdmin) {
+  // Missing/failed role lookup must never mount privileged page content.
+  if (userRole !== 'admin' || !isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -149,7 +149,7 @@ function AdminOrComercialRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (userRole && userRole !== 'admin' && userRole !== 'comercial' && userRole !== 'gerente') {
+  if (!userRole || (userRole !== 'admin' && userRole !== 'comercial' && userRole !== 'gerente')) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-md text-center space-y-3">
@@ -178,7 +178,7 @@ function AdminOrCoordenadorRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (userRole && userRole !== 'admin' && userRole !== 'coordenador' && userRole !== 'gerente') {
+  if (!userRole || (userRole !== 'admin' && userRole !== 'coordenador' && userRole !== 'gerente')) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-md text-center space-y-3">
