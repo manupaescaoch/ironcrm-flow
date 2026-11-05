@@ -1,7 +1,7 @@
 import { assertEquals, assert } from 'jsr:@std/assert@1';
 import { notificationRecord, requireUnit, ScopeError } from './package/_shared/automationAppScope.ts';
 const automatic = ['confirmacao-experimental-automatica','healthcheck-follow-ups','notify-feedback-experimental','notify-nps-resposta','notify-resumo-semanal-crm','notify-resumo-semanal-pergunta','notify-rotinas-diarias','presenca-experimental-telegram','retry-anamneses-pendentes','send-cronograma-messages','send-formulario-lembretes'];
-const admin = ['notify-task-deadlines','send-confirmacao-recepcao','send-fu-digest-comercial','notify-resumo-gestao-operacional'];
+const admin = ['notify-task-deadlines','send-confirmacao-recepcao','send-fu-digest-comercial','notify-resumo-gestao-operacional','daily-crm-backup'];
 const apps = ['ops-notify-task','send-task-whatsapp','notify-anamnese-experimental','notify-formulario-encerramento'];
 const A='11111111-1111-1111-1111-111111111111', B='22222222-2222-2222-2222-222222222222';
 const b64=(v:unknown)=>btoa(JSON.stringify(v)).replaceAll('=','').replaceAll('+','-').replaceAll('/','_');
@@ -60,17 +60,27 @@ for(const name of [...automatic,...admin,...apps]) {
    if(admin.includes(name)) {
     role='admin'; const allowed=await invoke({Authorization:`Bearer ${token('admin')}`}); assert(![401,403].includes(allowed.status),'Admin blocked');
    }
-   if(name==='ops-notify-task'||name==='notify-anamnese-experimental') {
+   if(name==='ops-notify-task'||name==='notify-anamnese-experimental'||name==='send-task-whatsapp') {
     role='user'; scopeUnit=B; authorizedDataCalls=0;
-    const body=name==='ops-notify-task'?{task_id:A,task_title:'FICTICIO',responsavel_name:'FICTICIO'}:{anamnese_id:A};
+    const body=name==='notify-anamnese-experimental'?{anamnese_id:A}:{task_id:A,task_title:'FICTICIO',responsavel_name:'FICTICIO'};
     assertEquals((await invoke({Authorization:`Bearer ${token('user')}`},body)).status,403);
     scopeUnit=A;
-    assertEquals((await invoke({Authorization:`Bearer ${token('user')}`},body)).status,200,'Legitimate unit failed');
+    const allowed=await invoke({Authorization:`Bearer ${token('user')}`},body);
+    if(name==='send-task-whatsapp') assertEquals(allowed.status,500,'Fixture intentionally lacks provider credentials after successful scope check');
+    else assertEquals(allowed.status,200,'Legitimate unit failed');
    }
    if(name==='notify-formulario-encerramento') {
     role='user';scopeUnit=A;
     const bad={tipo_formulario:'estagiario_lider',unidade:'MADALENA',unidade_id:B,mode:'test'};
     assertEquals((await invoke({Authorization:`Bearer ${token('user')}`},bad)).status,403);
+    const internalKey='fict-internal-notify-0000000';
+    const prior=Deno.env.get('INTERNAL_NOTIFY_SECRET');Deno.env.set('INTERNAL_NOTIFY_SECRET',internalKey);
+    try {
+     const good={tipo_formulario:'estagiario_lider',unidade:'MADALENA',unidade_id:A,resposta_id:A,row:{unidade:'MADALENA',nome:'FICTICIO'}};
+     const result=await invoke({'x-internal-call':internalKey,'x-cron-secret':env[4]},good);
+     assert(![401,403].includes(result.status),'Public form bridge rejected');
+     assertEquals((await invoke({'x-internal-call':internalKey},{...good,unidade_id:B})).status,403);
+    } finally {if(prior===undefined)Deno.env.delete('INTERNAL_NOTIFY_SECRET');else Deno.env.set('INTERNAL_NOTIFY_SECRET',prior);}
    }
    const preflight=await run(new Request('http://mock.local/endpoint',{method:'OPTIONS'}));assertEquals(preflight.status,200);
   }finally{
