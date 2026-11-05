@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Homologação frontend Fases 2–4 — 05/11/2026
+- [ ] Homologação final: impedir geração ao abrir Dashboard, verificar cinco perfis/duas unidades fictícias, persistência, celular e períodos; reutilizar 78 testes sem produção.
 - [x] Reutilizar 60 testes existentes; 18 regressões novas de acesso aprovadas (78 total). Chromium com login/transporte fictícios: admin, recepção, comercial, coordenador, gerente e perfil ausente; 30 combinações tela/perfil, CRM preenchido e troca A→B, sem rede de produção.
 - [x] Reproduzir perfil ausente montando Executivo/Usuários; corrigir somente os três gates restritos de App.tsx e confirmar mesma reprodução sem montagem privilegiada. Build automático OK.
 - [x] Candidatos à publicação: filtros/listas/edição básica CRM–Kanban–LeadDetail, indicadores Executivo/Comissões/Operacional e menu/gates; não dependem das 20 funções preparadas. Enviado/FC-2A.1 permanecem desligados; nenhuma função ou configuração alterada.
