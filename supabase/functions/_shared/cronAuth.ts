@@ -87,27 +87,3 @@ export const CRON_CORS_HEADERS = {
   'Access-Control-Allow-Headers':
     'authorization, x-client-info, apikey, content-type, x-cron-secret',
 };
-
-/** Explicit privileged entrypoint: common JWTs can never substitute automation. */
-export async function authorizeCronOrRole(req: Request, roles: string[] = ['admin']): Promise<AuthResult> {
-  const cron = authorizeCronOnly(req);
-  if (cron.ok) return cron;
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return cron;
-  try {
-    const client = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
-    const { data, error } = await client.auth.getClaims(authHeader.slice(7));
-    if (error || !data?.claims?.sub || data.claims.role !== 'authenticated') return { ok:false,status:401,error:'Unauthorized' };
-    const userId = data.claims.sub;
-    for (const role of roles) {
-      const result = await client.rpc('has_role', { _user_id:userId, _role:role });
-      if (!result.error && result.data === true) return { ok:true,method:'jwt',userId };
-    }
-    return { ok:false,status:403,error:'Forbidden' };
-  } catch { return { ok:false,status:401,error:'Unauthorized' }; }
-}
-
-/** Retired summary compatibility: no data, no sends, no authentication privilege. */
-export function retiredAutomationResponse(headers: HeadersInit): Response {
-  return Response.json({success:true,sent:0,skipped:'gerentes_somente_telegram'}, {headers});
-}

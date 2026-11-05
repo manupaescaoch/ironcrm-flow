@@ -1,4 +1,4 @@
-import { authorizeCronOrRole } from '../_shared/cronAuth.ts';
+import { authorizeCronOrRole } from './auth.ts';
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
