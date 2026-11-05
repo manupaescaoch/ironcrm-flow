@@ -1,6 +1,5 @@
 import { authorizeCronOrRole } from '../_shared/cronAuth.ts';
 import { adminCorsHeaders } from '../_shared/cors.ts';
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 
@@ -173,7 +172,7 @@ async function sendEmailNotification(
   }
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const corsHeaders = adminCorsHeaders(req);
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
