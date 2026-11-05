@@ -10,7 +10,7 @@
 //   paralelo, apenas a primeira consegue registrar e enviar.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { authorizeCronOrRole } from './auth.ts';
 import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, sendTextIdempotent } from '../_shared/zapi.ts';
 
 const corsHeaders = {
@@ -48,7 +48,7 @@ function normalizePhone(phone: string): string {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
-  const auth = await authorizeCronOrJwt(req);
+  const auth = await authorizeCronOrRole(req);
   if (!auth.ok) {
     return new Response(
       JSON.stringify({ error: auth.error || 'Unauthorized' }),
