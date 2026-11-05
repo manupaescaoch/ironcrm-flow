@@ -1,5 +1,12 @@
 # Roadmap
 
+## Encerramento notify-task-deadlines e preparação Recepção — 05/11/2026
+- [x] Confirmar exclusão da conta técnica: consulta somente leitura em auth.users retornou zero contas para o endereço autorizado; nenhuma conta recriada ou usuário real alterado.
+- [x] Registrar resultado e limites em docs/fase6-automacoes/encerramento-primeira-correcao.md; reutilizar evidências anteriores, sem nova chamada à função.
+- [ ] Comprovar recusa da sessão/token antigo — bloqueado porque o artefato da sessão técnica não está mais disponível neste ambiente; exclusão não comprova invalidação imediata de JWT em todos os consumidores.
+- [x] Conferir candidato send-confirmacao-recepcao contra fonte local preservada: apenas import/helper de autenticação mudam; 46 testes existentes reutilizados, sem reexecução.
+- [ ] Autorizar implantação isolada de send-confirmacao-recepcao — exige confirmação dos consumidores externos e aceitação explícita da reversão por fonte local não comprovadamente idêntica à hospedada. Nenhuma implantação nesta etapa.
+
 ## Preparação final frontend — 05/11/2026
 - [x] Paginar sete loaders de indicadores sem alterar cálculos; seis regressões novas aprovadas (2.501 registros, falha de página, corte e escopo). Os 79 testes anteriores não foram repetidos.
 - [x] Extrair patches aprovados contra origin/_agent-publish em docs/frontend-package; aplicação local sem conflitos, excluindo funções/migrações/permissões e outras frentes.
