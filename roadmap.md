@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Homologação frontend Fases 2–4 — 05/11/2026
+- [ ] Liberação final: consulta às superfícies hospedadas confirmou apenas o projeto principal, sem rascunho isolado disponível. Homologação hospedada não executada nem simulada; requer ambiente com base de teste isolada, cinco perfis e duas unidades fictícias. Não repetir os 79 testes aprovados. Totais de períodos extensos e pacote por trechos exclusivamente aprovados continuam pendentes; não publicar ou liberar Enviado/FC-2A.1.
 - [x] Homologação final: remover somente a chamada de geração no carregamento do Dashboard; reprodução anterior mostrou 10 chamadas, após correção nenhuma chamada de função no carregamento/períodos. 78 regressões existentes + 1 teste novo aprovados. Cinco perfis, duas unidades, 30 combinações tela/perfil, cinco trocas A→B e cinco navegações móveis concluídas com transporte fictício.
 - [x] Persistência fictícia: cinco perfis editaram nome, PATCH validou unidade e linha retornada foi relida após recarga; filtro CRM Últimos 7 dias sobreviveu à recarga. Dashboard: últimos 7 dias, mês atual, mês anterior e personalizado sem invocar funções. Não certifica RLS/auth/persistência hospedados.
 - [x] Reutilizar 60 testes existentes; 18 regressões novas de acesso aprovadas (78 total). Chromium com login/transporte fictícios: admin, recepção, comercial, coordenador, gerente e perfil ausente; 30 combinações tela/perfil, CRM preenchido e troca A→B, sem rede de produção.
