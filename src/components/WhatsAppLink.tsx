@@ -1,7 +1,5 @@
 import { Phone } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { telefoneTecnico } from '@/lib/fuTecnico';
-import { Button } from '@/components/ui/button';
 
 interface WhatsAppLinkProps {
   phone: string | null | undefined;
@@ -18,8 +16,14 @@ const DEFAULT_MESSAGE = "Olá! Aqui é da EVO CLUB. Tudo bem?";
  * Removes spaces, parentheses, dashes, and "+"
  */
 export function normalizePhoneForWhatsApp(phone: string): string {
+  // Remove all non-numeric characters
   let normalized = phone.replace(/\D/g, '');
-  if (!normalized.startsWith('55')) normalized = '55' + normalized;
+  
+  // If doesn't start with 55, add it
+  if (!normalized.startsWith('55')) {
+    normalized = '55' + normalized;
+  }
+  
   return normalized;
 }
 
@@ -44,8 +48,7 @@ function WhatsAppIcon({ className }: { className?: string }) {
 export function WhatsAppLink({ phone, className, showIcon = true, iconOnly = false, message = DEFAULT_MESSAGE }: WhatsAppLinkProps) {
   if (!phone) return <span className={className}>-</span>;
 
-  const normalizedPhone = telefoneTecnico(phone);
-  if (!normalizedPhone) return <span className={cn('text-muted-foreground', className)} title="Telefone inválido">{iconOnly ? <Phone className="w-4 h-4" /> : phone}</span>;
+  const normalizedPhone = normalizePhoneForWhatsApp(phone);
   const encodedMessage = encodeURIComponent(message);
   const whatsappUrl = `https://wa.me/${normalizedPhone}?text=${encodedMessage}`;
 
@@ -57,27 +60,27 @@ export function WhatsAppLink({ phone, className, showIcon = true, iconOnly = fal
 
   if (iconOnly) {
     return (
-      <Button variant="ghost" size="icon"
+      <button
         onClick={handleClick}
         className={cn(
           "inline-flex items-center justify-center p-1.5 rounded-md",
-          "text-primary hover:bg-muted",
-          "transition-colors",
+          "text-green-600 hover:text-green-700 hover:bg-green-100/50",
+          "transition-colors focus:outline-none focus:ring-2 focus:ring-green-500/20",
           className
         )}
         title={`Abrir WhatsApp: ${phone}`}
         aria-label={`Abrir WhatsApp para ${phone}`}
       >
         <WhatsAppIcon />
-      </Button>
+      </button>
     );
   }
 
   return (
-    <Button variant="ghost" size="sm"
+    <button
       onClick={handleClick}
       className={cn(
-        "inline-flex items-center gap-1.5 h-auto p-0 text-foreground hover:text-primary",
+        "inline-flex items-center gap-1.5 text-foreground hover:text-green-600",
         "transition-colors focus:outline-none focus:underline",
         className
       )}
@@ -85,7 +88,7 @@ export function WhatsAppLink({ phone, className, showIcon = true, iconOnly = fal
       aria-label={`Abrir WhatsApp para ${phone}`}
     >
       <span>{phone}</span>
-      {showIcon && <WhatsAppIcon className="text-primary" />}
-    </Button>
+      {showIcon && <WhatsAppIcon className="text-green-600" />}
+    </button>
   );
 }

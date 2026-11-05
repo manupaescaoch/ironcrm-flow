@@ -1,5 +1,3 @@
-import { useCommercialConfirmation } from '@/hooks/useCommercialConfirmation';
-import { linkTecnico } from '@/lib/fuTecnico';
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -88,7 +86,6 @@ const TIPO_LABELS: Record<string, { label: string; color: string; bgColor: strin
 
 export function AutoFollowUpCard({ items, onRefresh, tipoFilter, onClearFilter }: AutoFollowUpCardProps) {
   const navigate = useNavigate();
-  const confirmation = useCommercialConfirmation();
   const { userName } = useAuth();
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [notInterestedModalOpen, setNotInterestedModalOpen] = useState(false);
@@ -128,12 +125,11 @@ export function AutoFollowUpCard({ items, onRefresh, tipoFilter, onClearFilter }
   };
 
   const handleSendWhatsApp = (item: FollowUpAutoItem) => {
-    confirmation.select();
     const firstName = item.lead.nome.split(' ')[0];
     const message = FOLLOW_UP_MESSAGES[item.tipo].replace(/\{\{nome\}\}/g, firstName);
-    const link = linkTecnico(item.lead.telefone, message);
-    if (!link) { toast.error('Telefone inválido ou ausente.'); return; }
-    window.open(link, '_blank', 'noopener,noreferrer');
+    const phone = normalizePhoneForWhatsApp(item.lead.telefone || '');
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/${phone}?text=${encodedMessage}`, '_blank');
     
     setSelectedItem(item);
     setConfirmModalOpen(true);
@@ -144,14 +140,36 @@ export function AutoFollowUpCard({ items, onRefresh, tipoFilter, onClearFilter }
     
     setLoading(true);
     try {
-      const confirmed = await confirmation.confirm(selectedItem, userName || 'Sistema', `Follow-up ${selectedItem.tipo} realizado via WhatsApp`);
-      if (!confirmed) return;
+      // Marcar follow-up como concluído
+      const { error } = await supabase
+        .from('follow_ups')
+        .update({
+          status: 'concluido',
+          concluido_por: userName || 'Sistema',
+          concluido_em: new Date().toISOString(),
+        })
+        .eq('id', selectedItem.id);
+
+      if (error) throw error;
+      
+      // Criar interação de registro
+      await supabase
+        .from('interacoes')
+        .insert({
+          lead_id: selectedItem.lead_id,
+          tipo: 'Follow Up',
+          descricao: `Follow-up ${selectedItem.tipo} realizado via WhatsApp`,
+          data_interacao: new Date().toISOString(),
+          atendido_por: userName || 'Sistema',
+        });
+      
+      toast.success(`Follow-up ${selectedItem.tipo} marcado como concluído!`);
       setConfirmModalOpen(false);
       setSelectedItem(null);
       onRefresh();
     } catch (error) {
       console.error('Erro ao marcar follow-up:', error);
-      toast.error(error instanceof Error ? error.message : 'Não foi possível verificar a confirmação.');
+      toast.error('Erro ao atualizar status');
     } finally {
       setLoading(false);
     }

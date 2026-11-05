@@ -84,6 +84,8 @@ const ETAPAS: Etapa[] = [
   { key: 'fator_escolha', titulo: 'Qual foi o principal fator para essa escolha?', tipo: 'single', outro: true,
     opcoes: ['Preço', 'Localização', 'Estrutura', 'Equipamentos', 'Atendimento', 'Metodologia', 'Horário', 'Conveniência',
       'Benefícios', 'Indicação', 'Modalidade diferente', 'Outro'] },
+  { key: 'aceita_contato_antes', titulo: 'Podemos entrar em contato para apresentar uma possível solução antes da conclusão do cancelamento?', tipo: 'single', obrigatorio: true, opcoes: ['Sim', 'Não'] },
+  { key: 'aceita_contato_futuro', titulo: 'Podemos entrar em contato futuramente caso tenhamos melhorias ou novidades relacionadas ao motivo da sua saída?', tipo: 'single', obrigatorio: true, opcoes: ['Sim', 'Não'] },
 ];
 
 const TOTAL = ETAPAS.length;
@@ -253,6 +255,8 @@ export default function CancelamentoPublico() {
         vai_treinar_outro_local: r.vai_treinar_outro_local ?? null,
         proxima_escolha: r.proxima_escolha?.trim() || null,
         fator_escolha: comOutro('fator_escolha', r.fator_escolha),
+        aceita_contato_antes: r.aceita_contato_antes ? r.aceita_contato_antes === 'Sim' : null,
+        aceita_contato_futuro: r.aceita_contato_futuro ? r.aceita_contato_futuro === 'Sim' : null,
       };
       const { data, error } = await supabase.functions.invoke('cancelamento-solicitacao', { body: payload });
       if (error || !data?.success) throw error ?? new Error('falha');
@@ -458,6 +462,8 @@ export default function CancelamentoPublico() {
     ['Unidade', r.unidade],
     ['Plano', comOutro('plano', r.plano)],
     ['Motivo principal', (comOutro('motivos', r.motivos ?? []) as string[]).join(', ')],
+    ['Contato antes do cancelamento', r.aceita_contato_antes],
+    ['Contato futuro', r.aceita_contato_futuro],
   ], [r, telFormatado]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---------- layout ---------- */

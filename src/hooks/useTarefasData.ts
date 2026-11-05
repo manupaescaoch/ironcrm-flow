@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { addDays, addMonths, nextDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
@@ -37,7 +37,7 @@ export interface Task {
   fu_tecnico_confirmado_telegram_id?: number | null;
   fu_gerencial_lead_id?: string | null;
   fu_gerencial_matricula_id?: string | null;
-  fu_gerencial_etapa?: 'M+15' | 'M+30' | null;
+  fu_gerencial_etapa?: 'M+30' | null;
   fu_gerencial_status?: StatusGerencial | null;
   fu_gerencial_registro?: RegistroGerencial | null;
   fu_gerencial_envio_erro?: string | null;
@@ -45,11 +45,6 @@ export interface Task {
   fu_gerencial_confirmado_nome?: string | null;
   fu_gerencial_concluido_em?: string | null;
   fu_gerencial_contexto?: { avisos?: string[]; motivo?: string } | null;
-  fu_matriculados_lead_id?: string | null;
-  fu_matriculados_matricula_id?: string | null;
-  fu_matriculados_etapa?: 'BV' | 'M+3' | 'M+32' | null;
-  fu_matriculados_confirmado_em?: string | null;
-  fu_matriculados_confirmado_nome?: string | null;
 }
 
 export type TaskInsert = Omit<Task, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'concluida_em' | 'arquivada' | 'notificado_24h' | 'notificado_prazo'> & { setor?: string };
@@ -94,13 +89,8 @@ export function useTarefasData() {
   const [error, setError] = useState<string | null>(null);
   const { unidadeAtual } = useUnidade();
   const { toast } = useToast();
-  const currentUnit = useRef(unidadeAtual?.id);
-  const requestId = useRef(0);
-  currentUnit.current = unidadeAtual?.id;
 
   const fetchTasks = useCallback(async () => {
-    const request = ++requestId.current;
-    const unitId = unidadeAtual?.id;
     if (!unidadeAtual) {
       setTasks([]);
       setLoading(false);
@@ -119,19 +109,18 @@ export function useTarefasData() {
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
-      if (request !== requestId.current || unitId !== currentUnit.current) return;
+
       setTasks((data as unknown as Task[]) || []);
-    } catch (err: unknown) {
-      if (request !== requestId.current || unitId !== currentUnit.current) return;
+    } catch (err: any) {
       console.error('Erro ao buscar tarefas:', err);
-      setError((err instanceof Error ? err.message : String(err)));
+      setError(err.message);
       toast({
         title: 'Erro ao carregar tarefas',
-        description: (err instanceof Error ? err.message : String(err)),
+        description: err.message,
         variant: 'destructive',
       });
     } finally {
-      if (request === requestId.current && unitId === currentUnit.current) setLoading(false);
+      setLoading(false);
     }
   }, [unidadeAtual, toast]);
 
@@ -194,11 +183,11 @@ export function useTarefasData() {
       }
 
       return data as unknown as Task;
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error('Erro ao criar tarefa:', err);
       toast({
         title: 'Erro ao criar tarefa',
-        description: (err instanceof Error ? err.message : String(err)),
+        description: err.message,
         variant: 'destructive',
       });
       throw err;
@@ -211,12 +200,10 @@ export function useTarefasData() {
         .from('tasks')
         .update(updates)
         .eq('id', id)
-        .eq('unidade_id', unidadeAtual?.id ?? '')
         .select()
         .single();
 
       if (error) throw error;
-      setTasks(previous => previous.map(task => task.id === id && task.unidade_id === data.unidade_id ? data as unknown as Task : task));
 
       // Se o responsável mudou, notificar o novo responsável via EVO OPS
       if (updates.responsavel && previousResponsavel && updates.responsavel !== previousResponsavel) {
@@ -224,11 +211,11 @@ export function useTarefasData() {
       }
 
       return data as unknown as Task;
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error('Erro ao atualizar tarefa:', err);
       toast({
         title: 'Erro ao atualizar tarefa',
-        description: (err instanceof Error ? err.message : String(err)),
+        description: err.message,
         variant: 'destructive',
       });
       throw err;
@@ -248,11 +235,11 @@ export function useTarefasData() {
         title: 'Tarefa excluída',
         description: 'A tarefa foi excluída com sucesso.',
       });
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error('Erro ao excluir tarefa:', err);
       toast({
         title: 'Erro ao excluir tarefa',
-        description: (err instanceof Error ? err.message : String(err)),
+        description: err.message,
         variant: 'destructive',
       });
       throw err;
@@ -334,9 +321,6 @@ export function useTarefasData() {
   // Initial fetch
   useEffect(() => {
     fetchTasks();
-    const refresh = () => { void fetchTasks(); };
-    window.addEventListener('focus', refresh);
-    return () => { window.removeEventListener('focus', refresh); };
   }, [fetchTasks]);
 
   // Realtime subscription
@@ -354,7 +338,6 @@ export function useTarefasData() {
           filter: `unidade_id=eq.${unidadeAtual.id}`,
         },
         (payload) => {
-          if (currentUnit.current !== unidadeAtual.id) return;
           if (payload.eventType === 'INSERT') {
             setTasks((prev) => [payload.new as Task, ...prev]);
           } else if (payload.eventType === 'UPDATE') {
@@ -378,7 +361,7 @@ export function useTarefasData() {
   }, [unidadeAtual]);
 
   return {
-    tasks: tasks.filter(task => task.unidade_id === unidadeAtual?.id),
+    tasks,
     loading,
     error,
     refetch: fetchTasks,

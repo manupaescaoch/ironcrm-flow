@@ -4,8 +4,8 @@ import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useUnidade } from '@/contexts/UnidadeContext';
 import { useDashboardData } from '@/hooks/useDashboardData';
-import { usePersistedFuTasks } from '@/hooks/usePersistedFuTasks';
-import { pendingFuMessages } from '@/lib/fuTaskState';
+import { useFollowUpsMatriculados } from '@/hooks/useFollowUpsMatriculados';
+import { useFollowUpsGerente } from '@/hooks/useFollowUpsGerente';
 import { useOpsGestao } from '@/hooks/useOpsGestao';
 import { EventosHoje, EventoItem } from '@/components/dashboard/EventosHoje';
 import { ConfirmacoesAmanha } from '@/components/dashboard/ConfirmacoesAmanha';
@@ -15,18 +15,16 @@ import { AtividadesDoDia } from '@/components/dashboard/AtividadesDoDia';
 import { ReagendarModal } from '@/components/dashboard/ReagendarModal';
 import { FollowUpSections } from '@/components/dashboard/FollowUpSections';
 import { CompactRelatorioFollowUps } from '@/components/dashboard/CompactRelatorioFollowUps';
-import { PersistedFuSection } from '@/components/dashboard/PersistedFuSection';
+import { FollowUpMatriculadosSection } from '@/components/dashboard/FollowUpMatriculadosSection';
+import { FollowUpGerenteSection } from '@/components/dashboard/FollowUpGerenteSection';
 import { SyncIndicator } from '@/components/dashboard/SyncIndicator';
 import { OperacaoKPIRow } from '@/components/operacao/OperacaoKPIRow';
 import { AtividadesUnidadeResumo } from '@/components/operacao/AtividadesUnidadeResumo';
 import { TarefasDeHojeList } from '@/components/operacao/TarefasDeHojeList';
 import { AtencaoCard, AtencaoItem } from '@/components/operacao/AtencaoCard';
-import { confirmationEnabledForUser } from '@/lib/fuConfirmationClient';
-import { useAuth } from '@/contexts/AuthContext';
 
 export default function Operacao() {
   const { unidadeAtual, loading: unidadeLoading } = useUnidade();
-  const { user } = useAuth();
 
   // Período fixo (visão do dia/semana) — a operação é sempre "hoje"
   const [startDate] = useState(() => new Date(2020, 0, 1));
@@ -63,10 +61,8 @@ export default function Operacao() {
     refetchEventos,
   } = useDashboardData(startDate, endDate);
 
-  const persistedFu = usePersistedFuTasks();
-  const receptionFu = persistedFu.items.filter(item => item.family === 'recepcao');
-  const managerFu = persistedFu.items.filter(item => item.family === 'gerencia');
-  const technicalFu = persistedFu.items.filter(item => item.family === 'tecnico');
+  const { urgentItems: urgentMatriculadosFU, loading: matriculadosLoading, error: matriculadosError, refetch: refetchMatriculadosFU } = useFollowUpsMatriculados();
+  const { urgentItems: urgentGerenteFU, refetch: refetchGerenteFU } = useFollowUpsGerente();
 
   const { tarefas, resumoPorUnidade, isLoading: tarefasLoading } = useOpsGestao();
 
@@ -224,8 +220,8 @@ export default function Operacao() {
         <OperacaoKPIRow
           followUpPendingCount={followUpPendingCount}
           followUpD1Count={followUpD1Count}
-          followUpMatriculadosCount={pendingFuMessages(receptionFu).length}
-          followUpGerenteCount={pendingFuMessages(managerFu).length}
+          followUpMatriculadosCount={urgentMatriculadosFU.length}
+          followUpGerenteCount={urgentGerenteFU.length}
           naoCompareceram={naoCompareceram}
           experimentaisSemanaCount={experimentaisSemanaCount}
           comparecimentos={periodStats.comparecimentosPeriodo}
@@ -246,17 +242,20 @@ export default function Operacao() {
 
         {showFollowUpMatriculadosSection && (
           <div ref={followUpMatriculadosSectionRef} className="space-y-4">
-            <PersistedFuSection title="FU Matriculados — Recepção" items={receptionFu} loading={persistedFu.loading} error={persistedFu.error} refetch={persistedFu.refetch} />
+            <FollowUpMatriculadosSection
+              urgentItems={urgentMatriculadosFU}
+              onRefresh={refetchMatriculadosFU}
+              fetching={matriculadosLoading || unidadeLoading}
+              error={matriculadosError}
+            />
           </div>
         )}
 
         {showFollowUpGerenteSection && (
           <div ref={followUpGerenteSectionRef} className="space-y-4">
-            <PersistedFuSection title="FU Gerente — Vencidos / Hoje" items={managerFu} loading={persistedFu.loading} error={persistedFu.error} refetch={persistedFu.refetch} />
+            <FollowUpGerenteSection urgentItems={urgentGerenteFU} onRefresh={refetchGerenteFU} />
           </div>
         )}
-
-        {confirmationEnabledForUser(user?.id) && <PersistedFuSection title="FU Coordenador" items={technicalFu} loading={persistedFu.loading} error={persistedFu.error} refetch={persistedFu.refetch} />}
 
         {showFollowUpSection && (
           <div ref={followUpSectionRef} className="space-y-4">
@@ -309,7 +308,7 @@ export default function Operacao() {
         </section>
 
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <AtividadesDoDia onVerRelatorio={handleFollowUpClick} persistedFuItems={persistedFu.items} persistedFuLoading={persistedFu.loading} />
+          <AtividadesDoDia onVerRelatorio={handleFollowUpClick} />
           <PendenciasDia
             onVerTodas={handleFollowUpClick}
             onVerFollowUps={handleFollowUpClick}
