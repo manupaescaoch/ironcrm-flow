@@ -14,7 +14,7 @@
 // de grupo e auditoria são todos resolvidos no servidor.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { resolveUnidadeId } from '../_shared/telegram.ts';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import {
   TIPOS_FORMULARIO,
@@ -77,16 +77,6 @@ function buildTestStubRow(): Record<string, unknown> {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
-    // SECURITY: require cron secret header OR valid Supabase JWT.
-    {
-      const __auth = await authorizeCronOrJwt(req);
-      if (!__auth.ok) {
-        return new Response(
-          JSON.stringify({ error: __auth.error || 'Unauthorized' }),
-          { status: __auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-    }
   if (req.method !== 'POST') return jsonResp(405, { error: 'Método não permitido.' });
 
   try {
@@ -111,7 +101,7 @@ Deno.serve(async (req) => {
         Deno.env.get('SUPABASE_ANON_KEY')!,
       );
       const { data: claimsData, error: claimsErr } = await authClient.auth.getClaims(token);
-      if (claimsErr || !claimsData?.claims?.sub) {
+      if (claimsErr || !claimsData?.claims?.sub || claimsData.claims.role !== 'authenticated') {
         return jsonResp(401, { error: 'Não autenticado.' });
       }
       requestedBy = claimsData.claims.sub as string;
@@ -120,8 +110,8 @@ Deno.serve(async (req) => {
         Deno.env.get('SUPABASE_URL')!,
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
       );
-      const { data: roles } = await svc.from('user_roles').select('role').eq('user_id', requestedBy);
-      if (!roles || roles.length === 0) {
+      const { data: roles, error: rolesError } = await svc.from('user_roles').select('role').eq('user_id', requestedBy);
+      if (rolesError || !roles || roles.length === 0) {
         return jsonResp(403, { error: 'Sem permissão.' });
       }
       const roleSet = new Set(roles.map((r: { role: string }) => r.role));
@@ -131,10 +121,11 @@ Deno.serve(async (req) => {
         return jsonResp(403, { error: 'Sem permissão.' });
       }
       if (!isAdmin) {
-        const { data: uns } = await svc
+        const { data: uns, error: unitsError } = await svc
           .from('user_unidades')
           .select('unidade_id')
           .eq('user_id', requestedBy);
+        if (unitsError) return jsonResp(403,{error:'Sem permissão.'});
         userUnidadeIds = (uns || []).map((u: { unidade_id: string }) => u.unidade_id);
       }
     }
@@ -151,11 +142,13 @@ Deno.serve(async (req) => {
     const unidade = validateUnidade(parsed.data.unidade);
     if (!unidade) return jsonResp(400, { error: 'Unidade inválida.' });
 
-    // ---------- Authz: unidade scope (JWT path only) ----------
-    if (!isInternalCall && !isAdmin) {
-      if (!parsed.data.unidade_id || !userUnidadeIds.includes(parsed.data.unidade_id)) {
-        return jsonResp(403, { error: 'Unidade não autorizada.' });
-      }
+    const svcUnit = createClient(Deno.env.get('SUPABASE_URL') ?? '',Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
+    const canonicalUnit = await resolveUnidadeId(svcUnit,unidade);
+    if (!canonicalUnit || (parsed.data.unidade_id && parsed.data.unidade_id !== canonicalUnit)) return jsonResp(403,{error:'Unidade não autorizada.'});
+    if (!isInternalCall && !isAdmin && !userUnidadeIds.includes(canonicalUnit)) return jsonResp(403,{error:'Unidade não autorizada.'});
+    if (isInternalCall) {
+      const internalRow = (parsed.data as {row:Record<string,unknown>}).row;
+      if (validateUnidade(String(internalRow.unidade ?? '')) !== unidade) return jsonResp(403,{error:'Unidade não autorizada.'});
     }
 
     // ---------- Pick canonical row ----------
@@ -174,7 +167,7 @@ Deno.serve(async (req) => {
       {
         tipo_formulario: tipo_formulario as TipoFormulario,
         unidade,
-        unidade_id: parsed.data.unidade_id ?? null,
+        unidade_id: canonicalUnit,
         resposta_id,
         requested_by: requestedBy,
         origem: isInternalCall ? 'public_form' : 'internal_test',

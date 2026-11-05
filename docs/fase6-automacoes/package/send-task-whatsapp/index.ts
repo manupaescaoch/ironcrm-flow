@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { authorizeApp, requireUnit, notificationRecord, requireRecipientUnit, ScopeError, uuid } from '../_shared/automationAppScope.ts';
 import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, sendTextIdempotent, logEnvio } from '../_shared/zapi.ts';
 
 const corsHeaders = {
@@ -35,18 +35,16 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // SECURITY: require cron secret header OR valid Supabase JWT for any non-OPTIONS request.
-  {
-    const __auth = await authorizeCronOrJwt(req);
-    if (!__auth.ok) {
-      return new Response(
-        JSON.stringify({ error: __auth.error || 'Unauthorized' }),
-        { status: __auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
-  }
+  const auth = await authorizeApp(req,['admin','user','coordenador'],false);
+  if (!auth.ok) return Response.json({error:auth.error},{status:auth.status ?? 401,headers:corsHeaders});
 
   try {
+    const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '',Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
+    let body = await req.json();
+    const record = await notificationRecord(supabase,auth,body,true);
+    body = {...body,task_id:record.id,task_title:record.titulo,task_description:record.descricao,responsavel_name:record.responsavel,prazo:record.prazo,hora_prazo:record.hora_prazo};
+    const unitResult = await supabase.from('unidades').select('nome').eq('id',record.unidade_id).maybeSingle();
+    body.unidade_nome = unitResult.data?.nome;
     const creds = getOperacionalCreds();
     if (!creds) {
       console.error('WhatsApp operacional não configurado');
@@ -67,13 +65,6 @@ Deno.serve(async (req) => {
         );
       }
     }
-    const supabase = createClient(
-
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
-
-    const body = await req.json();
     const { task_id, task_title, task_description, responsavel_name, responsavel, tipo, creator_name, isNewTask, unidade_nome, prazo, hora_prazo } = body;
     
     // Support both old and new parameter names
@@ -130,6 +121,8 @@ Deno.serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
+
+    await requireRecipientUnit(supabase,record.unidade_id,targetUser.id);
 
     // Encontrar telefone do usuário
     const userProfile = userData?.find(p => p.user_id === targetUser.id);
@@ -217,6 +210,7 @@ Deno.serve(async (req) => {
 
 
   } catch (error: unknown) {
+    if (error instanceof ScopeError) return Response.json({error:error.message},{status:error.status,headers:corsHeaders});
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     console.error('Error in send-task-whatsapp:', errorMessage);
     return new Response(

@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { authorizeApp, requireUnit, notificationRecord, requireRecipientUnit, ScopeError, uuid } from '../_shared/automationAppScope.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const auth = await authorizeCronOrJwt(req);
+  const auth = await authorizeApp(req, ['admin','user','coordenador','moderator','gerente'], false);
   if (!auth.ok) {
     return new Response(JSON.stringify({ error: auth.error || 'Unauthorized' }), {
       status: auth.status || 401,
@@ -25,7 +25,12 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    const body = await req.json();
+    let body = await req.json();
+    const record = await notificationRecord(supabase, auth, body, false);
+    body = {...body,task_id:record.id,task_title:record.titulo,task_description:record.descricao,responsavel_name:record.responsavel,prazo:record.prazo,hora_prazo:record.hora_prazo};
+    const unitResult = await supabase.from('unidades').select('nome').eq('id',record.unidade_id).maybeSingle();
+    body.unidade_nome = unitResult.data?.nome;
+
     const {
       task_id,
       task_title,
@@ -71,6 +76,8 @@ Deno.serve(async (req) => {
       });
     }
 
+    await requireRecipientUnit(supabase,record.unidade_id,target.id);
+
     let prazoStr = '';
     if (prazo) {
       const [y, m, d] = String(prazo).slice(0, 10).split('-');
@@ -112,6 +119,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: unknown) {
+    if (error instanceof ScopeError) return Response.json({error:error.message},{status:error.status,headers:corsHeaders});
     const msg = error instanceof Error ? error.message : 'Internal server error';
     console.error('Erro em ops-notify-task:', msg);
     return new Response(JSON.stringify({ error: msg }), {

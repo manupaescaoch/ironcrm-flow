@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { authorizeApp, requireUnit, notificationRecord, requireRecipientUnit, ScopeError, uuid } from '../_shared/automationAppScope.ts';
 import { logEnvio } from '../_shared/zapi.ts';
 import { resolveGrupoUnidade, sendTelegramGroupText } from '../_shared/telegram.ts';
 
@@ -31,20 +31,12 @@ const fmt = (v: unknown) => {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
-    // SECURITY: require cron secret header OR valid Supabase JWT.
-    {
-      const __auth = await authorizeCronOrJwt(req);
-      if (!__auth.ok) {
-        return new Response(
-          JSON.stringify({ error: __auth.error || 'Unauthorized' }),
-          { status: __auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-    }
+  const auth = await authorizeApp(req,['admin','user','coordenador','moderator','gerente'],true);
+  if (!auth.ok) return Response.json({error:auth.error},{status:auth.status ?? 401,headers:corsHeaders});
 
   try {
     const { anamnese_id } = await req.json().catch(() => ({}));
-    if (!anamnese_id) {
+    if (!uuid(anamnese_id)) {
       return new Response(JSON.stringify({ error: 'anamnese_id obrigatório' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -61,13 +53,16 @@ Deno.serve(async (req) => {
       .select('*')
       .eq('id', anamnese_id)
       .maybeSingle();
-    if (error || !a) throw error || new Error('anamnese não encontrada');
+    if (error || !a) throw new ScopeError(404,'Recurso indisponível');
+    await requireUnit(supabase,auth,a.unidade_id);
 
     const { data: lead } = await supabase
       .from('leads')
       .select('nome, data_aula_experimental, hora_aula_experimental, unidade_id')
       .eq('id', a.lead_id)
+      .eq('unidade_id',a.unidade_id)
       .maybeSingle();
+    if (!lead) throw new ScopeError(404,'Recurso indisponível');
     const { data: unidade } = await supabase
       .from('unidades')
       .select('nome')
@@ -181,6 +176,7 @@ _Anamnese preenchida pela recepção no momento da chegada do lead._`;
     );
 
   } catch (e: any) {
+    if (e instanceof ScopeError) return Response.json({error:e.message},{status:e.status,headers:corsHeaders});
     console.error('[notify-anamnese] erro', e);
     return new Response(JSON.stringify({ error: e?.message ?? 'erro' }), {
       status: 500,
