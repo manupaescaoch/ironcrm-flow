@@ -1,7 +1,7 @@
 // Envia ao TELEFONE DA RECEPÇÃO de cada unidade a lista consolidada de
 // confirmações de aula experimental que precisam ser disparadas (24h e 2h antes).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { authorizeCronOrRole } from '../_shared/cronAuth.ts';
 import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, logEnvio, sendTextIdempotent } from '../_shared/zapi.ts';
 
 const corsHeaders = {
@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
 
   // SECURITY: require cron secret header OR valid Supabase JWT.
   {
-    const __auth = await authorizeCronOrJwt(req);
+    const __auth = await authorizeCronOrRole(req);
     if (!__auth.ok) {
       return new Response(
         JSON.stringify({ error: __auth.error || 'Unauthorized' }),

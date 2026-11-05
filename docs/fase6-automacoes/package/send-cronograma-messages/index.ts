@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { authorizeCronOnly } from '../_shared/cronAuth.ts';
 import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, lookupWhatsAppPhone, sendButtonsIdempotent, sendTextIdempotent } from '../_shared/zapi.ts';
 import { maybeSendZapiOfflineAlert } from '../_shared/zapi-alert.ts';
 import { resolveTelegramUsuarioPorTelefone, sendTelegramUserText } from '../_shared/telegram.ts';
@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
 
   // SECURITY: require cron secret header OR valid Supabase JWT for any non-OPTIONS request.
   {
-    const __auth = await authorizeCronOrJwt(req);
+    const __auth = await authorizeCronOnly(req);
     if (!__auth.ok) {
       return new Response(
         JSON.stringify({ error: __auth.error || 'Unauthorized' }),

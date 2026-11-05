@@ -4,7 +4,7 @@
 // acao "sincronizar" (gatilho do banco): reflete no Telegram alterações feitas
 // manualmente no painel (comparecimento, cancelamento, remarcação).
 
-import { authorizeCronOrJwt, CRON_CORS_HEADERS } from '../_shared/cronAuth.ts';
+import { authorizeCronOnly, CRON_CORS_HEADERS } from '../_shared/cronAuth.ts';
 import { adminClient, resolveGrupoUnidade, sendTelegramGroupText, telegramApi } from '../_shared/telegram.ts';
 import {
   dentroDaJanelaEnvio,
@@ -233,7 +233,7 @@ async function sincronizar(admin: any, interacaoId: string) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
 
-  const auth = await authorizeCronOrJwt(req);
+  const auth = await authorizeCronOnly(req);
   if (!auth.ok) return json({ error: auth.error || 'Unauthorized' }, auth.status || 401);
 
   try {

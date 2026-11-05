@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { logEnvio } from '../_shared/zapi.ts';
 import { sendTelegramMessage } from '../_shared/telegram.ts';
-import { authorizeCronOrJwt, CRON_CORS_HEADERS } from '../_shared/cronAuth.ts';
+import { authorizeCronOnly, CRON_CORS_HEADERS } from '../_shared/cronAuth.ts';
 
 const corsHeaders = CRON_CORS_HEADERS;
 
@@ -176,7 +176,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   // Só o próprio servidor (trigger/cron) ou um usuário autenticado pode disparar.
-  const auth = await authorizeCronOrJwt(req);
+  const auth = await authorizeCronOnly(req);
   if (!auth.ok) {
     return new Response(JSON.stringify({ error: auth.error }), {
       status: auth.status ?? 401,

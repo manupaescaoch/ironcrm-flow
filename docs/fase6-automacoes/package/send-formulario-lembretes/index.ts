@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { authorizeCronOnly } from '../_shared/cronAuth.ts';
 import { generateShiftClosingMessage } from '../_shared/shiftMessages.ts';
 import { resolveTelegramUsuarioPorTelefone, sendTelegramUserText } from '../_shared/telegram.ts';
 const corsHeaders = {
@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
 
   // SECURITY: require cron secret header OR valid Supabase JWT.
   {
-    const __auth = await authorizeCronOrJwt(req);
+    const __auth = await authorizeCronOnly(req);
     if (!__auth.ok) {
       return new Response(
         JSON.stringify({ error: __auth.error || 'Unauthorized' }),

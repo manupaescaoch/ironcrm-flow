@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { authorizeCronOnly } from '../_shared/cronAuth.ts';
 import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, sendTextIdempotent, logEnvio } from '../_shared/zapi.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -83,23 +83,8 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // SECURITY: require cron secret header OR valid Supabase JWT for any non-OPTIONS request.
-  {
-    const cronSecret = Deno.env.get('BACKUP_CRON_SECRET');
-    const requestSecret = req.headers.get('x-cron-secret');
-    
-    const isCron = requestSecret && (requestSecret === cronSecret || requestSecret === 'LOVABLE_VAR_BACKUP_CRON_SECRET');
-    
-    if (!isCron) {
-      const __auth = await authorizeCronOrJwt(req);
-      if (!__auth.ok) {
-        return new Response(
-          JSON.stringify({ error: __auth.error || 'Unauthorized' }),
-          { status: __auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-    }
-  }
+  const auth = authorizeCronOnly(req);
+  if (!auth.ok) return Response.json({error:auth.error}, {status:auth.status ?? 401,headers:corsHeaders});
 
   try {
     const creds = getOperacionalCreds();
