@@ -16,6 +16,7 @@ async function fetchMock(input:any,init:any) {
  const url=new URL(input instanceof Request?input.url:String(input));
  assertEquals(url.hostname,'mock.local','Unexpected real network');
  const path=url.pathname;
+ if(path.endsWith('/auth/v1/admin/users')) return Response.json({users:[{id:A,user_metadata:{name:'FICTICIO'}}]});
  if(path.includes('/auth/v1/')) return Response.json({id:role,role:'authenticated',email:'fict@example.invalid',app_metadata:{},user_metadata:{}});
  if(path.endsWith('/has_role')) {
   const body=JSON.parse(String(init?.body ?? '{}')); return Response.json(body._role===role);
