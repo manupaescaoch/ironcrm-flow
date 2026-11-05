@@ -1,6 +1,6 @@
 import { controlledSend } from '../_shared/contactControl.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { authorizeCronOrRole } from './auth.ts';
 import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, logEnvio, sendTextIdempotent } from '../_shared/zapi.ts';
 
 const corsHeaders = {
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
 
   // SECURITY: require cron secret header OR valid Supabase JWT for any non-OPTIONS request.
   {
-    const __auth = await authorizeCronOrJwt(req);
+    const __auth = await authorizeCronOrRole(req);
     if (!__auth.ok) {
       return new Response(
         JSON.stringify({ error: __auth.error || 'Unauthorized' }),
