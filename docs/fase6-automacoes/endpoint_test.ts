@@ -6,7 +6,7 @@ const apps = ['ops-notify-task','send-task-whatsapp','notify-anamnese-experiment
 const A='11111111-1111-1111-1111-111111111111', B='22222222-2222-2222-2222-222222222222';
 const b64=(v:unknown)=>btoa(JSON.stringify(v)).replaceAll('=','').replaceAll('+','-').replaceAll('/','_');
 const token=(role:string)=>`${b64({alg:'HS256',typ:'JWT'})}.${b64({sub:role,role:'authenticated',exp:4102444800,iss:'http://mock.local/auth/v1'})}.fictitioussignature`;
-const keys=['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','SUPABASE_ANON_KEY','CRON_JOB_SECRET','BACKUP_CRON_SECRET'];
+const keys=['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','SUPABASE_ANON_KEY','CRON_JOB_SECRET','BACKUP_CRON_SECRET','DAPI_OPERACIONAL_API_KEY','DAPI_OPERACIONAL_SESSION_ID','DAPI_API_KEY','DAPI_SESSION_ID','ZAPI_INSTANCE_ID','ZAPI_TOKEN','ZAPI_CLIENT_TOKEN','ZAPI_COMERCIAL_INSTANCE_ID','ZAPI_COMERCIAL_TOKEN','ZAPI_COMERCIAL_CLIENT_TOKEN','ZAPI_OPERACIONAL_INSTANCE_ID','ZAPI_OPERACIONAL_TOKEN','ZAPI_OPERACIONAL_CLIENT_TOKEN'];
 const env=['http://mock.local','fict-service','fict-anon','fict-job-000000000000000','fict-backup-111111111111'];
 let handler:((r:Request)=>Promise<Response>)|undefined;
 let authorizedDataCalls=0;
@@ -36,7 +36,7 @@ for(const name of [...automatic,...admin,...apps]) {
  Deno.test(`${name}: real endpoint authorization and no external transport`,async()=>{
   const originalFetch=globalThis.fetch, originalServe=Deno.serve;
   const previous=keys.map(k=>Deno.env.get(k));
-  keys.forEach((k,i)=>Deno.env.set(k,env[i]));
+  keys.forEach((k,i)=>{if(i<env.length)Deno.env.set(k,env[i]);else Deno.env.delete(k);});
   globalThis.fetch=fetchMock;
   (Deno as any).serve=(fn:any)=>{handler=fn;};
   try {
