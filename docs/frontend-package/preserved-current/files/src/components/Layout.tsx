@@ -1,0 +1,426 @@
+import { ReactNode, useMemo, forwardRef, useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUnidade } from '@/contexts/UnidadeContext';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { 
+  LayoutDashboard, 
+  Users, 
+  LogOut,
+  DollarSign,
+  BarChart3,
+  Settings,
+  FileText,
+  Database,
+  Building2,
+  Gift,
+  Package,
+  CalendarDays,
+  
+  Shield,
+  Menu,
+  CheckSquare,
+  Phone,
+  ClipboardList,
+  Handshake,
+  Star,
+  UserX,
+  Zap,
+  Wallet,
+  Briefcase,
+  ChevronDown,
+  HandCoins
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { getUnidadeSigla } from '@/lib/unidadeSigla';
+
+import logo from '@/assets/evo-logo.png.asset.json';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useVeFolha } from '@/hooks/useVeFolha';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { UserPhoneDialog } from '@/components/profile/UserPhoneDialog';
+
+interface LayoutProps {
+  children: ReactNode;
+}
+
+
+const allNavItems = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
+  { href: '/operacao', label: 'Operação', icon: ClipboardList, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false, isNew: true },
+  { href: '/crm', label: 'CRM', icon: Users, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
+  { href: '/indicacoes', label: 'Indicações', icon: Gift, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
+  { href: '/financeiro', label: 'Financeiro', icon: Wallet, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false, isGroup: true },
+  { href: '/dashboard-executivo', label: 'Executivo', icon: BarChart3, roles: ['admin', 'coordenador', 'gerente'], masterOnly: false },
+  { href: '/gestao-operacional', label: 'Gestão da Rede', icon: Building2, roles: ['admin', 'coordenador', 'gerente'], masterOnly: false },
+  { href: '/backups', label: 'Backups', icon: Database, roles: ['admin'], masterOnly: false },
+  { href: '/admin/cronograma-automacoes', label: 'Automações', icon: Zap, roles: ['admin'], masterOnly: false, isNew: true },
+  { href: '/configuracoes/integracoes/telegram', label: 'Integrações', icon: Zap, roles: ['admin'], masterOnly: false, isNew: true },
+  { href: '/admin-users', label: 'Usuários', icon: Settings, roles: ['admin'], masterOnly: true },
+];
+
+const gerencialItems = [
+  { href: '/operacional', label: 'Gestão Operacional', icon: ClipboardList, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
+  { href: '/tarefas', label: 'Tarefas', icon: CheckSquare, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
+  { href: '/equipe', label: 'Equipe', icon: Users, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'moderator', 'user', 'gerente'], masterOnly: false, isNew: true },
+  { href: '/reunioes', label: 'Reuniões', icon: Handshake, roles: ['admin', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
+  { href: '/cancelamentos', label: 'Cancelamentos', icon: UserX, roles: ['admin', 'coordenador', 'gerente'], masterOnly: false, isNew: true },
+  { href: '/nps/respostas', label: 'NPS', icon: Star, roles: ['admin', 'coordenador', 'gerente'], masterOnly: false },
+  { href: '/anamneses', label: 'Anamneses', icon: ClipboardList, roles: ['admin', 'coordenador', 'gerente'], masterOnly: false, isNew: true },
+
+  { href: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
+  { href: '/estoque', label: 'Estoque', icon: Package, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
+  { href: '/comissoes', label: 'Comissão', icon: DollarSign, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
+];
+
+
+export const Layout = forwardRef<HTMLDivElement, LayoutProps>(function Layout({ children }, ref) {
+  const { signOut, user, userRole } = useAuth();
+  const { unidadeAtual, unidadesPermitidas, setUnidadeAtual, hasMultipleUnidades, loading: unidadeLoading } = useUnidade();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [phoneDialogOpen, setPhoneDialogOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login');
+  };
+
+  // Filter nav items based on user role and master admin status
+  const canSee = (item: { masterOnly?: boolean; roles: string[] }) => {
+    // Role comes from user_roles (server-validated); never fail open nor gate by e-mail.
+    if (!userRole) return false;
+    return item.roles.includes(userRole);
+  };
+
+  const navItems = useMemo(() => allNavItems.filter(canSee), [userRole, user?.email]);
+  const gerencialVisible = useMemo(() => gerencialItems.filter(canSee), [userRole, user?.email]);
+  const { veFolha } = useVeFolha();
+  const financeiroVisible = useMemo(
+    () => [
+      { href: '/contas-pagar', label: 'Contas a Pagar', icon: Wallet, roles: ['admin', 'recepcao', 'comercial', 'coordenador', 'gerente'], masterOnly: false },
+      ...(veFolha ? [{ href: '/folha', label: 'Folha de Pagamentos', icon: Users, roles: ['admin', 'gerente'], masterOnly: false, isNew: true }, { href: '/ajuda-custo', label: 'Ajuda de Custo', icon: HandCoins, roles: ['admin', 'gerente'], masterOnly: false, isNew: true }] : []),
+    ].filter(canSee),
+    [userRole, user?.email, veFolha]
+  );
+  const isFinanceiroRoute = ['/contas-pagar', '/folha', '/ajuda-custo', '/financeiro'].some(
+    (h) => location.pathname === h || location.pathname.startsWith(h + '/')
+  );
+  const [financeiroOpen, setFinanceiroOpen] = useState(isFinanceiroRoute);
+  useEffect(() => {
+    if (isFinanceiroRoute) setFinanceiroOpen(true);
+  }, [isFinanceiroRoute]);
+
+  const isGerencialRoute = gerencialItems.some(
+    (item) => location.pathname === item.href || location.pathname.startsWith(item.href + '/')
+  );
+  const [gerencialOpen, setGerencialOpen] = useState(isGerencialRoute);
+
+  // Ao entrar em uma subpágina de Gerencial, abrir o grupo automaticamente
+  useEffect(() => {
+    if (isGerencialRoute) setGerencialOpen(true);
+  }, [isGerencialRoute]);
+
+  // Onde o grupo Gerencial é inserido: antes do primeiro item "de gestão" visível
+  const gerencialAnchor =
+    navItems.find((i) => ['/dashboard-executivo', '/gestao-operacional', '/backups', '/admin/cronograma-automacoes', '/admin-users'].includes(i.href))?.href ?? null;
+
+  const renderNavItem = (item: (typeof allNavItems)[number]) => {
+    const Icon = item.icon;
+    const isActive = location.pathname === item.href;
+    const isAdminOnly = item.roles.length === 1 && item.roles[0] === 'admin';
+    return (
+      <Link
+        key={item.href}
+        to={item.href}
+        onClick={() => isMobile && setSidebarOpen(false)}
+        className={cn(
+          'flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors',
+          isActive
+            ? 'bg-sidebar-accent/80 text-sidebar-accent-foreground font-medium'
+            : 'text-sidebar-foreground/85 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground'
+        )}
+      >
+        <Icon className={cn('w-4 h-4 shrink-0', isActive ? 'text-primary' : 'text-sidebar-foreground/70')} />
+        <span className="flex-1 truncate">{item.label}</span>
+        {(item as any).isNew && (
+          <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/15 text-primary">
+            Novo
+          </span>
+        )}
+        {isAdminOnly && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Shield className="w-3 h-3 text-amber-500/80" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Restrito a administradores</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </Link>
+    );
+  };
+
+  const FinanceiroGroup = () => (
+    <div className="mb-0.5">
+      <button
+        type="button"
+        onClick={() => setFinanceiroOpen((v) => !v)}
+        aria-expanded={financeiroOpen}
+        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors text-sidebar-foreground/85 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+      >
+        <Wallet className="w-4 h-4 shrink-0 text-sidebar-foreground/70" />
+        <span className="flex-1 truncate text-left">Financeiro</span>
+        <ChevronDown
+          className={cn(
+            'w-3.5 h-3.5 shrink-0 text-sidebar-foreground/60 transition-transform duration-200',
+            financeiroOpen && 'rotate-180'
+          )}
+        />
+      </button>
+      <div
+        className={cn(
+          'overflow-hidden transition-all duration-200',
+          financeiroOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+        )}
+      >
+        <div className="pl-4 mt-0.5 space-y-0.5 border-l border-sidebar-border/50 ml-4">
+          {financeiroVisible.map((sub) => renderNavItem(sub as any))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const GerencialGroup = () => (
+    <div className="mb-0.5">
+      <button
+        type="button"
+        onClick={() => setGerencialOpen((v) => !v)}
+        aria-expanded={gerencialOpen}
+        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors text-sidebar-foreground/85 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+      >
+        <Briefcase className="w-4 h-4 shrink-0 text-sidebar-foreground/70" />
+        <span className="flex-1 truncate text-left">Gerencial</span>
+        <ChevronDown
+          className={cn(
+            'w-3.5 h-3.5 shrink-0 text-sidebar-foreground/60 transition-transform duration-200',
+            gerencialOpen && 'rotate-180'
+          )}
+        />
+      </button>
+      <div
+        className={cn(
+          'overflow-hidden transition-all duration-200',
+          gerencialOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+        )}
+      >
+        <div className="pl-4 mt-0.5 space-y-0.5 border-l border-sidebar-border/50 ml-4">
+          {gerencialVisible.map((sub) => renderNavItem(sub))}
+        </div>
+      </div>
+    </div>
+  );
+
+
+
+
+  const SidebarContent = () => (
+    <>
+      <div className="px-4 py-4 border-b border-sidebar-border/60">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <img src={logo.url} alt="EVO CLUB" className="w-9 h-9 rounded-lg" />
+            <div className="leading-tight">
+              <h1 className="font-bold text-[13px] tracking-tight whitespace-nowrap">
+                <span className="text-[#2563EB]">EVO</span>{' '}
+                <span className="text-sidebar-foreground">CLUB</span>
+              </h1>
+              <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider">CRM</p>
+            </div>
+          </div>
+          <NotificationBell className="text-sidebar-foreground hover:bg-sidebar-accent/50" />
+        </div>
+      </div>
+
+      {/* Unit Selector - Compact dropdown */}
+      {hasMultipleUnidades && unidadeAtual && (
+        <div className="px-3 py-3 border-b border-sidebar-border/60">
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70 mb-2 px-1">
+            <Building2 className="w-3 h-3" />
+            <span className="uppercase tracking-wider font-medium">Unidade</span>
+          </div>
+          <Select
+            value={unidadeAtual.id}
+            onValueChange={(value) => {
+              const unidade = unidadesPermitidas.find((u) => u.id === value);
+              if (unidade) {
+                setUnidadeAtual(unidade);
+                if (isMobile) setSidebarOpen(false);
+                navigate('/dashboard');
+              }
+            }}
+          >
+            <SelectTrigger className="w-full h-9 bg-sidebar border-sidebar-border/60 text-sidebar-foreground hover:bg-sidebar-accent/50 focus:ring-primary/20 [&>svg]:text-sidebar-foreground/70">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
+                  {getUnidadeSigla(unidadeAtual.nome)}
+                </div>
+                <SelectValue>
+                  <span className="text-[13px] font-medium truncate">{unidadeAtual.nome}</span>
+                </SelectValue>
+              </div>
+            </SelectTrigger>
+            <SelectContent className="bg-sidebar border-sidebar-border/60 unidade-select-scroll">
+              {unidadesPermitidas.map((unidade) => (
+                <SelectItem
+                  key={unidade.id}
+                  value={unidade.id}
+                  className="text-sidebar-foreground focus:bg-sidebar-accent/50 focus:text-sidebar-foreground cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-6 h-6 rounded bg-sidebar-accent/70 flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0">
+                      {getUnidadeSigla(unidade.nome)}
+                    </div>
+                    <span className="text-[13px] font-medium">{unidade.nome}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* Show current unit badge if only one unit */}
+      {!hasMultipleUnidades && unidadeAtual && !unidadeLoading && (
+        <div className="px-3 py-3 border-b border-sidebar-border/60">
+          <div className="flex items-center gap-2.5 px-1">
+            <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center">
+              <Building2 className="w-3.5 h-3.5 text-primary" />
+            </div>
+            <span className="text-[13px] font-medium text-sidebar-foreground truncate">{unidadeAtual.nome}</span>
+          </div>
+        </div>
+      )}
+
+      <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
+        {navItems.map((item) => (
+          <div key={item.href}>
+            {gerencialVisible.length > 0 && gerencialAnchor === item.href && <GerencialGroup />}
+            {(item as any).isGroup
+              ? financeiroVisible.length > 0 && <FinanceiroGroup />
+              : renderNavItem(item)}
+          </div>
+        ))}
+        {gerencialVisible.length > 0 && !gerencialAnchor && <GerencialGroup />}
+      </nav>
+
+
+
+      <div className="px-3 py-3 border-t border-sidebar-border/60">
+        <div className="mb-2 px-2">
+          <p className="text-[11px] text-muted-foreground truncate leading-tight">{user?.email}</p>
+          {userRole && (
+            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              <p className="text-[10px] text-muted-foreground/70 capitalize">{userRole}</p>
+              {userRole === 'admin' && (
+                <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 bg-amber-500/10 text-amber-500 border-amber-500/30">
+                  Admin
+                </Badge>
+              )}
+            </div>
+          )}
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start gap-2.5 h-8 px-2 text-[12px] text-sidebar-foreground/85 hover:bg-sidebar-accent/50"
+          onClick={() => setPhoneDialogOpen(true)}
+        >
+          <Phone className="w-3.5 h-3.5" />
+          Meu Telefone
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start gap-2.5 h-8 px-2 text-[12px] text-sidebar-foreground/85 hover:bg-sidebar-accent/50"
+          onClick={handleSignOut}
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          Sair
+        </Button>
+      </div>
+    </>
+  );
+
+  return (
+    <div ref={ref} className="min-h-screen bg-background flex">
+      {/* Mobile Header */}
+      {isMobile && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-sidebar border-b border-sidebar-border px-4 py-3 flex items-center gap-3">
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Abrir menu" className="text-sidebar-foreground">
+                <Menu className="w-5 h-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0 bg-sidebar border-sidebar-border">
+              <div className="flex flex-col h-full">
+                <SidebarContent />
+              </div>
+            </SheetContent>
+          </Sheet>
+          <div className="flex items-center gap-2">
+            <img src={logo.url} alt="EVO CLUB" className="w-8 h-8 rounded-lg" />
+            <span className="font-bold">
+              <span className="text-[#2563EB]">EVO</span>{' '}
+              <span className="text-sidebar-foreground">CLUB</span>
+            </span>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            {unidadeAtual && (
+              <Badge variant="outline" className="text-xs">
+                {unidadeAtual.nome}
+              </Badge>
+            )}
+            <NotificationBell className="text-sidebar-foreground" />
+          </div>
+        </div>
+      )}
+
+      {/* Desktop Sidebar */}
+      {!isMobile && (
+        <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col sticky top-0 h-screen">
+          <SidebarContent />
+        </aside>
+      )}
+
+      {/* Main content */}
+      <main className={cn("flex-1 overflow-auto", isMobile && "pt-16")}>
+        {children}
+      </main>
+
+      {/* Phone Dialog */}
+      <UserPhoneDialog open={phoneDialogOpen} onOpenChange={setPhoneDialogOpen} />
+    </div>
+  );
+});

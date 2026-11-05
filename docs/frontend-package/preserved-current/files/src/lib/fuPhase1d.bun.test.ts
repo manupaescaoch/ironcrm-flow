@@ -1,0 +1,11 @@
+import { test, expect } from 'bun:test';
+import { createInternalConfirmation, confirmCommercialTransaction } from './fuConfirmationClient';
+import { taskFuItem } from './fuTaskState';
+import type { Task } from '@/hooks/useTarefasData';
+const item=taskFuItem({id:'t',unidade_id:'u',titulo:'A',status:'a_fazer',prazo:'2026-11-04',fu_tecnico_etapa:'M+7',fu_tecnico_lead_id:'l',fu_tecnico_matricula_id:'e'} as Task);
+if(!item)throw new Error('fixture');
+const result={ok:true,duplicado:false,confirmado_em:'2026-11-04T15:00:00Z',responsavel:'TESTE',task_id:'t',lead_id:'l',matricula_id:'e',unidade_id:'u',etapa:'M+7'};
+test('CRM double click shares request and verifies full identity',async()=>{let calls=0;const confirm=createInternalConfirmation(async()=>{calls++;await new Promise(r=>setTimeout(r,5));return result;});await Promise.all([confirm(item),confirm(item)]);expect(calls).toBe(1);});
+test('CRM refuses wrong student result',async()=>{const confirm=createInternalConfirmation(async()=>({...result,lead_id:'B'}));await expect(confirm(item)).rejects.toThrow('unidade atual');});
+test('CRM response lost never claims confirmation and retry reads persisted result',async()=>{let calls=0;const confirm=createInternalConfirmation(async()=>{if(++calls===1)throw new Error('network');return {...result,duplicado:true};});await expect(confirm(item)).rejects.toThrow('network');expect((await confirm(item)).duplicado).toBe(true);});
+test('commercial transaction rejects invalid persisted response',async()=>{await expect(confirmCommercialTransaction({id:'a',leadId:'l',unitId:'u',stage:'D+1'},async()=>({row:{id:'B'}}))).rejects.toThrow('verificar');});

@@ -1,0 +1,398 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dumbbell, ClipboardCheck, ClipboardList, Send, CalendarClock, ArrowRight, BellRing, ExternalLink, CalendarDays } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useUnidade } from '@/contexts/UnidadeContext';
+import { format, startOfWeek, endOfWeek } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Link } from 'react-router-dom';
+import { confirmedFuToday, type FuTaskItem } from '@/lib/fuTaskState';
+import { fuDay } from '@/lib/fuBusinessDays';
+import { useRef } from 'react';
+import type { LucideIcon } from 'lucide-react';
+
+interface AtividadesStats {
+  experimentaisHoje: number;
+  experimentaisSemana: number;
+  confirmacoesEnviadas: number;
+  anamnesesRespondidas: number;
+  anamnesesPendentes: number;
+  followUpsEnviados: number;
+  followUpsAgendados: number;
+}
+
+type StatKey = keyof AtividadesStats;
+
+interface LeadEntry {
+  id: string;
+  nome: string;
+  detalhe?: string;
+}
+
+interface AtividadesDoDiaProps {
+  onVerRelatorio?: () => void;
+  persistedFuItems?: FuTaskItem[];
+  persistedFuLoading?: boolean;
+}
+
+const ITEMS: Array<{ key: StatKey; label: string; subtitle: string; icon: LucideIcon; color: string }> = [
+  { key: 'experimentaisHoje', label: 'Experimentais do dia', subtitle: 'aulas experimentais hoje', icon: Dumbbell, color: 'text-primary' },
+  { key: 'experimentaisSemana', label: 'Experimentais da semana', subtitle: 'agendadas nesta semana', icon: CalendarDays, color: 'text-indigo-600' },
+  { key: 'confirmacoesEnviadas', label: 'Confirmações experimentais', subtitle: 'lembretes 24h/2h enviados hoje', icon: BellRing, color: 'text-sky-600' },
+  { key: 'anamnesesRespondidas', label: 'Anamneses respondidas', subtitle: 'respondidas hoje', icon: ClipboardCheck, color: 'text-green-600' },
+  { key: 'anamnesesPendentes', label: 'Anamneses pendentes', subtitle: 'aguardando resposta', icon: ClipboardList, color: 'text-amber-600' },
+  { key: 'followUpsEnviados', label: 'Follow-ups enviados', subtitle: 'enviados hoje', icon: Send, color: 'text-blue-600' },
+  { key: 'followUpsAgendados', label: 'Follow-ups agendados', subtitle: 'programados', icon: CalendarClock, color: 'text-muted-foreground' },
+];
+
+export function AtividadesDoDia({ onVerRelatorio, persistedFuItems = [], persistedFuLoading = false }: AtividadesDoDiaProps) {
+  const { unidadeAtual } = useUnidade();
+  const [stats, setStats] = useState<AtividadesStats>({
+    experimentaisHoje: 0,
+    experimentaisSemana: 0,
+    confirmacoesEnviadas: 0,
+    anamnesesRespondidas: 0,
+    anamnesesPendentes: 0,
+    followUpsEnviados: 0,
+    followUpsAgendados: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [openKey, setOpenKey] = useState<StatKey | null>(null);
+  const [modalLeads, setModalLeads] = useState<LeadEntry[]>([]);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [fuRefresh, setFuRefresh] = useState(0);
+  const currentUnit = useRef(unidadeAtual?.id); currentUnit.current = unidadeAtual?.id;
+  const confirmedInternal = useMemo(() => confirmedFuToday(persistedFuItems.filter(item => item.unitId === unidadeAtual?.id)), [persistedFuItems, unidadeAtual?.id]);
+  useEffect(() => {
+    if (!unidadeAtual) return;
+    const refresh = () => setFuRefresh(value => value + 1);
+    const channel = supabase.channel(`activity-fu-${unidadeAtual.id}`).on('postgres_changes', { event: '*', schema: 'public', table: 'follow_ups', filter: `unidade_id=eq.${unidadeAtual.id}` }, refresh).subscribe();
+    window.addEventListener('fu-confirmation-changed', refresh);
+    return () => { void supabase.removeChannel(channel); window.removeEventListener('fu-confirmation-changed', refresh); };
+  }, [unidadeAtual]);
+
+  useEffect(() => {
+    if (!unidadeAtual) return;
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+      const today = fuDay(new Date());
+      const startTs = `${today}T00:00:00-03:00`;
+      const endTs = `${today}T23:59:59.999-03:00`;
+      const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      const weekEnd = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+
+      const [expRes, expSemanaRes, anamRespRes, leadsExpRes, anamLeadIdsRes, fuEnvRes, fuAgRes, conf24Res, conf2Res] = await Promise.all([
+        supabase
+          .from('interacoes')
+          .select('lead_id', { count: 'exact', head: true })
+          .eq('unidade_id', unidadeAtual.id)
+          .eq('agendou_experimental', true)
+          .eq('data_experimental', today),
+        supabase
+          .from('interacoes')
+          .select('lead_id', { count: 'exact', head: true })
+          .eq('unidade_id', unidadeAtual.id)
+          .eq('agendou_experimental', true)
+          .gte('data_experimental', weekStart)
+          .lte('data_experimental', weekEnd),
+        supabase
+          .from('anamneses_experimental')
+          .select('id', { count: 'exact', head: true })
+          .eq('unidade_id', unidadeAtual.id)
+          .gte('created_at', startTs)
+          .lte('created_at', endTs),
+        supabase
+          .from('leads')
+          .select('id')
+          .eq('unidade_id', unidadeAtual.id)
+          .eq('ativo', true)
+          .gte('data_aula_experimental', today),
+        supabase
+          .from('anamneses_experimental')
+          .select('lead_id')
+          .eq('unidade_id', unidadeAtual.id),
+        supabase
+          .from('follow_ups')
+          .select('id', { count: 'exact', head: true })
+          .eq('unidade_id', unidadeAtual.id)
+          .eq('status', 'concluido')
+          .in('tipo', ['D+1', 'D+7', 'D+15', 'REAG'])
+          .not('concluido_por', 'in', '("SISTEMA (duplicidade bloqueada)","SISTEMA (reagendado)")')
+          .gte('concluido_em', startTs)
+          .lte('concluido_em', endTs),
+        supabase
+          .from('follow_ups')
+          .select('id', { count: 'exact', head: true })
+          .eq('unidade_id', unidadeAtual.id)
+          .eq('status', 'pendente')
+          .in('tipo', ['D+1', 'D+7', 'D+15', 'REAG'])
+          .gte('data_prevista', startTs),
+        supabase
+          .from('leads')
+          .select('id')
+          .eq('unidade_id', unidadeAtual.id)
+          .gte('confirmacao_24h_enviada_em', startTs)
+          .lte('confirmacao_24h_enviada_em', endTs),
+        supabase
+          .from('leads')
+          .select('id')
+          .eq('unidade_id', unidadeAtual.id)
+          .gte('confirmacao_2h_enviada_em', startTs)
+          .lte('confirmacao_2h_enviada_em', endTs),
+      ]);
+
+      const leadsComAnamnese = new Set((anamLeadIdsRes.data || []).map((a) => a.lead_id));
+      const pendentes = (leadsExpRes.data || []).filter((l) => !leadsComAnamnese.has(l.id)).length;
+
+      const confSet = new Set<string>();
+      (conf24Res.data || []).forEach((l) => confSet.add(l.id));
+      (conf2Res.data || []).forEach((l) => confSet.add(l.id));
+
+      if (cancelled) return;
+      setStats({
+        experimentaisHoje: expRes.count ?? 0,
+        experimentaisSemana: expSemanaRes.count ?? 0,
+        confirmacoesEnviadas: confSet.size,
+        anamnesesRespondidas: anamRespRes.count ?? 0,
+        anamnesesPendentes: pendentes,
+        followUpsEnviados: fuEnvRes.count ?? 0,
+        followUpsAgendados: fuAgRes.count ?? 0,
+      });
+      setLoading(false);
+    })();
+
+    return () => { cancelled = true; };
+  }, [unidadeAtual, fuRefresh]);
+
+  const fetchLeadsForKey = useCallback(async (key: StatKey) => {
+    if (!unidadeAtual) return;
+    const requestedUnit = unidadeAtual.id;
+    setModalLoading(true);
+    setModalLeads([]);
+    const today = fuDay(new Date());
+    const startTs = `${today}T00:00:00-03:00`;
+    const endTs = `${today}T23:59:59.999-03:00`;
+
+    try {
+      if (key === 'experimentaisHoje') {
+        const { data } = await supabase
+          .from('interacoes')
+          .select('lead_id, hora_experimental, leads!inner(id, nome, ativo)')
+          .eq('unidade_id', unidadeAtual.id)
+          .eq('agendou_experimental', true)
+          .eq('data_experimental', today);
+        const list: LeadEntry[] = (data || [])
+          .filter((r) => r.leads && r.leads.ativo !== false)
+          .map((r) => ({
+            id: r.leads.id,
+            nome: r.leads.nome,
+            detalhe: r.hora_experimental ? r.hora_experimental.slice(0, 5) : undefined,
+          }));
+        setModalLeads(dedupe(list));
+      } else if (key === 'experimentaisSemana') {
+        const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        const weekEnd = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        const { data } = await supabase
+          .from('interacoes')
+          .select('lead_id, data_experimental, hora_experimental, leads!inner(id, nome, ativo)')
+          .eq('unidade_id', unidadeAtual.id)
+          .eq('agendou_experimental', true)
+          .gte('data_experimental', weekStart)
+          .lte('data_experimental', weekEnd)
+          .order('data_experimental', { ascending: true });
+        const list: LeadEntry[] = (data || [])
+          .filter((r) => r.leads && r.leads.ativo !== false)
+          .map((r) => {
+            const [y, m, d] = (r.data_experimental || '').split('-').map(Number);
+            const dataFmt = y ? format(new Date(y, m - 1, d), 'dd/MM', { locale: ptBR }) : '';
+            const hora = r.hora_experimental ? r.hora_experimental.slice(0, 5) : '';
+            const detalhe = [dataFmt, hora].filter(Boolean).join(' • ');
+            return { id: r.leads.id, nome: r.leads.nome, detalhe: detalhe || undefined };
+          });
+        setModalLeads(dedupe(list));
+      } else if (key === 'confirmacoesEnviadas') {
+        const { data } = await supabase
+          .from('leads')
+          .select('id, nome, confirmacao_24h_enviada_em, confirmacao_2h_enviada_em')
+          .eq('unidade_id', unidadeAtual.id)
+          .or(`and(confirmacao_24h_enviada_em.gte.${startTs},confirmacao_24h_enviada_em.lte.${endTs}),and(confirmacao_2h_enviada_em.gte.${startTs},confirmacao_2h_enviada_em.lte.${endTs})`);
+        const list: LeadEntry[] = (data || []).map((l) => {
+          const at2h = l.confirmacao_2h_enviada_em && l.confirmacao_2h_enviada_em >= startTs && l.confirmacao_2h_enviada_em <= endTs;
+          const tipo = at2h ? '2h' : '24h';
+          const at = at2h ? l.confirmacao_2h_enviada_em : l.confirmacao_24h_enviada_em;
+          return {
+            id: l.id,
+            nome: l.nome,
+            detalhe: `${tipo} • ${format(new Date(at), 'HH:mm', { locale: ptBR })}`,
+          };
+        });
+        setModalLeads(list);
+      } else if (key === 'anamnesesRespondidas') {
+        const { data } = await supabase
+          .from('anamneses_experimental')
+          .select('lead_id, created_at, leads!inner(id, nome)')
+          .eq('unidade_id', unidadeAtual.id)
+          .gte('created_at', startTs)
+          .lte('created_at', endTs);
+        const list: LeadEntry[] = ((data ?? []) as unknown as Array<{ leads: { id: string; nome: string }; created_at: string }>).map((a) => ({
+          id: a.leads.id,
+          nome: a.leads.nome,
+          detalhe: format(new Date(a.created_at), 'HH:mm', { locale: ptBR }),
+        }));
+        setModalLeads(list);
+      } else if (key === 'anamnesesPendentes') {
+        const [leadsRes, anamRes] = await Promise.all([
+          supabase
+            .from('leads')
+            .select('id, nome, data_aula_experimental')
+            .eq('unidade_id', unidadeAtual.id)
+            .eq('ativo', true)
+            .gte('data_aula_experimental', today),
+          supabase
+            .from('anamneses_experimental')
+            .select('lead_id')
+            .eq('unidade_id', unidadeAtual.id),
+        ]);
+        const respondidos = new Set((anamRes.data || []).map((a) => a.lead_id));
+        const list: LeadEntry[] = (leadsRes.data || [])
+          .filter((l) => !respondidos.has(l.id))
+          .map((l) => ({
+            id: l.id,
+            nome: l.nome,
+            detalhe: l.data_aula_experimental
+              ? format(new Date(l.data_aula_experimental), 'dd/MM', { locale: ptBR })
+              : undefined,
+          }));
+        setModalLeads(list);
+      } else if (key === 'followUpsEnviados') {
+        const { data } = await supabase
+          .from('follow_ups')
+          .select('lead_id, tipo, concluido_em, leads!inner(id, nome)')
+          .eq('unidade_id', unidadeAtual.id)
+          .eq('status', 'concluido')
+          .in('tipo', ['D+1', 'D+7', 'D+15', 'REAG'])
+          .not('concluido_por', 'in', '("SISTEMA (duplicidade bloqueada)","SISTEMA (reagendado)")')
+          .gte('concluido_em', startTs)
+          .lte('concluido_em', endTs);
+        const list: LeadEntry[] = (data || []).map((f) => ({
+          id: f.leads.id,
+          nome: f.leads.nome,
+          detalhe: `${f.tipo}${f.concluido_em ? ' • ' + format(new Date(f.concluido_em), 'HH:mm', { locale: ptBR }) : ''}`,
+        }));
+        if (currentUnit.current === requestedUnit) setModalLeads([...list, ...confirmedInternal.map(item => ({ id: item.leadId, nome: item.lead.nome, detalhe: `${item.stage} · ${item.confirmedName ?? 'Envio confirmado'}` }))]);
+      } else if (key === 'followUpsAgendados') {
+        const { data } = await supabase
+          .from('follow_ups')
+          .select('lead_id, tipo, data_prevista, leads!inner(id, nome)')
+          .eq('unidade_id', unidadeAtual.id)
+          .eq('status', 'pendente')
+          .in('tipo', ['D+1', 'D+7', 'D+15', 'REAG'])
+          .gte('data_prevista', startTs)
+          .order('data_prevista', { ascending: true });
+        const list: LeadEntry[] = (data || []).map((f) => ({
+          id: f.leads.id,
+          nome: f.leads.nome,
+          detalhe: `${f.tipo} • ${format(new Date(f.data_prevista), 'dd/MM HH:mm', { locale: ptBR })}`,
+        }));
+        if (currentUnit.current === requestedUnit) setModalLeads([...list, ...persistedFuItems.filter(item => item.open && !item.confirmedAt && item.due >= today).map(item => ({ id: item.leadId, nome: item.lead.nome, detalhe: `${item.stage} · ${item.due}` }))]);
+      }
+    } finally {
+      setModalLoading(false);
+    }
+  }, [unidadeAtual, persistedFuItems, confirmedInternal]);
+
+  function dedupe(list: LeadEntry[]) {
+    const seen = new Set<string>();
+    return list.filter((l) => {
+      if (seen.has(l.id)) return false;
+      seen.add(l.id);
+      return true;
+    });
+  };
+
+  const handleOpen = (key: StatKey) => {
+    setOpenKey(key);
+    fetchLeadsForKey(key);
+  };
+
+  const currentItem = ITEMS.find((i) => i.key === openKey);
+  useEffect(() => { setOpenKey(null); setModalLeads([]); }, [unidadeAtual?.id]);
+  useEffect(() => {
+    if (openKey === 'followUpsEnviados' || openKey === 'followUpsAgendados') void fetchLeadsForKey(openKey);
+  }, [fuRefresh, persistedFuItems, openKey, fetchLeadsForKey]);
+
+  return (
+    <>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Atividades do Dia</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {ITEMS.map(({ key, label, subtitle, icon: Icon, color }) => (
+            <button
+              key={key}
+              onClick={() => handleOpen(key)}
+              className="w-full flex items-center justify-between rounded-md border border-border/50 bg-muted/20 px-3 py-2 hover:bg-muted/50 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <Icon className={`h-4 w-4 shrink-0 ${color}`} />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium truncate">{label}</div>
+                  <div className="text-xs text-muted-foreground truncate">{subtitle}</div>
+                </div>
+              </div>
+              <div className="text-2xl font-semibold tabular-nums">
+                {loading || ((key === 'followUpsEnviados' || key === 'followUpsAgendados') && persistedFuLoading) ? '—' : key === 'followUpsEnviados' ? stats[key] + confirmedInternal.length : key === 'followUpsAgendados' ? stats[key] + persistedFuItems.filter(item => item.open && !item.confirmedAt && item.due >= fuDay(new Date())).length : stats[key]}
+              </div>
+            </button>
+          ))}
+          {onVerRelatorio && (
+            <div className="pt-2">
+              <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground" onClick={onVerRelatorio}>
+                Ver relatório completo
+                <ArrowRight className="ml-1 h-3 w-3" />
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={!!openKey} onOpenChange={(o) => !o && setOpenKey(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {currentItem && <currentItem.icon className={`h-4 w-4 ${currentItem.color}`} />}
+              {currentItem?.label}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto space-y-1">
+            {modalLoading ? (
+              <p className="text-sm text-muted-foreground text-center py-6">Carregando…</p>
+            ) : modalLeads.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">Nenhum lead encontrado.</p>
+            ) : (
+              modalLeads.map((l, idx) => (
+                <Link
+                  key={`${l.id}-${idx}`}
+                  to={`/lead/${l.id}`}
+                  onClick={() => setOpenKey(null)}
+                  className="flex items-center justify-between gap-2 rounded-md border border-border/50 bg-muted/20 px-3 py-2 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{l.nome?.toUpperCase()}</div>
+                    {l.detalhe && <div className="text-xs text-muted-foreground truncate">{l.detalhe}</div>}
+                  </div>
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                </Link>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

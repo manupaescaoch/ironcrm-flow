@@ -1,0 +1,584 @@
+import { useCommercialConfirmation } from '@/hooks/useCommercialConfirmation';
+import { linkTecnico } from '@/lib/fuTecnico';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { AlertTriangle, CalendarDays, X, Phone, Check, UserX, Eye, MessageCircle, Send, Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { FollowUpAutoItem } from '@/components/dashboard/AutoFollowUpCard';
+import { WhatsAppLink } from '@/components/WhatsAppLink';
+import { format, differenceInDays, isToday, isPast, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { useState, useMemo, useEffect } from 'react';
+import { FunctionsHttpError } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+interface FollowUpSectionsProps {
+  urgentItems: FollowUpAutoItem[];
+  upcomingItems: FollowUpAutoItem[];
+  onRefresh: () => void;
+  tipoFilter: string | null;
+  onClearFilter: () => void;
+  onTipoClick: (tipo: string) => void;
+}
+
+const TIPO_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
+  'D+1': { label: 'D+1', color: 'text-green-700', bgColor: 'bg-green-100' },
+  'D+7': { label: 'D+7', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+  'D+15': { label: 'D+15', color: 'text-orange-700', bgColor: 'bg-orange-100' },
+  'D+30': { label: 'D+30', color: 'text-red-700', bgColor: 'bg-red-100' },
+};
+
+const NOT_INTERESTED_REASONS = [
+  'Não tem interesse',
+  'Mudou de cidade',
+  'Optou por outra academia',
+  'Problemas financeiros',
+  'Problemas de saúde',
+  'Sem tempo disponível',
+  'Não atende / Telefone inválido',
+  'Outro',
+];
+
+const FOLLOW_UP_MESSAGES: Record<string, (nome: string) => string> = {
+  'D+1': (nome) => `Oi, ${nome}! Tudo bem?
+
+Como você está se sentindo depois da sua aula experimental?
+
+Ficou alguma dúvida sobre os planos ou sobre como funciona o acompanhamento na EVO?`,
+  'D+7': (nome) => `Oi, ${nome}! Tudo bem?
+
+Passando pra saber se você ainda tem interesse em começar a treinar na EVO.
+
+Se quiser, posso verificar os horários disponíveis e te ajudar com a matrícula por aqui.`,
+  'D+15': (nome) => `Oi, ${nome}! Tudo bem?
+
+Vou encerrar nosso acompanhamento por enquanto, mas deixo o contato aberto caso queira retomar.
+
+Se tiver alguma dúvida ou quiser começar a treinar na EVO, é só me chamar! 💙`,
+  'D+30': (nome) => `Oi, ${nome}!
+
+Passando pra deixar o contato aberto. Se em algum momento quiser treinar com mais acompanhamento e uma experiência diferente, a EVO está aqui.
+
+Qualquer coisa é só chamar. 🤝`,
+};
+
+export function FollowUpSections({ 
+  urgentItems, 
+  upcomingItems, 
+  onRefresh, 
+  tipoFilter, 
+  onClearFilter,
+  onTipoClick
+}: FollowUpSectionsProps) {
+  const navigate = useNavigate();
+  const confirmation = useCommercialConfirmation();
+  const { userRole } = useAuth();
+  const canManualSend = userRole === 'admin' || userRole === 'comercial';
+  const [loading, setLoading] = useState(false);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [notInterestedModalOpen, setNotInterestedModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<FollowUpAutoItem | null>(null);
+  const [selectedReason, setSelectedReason] = useState<string>('');
+  const [manualConfirmOpen, setManualConfirmOpen] = useState(false);
+  const [manualSending, setManualSending] = useState(false);
+  const [manualCooldownUntil, setManualCooldownUntil] = useState<number>(0);
+  const [now, setNow] = useState(Date.now());
+
+  // Atualiza contador do cooldown
+  useEffect(() => {
+    if (manualCooldownUntil <= 0) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [manualCooldownUntil]);
+
+  const cooldownLeft = Math.max(0, Math.ceil((manualCooldownUntil - now) / 1000));
+
+  async function handleManualSend() {
+    setManualSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-follow-ups-automaticos', {
+        body: {
+          manual: true,
+          force: true,
+          min_delay_ms: 20000,
+          max_delay_ms: 36000,
+        },
+      });
+      if (error) {
+        const msg = error.message || 'Falha ao iniciar envio';
+        // Supabase functions.invoke retorna erro em status != 2xx; tentamos extrair a mensagem
+        const status = error instanceof FunctionsHttpError ? error.context.status : undefined;
+        if (status === 409) {
+          toast.warning('Já existe uma execução manual em andamento. Aguarde alguns minutos.');
+        } else if (status === 403) {
+          toast.error('Você não tem permissão para essa ação.');
+        } else if (status === 503) {
+          toast.error('Chip WhatsApp Comercial offline. Reconecte em /admin/whatsapp-comercial.');
+        } else {
+          toast.error(msg);
+        }
+        return;
+      }
+      const total = data?.total_eligible ?? 0;
+      const estMin = Math.ceil((data?.estimated_seconds ?? 0) / 60);
+      toast.success(
+        `Envio iniciado: ${total} follow-up(s). Tempo estimado ~${estMin} min. Acompanhe em Admin › WhatsApp Comercial.`,
+      );
+      setManualCooldownUntil(Date.now() + 60_000);
+      setNow(Date.now());
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Falha ao iniciar envio');
+    } finally {
+      setManualSending(false);
+      setManualConfirmOpen(false);
+    }
+  }
+
+  // Filter items by tipo if filter is active
+  const filteredUrgentItems = useMemo(() => {
+    if (!tipoFilter) return urgentItems;
+    return urgentItems.filter(item => item.tipo === tipoFilter);
+  }, [urgentItems, tipoFilter]);
+
+  const filteredUpcomingItems = useMemo(() => {
+    if (!tipoFilter) return upcomingItems;
+    return upcomingItems.filter(item => item.tipo === tipoFilter);
+  }, [upcomingItems, tipoFilter]);
+
+  // Sort urgent items: D+1 first, then by days overdue
+  const sortedUrgentItems = useMemo(() => {
+    return [...filteredUrgentItems].sort((a, b) => {
+      // D+1 always first
+      if (a.tipo === 'D+1' && b.tipo !== 'D+1') return -1;
+      if (b.tipo === 'D+1' && a.tipo !== 'D+1') return 1;
+      // Then by date (older first)
+      return new Date(a.data_prevista).getTime() - new Date(b.data_prevista).getTime();
+    });
+  }, [filteredUrgentItems]);
+
+  // Sort upcoming items by date
+  const sortedUpcomingItems = useMemo(() => {
+    return [...filteredUpcomingItems].sort((a, b) => 
+      new Date(a.data_prevista).getTime() - new Date(b.data_prevista).getTime()
+    );
+  }, [filteredUpcomingItems]);
+
+  const getTimeInfo = (dataPrevista: string) => {
+    const date = new Date(dataPrevista);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const diff = differenceInDays(date, hoje);
+    
+    if (isToday(date)) {
+      return { text: 'Hoje', className: 'text-amber-600 bg-amber-100' };
+    } else if (isPast(date)) {
+      const daysOverdue = Math.abs(diff);
+      return { 
+        text: `${daysOverdue}d atrasado`, 
+        className: 'text-red-600 bg-red-100' 
+      };
+    } else {
+      return { 
+        text: `Em ${diff}d`, 
+        className: 'text-muted-foreground bg-muted' 
+      };
+    }
+  };
+
+  const handleSendWhatsApp = (item: FollowUpAutoItem) => {
+    confirmation.select();
+    setSelectedItem(item);
+    setConfirmModalOpen(true);
+  };
+
+  const handleConfirmSent = async () => {
+    if (!selectedItem) return;
+    setLoading(true);
+    
+    try {
+      const confirmed = await confirmation.confirm(selectedItem, 'dashboard', `Follow-up ${selectedItem.tipo} realizado via WhatsApp`);
+      if (!confirmed) return;
+      setConfirmModalOpen(false);
+      setSelectedItem(null);
+      onRefresh();
+    } catch (error) {
+      console.error('Erro ao confirmar follow-up:', error);
+      toast.error(error instanceof Error ? error.message : 'Não foi possível verificar a confirmação.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNotInterested = (item: FollowUpAutoItem) => {
+    setSelectedItem(item);
+    setSelectedReason('');
+    setNotInterestedModalOpen(true);
+  };
+
+  const handleConfirmNotInterested = async () => {
+    if (!selectedItem || !selectedReason) return;
+    setLoading(true);
+    
+    try {
+      // Update lead status to perdido
+      const { error: leadError } = await supabase
+        .from('leads')
+        .update({ 
+          status_funil: 'perdido',
+          motivo_perda: selectedReason,
+        })
+        .eq('id', selectedItem.lead_id);
+
+      if (leadError) throw leadError;
+
+      // Cancel all pending follow-ups for this lead
+      await supabase
+        .from('follow_ups')
+        .update({ 
+          status: 'cancelado',
+          cancelado_motivo: 'perdido'
+        })
+        .eq('lead_id', selectedItem.lead_id)
+        .eq('status', 'pendente');
+
+      toast.success('Lead marcado como não interessado');
+      setNotInterestedModalOpen(false);
+      setSelectedItem(null);
+      setSelectedReason('');
+      onRefresh();
+    } catch (error) {
+      console.error('Erro ao marcar como não interessado:', error);
+      toast.error('Erro ao atualizar lead');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMarkAsCompleted = async (item: FollowUpAutoItem) => {
+    confirmation.select();
+    setLoading(true);
+    try {
+      const confirmed = await confirmation.confirm(item, 'dashboard', `Follow-up ${item.tipo} marcado como realizado`);
+      if (!confirmed) return;
+      onRefresh();
+    } catch (error) {
+      console.error('Erro ao marcar como realizado:', error);
+      toast.error(error instanceof Error ? error.message : 'Não foi possível verificar a confirmação.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderFollowUpItem = (item: FollowUpAutoItem, isUrgent: boolean) => {
+    const tipoConfig = TIPO_CONFIG[item.tipo] || TIPO_CONFIG['D+1'];
+    const timeInfo = getTimeInfo(item.data_prevista);
+    const leadNome = item.lead?.nome?.split(' ')[0] || 'Lead';
+    const messageFunc = FOLLOW_UP_MESSAGES[item.tipo] || FOLLOW_UP_MESSAGES['D+1'];
+    const message = messageFunc(leadNome);
+
+    return (
+      <div 
+        key={item.id} 
+        className={cn(
+          "flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border gap-3",
+          isUrgent ? "bg-background" : "bg-muted/30"
+        )}
+      >
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <Badge 
+            className={cn("shrink-0 cursor-pointer hover:opacity-80 transition-opacity", tipoConfig.bgColor, tipoConfig.color)}
+            onClick={() => onTipoClick(item.tipo)}
+            title={`Filtrar por ${tipoConfig.label}`}
+          >
+            {tipoConfig.label}
+          </Badge>
+          
+          <div className="flex-1 min-w-0">
+            <p className="font-medium truncate">{item.lead?.nome || 'Lead não encontrado'}</p>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              {item.lead?.telefone && (
+                <WhatsAppLink
+                  phone={item.lead.telefone}
+                  message={message}
+                  showIcon={true}
+                  className="text-green-600 hover:text-green-700"
+                />
+              )}
+              <span className="flex items-center gap-1 text-xs">
+                <CalendarDays className="w-3 h-3" />
+                FU: {format(parseISO(item.data_prevista), 'dd/MM/yy', { locale: ptBR })}
+              </span>
+              <Badge variant="outline" className={cn("text-xs", timeInfo.className)}>
+                {timeInfo.text}
+              </Badge>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleMarkAsCompleted(item)}
+            disabled={loading}
+            title="Marcar como realizado"
+          >
+            <Check className="w-4 h-4 text-green-600" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleNotInterested(item)}
+            disabled={loading}
+            title="Não interessado"
+          >
+            <UserX className="w-4 h-4 text-orange-600" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(`/lead/${item.lead_id}`)}
+            title="Ver lead"
+          >
+            <Eye className="w-4 h-4" />
+          </Button>
+          
+          {item.lead?.telefone && (
+            <WhatsAppLink
+              phone={item.lead.telefone}
+              message={message}
+              iconOnly
+            />
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Filter indicator */}
+      {tipoFilter && (
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="text-sm">
+            Filtro: {TIPO_CONFIG[tipoFilter]?.label || tipoFilter}
+          </Badge>
+          <Button variant="ghost" size="sm" onClick={onClearFilter}>
+            <X className="w-4 h-4" />
+            Limpar
+          </Button>
+        </div>
+      )}
+
+      {/* Urgent Section */}
+      <Card className="border-red-200 bg-red-50/30 dark:bg-red-950/10">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              <span>Vencidos / Hoje</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {canManualSend && sortedUrgentItems.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => setManualConfirmOpen(true)}
+                  disabled={manualSending || cooldownLeft > 0}
+                  className="h-8"
+                >
+                  {manualSending ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4 mr-1" />
+                  )}
+                  {cooldownLeft > 0
+                    ? `Aguarde ${cooldownLeft}s`
+                    : manualSending
+                      ? 'Iniciando...'
+                      : 'Enviar atrasados agora'}
+                </Button>
+              )}
+              <Badge variant="destructive">{sortedUrgentItems.length}</Badge>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {sortedUrgentItems.length > 0 ? (
+            <ScrollArea className="max-h-[400px]">
+              <div className="space-y-2 pr-4">
+                {sortedUrgentItems.map(item => renderFollowUpItem(item, true))}
+              </div>
+            </ScrollArea>
+          ) : (
+            <div className="py-6 text-center text-muted-foreground">
+              <Check className="w-8 h-8 mx-auto mb-2 text-green-500" />
+              <p>Nenhum follow-up vencido ou para hoje!</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Upcoming Section */}
+      <Card className="border-slate-200 bg-gradient-to-br from-slate-50/50 to-background dark:from-slate-950/20 dark:to-background">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="w-5 h-5 text-slate-500" />
+              <span>Próximos Follow-ups</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Quick type counters */}
+              {['D+7', 'D+15', 'D+30'].map(tipo => {
+                const count = sortedUpcomingItems.filter(i => i.tipo === tipo).length;
+                if (count === 0) return null;
+                const config = TIPO_CONFIG[tipo];
+                return (
+                  <Badge 
+                    key={tipo} 
+                    variant="outline" 
+                    className={cn("text-xs cursor-pointer hover:opacity-80", config.bgColor, config.color)}
+                    onClick={() => onTipoClick(tipo)}
+                  >
+                    {tipo}: {count}
+                  </Badge>
+                );
+              })}
+              <Badge variant="secondary">{sortedUpcomingItems.length}</Badge>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {sortedUpcomingItems.length > 0 ? (
+            <ScrollArea className="h-[350px] pr-4">
+              <div className="space-y-2">
+                {sortedUpcomingItems.map(item => renderFollowUpItem(item, false))}
+              </div>
+            </ScrollArea>
+          ) : (
+            <div className="py-6 text-center text-muted-foreground">
+              <CalendarDays className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p>Nenhum follow-up agendado para os próximos dias</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Confirm WhatsApp Modal */}
+      <Dialog open={confirmModalOpen} onOpenChange={setConfirmModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar envio de WhatsApp</DialogTitle>
+            <DialogDescription>
+              Você enviou a mensagem de follow-up para {selectedItem?.lead?.nome}?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmSent} disabled={loading}>
+              {loading ? 'Salvando...' : 'Sim, enviei'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Not Interested Modal */}
+      <Dialog open={notInterestedModalOpen} onOpenChange={setNotInterestedModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Marcar como não interessado</DialogTitle>
+            <DialogDescription>
+              Selecione o motivo pelo qual {selectedItem?.lead?.nome} não tem interesse:
+            </DialogDescription>
+          </DialogHeader>
+          <Select value={selectedReason} onValueChange={setSelectedReason}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione o motivo" />
+            </SelectTrigger>
+            <SelectContent>
+              {NOT_INTERESTED_REASONS.map(reason => (
+                <SelectItem key={reason} value={reason}>{reason}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNotInterestedModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleConfirmNotInterested} 
+              disabled={loading || !selectedReason}
+              variant="destructive"
+            >
+              {loading ? 'Salvando...' : 'Confirmar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={manualConfirmOpen} onOpenChange={setManualConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar follow-ups atrasados agora?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Serão enviados <strong>{sortedUrgentItems.length}</strong> follow-up(s) vencido(s) via
+              WhatsApp comercial.
+              <br />
+              <br />
+              O intervalo entre mensagens será <strong>aleatório entre 20s e 36s</strong> para
+              proteger o chip. Tempo estimado:{' '}
+              <strong>
+                ~{Math.max(1, Math.ceil((sortedUrgentItems.length * 28) / 60))} min
+              </strong>
+              .
+              <br />
+              <br />
+              O envio roda em segundo plano — você pode fechar a tela. Cada follow-up é enviado
+              apenas uma vez (proteção contra duplicidade).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={manualSending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleManualSend} disabled={manualSending}>
+              {manualSending ? 'Iniciando...' : 'Confirmar envio'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
