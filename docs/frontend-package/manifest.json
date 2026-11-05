@@ -74,10 +74,11 @@
         "src/hooks/useDashboardMatriculas.ts",
         "src/hooks/useDashboardEventos.ts",
         "src/hooks/useDashboardOperacionalData.ts",
-        "src/hooks/useOperacionalDashboard.ts"
+        "src/hooks/useOperacionalDashboard.ts",
+        "src/hooks/useDashboardData.ts"
       ],
       "applied": true,
-      "output": "patching file src/hooks/useComissoesData.ts\npatching file src/hooks/useDashboardEventos.ts\npatching file src/hooks/useDashboardMatriculas.ts\npatching file src/hooks/useDashboardOperacionalData.ts\npatching file src/hooks/useDashboardStats.ts\npatching file src/hooks/useExecutivoData.ts\npatching file src/hooks/useOperacionalDashboard.ts\n"
+      "output": "patching file src/hooks/useComissoesData.ts\npatching file src/hooks/useDashboardData.ts\npatching file src/hooks/useDashboardEventos.ts\npatching file src/hooks/useDashboardMatriculas.ts\npatching file src/hooks/useDashboardOperacionalData.ts\npatching file src/hooks/useDashboardStats.ts\npatching file src/hooks/useExecutivoData.ts\npatching file src/hooks/useOperacionalDashboard.ts\n"
     }
   ],
   "paths": [
@@ -102,13 +103,12 @@
     "src/pages/LeadDetail.tsx",
     "src/lib/metricPagination.bun.test.ts"
   ],
-  "status": "frontend-only patch series; applied successfully to local published-branch baseline; hosted validation pending",
+  "status": "frontend-only patch series applied successfully to local published-branch baseline; hosted validation pending",
   "excluded": [
-    "supabase/functions",
-    "drizzle",
-    "supabase/migrations",
+    "20 pending Edge Functions",
+    "migrations",
     "secrets",
-    "permissions",
+    "database permissions",
     "FU confirmations",
     "FC-2A.1"
   ],
@@ -123,6 +123,6 @@
     "patches/05-23922af4.patch": "22ddac53a0a31eba261a7438cd1592f74b24a4ade94a81b504b0b8ef2162c429",
     "patches/06-34f36471.patch": "fa7c7ae708b5fa424aba9e711e4725e1c669602418b3e36af1072e82a37db49e",
     "patches/07-32e3c651.patch": "5c5dd867b50d90f7f7f38d25a7eb26d7d927d9f74c8359e81d6554c8f7c3daaf",
-    "patches/08-pagination.patch": "52aed17a03474da6f223a42fe84370932b001af45585d699ff5298f65de5702b"
+    "patches/08-pagination.patch": "1eda7ae14a1aefe6fb7ef6ce853d3152d4211e25a5a53638fa4749822ed8cca1"
   }
 }
