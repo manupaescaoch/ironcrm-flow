@@ -1,0 +1,312 @@
+import { controlledSend } from '../_shared/contactControl.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { authorizeCronOrJwt } from '../_shared/cronAuth.ts';
+import { buildIdempotencyKey, checkZapiStatus, getZapiCreds, logEnvio, sendTextIdempotent } from '../_shared/zapi.ts';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
+};
+
+const FUNC = 'notify-feedback-experimental';
+
+function normalizePhone(phone: string): string {
+  let normalized = (phone || '').replace(/\D/g, '');
+  if (!normalized) return '';
+  if (!normalized.startsWith('55')) normalized = '55' + normalized;
+  return normalized;
+}
+
+function formatPhoneBR(phone: string): string {
+  const n = (phone || '').replace(/\D/g, '');
+  // Tenta formatar (55) DD 9XXXX-XXXX
+  if (n.length >= 12) {
+    const ddd = n.slice(2, 4);
+    const rest = n.slice(4);
+    if (rest.length === 9) return `(${ddd}) ${rest.slice(0, 5)}-${rest.slice(5)}`;
+    if (rest.length === 8) return `(${ddd}) ${rest.slice(0, 4)}-${rest.slice(4)}`;
+  }
+  return phone || '';
+}
+
+function getBrasiliaNow() {
+  const now = new Date();
+  const brasiliaStr = now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
+  return new Date(brasiliaStr);
+}
+
+function getBrasiliaDateOnly(date: Date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+const HOURS_AFTER_CLASS = 3;
+
+// Mensagem definida para o FU pós-experimental (mesma base do D+1, ajustada para o mesmo dia)
+const buildMensagemLead = (nome: string) => `Oi, ${nome}! Tudo bem?
+
+Queria saber como foi sua experiência na EVO! 💙
+
+O que achou do treino e do acompanhamento da nossa equipe?`;
+
+
+// Eliminando redundância com _shared/zapi.ts
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  // SECURITY: require cron secret header OR valid Supabase JWT for any non-OPTIONS request.
+  {
+    const __auth = await authorizeCronOrJwt(req);
+    if (!__auth.ok) {
+      return new Response(
+        JSON.stringify({ error: __auth.error || 'Unauthorized' }),
+        { status: __auth.status || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+  }
+
+  try {
+    const creds = getZapiCreds('comercial');
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    let body: any = {};
+    try { body = await req.json(); } catch { /* sem body */ }
+    const dryRun = body?.dry_run === true;
+
+    if (!dryRun && !creds) {
+      return new Response(
+        JSON.stringify({ error: 'ZAPI credentials not configured' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
+    // [Z-API health] aborta cedo se o chip estiver offline (idem cronograma)
+    if (!dryRun && creds) {
+      const st = await checkZapiStatus(creds);
+      if (!st.connected) {
+        await logEnvio(supabase, { 
+          funcao: FUNC, 
+          sucesso: false, 
+          motivo_skip: 'zapi_offline', 
+          erro_msg: JSON.stringify(st.raw).slice(0, 500), 
+          canal: 'comercial' 
+        });
+        console.warn('[zapi] offline — abortando', st.raw);
+        return new Response(JSON.stringify({ error: 'Z-API desconectado', zapi: st.raw }), {
+          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+    const brasilia = getBrasiliaNow();
+    const todayStr = getBrasiliaDateOnly();
+    const nowMin = brasilia.getHours() * 60 + brasilia.getMinutes();
+
+    console.log(`[feedback-pos-aula] Brasília: ${brasilia.toISOString()} | hoje=${todayStr} | nowMin=${nowMin}`);
+
+    // Janela: confirmações de presença feitas nas últimas 48h (evita reprocessar histórico antigo)
+    const cutoffAntigo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    const cutoffMaduro = new Date(Date.now() - HOURS_AFTER_CLASS * 60 * 60 * 1000).toISOString();
+
+    const { data: interacoes, error: intErr } = await supabase
+      .from('interacoes')
+      .select('id, lead_id, hora_experimental, data_experimental, compareceu, compareceu_em, feedback_pos_aula_enviado_em')
+      .eq('compareceu', true)
+      .is('feedback_pos_aula_enviado_em', null)
+      .not('compareceu_em', 'is', null)
+      .gte('compareceu_em', cutoffAntigo)
+      .lte('compareceu_em', cutoffMaduro);
+
+    if (intErr) {
+      console.error('Erro buscando interações:', intErr);
+      return new Response(
+        JSON.stringify({ error: intErr.message }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
+    if (!interacoes || interacoes.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, sent: 0, message: 'Nenhuma interação elegível' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Já filtrado por compareceu_em >= 3h na query
+    const elegiveis = interacoes;
+
+
+    console.log(`[feedback-pos-aula] elegíveis: ${elegiveis.length}/${interacoes.length}`);
+
+    if (elegiveis.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, sent: 0, message: 'Nenhuma aula completou 3h ainda' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const leadIds = elegiveis.map((e: any) => e.lead_id);
+    const { data: leads } = await supabase
+      .from('leads')
+      .select('id, nome, telefone, ativo, status_funil, is_matriculado, unidade_id, pausado_fu')
+      .in('id', leadIds);
+    const leadMap = new Map((leads || []).map((l: any) => [l.id, l]));
+
+    // FU pós-experimental vai DIRETO ao lead pelo chip comercial (sem recepção)
+
+    
+    let sent = 0;
+    const errors: string[] = [];
+    const results: any[] = [];
+
+    for (const inter of elegiveis) {
+      const lead: any = leadMap.get(inter.lead_id);
+      if (!lead) { errors.push(`Lead não encontrado: ${inter.lead_id}`); continue; }
+      if (!lead.ativo) { console.log(`[feedback] lead inativo: ${lead.nome}`); continue; }
+      if (lead.pausado_fu === true) { console.log(`[feedback] lead com FU pausado: ${lead.nome}`); continue; }
+
+      if (lead.is_matriculado || lead.status_funil === 'convertido' || lead.status_funil === 'perdido') {
+        console.log(`[feedback] lead já matriculado/perdido: ${lead.nome}`);
+        await supabase.from('interacoes').update({ feedback_pos_aula_enviado_em: new Date().toISOString() }).eq('id', inter.id);
+        continue;
+      }
+
+      // Re-check em tempo real
+      const { data: freshLead } = await supabase
+        .from('leads')
+        .select('is_matriculado, status_funil, ativo')
+        .eq('id', lead.id)
+        .maybeSingle();
+      if (!freshLead || !freshLead.ativo || freshLead.is_matriculado || freshLead.status_funil === 'convertido' || freshLead.status_funil === 'perdido') {
+        console.log(`[feedback] ⛔ lead virou matrícula/perdido/inativo antes do envio: ${lead.nome}`);
+        await supabase.from('interacoes').update({ feedback_pos_aula_enviado_em: new Date().toISOString() }).eq('id', inter.id);
+        continue;
+      }
+
+      const { data: matricula } = await supabase
+        .from('interacoes')
+        .select('id')
+        .eq('lead_id', lead.id)
+        .eq('fechou_matricula', true)
+        .maybeSingle();
+      if (matricula) {
+        console.log(`[feedback] ⛔ lead já tem matrícula registrada: ${lead.nome}`);
+        await supabase.from('interacoes').update({ feedback_pos_aula_enviado_em: new Date().toISOString() }).eq('id', inter.id);
+        continue;
+      }
+
+      const phone = normalizePhone(lead.telefone || '');
+      if (!phone || phone.length < 12) {
+        errors.push(`Telefone inválido para lead ${lead.nome}`);
+        continue;
+      }
+
+      const message = buildMensagemLead((lead.nome || '').split(' ')[0] || lead.nome || '');
+
+      if (dryRun) {
+        results.push({ lead: lead.nome, destino_lead: phone, unidade_id: lead.unidade_id, preview: message });
+        continue;
+      }
+
+      try {
+        const chave = buildIdempotencyKey([FUNC, inter.id, lead.id, inter.data_experimental, inter.hora_experimental, phone]);
+        if (!creds) throw new Error('Canal comercial indisponível');
+        const sendCreds = creds;
+        const r = await controlledSend(supabase, { lead_id: lead.id, unidade_id: lead.unidade_id, ciclo_id: inter.id, chave, fluxo: 'feedback', objetivo: 'conversao', tipo_fu: 'FEEDBACK', setor: 'comercial', canal: 'whatsapp', prioridade: 4, nao_urgente: true, responsavel: 'SISTEMA', prazo_original: inter.compareceu_em }, () => sendTextIdempotent(supabase, sendCreds, phone, message, { chave, funcao: FUNC }));
+        if (r.deferred) { results.push({ lead:lead.nome,status:'adiado',motivo:r.body.motivo }); continue; }
+        if (r.skipped) {
+          await supabase.from('interacoes').update({ feedback_pos_aula_enviado_em: new Date().toISOString() }).eq('id', inter.id);
+          results.push({ lead: lead.nome, status: 'duplicate' });
+          continue;
+        }
+        const ok = r.ok;
+
+        if (ok) {
+          sent++;
+          await supabase
+            .from('interacoes')
+            .update({ feedback_pos_aula_enviado_em: new Date().toISOString() })
+            .eq('id', inter.id);
+          
+          await logEnvio(supabase, {
+            funcao: FUNC,
+            destino: phone,
+            tipo_destino: 'lead',
+            unidade_id: lead.unidade_id,
+            sucesso: true,
+            zapi_status_code: r.status,
+            canal: 'comercial'
+          });
+
+          const { data: cancelados, error: cancelErr } = await supabase
+            .from('follow_ups')
+            .update({
+              status: 'cancelado',
+              cancelado_motivo: 'feedback_pos_aula_enviado',
+              concluido_em: new Date().toISOString(),
+              concluido_por: 'SISTEMA (feedback pós-aula)',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('lead_id', lead.id)
+            .eq('tipo', 'D+1')
+            .eq('status', 'pendente')
+            .select('id');
+          if (cancelErr) {
+            console.error(`[feedback] ⚠️ erro cancelando D+1 ${lead.nome}`, cancelErr);
+          } else if (cancelados && cancelados.length > 0) {
+            console.log(`[feedback] 🚫 D+1 cancelado (${cancelados.length}) p/ ${lead.nome}`);
+          }
+
+          console.log(`[feedback] ✅ enviado p/ recepção (${phone}) — lead ${lead.nome}`);
+        } else {
+          console.error(`[feedback] ❌ Z-API ${r.status} ${lead.nome}`, r.body);
+          errors.push(`Z-API ${r.status}: ${lead.nome}`);
+          await logEnvio(supabase, {
+            funcao: FUNC,
+            destino: phone,
+            tipo_destino: 'lead',
+            unidade_id: lead.unidade_id,
+            sucesso: false,
+            zapi_status_code: r.status,
+            erro_msg: JSON.stringify(r.body).slice(0, 500),
+            canal: 'comercial'
+          });
+        }
+      } catch (e: any) {
+        console.error(`[feedback] erro envio ${lead.nome}`, e);
+        errors.push(`Erro envio: ${lead.nome} - ${e?.message ?? e}`);
+        await logEnvio(supabase, {
+          funcao: FUNC,
+          destino: phone,
+          tipo_destino: 'lead',
+          unidade_id: lead.unidade_id,
+          sucesso: false,
+          erro_msg: e?.message ?? String(e),
+          canal: 'comercial'
+        });
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, sent, total_eligible: elegiveis.length, errors, dry_run: dryRun, results }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (err: any) {
+    console.error('[feedback-pos-aula] erro geral', err);
+    return new Response(
+      JSON.stringify({ error: err?.message ?? 'Internal error' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
+  }
+});
