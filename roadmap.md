@@ -1,12 +1,14 @@
 # Roadmap
 
 ## Homologação frontend Fases 2–4 — 05/11/2026
+- [x] Homologação final: remover somente a chamada de geração no carregamento do Dashboard; reprodução anterior mostrou 10 chamadas, após correção nenhuma chamada de função no carregamento/períodos. 78 regressões existentes + 1 teste novo aprovados. Cinco perfis, duas unidades, 30 combinações tela/perfil, cinco trocas A→B e cinco navegações móveis concluídas com transporte fictício.
+- [x] Persistência fictícia: cinco perfis editaram nome, PATCH validou unidade e linha retornada foi relida após recarga; filtro CRM Últimos 7 dias sobreviveu à recarga. Dashboard: últimos 7 dias, mês atual, mês anterior e personalizado sem invocar funções. Não certifica RLS/auth/persistência hospedados.
 - [x] Reutilizar 60 testes existentes; 18 regressões novas de acesso aprovadas (78 total). Chromium com login/transporte fictícios: admin, recepção, comercial, coordenador, gerente e perfil ausente; 30 combinações tela/perfil, CRM preenchido e troca A→B, sem rede de produção.
 - [x] Reproduzir perfil ausente montando Executivo/Usuários; corrigir somente os três gates restritos de App.tsx e confirmar mesma reprodução sem montagem privilegiada. Build automático OK.
 - [x] Candidatos à publicação: filtros/listas/edição básica CRM–Kanban–LeadDetail, indicadores Executivo/Comissões/Operacional e menu/gates; não dependem das 20 funções preparadas. Enviado/FC-2A.1 permanecem desligados; nenhuma função ou configuração alterada.
 - [x] Preparar matriz: CRM/Comissões para cinco perfis; Executivo para admin/coordenador/gerente; Dashboard Operacional e Usuários para admin; testar perfil ausente e unidade não permitida. Contas fictícias existem somente no transporte interceptado, não no auth hospedado.
-- [ ] Homologação hospedada de permissões e persistência — requer ambiente isolado com contas dos cinco perfis e duas unidades, sem dados reais. Desktop/mobile, períodos mensais/customizados e CRUD com leitura após recarga devem ser aceitos antes da publicação.
-- [ ] Publicação — depende de autorização e seleção das mudanças: publicar o checkout inteiro também incluiria outras frentes não homologadas. Dashboard principal chama generate-follow-ups ao carregar (legado preservado, fora das 20); homologação sem automação deve interceptar essa chamada. Períodos extensos ainda têm risco conhecido de corte de 1.000 registros.
+- [ ] Homologação hospedada de permissões e persistência — requer ambiente isolado com contas dos cinco perfis e duas unidades, sem dados reais; criação de contas/banco não autorizada nesta etapa.
+- [ ] Publicação — depende de autorização e seleção das mudanças: publicar o checkout inteiro também incluiria outras frentes não homologadas. Escopo separado em docs/frontend-release-scope.md. Períodos extensos ainda têm risco conhecido de corte de 1.000 registros. Nenhum processo agendado ou função foi alterado.
 
 ## Mapeamento final dos agendamentos — 05/11/2026
 - [x] Integrar os 19 endpoints e o backup fora de supabase/functions; 46 testes fictícios aprovados, fontes implantáveis inalteradas, reversão local preservada sem afirmar identidade com versões hospedadas.
