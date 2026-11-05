@@ -1,5 +1,10 @@
 # Roadmap
 
+## Homologação frontend Fases 2–4 — 05/11/2026
+- [ ] Reutilizar testes existentes e validar perfis/unidades com transporte fictício, sem produção.
+- [ ] Separar telas independentes das funções pendentes e manter Enviado/FC-2A.1 desativados.
+- [ ] Corrigir somente novas falhas reproduzidas e registrar próxima ação de homologação, sem publicação.
+
 ## Mapeamento final dos agendamentos — 05/11/2026
 - [x] Integrar os 19 endpoints e o backup fora de supabase/functions; 46 testes fictícios aprovados, fontes implantáveis inalteradas, reversão local preservada sem afirmar identidade com versões hospedadas.
 - [x] Ler cron.job e emissores SQL sem executar automações; identificar 15 agendas ativas, 1 inativa e 4 emissores por trigger.
