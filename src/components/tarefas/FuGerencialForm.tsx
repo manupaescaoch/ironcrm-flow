@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useFuContact } from '@/hooks/useFuContact';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnidade } from '@/contexts/UnidadeContext';
@@ -18,23 +17,29 @@ export function FuGerencialForm({ task, status, registro, onStatus, onRegistro }
 }) {
   const { unidadeAtual } = useUnidade();
   const { userRole: role } = useAuth();
-  const makeMessage = useCallback((nome: string) => mensagemGerencial(nome, unidadeAtual?.nome ?? '', task.responsavel, task.fu_gerencial_etapa ?? 'M+30'), [task.fu_gerencial_etapa, task.responsavel, unidadeAtual?.nome]);
-  const { aluno, mensagem, setMensagem, ready, error } = useFuContact({ taskId: task.id, leadId: task.fu_gerencial_lead_id ?? '', enrollmentId: task.fu_gerencial_matricula_id ?? '', unitId: task.unidade_id === unidadeAtual?.id ? unidadeAtual.id : '', stage: task.fu_gerencial_etapa ?? '' }, makeMessage);
+  const [aluno, setAluno] = useState<{ nome: string; telefone: string | null } | null>(null);
+  
+  const [mensagem, setMensagem] = useState('');
   const [anteriores, setAnteriores] = useState<{ titulo: string; status: string | null; registro: unknown }[]>([]);
   const terminal = ['concluido', 'dispensado', 'cancelado'].includes(task.fu_gerencial_status ?? '');
   const permitido = ['admin', 'gerente'].includes(role ?? '') && !terminal;
   useEffect(() => {
     let alive = true;
-    setAnteriores([]);
     (async () => {
       if (!task.fu_gerencial_lead_id || !task.fu_gerencial_matricula_id || !task.fu_gerencial_etapa || !unidadeAtual) return;
-      const historyResult = await supabase.from('tasks').select('titulo,fu_gerencial_status,fu_gerencial_registro').eq('fu_gerencial_lead_id', task.fu_gerencial_lead_id).eq('unidade_id', unidadeAtual.id).neq('id', task.id).order('created_at');
+      const [leadResult, historyResult] = await Promise.all([
+        supabase.from('leads').select('nome,telefone').eq('id', task.fu_gerencial_lead_id).eq('unidade_id', unidadeAtual.id).maybeSingle(),
+        supabase.from('tasks').select('titulo,fu_gerencial_status,fu_gerencial_registro').eq('fu_gerencial_lead_id', task.fu_gerencial_lead_id).eq('unidade_id', unidadeAtual.id).neq('id', task.id).order('created_at'),
+      ]);
       if (!alive) return;
+      setAluno(leadResult.data);
+      
       setAnteriores((historyResult.data ?? []).map(t => ({ titulo: t.titulo, status: t.fu_gerencial_status, registro: t.fu_gerencial_registro })));
-    })().catch(() => { if (alive) setAnteriores([]); });
+      if (leadResult.data) setMensagem(mensagemGerencial(leadResult.data.nome, unidadeAtual.nome, task.responsavel, task.fu_gerencial_etapa ?? 'M+30'));
+    })();
     return () => { alive = false; };
   }, [task.id, task.fu_gerencial_lead_id, task.fu_gerencial_matricula_id, task.fu_gerencial_etapa, task.responsavel, unidadeAtual]);
-  const link = ready ? linkGerencial(aluno?.telefone, mensagem) : null;
+  const link = linkGerencial(aluno?.telefone, mensagem);
   const change = (key: keyof RegistroGerencial, value: string) => onRegistro({ ...registro, [key]: value });
   return <div className="space-y-4 border-t border-border pt-4">
     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -56,8 +61,8 @@ export function FuGerencialForm({ task, status, registro, onStatus, onRegistro }
     </details>}
     {task.fu_gerencial_concluido_em && <p className="text-sm text-muted-foreground">Concluído em {new Date(task.fu_gerencial_concluido_em).toLocaleString('pt-BR', { timeZone: 'America/Recife' })}</p>}
     <Label htmlFor="fu-mensagem">Mensagem proposta</Label>
-    <Textarea id="fu-mensagem" value={mensagem} onChange={e => setMensagem(e.target.value)} rows={7} disabled={!ready} />
-    {link ? <Button type="button" variant="outline" asChild><a href={link} target="_blank" rel="noopener noreferrer">Falar com o aluno</a></Button> : <p role="status" className="text-muted-foreground text-sm">{error ?? (ready ? 'Telefone inválido ou ausente — acompanhamento presencial disponível.' : 'Carregando contato…')}</p>}
+    <Textarea id="fu-mensagem" value={mensagem} onChange={e => setMensagem(e.target.value)} rows={7} />
+    {link ? <Button type="button" variant="outline" asChild><a href={link} target="_blank" rel="noopener noreferrer">Falar com o aluno</a></Button> : <p className="text-destructive text-sm">Telefone inválido ou ausente — acompanhamento presencial disponível.</p>}
     <div className="space-y-2"><Label>Situação do acompanhamento</Label>
       <Select value={status} onValueChange={v => onStatus(v as StatusGerencial)} disabled={!permitido}>
         <SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STATUS_GERENCIAIS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>

@@ -1,5 +1,3 @@
-import { useCommercialConfirmation } from '@/hooks/useCommercialConfirmation';
-import { linkTecnico } from '@/lib/fuTecnico';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,8 +19,7 @@ import { WhatsAppLink } from '@/components/WhatsAppLink';
 import { format, differenceInDays, isToday, isPast, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { useState, useMemo, useEffect } from 'react';
-import { FunctionsHttpError } from '@supabase/supabase-js';
+import { useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -101,7 +98,6 @@ export function FollowUpSections({
   onTipoClick
 }: FollowUpSectionsProps) {
   const navigate = useNavigate();
-  const confirmation = useCommercialConfirmation();
   const { userRole } = useAuth();
   const canManualSend = userRole === 'admin' || userRole === 'comercial';
   const [loading, setLoading] = useState(false);
@@ -115,7 +111,7 @@ export function FollowUpSections({
   const [now, setNow] = useState(Date.now());
 
   // Atualiza contador do cooldown
-  useEffect(() => {
+  useMemo(() => {
     if (manualCooldownUntil <= 0) return;
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
@@ -135,9 +131,9 @@ export function FollowUpSections({
         },
       });
       if (error) {
-        const msg = error.message || 'Falha ao iniciar envio';
+        const msg = (error as any)?.context?.error || error.message || 'Falha ao iniciar envio';
         // Supabase functions.invoke retorna erro em status != 2xx; tentamos extrair a mensagem
-        const status = error instanceof FunctionsHttpError ? error.context.status : undefined;
+        const status = (error as any)?.context?.status;
         if (status === 409) {
           toast.warning('Já existe uma execução manual em andamento. Aguarde alguns minutos.');
         } else if (status === 403) {
@@ -156,8 +152,8 @@ export function FollowUpSections({
       );
       setManualCooldownUntil(Date.now() + 60_000);
       setNow(Date.now());
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Falha ao iniciar envio');
+    } catch (e: any) {
+      toast.error(e?.message || 'Falha ao iniciar envio');
     } finally {
       setManualSending(false);
       setManualConfirmOpen(false);
@@ -216,7 +212,6 @@ export function FollowUpSections({
   };
 
   const handleSendWhatsApp = (item: FollowUpAutoItem) => {
-    confirmation.select();
     setSelectedItem(item);
     setConfirmModalOpen(true);
   };
@@ -226,14 +221,33 @@ export function FollowUpSections({
     setLoading(true);
     
     try {
-      const confirmed = await confirmation.confirm(selectedItem, 'dashboard', `Follow-up ${selectedItem.tipo} realizado via WhatsApp`);
-      if (!confirmed) return;
+      // Update follow-up status
+      const { error: followUpError } = await supabase
+        .from('follow_ups')
+        .update({ 
+          status: 'concluido',
+          concluido_em: new Date().toISOString(),
+          concluido_por: 'dashboard'
+        })
+        .eq('id', selectedItem.id);
+
+      if (followUpError) throw followUpError;
+
+      // Log interaction
+      await supabase.from('interacoes').insert({
+        lead_id: selectedItem.lead_id,
+        tipo: 'follow_up',
+        descricao: `Follow-up ${selectedItem.tipo.toUpperCase()} realizado via WhatsApp`,
+        data_interacao: new Date().toISOString(),
+      });
+
+      toast.success('Follow-up marcado como realizado!');
       setConfirmModalOpen(false);
       setSelectedItem(null);
       onRefresh();
     } catch (error) {
       console.error('Erro ao confirmar follow-up:', error);
-      toast.error(error instanceof Error ? error.message : 'Não foi possível verificar a confirmação.');
+      toast.error('Erro ao atualizar follow-up');
     } finally {
       setLoading(false);
     }
@@ -285,15 +299,23 @@ export function FollowUpSections({
   };
 
   const handleMarkAsCompleted = async (item: FollowUpAutoItem) => {
-    confirmation.select();
     setLoading(true);
     try {
-      const confirmed = await confirmation.confirm(item, 'dashboard', `Follow-up ${item.tipo} marcado como realizado`);
-      if (!confirmed) return;
+      const { error } = await supabase
+        .from('follow_ups')
+        .update({ 
+          status: 'concluido',
+          concluido_em: new Date().toISOString(),
+          concluido_por: 'dashboard'
+        })
+        .eq('id', item.id);
+
+      if (error) throw error;
+      toast.success('Follow-up marcado como realizado!');
       onRefresh();
     } catch (error) {
       console.error('Erro ao marcar como realizado:', error);
-      toast.error(error instanceof Error ? error.message : 'Não foi possível verificar a confirmação.');
+      toast.error('Erro ao atualizar follow-up');
     } finally {
       setLoading(false);
     }
